@@ -1,0 +1,15 @@
+service: landing-dev
+runtime: nodejs22
+env_variables:
+  ENVIRONMENT: "dev"
+  
+build_env_variables:
+  NPM_CONFIG_LEGACY_PEER_DEPS: "true"
+
+handlers:
+  - url: /.*
+    script: auto
+    secure: always
+
+# automatic_scaling:
+#   max_instances: 20

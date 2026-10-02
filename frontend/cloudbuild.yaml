@@ -1,0 +1,55 @@
+steps:
+  # 1. Instalar dependencias de Node
+  - name: 'node:22-slim'
+    id: '1. Instalar dependencias de Node'
+    entrypoint: npm
+    args: ['ci', '--legacy-peer-deps']
+
+  # 2. Linting
+  - name: 'node:22-slim'
+    id: 'run-lint'
+    entrypoint: npm
+    args: ['run', 'lint']
+
+  # 3. Crear archivo .env dinámico según el entorno
+  - name: 'ubuntu'
+    id: 'Configurar Variables de Entorno'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "Configurando variables para el entorno: ${_ENVIRONMENT}"
+        if [ "${_ENVIRONMENT}" = "dev" ]; then
+          echo "NEXT_PUBLIC_API_URL_CONTACTO=https://dev-contacto-330426731666.us-east1.run.app" > .env
+        elif [ "${_ENVIRONMENT}" = "qa" ]; then
+          echo "NEXT_PUBLIC_API_URL_CONTACTO=https://qa-contacto-330426731666.us-east1.run.app" > .env
+        elif [ "${_ENVIRONMENT}" = "prod" ]; then
+          echo "NEXT_PUBLIC_API_URL_CONTACTO=https://prod-contacto-330426731666.us-east1.run.app" > .env
+        else
+          echo "Entorno no reconocido, usando dev por defecto"
+          echo "NEXT_PUBLIC_API_URL_CONTACTO=https://dev-contacto-330426731666.us-east1.run.app" > .env
+        fi
+        cat .env
+
+  # 4. Compilar la aplicación Next.js
+  - name: 'node:22-slim'
+    id: '2. Compilar la aplicación Next.js'
+    entrypoint: npm
+    args: ['run', 'build']
+
+  # 4. Desplegar la aplicación en App Engine
+  - name: 'gcr.io/cloud-builders/gcloud'
+    # dir: '.next/standalone'
+    id: '4. Desplegar la aplicación en App Engine'
+    entrypoint: gcloud
+    args: [
+      'app',
+      'deploy',
+      '${_ENVIRONMENT}.yaml',
+      '--quiet'
+    ]
+
+timeout: '1800s'
+
+options:
+  logging: CLOUD_LOGGING_ONLY

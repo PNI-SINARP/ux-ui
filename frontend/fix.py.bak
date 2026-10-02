@@ -1,0 +1,209 @@
+
+import os
+
+file_path = r"src\app\wireframes2\enrolamiento-coordinador\page.tsx"
+with open(file_path, "r", encoding="utf-8") as f:
+    content = f.read()
+
+# 1. Cards
+t1 = """<div className="p-3 rounded-xl border border-dashed border-border/80 bg-muted/10 space-y-1">
+                              <div className="h-10 flex items-center justify-center text-muted-foreground italic text-[11px]">
+                                [Firma Electrónica Representante Legal]
+                              </div>
+                              <span className="font-bold text-foreground block text-[11px] border-t border-border pt-1">
+                                {formData.representanteLegalNombre}
+                              </span>
+                              <span className="text-[10px] text-muted-foreground block">
+                                Representante Legal / Delegado
+                              </span>
+                            </div>"""
+r1 = """<Card variant="featured" disableHover className="bg-transparent border border-dashed border-border shadow-none hover:shadow-none p-0 overflow-hidden" innerClassName="p-5 items-center text-center justify-center gap-2 w-full">
+                              <CardDecorativeIcon>
+                                <Building2 className="size-24 text-muted-foreground/30 -mb-4 -mr-4" />
+                              </CardDecorativeIcon>
+                              <div className="h-10 flex items-center justify-center text-muted-foreground italic text-[11px] relative z-10">
+                                [Firma Electrónica Representante Legal]
+                              </div>
+                              <div className="border-t border-border pt-3 w-full mt-1 relative z-10">
+                                <span className="font-bold text-foreground block text-[11px]">
+                                  {formData.representanteLegalNombre}
+                                </span>
+                                <span className="text-[10px] text-muted-foreground block mt-0.5">
+                                  Representante Legal / Delegado
+                                </span>
+                              </div>
+                            </Card>"""
+
+t2 = """<div className="p-3 rounded-xl border border-dashed border-primary/40 bg-primary/5 space-y-1">
+                              <div className="h-10 flex items-center justify-center text-primary font-semibold text-[11px]">
+                                Pendiente FirmaEC (Paso 4)
+                              </div>
+                              <span className="font-bold text-foreground block text-[11px] border-t border-border pt-1">
+                                {formData.funcionarioNombre}
+                              </span>
+                              <span className="text-[10px] text-muted-foreground block">
+                                Coordinador Designado ({formData.rolAsignado})
+                              </span>
+                            </div>"""
+r2 = """<Card variant="featured" disableHover className="bg-primary/5 border border-dashed border-primary/40 shadow-none hover:shadow-none p-0 overflow-hidden" innerClassName="p-5 items-center text-center justify-center gap-2 w-full">
+                              <CardDecorativeIcon>
+                                <FileSignature className="size-24 text-primary/20 -mb-4 -mr-4" />
+                              </CardDecorativeIcon>
+                              <div className="h-10 flex items-center justify-center text-primary font-semibold text-[11px] relative z-10">
+                                Pendiente FirmaEC (Paso 4)
+                              </div>
+                              <div className="border-t border-primary/20 pt-3 w-full mt-1 relative z-10">
+                                <span className="font-bold text-primary block text-[11px]">
+                                  {formData.funcionarioNombre}
+                                </span>
+                                <span className="text-[10px] text-primary/70 block mt-0.5">
+                                  Coordinador Designado ({formData.rolAsignado})
+                                </span>
+                              </div>
+                            </Card>"""
+content = content.replace(t1, r1).replace(t2, r2)
+content = content.replace(t1.replace("\n", "\r\n"), r1)
+content = content.replace(t2.replace("\n", "\r\n"), r2)
+
+# 2. Text changes
+content = content.replace("Instrumento digital oficial DINARP · Certificado X.509", "Anexo B · Acuerdo de Uso y Confidencialidad")
+content = content.replace("FIRMADO DIGITALMENTE", "FIRMA VERIFICADA")
+content = content.replace("Notificación de firma enviada a tu correo institucional", "Solicitud de firma enviada")
+content = content.replace("Revisa tu correo. Cuando firmes con FirmaEC o Token, el estado de esta pantalla se actualizará automáticamente.", "El estado de esta pantalla se actualizará automáticamente.")
+content = content.replace("Revisa tu correo. Cuando firmes en FirmaEC o Token, el estado de esta pantalla se actualizará automáticamente.", "El estado de esta pantalla se actualizará automáticamente.")
+content = content.replace("FirmaEC no pudo validar el certificado digital: el token no responde o el certificado digital se encuentra revocado/expirado.", "No fue posible verificar la firma electrónica. Intenta nuevamente para continuar.")
+content = content.replace("Nota del sistema: El trámite Anexo B no ha sido radicado ni enviado a Gestión. Debe completar una firma válida para continuar.", "Nota: El Anexo B aún no ha sido enviado a Gestión. Para continuar, debes completar y verificar correctamente la firma.")
+content = content.replace("Monitoreando firma en vivo...", "Esperando confirmación...")
+content = content.replace("Firma Electrónica Confirmada por FirmaEC", "Firma verificada exitosamente")
+content = content.replace("El documento ARP-R02 ha sido firmado digitalmente de forma válida y los cambios se actualizaron en esta pantalla.", "El instrumento digital ha sido suscrito con un certificado electrónico válido. El documento está listo para ser radicado.")
+
+# 3. Step 4
+ts4 = """                        {!isSigned ? (
+                          <div className="pt-2 border-t border-border/60 space-y-4">
+                            {/* Alerta de notificación por correo */}
+                            <div className="p-4 rounded-xl border border-primary/25 bg-primary/5 space-y-2 text-xs">
+                              <div className="flex items-center gap-2 font-bold text-primary">
+                                <Mail className="size-4 shrink-0" />
+                                <span>Solicitud de firma enviada</span>
+                              </div>
+                              <p className="text-[11px] leading-relaxed text-muted-foreground">
+                                Revisa tu correo institucional y continúa el proceso de firma en FirmaEC.
+                              </p>
+                              <p className="text-[11px] font-semibold text-primary/90 flex items-center gap-1.5 pt-1">
+                                <RefreshCw className="size-3.5 animate-spin shrink-0" />
+                                <span>El estado de esta pantalla se actualizará automáticamente.</span>
+                              </p>
+                            </div>
+
+                            <div className="flex items-center justify-between gap-3 pt-1 flex-wrap">
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                <LoadingSpinner size="sm" className="size-3.5 text-primary shrink-0" />
+                                <span className="text-[11px]">Esperando confirmación...</span>
+                              </div>
+
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                disabled={isSigning}
+                                onClick={handleFirmaElectronica}
+                                className="text-xs font-semibold gap-2 border-primary/40 text-primary hover:bg-primary/10 shadow-xs"
+                              >
+                                {isSigning ? (
+                                  <div className="flex items-center gap-2">
+                                    <LoadingSpinner size="sm" className="size-4" />
+                                    <span>Sincronizando con FirmaEC...</span>
+                                  </div>
+                                ) : (
+                                  <>
+                                    <ShieldCheck className="size-4" />
+                                    <span>Simular Firma Realizada en FirmaEC (Actualizar Estado)</span>
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                          </div>
+                        ) : ("""
+
+rs4 = """                        {!isSigned ? (
+                          <div className="pt-2 border-t border-border/60 space-y-4">
+                            {!signingError && (
+                              <div className="p-4 rounded-xl border border-primary/25 bg-primary/5 space-y-2 text-xs">
+                                <div className="flex items-center gap-2 font-bold text-primary">
+                                  <Mail className="size-4 shrink-0" />
+                                  <span>Solicitud de firma enviada</span>
+                                </div>
+                                <p className="text-[11px] leading-relaxed text-muted-foreground">
+                                  Revisa tu correo institucional y continúa el proceso de firma en FirmaEC.
+                                </p>
+                                <p className="text-[11px] font-semibold text-primary/90 flex items-center gap-1.5 pt-1">
+                                  <RefreshCw className="size-3.5 animate-spin shrink-0" />
+                                  <span>El estado de esta pantalla se actualizará automáticamente.</span>
+                                </p>
+                              </div>
+                            )}
+
+                            {signingError && (
+                              <div className="pt-2 animate-in slide-in-from-top-1">
+                                <Alert
+                                  variant="danger"
+                                  icon={<AlertCircle className="size-4" />}
+                                  title="Firma no completada"
+                                  className="items-center rounded-xl bg-danger/10 border-danger/20"
+                                >
+                                  <div className="flex flex-col gap-1 mt-1">
+                                    <div className="flex items-start justify-between gap-4">
+                                      <span className="text-xs font-medium leading-relaxed text-danger-900 dark:text-danger-100">
+                                        No fue posible verificar la firma electrónica. Intenta nuevamente para continuar.
+                                      </span>
+                                      <Button
+                                        type="button"
+                                        variant="danger"
+                                        size="sm"
+                                        disabled={isSigning}
+                                        onClick={handleFirmaElectronica}
+                                        className="shrink-0 text-[10px] h-7 px-3 rounded-full"
+                                      >
+                                        {isSigning ? <LoadingSpinner size="sm" className="size-3" /> : <RefreshCw className="size-3 mr-1.5" />}
+                                        <span>Reintentar FirmaEC</span>
+                                      </Button>
+                                    </div>
+                                    <span className="text-[11px] text-danger-700/80 dark:text-danger-200/80 mt-1">
+                                      Nota: El Anexo B aún no ha sido enviado a Gestión. Para continuar, debes completar y verificar correctamente la firma.
+                                    </span>
+                                  </div>
+                                </Alert>
+                              </div>
+                            )}
+
+                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2">
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                {isSigning ? (
+                                  <>
+                                    <LoadingSpinner size="sm" className="size-3.5 text-primary shrink-0" />
+                                    <span className="text-[11px]">Verificando firma con FirmaEC...</span>
+                                  </>
+                                ) : (
+                                  !signingError && (
+                                    <>
+                                      <LoadingSpinner size="sm" className="size-3.5 text-primary shrink-0" />
+                                      <span className="text-[11px]">Esperando confirmación...</span>
+                                    </>
+                                  )
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ) : ("""
+
+if ts4 in content:
+    content = content.replace(ts4, rs4)
+elif ts4.replace("\n", "\r\n") in content:
+    content = content.replace(ts4.replace("\n", "\r\n"), rs4)
+else:
+    print("WARNING: Step 4 alert block not found")
+
+with open(file_path, "w", encoding="utf-8") as f:
+    f.write(content)
+print("Done")
+
