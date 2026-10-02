@@ -1,10 +1,25 @@
 import { AccesoSolicitudDetailView } from "@/modules/acceso-interoperabilidad/views/acceso-solicitud-detail-view";
 
-interface PageProps {
-  params: Promise<{ id: string }>;
-  searchParams?: Promise<{ edit?: string; step?: string }>;
+const SOLICITUDES_IDS = [
+  "SOL-2026-001",
+  "SOL-2026-002",
+  "SOL-2026-004",
+  "SOL-2026-005",
+  "SOL-2026-006",
+  "SOL-2026-007",
+  "SOL-2026-008",
+  "SOL-2026-009",
+  "SOL-2026-010",
+];
+
+export function generateStaticParams() {
+  return SOLICITUDES_IDS.map((id) => ({ id }));
 }
 
-export default function SolicitudDetailPage(props: PageProps) {
-  return <AccesoSolicitudDetailView {...props} />;
+interface PageProps {
+  params: Promise<{ id: string }>;
+}
+
+export default function SolicitudDetailPage({ params }: PageProps) {
+  return <AccesoSolicitudDetailView params={params} />;
 }

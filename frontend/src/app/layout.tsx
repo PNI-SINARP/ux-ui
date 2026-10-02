@@ -33,7 +33,7 @@ const montserrat = Montserrat({
   display: "swap",
 });
 
-const basePath = process.env.NEXT_PUBLIC_BASE_PATH || (process.env.GITHUB_ACTIONS ? "/DINARP" : "");
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
 
 export const metadata = {
   title: "DINARP KIT UX / UI",

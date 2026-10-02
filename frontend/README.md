@@ -1,6 +1,10 @@
-# Certificados Laborales v2
+# DINARP — Frontend (UX/UI)
 
-Aplicación web construida con [Next.js](https://nextjs.org) para la generación de certificados laboralesgg.
+Aplicación frontend construida con [Next.js](https://nextjs.org/) y Tailwind CSS v4 para la plataforma **DINARP** (Dirección Nacional de Registros Públicos).
+
+Repositorio: [https://github.com/PNI-SINARP/ux-ui](https://github.com/PNI-SINARP/ux-ui)
+
+---
 
 ## Inicio Rápido
 
@@ -10,55 +14,31 @@ Ejecutar el servidor de desarrollo:
 npm run dev
 ```
 
-Abrir [http://localhost:3000](http://localhost:3000) en el navegador para ver el resultado.
+Abrir [http://localhost:3000](http://localhost:3000) en el navegador.
 
-El archivo principal de la página es `src/app/page.tsx`. Los cambios se reflejan automáticamente al guardar.
+---
 
-## Estructura del Proyecto
+## Estructura
 
 ```
-├── src/app/              # Páginas y layouts de la aplicación
-├── public/               # Archivos estáticos
-├── app.yaml              # Configuración de App Engine
-├── cloudbuild-dev.yaml   # Pipeline CI/CD para desarrollo (mintic-cert-laborales-dev)
-├── cloudbuild-qa.yaml    # Pipeline CI/CD para QA (mintic-cert-laborales-qa)
-├── cloudbuild-prod.yaml  # Pipeline CI/CD para producción (mintic-cert-laborales-prod)
-└── next.config.ts        # Configuración de Next.js
+frontend/
+├── src/
+│   ├── app/             # Rutas y páginas de la aplicación
+│   ├── components/      # Componentes UI (Shadcn/Radix) y compartidos
+│   ├── modules/         # Módulos de funcionalidad DINARP
+│   ├── hooks/           # Custom hooks
+│   └── lib/             # Helpers y utilidades
+├── public/              # Archivos estáticos
+└── next.config.ts       # Configuración de Next.js
 ```
 
-## Estrategia de Ramas
-
-| Rama   | Entorno     | Proyecto GCP               | Archivo Cloud Build      |
-|--------|-------------|----------------------------|--------------------------|
-| `dev`  | Desarrollo  | `mintic-cert-laborales-dev`  | `cloudbuild-dev.yaml`  |
-| `qa`   | QA          | `mintic-cert-laborales-qa`   | `cloudbuild-qa.yaml`   |
-| `main` | Producción  | `mintic-cert-laborales-prod` | `cloudbuild-prod.yaml` |
-
-## Despliegue
-
-El despliegue se realiza automáticamente mediante **Cloud Build** hacia **App Engine** al hacer push a la rama correspondiente.
-
-### Requisitos previos en cada proyecto GCP
-
-1. Tener habilitada la API de App Engine
-2. Tener habilitada la API de Cloud Build
-3. Configurar un trigger en Cloud Build apuntando al archivo `cloudbuild-{env}.yaml` correspondiente y a la rama correcta
-
-### Despliegue manual (opcional)
-
-```bash
-# Construir la aplicación
-npm run build
-
-# El resultado standalone queda en .next/standalone/
-```
+---
 
 ## Scripts Disponibles
 
-| Comando         | Descripción                          |
-|-----------------|--------------------------------------|
-| `npm run dev`   | Servidor de desarrollo               |
-| `npm run build` | Compilar para producción             |
-| `npm run start` | Iniciar servidor de producción       |
-| `npm run lint`  | Ejecutar el linter                   |
-
+| Comando | Descripción |
+|---|---|
+| `npm run dev` | Servidor de desarrollo |
+| `npm run build` | Compilar para producción |
+| `npm run start` | Iniciar servidor de producción |
+| `npm run lint` | Ejecutar linter |

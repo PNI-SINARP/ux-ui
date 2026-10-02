@@ -4,15 +4,17 @@ import createNextIntlPlugin from "next-intl/plugin";
 
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
-const isGithubActions = process.env.GITHUB_ACTIONS || false;
+const isGithubActions = Boolean(process.env.GITHUB_ACTIONS);
+const repoName = process.env.GITHUB_REPOSITORY ? `/${process.env.GITHUB_REPOSITORY.split("/")[1]}` : "/ux-ui";
+const basePath = isGithubActions ? repoName : "";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   output: isGithubActions ? "export" : "standalone",
-  basePath: isGithubActions ? "/DINARP" : "",
+  basePath: basePath,
   trailingSlash: true,
   env: {
-    NEXT_PUBLIC_BASE_PATH: isGithubActions ? "/DINARP" : "",
+    NEXT_PUBLIC_BASE_PATH: basePath,
   },
   turbopack: {
     root: process.cwd(),

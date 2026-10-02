@@ -1,15 +1,15 @@
 {
-  "name": "basefrontend",
+  "name": "dinarp-ux-ui",
   "version": "0.1.0",
   "private": true,
-  "description": "Aplicación web construida con [Next.js](https://nextjs.org) para la generación de certificados laborales.",
-  "homepage": "https://github.com/GLocation-SAS/minedec-geoportal#readme",
+  "description": "Plataforma DINARP - Sistema Nacional de Registros Públicos (UX/UI)",
+  "homepage": "https://github.com/PNI-SINARP/ux-ui#readme",
   "bugs": {
-    "url": "https://github.com/GLocation-SAS/minedec-geoportal/issues"
+    "url": "https://github.com/PNI-SINARP/ux-ui/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/GLocation-SAS/minedec-geoportal.git"
+    "url": "git+https://github.com/PNI-SINARP/ux-ui.git"
   },
   "license": "ISC",
   "author": "",
