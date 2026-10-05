@@ -8,6 +8,7 @@ import {
   FileText,
   CheckSquare,
   Folder,
+  FolderKanban,
   ArrowLeftRight,
   Server,
   Database,
@@ -52,6 +53,7 @@ import { MOCK_USERS_BY_ROLE, type MockUser, type UserRole } from "@/modules/cata
 import { WireframeBreadcrumbs, type BreadcrumbSegment } from "./wireframe-breadcrumbs";
 import { useAuthStore } from "@/modules/gestion-solicitudes/data/auth-store";
 import { WireframeRoleSelector } from "./wireframe-role-selector";
+import { isProviderInstitution } from "@/modules/fuentes/data/fuentes-data";
 import {
   SidebarProvider,
   Sidebar,
@@ -95,15 +97,32 @@ interface NavItem {
   children?: NavSubItem[];
   pathPrefix?: string;
   allowedRoles?: UserRole[];
+  providerOnly?: boolean;
 }
 
 const navItems: NavItem[] = [
   {
+    id: "institucion-group",
+    label: "Institución",
+    icon: Building2,
+    pathPrefix: "/cambio-coordinador",
+    children: [
+      {
+        id: "cambio-coordinador",
+        label: "Cambio de coordinador",
+        href: "/cambio-coordinador",
+        exact: true
+      }
+    ],
+    allowedRoles: ["REPRESENTANTE_INSTITUCIONAL", "ADMIN"]
+  },
+  {
+
     id: "inicio",
     label: "Inicio",
     icon: Home,
     href: "#",
-    allowedRoles: ["EQ_GESTION", "DIR_NORMATIVA", "EQ_NORMATIVA"]
+    allowedRoles: ["EQ_GESTION", "DIR_NORMATIVA", "EQ_NORMATIVA", "REPRESENTANTE_INSTITUCIONAL"]
   },
   {
     id: "catalogo-interoperabilidad-group",
@@ -119,6 +138,21 @@ const navItems: NavItem[] = [
       }
     ],
     allowedRoles: ["COORDINADOR_SINARP", "APROBADOR"]
+  },
+  {
+    id: "proyectos",
+    label: "Proyectos",
+    icon: FolderKanban,
+    href: "/proyectos",
+    allowedRoles: ["COORDINADOR_SINARP"]
+  },
+  {
+    id: "fuentes",
+    label: "Fuentes",
+    icon: Server,
+    href: "/fuentes",
+    allowedRoles: ["COORDINADOR_SINARP"],
+    providerOnly: true
   },
   {
     id: "acceso-interoperabilidad-group",
@@ -158,11 +192,18 @@ const navItems: NavItem[] = [
     allowedRoles: ["DIR_GESTION"]
   },
   {
-    id: "solicitudes-asignadas-gestion",
-    label: "Solicitudes asignadas",
+    id: "solicitudes-pendientes",
+    label: "Solicitudes pendientes",
     icon: FileSignature,
     href: "/solicitudes-pendientes",
     allowedRoles: ["EQ_GESTION"]
+  },
+  {
+    id: "revision-fuentes",
+    label: "Revisión de fuentes",
+    icon: FolderCheck,
+    href: "/revision-fuentes",
+    allowedRoles: ["EQ_GESTION", "DIR_GESTION"]
   },
   {
     id: "asignacion-normativa",
@@ -172,7 +213,7 @@ const navItems: NavItem[] = [
     allowedRoles: ["DIR_NORMATIVA"]
   },
   {
-    id: "revision-normativa", label: "En revisión - Normatividad", icon: FileSignature, href: "/revision-normativa", allowedRoles: ["EQ_NORMATIVA"]
+    id: "revision-normativa", label: "Solicitudes pendientes", icon: FileSignature, href: "/revision-normativa", allowedRoles: ["EQ_NORMATIVA"]
   },
   {
     id: "resoluciones",
@@ -208,6 +249,13 @@ const navItems: NavItem[] = [
     icon: UserCheck,
     href: "/coordinadores",
     allowedRoles: ["ADMIN"]
+  },
+  {
+    id: "suplencias",
+    label: "Gestión de suplencias",
+    icon: ArrowLeftRight,
+    href: "/suplencias",
+    allowedRoles: ["COORDINADOR_SINARP", "ADMIN"]
   },
   {
     id: "auditoria-cuentas",
@@ -423,8 +471,13 @@ export function WireframeDashboardLayout({
           <SidebarMenu>
             {(() => {
               const visibleNavItems = navItems.filter((item) => {
-                if (!item.allowedRoles) return true;
-                return activeUserRole ? item.allowedRoles.includes(activeUserRole) : false;
+                if (item.allowedRoles && (!activeUserRole || !item.allowedRoles.includes(activeUserRole))) {
+                  return false;
+                }
+                if (item.providerOnly && !isProviderInstitution(resolvedUser?.institution)) {
+                  return false;
+                }
+                return true;
               });
 
               return visibleNavItems.map((item) => {

@@ -919,9 +919,16 @@ export function CoordinadoresView() {
                     appearance="soft"
                     className="pl-3 pr-1 py-1 rounded-full text-xs h-7 gap-1 font-semibold bg-muted text-foreground border border-border max-w-full"
                   >
-                    <span className="max-w-[180px] sm:max-w-[260px] truncate">
-                      Búsqueda: &ldquo;{searchTerm}&rdquo;
-                    </span>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="max-w-[180px] sm:max-w-[260px] truncate cursor-help">
+                          Búsqueda: &ldquo;{searchTerm}&rdquo;
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="text-xs max-w-xs z-[100]">
+                        Búsqueda: &ldquo;{searchTerm}&rdquo;
+                      </TooltipContent>
+                    </Tooltip>
                     <button
                       type="button"
                       onClick={() => {
@@ -942,9 +949,16 @@ export function CoordinadoresView() {
                     appearance="soft"
                     className="pl-3 pr-1 py-1 rounded-full text-xs h-7 gap-1 font-semibold bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary-300 border border-primary/25 max-w-full"
                   >
-                    <span className="max-w-[180px] sm:max-w-[260px] truncate">
-                      Institución: {filterInstitucion}
-                    </span>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="max-w-[180px] sm:max-w-[260px] truncate cursor-help">
+                          Institución: {filterInstitucion}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="text-xs max-w-xs z-[100]">
+                        Institución: {filterInstitucion}
+                      </TooltipContent>
+                    </Tooltip>
                     <button
                       type="button"
                       onClick={() => {
@@ -965,9 +979,16 @@ export function CoordinadoresView() {
                     appearance="soft"
                     className="pl-3 pr-1 py-1 rounded-full text-xs h-7 gap-1 font-semibold bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary-300 border border-primary/25 max-w-full"
                   >
-                    <span className="max-w-[180px] sm:max-w-[260px] truncate">
-                      Estado: {filterEstado === "ACTIVO" ? "Activo" : "Suspendido"}
-                    </span>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="max-w-[180px] sm:max-w-[260px] truncate cursor-help">
+                          Estado: {filterEstado === "ACTIVO" ? "Activo" : "Suspendido"}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="text-xs max-w-xs z-[100]">
+                        Estado: {filterEstado === "ACTIVO" ? "Activo" : "Suspendido"}
+                      </TooltipContent>
+                    </Tooltip>
                     <button
                       type="button"
                       onClick={() => {
@@ -988,9 +1009,16 @@ export function CoordinadoresView() {
                     appearance="solid"
                     className="pl-3 pr-1 py-1 rounded-full text-xs h-7 gap-1 font-semibold max-w-full text-white shadow-2xs"
                   >
-                    <span className="max-w-[180px] sm:max-w-[260px] truncate text-white">
-                      Tipo: {filterTipo === "TITULAR" ? "Titular" : "Suplente"}
-                    </span>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="max-w-[180px] sm:max-w-[260px] truncate text-white cursor-help">
+                          Tipo: {filterTipo === "TITULAR" ? "Titular" : "Suplente"}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="text-xs max-w-xs z-[100]">
+                        Tipo: {filterTipo === "TITULAR" ? "Titular" : "Suplente"}
+                      </TooltipContent>
+                    </Tooltip>
                     <button
                       type="button"
                       onClick={() => {
@@ -1011,9 +1039,16 @@ export function CoordinadoresView() {
                     appearance="soft"
                     className="pl-3 pr-1 py-1 rounded-full text-xs h-7 gap-1 font-semibold bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary-300 border border-primary/25 max-w-full"
                   >
-                    <span className="max-w-[180px] sm:max-w-[260px] truncate">
-                      Seguridad: {seguridadOptions.find((s) => s.value === filterSeguridad)?.label || filterSeguridad}
-                    </span>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="max-w-[180px] sm:max-w-[260px] truncate cursor-help">
+                          Seguridad: {seguridadOptions.find((s) => s.value === filterSeguridad)?.label || filterSeguridad}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="text-xs max-w-xs z-[100]">
+                        Seguridad: {seguridadOptions.find((s) => s.value === filterSeguridad)?.label || filterSeguridad}
+                      </TooltipContent>
+                    </Tooltip>
                     <button
                       type="button"
                       onClick={() => {
@@ -1126,14 +1161,21 @@ export function CoordinadoresView() {
                                   .join("")}
                               </div>
                               <div className="min-w-0 space-y-0.5">
-                                <Link
-                                  href={`/coordinadores/${coord.id}`}
-                                  className="font-bold text-foreground text-xs hover:text-primary transition-colors truncate block leading-snug"
-                                  title={coord.nombreCompleto}
-                                >
-                                  {coord.nombreCompleto}
-                                </Link>
-                                <p className="text-[11px] text-muted-foreground truncate" title={coord.cargo}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Link
+                                      href={`/coordinadores/${coord.id}`}
+                                      className="font-bold text-foreground text-xs hover:text-primary transition-colors truncate block leading-snug cursor-pointer"
+                                    >
+                                      {coord.nombreCompleto}
+                                    </Link>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top" className="text-xs max-w-xs">
+                                    <p className="font-semibold">{coord.nombreCompleto}</p>
+                                    <p className="text-[11px] text-muted-foreground">{coord.cargo}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                                <p className="text-[11px] text-muted-foreground truncate">
                                   {coord.cargo}
                                 </p>
                               </div>
@@ -1197,9 +1239,16 @@ export function CoordinadoresView() {
                             <div className="space-y-1 max-w-[210px]">
                               <div className="flex items-center gap-1.5 min-w-0">
                                 <Mail className="size-3 text-muted-foreground shrink-0" />
-                                <span className="font-mono text-[11px] text-foreground truncate" title={coord.correo}>
-                                  {coord.correo}
-                                </span>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="font-mono text-[11px] text-foreground truncate cursor-help">
+                                      {coord.correo}
+                                    </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top" className="text-xs max-w-xs">
+                                    {coord.correo}
+                                  </TooltipContent>
+                                </Tooltip>
                               </div>
                               <div className="flex items-center gap-1.5 flex-wrap">
                                 <Badge

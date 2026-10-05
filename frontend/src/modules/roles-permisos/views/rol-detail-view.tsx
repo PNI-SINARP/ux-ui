@@ -22,6 +22,12 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   Table,
   TableHeader,
   TableBody,
@@ -386,13 +392,28 @@ export function RolDetailView({ rolId, onVolver }: RolDetailViewProps) {
                     {c.cedula}
                   </TableCell>
                   <TableCell className="w-[240px] min-w-[200px] font-semibold text-foreground text-xs align-middle">
-                    {c.nombre}
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="truncate block max-w-[220px] cursor-help">{c.nombre}</span>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="text-xs max-w-xs">{c.nombre}</TooltipContent>
+                    </Tooltip>
                   </TableCell>
                   <TableCell className="w-[260px] min-w-[220px] font-mono text-xs text-muted-foreground align-middle">
-                    {c.correo}
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="truncate block max-w-[240px] cursor-help">{c.correo}</span>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="text-xs max-w-xs">{c.correo}</TooltipContent>
+                    </Tooltip>
                   </TableCell>
                   <TableCell className="w-[180px] min-w-[160px] text-xs text-muted-foreground align-middle">
-                    {c.ambito}
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="truncate block max-w-[160px] cursor-help">{c.ambito}</span>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="text-xs max-w-xs">{c.ambito}</TooltipContent>
+                    </Tooltip>
                   </TableCell>
                   <TableCell className="w-[130px] min-w-[110px] text-right pr-6 align-middle">
                     <div className="inline-flex justify-end w-full">

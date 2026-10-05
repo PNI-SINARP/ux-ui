@@ -9,7 +9,8 @@ export type UserRole =
   | "DIR_GESTION"
   | "EQ_GESTION"
   | "DIR_NORMATIVA"
-  | "EQ_NORMATIVA";
+  | "EQ_NORMATIVA"
+  | "REPRESENTANTE_INSTITUCIONAL";
 
 export interface RoleInfo {
   id: UserRole;
@@ -145,6 +146,20 @@ export const ROLES_CONFIG: Record<UserRole, RoleInfo> = {
     description: "Genera resolución de ingreso y finaliza trámite.",
     responsibilities: []
   },
+  REPRESENTANTE_INSTITUCIONAL: {
+    id: "REPRESENTANTE_INSTITUCIONAL",
+    name: "Representante Institucional",
+    shortName: "Rep. Institucional",
+    badgeTone: "neutral",
+    description: "Representa a una institución activa para iniciar y tramitar solicitudes institucionales como el cambio de Coordinador mediante Anexo C.",
+    responsibilities: [
+      "Consultar estado de coordinadores vigentes de la institución",
+      "Iniciar solicitud de cambio de coordinador titular o suplente",
+      "Firmar y enviar Anexo C mediante FirmaEC",
+      "Adjuntar autorización formal de delegación cuando aplique",
+      "Dar seguimiento al trámite institucional"
+    ]
+  },
 };
 
 export interface MockUser {
@@ -160,6 +175,16 @@ export interface MockUser {
 }
 
 export const MOCK_USERS_BY_ROLE: Record<UserRole, MockUser> = {
+  REPRESENTANTE_INSTITUCIONAL: {
+    id: "1716789019",
+    cedula: "1716789019",
+    name: "Carlos Andrade",
+    role: "REPRESENTANTE_INSTITUCIONAL",
+    roleTitle: "Representante Institucional",
+    email: "carlos.andrade@educacion.gob.ec",
+    institution: "Ministerio de Educación",
+    initials: "CA"
+  },
   ADMIN: {
     id: "U-ADMIN01",
     name: "Administrador DINARP",
@@ -182,8 +207,9 @@ export const MOCK_USERS_BY_ROLE: Record<UserRole, MockUser> = {
   },
   EQ_GESTION: {
     id: "U-EQGEST",
-    name: "Revisor Gestión",
+    name: "Ana Torres (Revisor)",
     role: "EQ_GESTION",
+    roleTitle: "Revisor Área de Gestión",
     email: "gestion.revisor@gmail.com",
     avatar: "RG",
     institution: "DINARP",

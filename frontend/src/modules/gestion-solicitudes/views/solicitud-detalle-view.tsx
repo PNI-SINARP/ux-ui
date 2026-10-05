@@ -70,8 +70,15 @@ import { ResolucionInstitucionalPanel } from "@/components/shared/solicitudes/re
 import { SolicitudAnexoBDetail } from "@/components/shared/solicitudes/solicitud-anexo-b-tabs";
 import { Enr03SimulacionPanel } from "@/components/shared/solicitudes/enr03-simulacion-panel";
 import { useEnr03SimulationStore } from "@/modules/gestion-solicitudes/data/enr03-store";
-
 import { buildTramiteTimelineItems } from "@/components/shared/solicitudes/tramite-timeline-helper";
+import { BorradorAnexoAModal } from "@/components/shared/solicitudes/borrador-anexo-a-modal";
+import {
+  useCambioCoordinadorStore,
+  asignarRevisorStandalone,
+  aprobarCambioStandalone,
+  rechazarCambioStandalone,
+} from "@/modules/cambio-coordinador/data/cambio-coordinador-store";
+import { SolicitudAnexoCDetail } from "@/components/shared/solicitudes/solicitud-anexo-c-tabs";
 
 interface SolicitudDetalleViewProps { id: string; basePath?: string; sectionTitle?: string; showEnr03?: boolean; }
 
@@ -92,16 +99,71 @@ export function SolicitudDetalleView({ id, basePath = "/asignacion-solicitudes",
     iniciarRevision,
   } = store;
 
+  const cambioStore = useCambioCoordinadorStore();
+  const tramiteCambioFromStore = cambioStore.getTramiteById(id);
+
   const solicitud = useMemo(() => {
-    return solicitudes.find((s) => s.id === id) || null;
-  }, [solicitudes, id]);
+    const found = solicitudes.find((s) => s.id === id);
+    if (found) return found;
+    if (tramiteCambioFromStore) {
+      return {
+        id: tramiteCambioFromStore.id,
+        tipoTramite: "PROCESO_C_CAMBIO_COORDINADOR",
+        codigoDocumental: "ARP-R03",
+        tituloTramite: "Cambio de coordinador · Anexo C",
+        cedula: tramiteCambioFromStore.coordinadorEntrante.cedula,
+        nombres: tramiteCambioFromStore.coordinadorEntrante.nombreCompleto.split(" ")[0] || "Roberto",
+        apellidos: tramiteCambioFromStore.coordinadorEntrante.nombreCompleto.split(" ").slice(1).join(" ") || "Dávila",
+        nombreCompleto: tramiteCambioFromStore.coordinadorEntrante.nombreCompleto,
+        iniciales: "RD",
+        correo: tramiteCambioFromStore.coordinadorEntrante.correo,
+        institucion: tramiteCambioFromStore.institucion,
+        fechaSolicitud: tramiteCambioFromStore.fechaSolicitud,
+        estado: (tramiteCambioFromStore.estadoTramite === "En revisión"
+          ? "EN_REVISION_GESTION"
+          : tramiteCambioFromStore.estadoTramite === "Aprobado" || tramiteCambioFromStore.estadoTramite === "Aplicado"
+          ? "Aprobada"
+          : tramiteCambioFromStore.estadoTramite === "Rechazado"
+          ? "Rechazada"
+          : "PENDIENTE_ASIGNACION_GESTION") as any,
+        revisorGestion: tramiteCambioFromStore.revisorAsignado?.nombre,
+        revisor: tramiteCambioFromStore.revisorAsignado?.nombre,
+        fechaAsignacionGestion: tramiteCambioFromStore.revisorAsignado?.fechaAsignacion,
+        observacionesAsignacion: tramiteCambioFromStore.revisorAsignado?.observaciones,
+        documentos: ["ARP-R03_Cambio_Coordinador.pdf"],
+        historial: (tramiteCambioFromStore.trazabilidad || []).map((t) => ({
+          id: t.id,
+          fechaHora: t.fecha,
+          accion: t.accion,
+          realizadoPor: t.actor,
+          rol: t.rol,
+          detalles: t.detalle,
+        })),
+        anexoC: tramiteCambioFromStore.datosAnexoC,
+      } as SolicitudIngreso;
+    }
+    return null;
+  }, [solicitudes, id, tramiteCambioFromStore]);
+
+  const isAnexoC =
+    solicitud?.tipoTramite === "PROCESO_C_CAMBIO_COORDINADOR" ||
+    solicitud?.codigoDocumental === "ARP-R03" ||
+    id.startsWith("CAM-");
+
+  const esAnexoB = solicitud?.codigoDocumental === "ARP-R02" || solicitud?.tipoTramite === "PROCESO_B_ENROLAMIENTO_COORDINADOR";
 
   const [detailTab, setDetailTab] = useState<number>(0);
   const sim = useEnr03SimulationStore();
 
+  const [isBorradorOpen, setIsBorradorOpen] = useState(false);
+
   // Línea de tiempo cronológica enriquecida con jerarquía semántica, diferenciación visual y deduplicación
   const timelineItems: TimelineItem[] = useMemo(() => {
-    return buildTramiteTimelineItems(solicitud);
+    return buildTramiteTimelineItems(solicitud, {
+      onViewBorradorAnexoA: () => {
+        setIsBorradorOpen(true);
+      },
+    });
   }, [solicitud]);
 
   // Dialog states
@@ -115,7 +177,7 @@ export function SolicitudDetalleView({ id, basePath = "/asignacion-solicitudes",
     archivo: string;
   } | null>(null);
 
-  const activeSectionTitle = useMemo(() => { if (sectionTitle) return sectionTitle; if (currentUser.role === "DIR_GESTION" || currentUser.role === "DIR_NORMATIVA") return "Asignación de solicitudes"; if (currentUser.role === "EQ_GESTION" || currentUser.role === "EQ_NORMATIVA") return "Solicitudes asignadas"; return "Gestión de ingresos"; }, [currentUser.role, sectionTitle]);
+  const activeSectionTitle = useMemo(() => { if (sectionTitle) return sectionTitle; if (currentUser.role === "DIR_GESTION" || currentUser.role === "DIR_NORMATIVA") return "Asignación de solicitudes"; if (currentUser.role === "EQ_NORMATIVA") return "Solicitudes pendientes"; if (currentUser.role === "EQ_GESTION") return "Solicitudes pendientes"; return "Gestión de ingresos"; }, [currentUser.role, sectionTitle]);
 
   const handleConfirmAsignacion = (
     solicitudId: string,
@@ -134,8 +196,21 @@ export function SolicitudDetalleView({ id, basePath = "/asignacion-solicitudes",
     } else {
       store.asignarRevisorGestion(solicitudId, revisorNombre, asignadoPor, observaciones);
     }
-    const esAnexoB = solicitud?.codigoDocumental === "ARP-R02" || solicitud?.tipoTramite === "PROCESO_B_ENROLAMIENTO_COORDINADOR";
-    if (esAnexoB) {
+
+    if (isAnexoC || solicitudId.startsWith("CAM-")) {
+      asignarRevisorStandalone(solicitudId, {
+        id: "1111111111",
+        nombre: revisorNombre,
+        cargo: "Revisor Área de Gestión",
+        observaciones,
+      });
+    }
+
+    if (isAnexoC) {
+      toast.success(`Revisor del Anexo C asignado: ${revisorNombre} (${solicitudId})`, {
+        description: "Trámite asignado formalmente en el Equipo de Gestión para revisión de cambio de coordinador.",
+      });
+    } else if (esAnexoB) {
       toast.success(`Revisor del Anexo B asignado: ${revisorNombre} (${solicitudId})`, {
         description: "Trámite asignado formalmente en el Equipo de Gestión.",
       });
@@ -160,6 +235,89 @@ export function SolicitudDetalleView({ id, basePath = "/asignacion-solicitudes",
       </Badge>
     );
   };
+
+  const tramiteCambio =
+    tramiteCambioFromStore ||
+    (solicitud?.tipoTramite === "PROCESO_C_CAMBIO_COORDINADOR" || id.startsWith("CAM-")
+      ? {
+          id: solicitud?.id || id,
+          numeroTramite: solicitud?.id || id,
+          institucion: solicitud?.institucion || "Ministerio de Educación",
+          ruc: "1760004560001",
+          fechaSolicitud: solicitud?.fechaSolicitud || "04/10/2026 10:30",
+          caracter: (solicitud?.anexoC?.aplicaCambioTitular ? "TITULAR" : "SUPLENTE") as any,
+          coordinadorSaliente: {
+            nombreCompleto: "Juan Pérez",
+            cedula: "1712345678",
+            correo: "juan.perez@educacion.gob.ec",
+            cargo: "Director de Tecnologías de la Información",
+            caracter: "TITULAR",
+            estado: "ACTIVO",
+            anexoBAprobado: true,
+          },
+          coordinadorEntrante: {
+            nombreCompleto:
+              solicitud?.nombreCompleto ||
+              solicitud?.anexoC?.nuevoTitularNombre ||
+              "Roberto Carlos Dávila Silva",
+            cedula:
+              solicitud?.cedula ||
+              solicitud?.anexoC?.nuevoTitularCedula ||
+              "1721345987",
+            correo:
+              solicitud?.correo ||
+              solicitud?.anexoC?.nuevoTitularEmail ||
+              "roberto.davila@educacion.gob.ec",
+            cargo:
+              solicitud?.anexoC?.nuevoTitularCargo ||
+              "Director Nacional de Tecnologías",
+            motivo:
+              solicitud?.anexoC?.nuevoTitularMotivo ||
+              "Reestructuración administrativa interna de la institución.",
+            poseeCuentaSistema: false,
+            poseeAnexoBAprobado: false,
+          },
+          firmanteTipo: (solicitud?.anexoC?.esDelegado
+            ? "DELEGADO_AUTORIZADO"
+            : "MAXIMA_AUTORIDAD") as any,
+          estadoDocumento: "Firma verificada",
+          estadoTramite: (solicitud?.estado === "Aprobada"
+            ? "Aprobado"
+            : solicitud?.estado === "Rechazada"
+            ? "Rechazado"
+            : solicitud?.revisorGestion
+            ? "En revisión"
+            : "Pendiente de asignación") as any,
+          firmaEC: {
+            estado: "VALIDA",
+            transaccionId: "FEC-2026-90412",
+            firmante:
+              solicitud?.anexoC?.representanteLegalNombre || "Carlos Andrade",
+            fechaFirma: solicitud?.fechaSolicitud || "04/10/2026 10:30",
+            huellaSha256:
+              "8f4b23a9d18e5472bc19448a0fd329c4ba598e12d5e381023d8c1109a1bf04e1",
+            entidadCertificadora: "Banco Central del Ecuador (BCE)",
+          },
+          revisorAsignado: solicitud?.revisorGestion
+            ? {
+                id: "1111111111",
+                nombre: solicitud.revisorGestion,
+                cargo: "Revisor Área de Gestión",
+                fechaAsignacion:
+                  solicitud.fechaAsignacionGestion || solicitud.fechaSolicitud,
+              }
+            : undefined,
+          trazabilidad: (solicitud?.historial || []).map((h) => ({
+            id: h.id,
+            fecha: h.fechaHora || solicitud?.fechaSolicitud || "",
+            accion: h.accion,
+            actor: h.realizadoPor || "",
+            rol: h.rol || "",
+            detalle: h.detalles || "",
+          })),
+          datosAnexoC: (solicitud?.anexoC || {}) as any,
+        }
+      : null);
 
   if (isLoaded && !solicitud) {
     return (
@@ -236,8 +394,8 @@ export function SolicitudDetalleView({ id, basePath = "/asignacion-solicitudes",
               <span>Volver</span>
             </Button>
 
-            {/* Botones de acción en la cabecera */}
-            {currentUser.role === "EQ_GESTION" && (solicitud.estado === "EN_REVISION_GESTION" || solicitud.estado === "PENDIENTE_ASIGNACION_GESTION" || solicitud.estado === "Pendiente") ? (
+            {/* Botones de acción en la cabecera (excluidos en Anexo B para no duplicar con el contenedor de revisión técnica) */}
+            {currentUser.role === "EQ_GESTION" && !esAnexoB && (solicitud.estado === "EN_REVISION_GESTION" || solicitud.estado === "PENDIENTE_ASIGNACION_GESTION" || solicitud.estado === "Pendiente") ? (
               <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
                 <Button
                   type="button"
@@ -256,6 +414,33 @@ export function SolicitudDetalleView({ id, basePath = "/asignacion-solicitudes",
                 >
                   <CheckCircle2 className="size-4" />
                   <span>Aprobar solicitud</span>
+                </Button>
+              </div>
+            ) : null}
+
+            {/* Botones de acción en la cabecera para EQ_NORMATIVA */}
+            {currentUser.role === "EQ_NORMATIVA" && (solicitud.estado === "PENDIENTE_GENERAR_RESOLUCION" || solicitud.estado === "EN_GENERACION_RESOLUCION" || solicitud.estado === "GENERACION_PENDIENTE") ? (
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsRejectOpen(true)}
+                  className="h-9 sm:h-10 px-3 sm:px-4 text-xs font-semibold gap-2 border-danger/30 text-danger hover:bg-danger/10 rounded-xl w-full sm:w-auto"
+                >
+                  <XCircle className="size-4" />
+                  <span>Rechazar trámite</span>
+                </Button>
+                <Button
+                  type="button"
+                  variant="primary"
+                  onClick={() => {
+                    store.iniciarRevision(solicitud.id, currentUser.name);
+                    router.push(`${basePath}/${solicitud.id}/gestionar-resolucion`);
+                  }}
+                  className="h-9 sm:h-10 px-3 sm:px-4 text-xs font-semibold gap-2 shadow-xs w-full sm:w-auto"
+                >
+                  <FileSignature className="size-4" />
+                  <span>Generar resolución</span>
                 </Button>
               </div>
             ) : null}
@@ -486,32 +671,84 @@ export function SolicitudDetalleView({ id, basePath = "/asignacion-solicitudes",
                 {/* TAB 1: RESUMEN DE SOLICITUD (FORMULARIO CON PESTAÑAS CÁPSULA SIN ESTADOS PENDIENTES) */}
                 <TabsContent value="resumen" className="space-y-6 animate-in fade-in duration-200">
                   {/* Encabezado del Trámite en Card Featured estilo UI Kit con Badge Primary e Icono */}
-                  <Card
-                    variant="featured"
-                    disableHover={true}
-                    className="bg-primary-100/30 dark:bg-primary-900/20 border-0 shadow-none hover:shadow-none hover:translate-y-0 mb-4 relative overflow-hidden"
-                  >
-                    <div className="flex items-center gap-2">
-                      <CardBadge className="bg-primary/20 text-primary text-[10px] uppercase font-bold tracking-wider px-2.5 py-0.5 border-0">
-                        FORMULARIO OFICIAL ARP-R01
-                      </CardBadge>
-                    </div>
+                  {isAnexoC ? (
+                    <Card
+                      variant="featured"
+                      disableHover={true}
+                      className="bg-primary-100/30 dark:bg-primary-900/20 border-0 shadow-none hover:shadow-none hover:translate-y-0 mb-4 relative overflow-hidden"
+                    >
+                      <div className="flex items-center gap-2">
+                        <CardBadge className="bg-primary/20 text-primary text-[10px] uppercase font-bold tracking-wider px-2.5 py-0.5 border-0">
+                          FORMULARIO OFICIAL ARP-R03
+                        </CardBadge>
+                      </div>
 
-                    <CardTitle className="text-lg sm:text-xl font-bold font-heading text-primary">
-                      Anexo A — Solicitud de Registro de Institución
-                    </CardTitle>
+                      <CardTitle className="text-lg sm:text-xl font-bold font-heading text-primary">
+                        Anexo C — Cambio de Coordinador Institucional
+                      </CardTitle>
 
-                    <CardDescription className="text-xs text-primary-800/80 dark:text-primary-200/80 font-medium">
-                      Proceso A · Enrolamiento institucional al SINARP
-                    </CardDescription>
+                      <CardDescription className="text-xs text-primary-800/80 dark:text-primary-200/80 font-medium">
+                        Proceso C · Sustitución de Coordinador titular o suplente mediante Anexo C
+                      </CardDescription>
 
-                    <CardDecorativeIcon className="-bottom-10 -right-10 opacity-20 group-hover/card:scale-100">
-                      <FileText className="size-32 text-primary" />
-                    </CardDecorativeIcon>
-                  </Card>
+                      <CardDecorativeIcon className="-bottom-10 -right-10 opacity-20 group-hover/card:scale-100">
+                        <FileText className="size-32 text-primary" />
+                      </CardDecorativeIcon>
+                    </Card>
+                  ) : esAnexoB ? (
+                    <Card
+                      variant="featured"
+                      disableHover={true}
+                      className="bg-primary-100/30 dark:bg-primary-900/20 border-0 shadow-none hover:shadow-none hover:translate-y-0 mb-4 relative overflow-hidden"
+                    >
+                      <div className="flex items-center gap-2">
+                        <CardBadge className="bg-primary/20 text-primary text-[10px] uppercase font-bold tracking-wider px-2.5 py-0.5 border-0">
+                          FORMULARIO OFICIAL ARP-R02
+                        </CardBadge>
+                      </div>
 
-                  {/* Si es Anexo B (Enrolamiento de Coordinador), renderizar sus 3 tabs dedicados */}
-                  {solicitud.tipoTramite === "PROCESO_B_ENROLAMIENTO_COORDINADOR" ? (
+                      <CardTitle className="text-lg sm:text-xl font-bold font-heading text-primary">
+                        Anexo B — Enrolamiento de Coordinador Institucional
+                      </CardTitle>
+
+                      <CardDescription className="text-xs text-primary-800/80 dark:text-primary-200/80 font-medium">
+                        Proceso B · Acuerdo de uso y confidencialidad para coordinadores
+                      </CardDescription>
+
+                      <CardDecorativeIcon className="-bottom-10 -right-10 opacity-20 group-hover/card:scale-100">
+                        <FileText className="size-32 text-primary" />
+                      </CardDecorativeIcon>
+                    </Card>
+                  ) : (
+                    <Card
+                      variant="featured"
+                      disableHover={true}
+                      className="bg-primary-100/30 dark:bg-primary-900/20 border-0 shadow-none hover:shadow-none hover:translate-y-0 mb-4 relative overflow-hidden"
+                    >
+                      <div className="flex items-center gap-2">
+                        <CardBadge className="bg-primary/20 text-primary text-[10px] uppercase font-bold tracking-wider px-2.5 py-0.5 border-0">
+                          FORMULARIO OFICIAL ARP-R01
+                        </CardBadge>
+                      </div>
+
+                      <CardTitle className="text-lg sm:text-xl font-bold font-heading text-primary">
+                        Anexo A — Solicitud de Registro de Institución
+                      </CardTitle>
+
+                      <CardDescription className="text-xs text-primary-800/80 dark:text-primary-200/80 font-medium">
+                        Proceso A · Enrolamiento institucional al SINARP
+                      </CardDescription>
+
+                      <CardDecorativeIcon className="-bottom-10 -right-10 opacity-20 group-hover/card:scale-100">
+                        <FileText className="size-32 text-primary" />
+                      </CardDecorativeIcon>
+                    </Card>
+                  )}
+
+                  {/* Renderizado de contenido según tipo de anexo */}
+                  {isAnexoC ? (
+                    <SolicitudAnexoCDetail solicitud={solicitud} tramite={tramiteCambio} />
+                  ) : esAnexoB ? (
                     <SolicitudAnexoBDetail solicitud={solicitud} />
                   ) : (
                     <>
@@ -1394,6 +1631,13 @@ export function SolicitudDetalleView({ id, basePath = "/asignacion-solicitudes",
                   onPreviewDocumento={(titulo, archivo) => {
                     setPreviewDoc({ titulo, archivo });
                   }}
+                  onRechazarSolicitud={(solId, motivo) => {
+                    store.rechazarSolicitud(solId, motivo, currentUser.name);
+                    toast.success("Solicitud rechazada correctamente", {
+                      description: "No se generó la resolución institucional y se notificó el motivo a la entidad.",
+                    });
+                    router.push(basePath);
+                  }}
                 />
               )}
             </div>
@@ -1405,8 +1649,13 @@ export function SolicitudDetalleView({ id, basePath = "/asignacion-solicitudes",
           solicitud={solicitud}
           open={isApproveOpen}
           onOpenChange={setIsApproveOpen}
-          onConfirm={(sol) => {
-            store.aprobarGestion(sol.id, currentUser.name);
+          onConfirm={(sol, opcionCaso) => {
+            if (isAnexoC) {
+              aprobarCambioStandalone(sol.id, opcionCaso || "CASO_B");
+              store.aprobarGestion(sol.id, currentUser.name, `Dictamen de aprobación de Anexo C (${opcionCaso || "CASO_B"}).`);
+            } else {
+              store.aprobarGestion(sol.id, currentUser.name);
+            }
             toast.success("Solicitud aprobada correctamente.");
           }}
         />
@@ -1415,9 +1664,38 @@ export function SolicitudDetalleView({ id, basePath = "/asignacion-solicitudes",
           solicitud={solicitud}
           open={isRejectOpen}
           onOpenChange={setIsRejectOpen}
+          directConfirm={true}
+          title={
+            currentUser.role === "EQ_NORMATIVA"
+              ? "Confirmar rechazo de la solicitud"
+              : isAnexoC
+              ? "Rechazar solicitud de cambio de coordinador"
+              : "Rechazar solicitud de trámite"
+          }
+          description={
+            currentUser.role === "EQ_NORMATIVA"
+              ? "Si determinas que no procede emitir la resolución institucional, indica la justificación técnica o legal del rechazo."
+              : isAnexoC
+              ? "Indica detalladamente la causa legal o técnica por la cual se desestima el Anexo C presentado."
+              : "Indica detalladamente la razón por la cual no se aprueba el trámite."
+          }
+          warningNotice={
+            currentUser.role === "EQ_NORMATIVA"
+              ? "Atención: Al confirmar el rechazo, se cancelará la generación de la resolución institucional y el trámite pasará a estado Rechazada."
+              : isAnexoC
+              ? "Atención: Al rechazar el trámite, el Coordinador actual mantendrá su vinculación y funciones institucionales activas."
+              : "Atención: Esta acción cancelará definitivamente el trámite y enviará el motivo registrado a la institución requirente."
+          }
+          confirmLabel="Confirmar rechazo"
           onConfirm={(sol, motivo) => {
+            if (isAnexoC) {
+              rechazarCambioStandalone(sol.id, motivo);
+            }
             store.rechazarSolicitud(sol.id, motivo, currentUser.name);
-            toast.success("Solicitud rechazada. La institución será notificada por correo.");
+            toast.success("Solicitud rechazada correctamente", {
+              description: "Se registró el motivo del rechazo y se notificó a la entidad.",
+            });
+            router.push(basePath);
           }}
         />
 
@@ -1425,7 +1703,7 @@ export function SolicitudDetalleView({ id, basePath = "/asignacion-solicitudes",
           solicitud={solicitud}
           open={isAssignOpen}
           onOpenChange={setIsAssignOpen}
-          tipoArea={currentUser.role === "DIR_NORMATIVA" ? "NORMATIVIDAD" : "GESTION"}
+          tipoArea={currentUser.role === "DIR_NORMATIVA" || (solicitud?.estado.includes("NORMATIVIDAD") ?? false) ? "NORMATIVIDAD" : "GESTION"}
           directorNombre={currentUser.name}
           allSolicitudes={solicitudes}
           onConfirmAsignacion={(solId, revisor) => {
@@ -1467,6 +1745,14 @@ export function SolicitudDetalleView({ id, basePath = "/asignacion-solicitudes",
             </DialogContent>
           </Dialog>
         )}
+
+        {/* MODAL DE BORRADOR DE ANEXO A */}
+        <BorradorAnexoAModal
+          solicitud={solicitud}
+          open={isBorradorOpen}
+          onOpenChange={setIsBorradorOpen}
+        />
+
         {showEnr03 && <Enr03SimulacionPanel />}
       </main>
     </WireframeDashboardLayout>

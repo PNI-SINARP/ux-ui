@@ -26,6 +26,12 @@ import {
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Timeline, TimelineItem } from "@/components/ui/timeline";
 import { toast } from "sonner";
@@ -136,11 +142,22 @@ export function AreaDetailClient({ id }: AreaDetailClientProps) {
       {/* Barra superior de navegación y acciones */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border">
         <div className="flex items-center gap-3">
-          <Link href="/areas">
-            <Button variant="outline" size="icon-sm" className="rounded-full">
-              <ArrowLeft className="size-4" />
-            </Button>
-          </Link>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="icon-sm"
+                asChild
+                aria-label="Volver a áreas DINARP"
+                className="rounded-full shrink-0 cursor-pointer"
+              >
+                <Link href="/areas">
+                  <ArrowLeft className="size-4" />
+                </Link>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">Volver a áreas DINARP</TooltipContent>
+          </Tooltip>
           <div>
             <div className="flex items-center gap-2">
               <span className="font-mono text-xs px-2 py-0.5 rounded-md bg-surface-subtle font-bold border border-border">

@@ -715,7 +715,14 @@ export function GestionRecuperacionesView() {
                         appearance="soft"
                         className="pl-3 pr-1 py-1 rounded-full text-xs h-7 gap-1 font-semibold bg-muted text-foreground border border-border"
                       >
-                        <span>Búsqueda: &ldquo;{searchQuery}&rdquo;</span>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="max-w-[180px] sm:max-w-[260px] truncate cursor-help">Búsqueda: &ldquo;{searchQuery}&rdquo;</span>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="text-xs max-w-xs z-[100]">
+                            Búsqueda: &ldquo;{searchQuery}&rdquo;
+                          </TooltipContent>
+                        </Tooltip>
                         <button
                           type="button"
                           onClick={() => {
@@ -955,9 +962,16 @@ export function GestionRecuperacionesView() {
 
                             {/* 8. Operador */}
                             <TableCell className="w-[170px] min-w-[160px] text-left align-middle">
-                              <span className="text-xs text-muted-foreground font-medium block truncate">
-                                {caso.operadorAsignado}
-                              </span>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="text-xs text-muted-foreground font-medium block truncate cursor-help">
+                                    {caso.operadorAsignado}
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent side="top" className="text-xs max-w-xs">
+                                  {caso.operadorAsignado}
+                                </TooltipContent>
+                              </Tooltip>
                             </TableCell>
 
                             {/* 9. Columna Acciones con Ver detalle */}

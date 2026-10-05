@@ -1166,7 +1166,14 @@ export function CuentasInternasView() {
                     appearance="soft"
                     className="pl-3 pr-1 py-1 rounded-full text-xs h-7 gap-1 font-semibold bg-muted text-foreground border border-border max-w-full"
                   >
-                    <span className="max-w-[180px] sm:max-w-[260px] truncate">Búsqueda: &ldquo;{searchQuery}&rdquo;</span>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="max-w-[180px] sm:max-w-[260px] truncate cursor-help">Búsqueda: &ldquo;{searchQuery}&rdquo;</span>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="text-xs max-w-xs z-[100]">
+                        Búsqueda: &ldquo;{searchQuery}&rdquo;
+                      </TooltipContent>
+                    </Tooltip>
                     <button
                       type="button"
                       onClick={() => {
@@ -1216,7 +1223,14 @@ export function CuentasInternasView() {
                     appearance="soft"
                     className="pl-3 pr-1 py-1 rounded-full text-xs h-7 gap-1 font-semibold bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary-300 border border-primary/25 max-w-full"
                   >
-                    <span className="max-w-[180px] sm:max-w-[260px] truncate">Área: {filterAmbito}</span>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="max-w-[180px] sm:max-w-[260px] truncate cursor-help">Área: {filterAmbito}</span>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="text-xs max-w-xs z-[100]">
+                        Área: {filterAmbito}
+                      </TooltipContent>
+                    </Tooltip>
                     <button
                       type="button"
                       onClick={() => {
@@ -1236,17 +1250,32 @@ export function CuentasInternasView() {
                     appearance="soft"
                     className="pl-3 pr-1 py-1 rounded-full text-xs h-7 gap-1 font-semibold bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary-300 border border-primary/25 max-w-full"
                   >
-                    <span className="max-w-[180px] sm:max-w-[260px] truncate">
-                      Estado: {
-                        filterEstado === "ACTIVO"
-                          ? "Activo"
-                          : filterEstado === "PENDIENTE_ACTIVACION"
-                          ? "Pendiente de activación"
-                          : filterEstado === "SUSPENDIDO"
-                          ? "Suspendido"
-                          : "Baja lógica"
-                      }
-                    </span>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="max-w-[180px] sm:max-w-[260px] truncate cursor-help">
+                          Estado: {
+                            filterEstado === "ACTIVO"
+                              ? "Activo"
+                              : filterEstado === "PENDIENTE_ACTIVACION"
+                              ? "Pendiente de activación"
+                              : filterEstado === "SUSPENDIDO"
+                              ? "Suspendido"
+                              : "Baja lógica"
+                          }
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="text-xs max-w-xs z-[100]">
+                        Estado: {
+                          filterEstado === "ACTIVO"
+                            ? "Activo"
+                            : filterEstado === "PENDIENTE_ACTIVACION"
+                            ? "Pendiente de activación"
+                            : filterEstado === "SUSPENDIDO"
+                            ? "Suspendido"
+                            : "Baja lógica"
+                        }
+                      </TooltipContent>
+                    </Tooltip>
                     <button
                       type="button"
                       onClick={() => {

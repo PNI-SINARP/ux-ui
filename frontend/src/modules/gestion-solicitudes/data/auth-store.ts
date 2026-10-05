@@ -76,9 +76,13 @@ export function useAuthStore() {
           (cleanInput === "gestion.revisor@gmail.com" && u.role === "EQ_GESTION") ||
           (cleanInput === "gestion.director@gmail.com" && u.role === "DIR_GESTION") ||
           (cleanInput === "normativa.director@gmail.com" && u.role === "DIR_NORMATIVA") ||
-          (cleanInput === "normativa.revisor@gmail.com" && u.role === "EQ_NORMATIVA")
+          (cleanInput === "normativa.revisor@gmail.com" && u.role === "EQ_NORMATIVA") ||
+          (cleanInput === "1716789019" && u.role === "REPRESENTANTE_INSTITUCIONAL") ||
+          (cleanInput === "carlos.andrade@educacion.gob.ec" && u.role === "REPRESENTANTE_INSTITUCIONAL")
       ) || (
-        cleanInput === "1712345678"
+        cleanInput === "1716789019"
+          ? MOCK_USERS_BY_ROLE.REPRESENTANTE_INSTITUCIONAL
+          : cleanInput === "1712345678"
           ? MOCK_USERS_BY_ROLE.COORDINADOR_SINARP
           : cleanInput === "1799999999" || cleanInput.includes("admin")
           ? MOCK_USERS_BY_ROLE.ADMIN

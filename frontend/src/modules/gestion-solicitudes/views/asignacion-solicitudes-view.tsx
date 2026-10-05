@@ -128,8 +128,10 @@ import { AprobarSolicitudDialog } from "@/components/shared/solicitudes/aprobar-
 import { RechazarSolicitudDialog } from "@/components/shared/solicitudes/rechazar-solicitud-dialog";
 import { AsignarRevisorDialog } from "@/components/shared/solicitudes/asignar-revisor-dialog";
 import { buildTramiteTimelineItems } from "@/components/shared/solicitudes/tramite-timeline-helper";
+import { BorradorAnexoAModal } from "@/components/shared/solicitudes/borrador-anexo-a-modal";
 import { Enr03SimulacionPanel } from "@/components/shared/solicitudes/enr03-simulacion-panel";
 import { useEnr03SimulationStore } from "@/modules/gestion-solicitudes/data/enr03-store";
+import { asignarRevisorStandalone } from "@/modules/cambio-coordinador/data/cambio-coordinador-store";
 
 interface FilterComboboxProps {
   label?: string;
@@ -288,6 +290,8 @@ export function AsignacionSolicitudesView() {
   const [isRejectOpen, setIsRejectOpen] = useState(false);
   const [solicitudToAssign, setSolicitudToAssign] = useState<SolicitudIngreso | null>(null);
   const [isAssignOpen, setIsAssignOpen] = useState(false);
+  const [isBorradorOpen, setIsBorradorOpen] = useState(false);
+  const [borradorSolicitud, setBorradorSolicitud] = useState<SolicitudIngreso | null>(null);
 
   const handleSelectSolicitud = (solicitud: SolicitudIngreso) => {
     router.push(`/asignacion-solicitudes/${solicitud.id}`);
@@ -311,12 +315,19 @@ export function AsignacionSolicitudesView() {
       return;
     }
     const dir = asignadoPor || currentUser.name;
-    if (currentUser.role === "DIR_GESTION") {
-      store.asignarRevisorGestion(solicitudId, revisorNombre, dir, observaciones);
-    } else if (currentUser.role === "DIR_NORMATIVA") {
-      store.asignarRevisorNormatividad(solicitudId, revisorNombre, dir, observaciones);
-    }
     const sol = solicitudes.find((s) => s.id === solicitudId);
+    if (solicitudId.startsWith("CAM-") || sol?.tipoTramite === "PROCESO_C_CAMBIO_COORDINADOR") {
+      asignarRevisorStandalone(solicitudId, {
+        id: "1111111111",
+        nombre: revisorNombre,
+        cargo: "Revisor Área de Gestión",
+      });
+    }
+    if (currentUser.role === "DIR_NORMATIVA" || sol?.estado.includes("NORMATIVIDAD")) {
+      store.asignarRevisorNormatividad(solicitudId, revisorNombre, dir, observaciones);
+    } else {
+      store.asignarRevisorGestion(solicitudId, revisorNombre, dir, observaciones);
+    }
     const esAnexoB = sol?.codigoDocumental === "ARP-R02" || sol?.tipoTramite === "PROCESO_B_ENROLAMIENTO_COORDINADOR";
     if (esAnexoB) {
       toast.success(`Revisor del Anexo B asignado: ${revisorNombre} (${solicitudId})`, {
@@ -368,7 +379,12 @@ export function AsignacionSolicitudesView() {
 
   // Construction of timelineItems for selectedSolicitud using Timeline component
   const timelineItems: TimelineItem[] = useMemo(() => {
-    return buildTramiteTimelineItems(selectedSolicitud);
+    return buildTramiteTimelineItems(selectedSolicitud, {
+      onViewBorradorAnexoA: (sol) => {
+        setBorradorSolicitud(sol);
+        setIsBorradorOpen(true);
+      },
+    });
   }, [selectedSolicitud]);
 
   const procesoOptions = useMemo(() => [
@@ -431,7 +447,10 @@ export function AsignacionSolicitudesView() {
   ], []);
 
   const activeSectionTitle = useMemo(() => {
-    if (currentUser.role === "DIR_GESTION" || currentUser.role === "DIR_NORMATIVA") {
+    if (currentUser.role === "DIR_NORMATIVA") {
+      return "Asignación de solicitudes para generar resoluciones";
+    }
+    if (currentUser.role === "DIR_GESTION") {
       return "Asignación de solicitudes";
     }
     if (currentUser.role === "EQ_GESTION" || currentUser.role === "EQ_NORMATIVA") {
@@ -664,7 +683,13 @@ export function AsignacionSolicitudesView() {
         }
         if (filterEstado === "SIN_ASIGNAR") {
           if (currentUser.role === "DIR_NORMATIVA") {
-            return item.estado === "PENDIENTE_ASIGNACION_NORMATIVIDAD" || !item.revisorNormatividad;
+            return (
+              (item.estado === "PENDIENTE_ASIGNACION_NORMATIVIDAD" || !item.revisorNormatividad) &&
+              item.estado !== "Cancelada" &&
+              item.estado !== "Rechazada" &&
+              item.estado !== "Aprobada" &&
+              item.estado !== "APROBADO_FINAL"
+            );
           }
           return (
             item.estado === "PENDIENTE_ASIGNACION_GESTION" ||
@@ -2117,11 +2142,11 @@ export function AsignacionSolicitudesView() {
                 subtitleText = "Consulta y revisa las solicitudes asignadas para su aprobación o rechazo.";
               } else if (isDirNormativa) {
                 badgeText = "Dirección de Normatividad · DINARP";
-                titleText = "Gestión de resoluciones";
+                titleText = "Asignación de solicitudes para generar resoluciones";
                 subtitleText = "Asignación de solicitudes para generar resoluciones a instituciones aprobadas.";
               } else if (isEqNormativa) {
                 badgeText = "Equipo de Normatividad · DINARP";
-                titleText = "Bandeja de En revisión - Normatividad";
+                titleText = "Solicitudes pendientes por generar solución";
                 subtitleText = "Análisis normativo y resolución jurídica de solicitudes asignadas a tu usuario.";
               } else if (isDirGestion) {
                 badgeText = "Dirección de Gestión y Registro · DINARP";
@@ -3086,38 +3111,38 @@ export function AsignacionSolicitudesView() {
 
                 {/* Barra Flotante Contextual para Asignación Masiva */}
                 {selectedIds.length > 0 && (
-                  <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-foreground text-background dark:bg-card dark:text-card-foreground px-4 sm:px-6 py-3 sm:py-3.5 rounded-2xl shadow-xl border border-border flex items-center justify-between gap-3 sm:gap-5 w-[calc(100%-2rem)] max-w-md sm:w-auto animate-slide-up">
-                    <div className="flex items-center gap-2 text-xs font-bold">
-                      <CheckCircle2 className="size-4 text-primary shrink-0" />
+                  <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-foreground text-background dark:bg-card dark:text-card-foreground px-6 sm:px-8 py-3.5 sm:py-4 rounded-2xl shadow-xl border border-border flex items-center justify-between gap-6 sm:gap-8 w-[calc(100%-2rem)] sm:w-auto sm:min-w-[560px] md:min-w-[620px] animate-slide-up">
+                    <div className="flex items-center gap-2.5 text-xs sm:text-sm font-semibold shrink-0">
+                      <CheckCircle2 className="size-4 sm:size-5 text-primary shrink-0" />
                       <span>{selectedIds.length} {selectedIds.length === 1 ? "solicitud seleccionada" : "solicitudes seleccionadas"}</span>
                     </div>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          type="button"
-                          variant="primary"
-                          size="sm"
-                          onClick={() => {
-                            setSolicitudesMasivas(solicitudes.filter((s) => selectedIds.includes(s.id)));
-                            setIsAssignMasivoOpen(true);
-                          }}
-                          className="h-8 text-xs font-bold px-4 rounded-xl gap-1.5 shadow-xs"
-                        >
-                          <UserPlus className="size-3.5" />
-                          <span>Asignar revisor</span>
-                        </Button>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <Button
+                        type="button"
+                        variant="primary"
+                        size="sm"
+                        onClick={() => {
+                          setSolicitudesMasivas(solicitudes.filter((s) => selectedIds.includes(s.id)));
+                          setIsAssignMasivoOpen(true);
+                        }}
+                        className="h-10 text-xs sm:text-sm font-bold px-5 gap-2 shadow-xs shrink-0 whitespace-nowrap"
+                      >
+                        <UserPlus className="size-4 shrink-0" />
+                        <span className="whitespace-nowrap">Asignar revisor</span>
+                      </Button>
 
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setSelectedIds([])}
-                          className="h-8 text-xs font-semibold text-white/80 hover:text-white hover:bg-white/10 dark:text-muted-foreground dark:hover:text-foreground dark:hover:bg-muted/50 px-3 rounded-xl transition-colors"
-                        >
-                          Cancelar
-                        </Button>
-                      </div>
+                      <Button
+                        type="button"
+                        variant="neutral"
+                        size="sm"
+                        onClick={() => setSelectedIds([])}
+                        className="h-10 text-xs sm:text-sm font-medium px-4 shrink-0 whitespace-nowrap"
+                      >
+                        Cancelar
+                      </Button>
                     </div>
-                  )}
+                  </div>
+                )}
                 </>
               );
             })()}
@@ -3360,6 +3385,13 @@ export function AsignacionSolicitudesView() {
           onConfirmAsignacion={handleConfirmAsignacion}
           onConfirmAsignacionMasiva={handleConfirmAsignacionMasiva}
         />
+
+        <BorradorAnexoAModal
+          solicitud={borradorSolicitud || selectedSolicitud}
+          open={isBorradorOpen}
+          onOpenChange={setIsBorradorOpen}
+        />
+
         <Enr03SimulacionPanel />
       </main>
     </WireframeDashboardLayout>

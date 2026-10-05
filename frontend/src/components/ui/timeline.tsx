@@ -13,6 +13,7 @@ export interface TimelineItem {
   icon?: React.ReactNode;
   user?: string;
   isCurrent?: boolean; // Para dar mayor énfasis visual al evento actual/activo
+  action?: React.ReactNode; // Elemento o botón interactivo (ej. Ver borrador)
 }
 
 interface TimelineProps {
@@ -154,21 +155,38 @@ export function Timeline({ items, className }: TimelineProps) {
                 </div>
               </div>
 
-              {item.user && (
-                <div className={cn("flex items-center gap-2", isCurrent ? "mt-3" : "mt-2.5")}>
-                  <Avatar className="size-6 border border-border/60 dark:border-neutral-700">
-                    <AvatarFallback className="bg-muted dark:bg-neutral-800 text-muted-foreground dark:text-neutral-300 text-[10px] font-bold uppercase tracking-wider">
-                      {item.user.substring(0, 2)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span
-                    className={cn(
-                      "text-xs font-medium",
-                      isCurrent ? "text-foreground font-semibold" : "text-muted-foreground dark:text-neutral-300"
-                    )}
-                  >
-                    {item.user}
-                  </span>
+              {(item.user || item.action) && (
+                <div
+                  className={cn(
+                    "flex flex-wrap items-center justify-between gap-3",
+                    isCurrent ? "mt-3" : "mt-2.5"
+                  )}
+                >
+                  {item.user ? (
+                    <div className="flex items-center gap-2">
+                      <Avatar className="size-6 border border-border/60 dark:border-neutral-700">
+                        <AvatarFallback className="bg-muted dark:bg-neutral-800 text-muted-foreground dark:text-neutral-300 text-[10px] font-bold uppercase tracking-wider">
+                          {item.user.substring(0, 2)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span
+                        className={cn(
+                          "text-xs font-medium",
+                          isCurrent ? "text-foreground font-semibold" : "text-muted-foreground dark:text-neutral-300"
+                        )}
+                      >
+                        {item.user}
+                      </span>
+                    </div>
+                  ) : (
+                    <div />
+                  )}
+
+                  {item.action && (
+                    <div className="flex items-center shrink-0">
+                      {item.action}
+                    </div>
+                  )}
                 </div>
               )}
             </div>

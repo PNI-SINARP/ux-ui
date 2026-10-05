@@ -26,7 +26,7 @@ export type EstadoSolicitudIngreso =
   | "APROBADO_FINAL"
   | "Cancelada";
 
-import { getStatusBadgeConfig } from "@/lib/status-badge-config";
+import { getStatusBadgeConfig, type StatusBadgeConfig } from "@/lib/status-badge-config";
 
 // Helper para badges de estado
 export function getEstadoBadgeProps(
@@ -34,12 +34,39 @@ export function getEstadoBadgeProps(
   revisionIniciada?: boolean,
   contexto?: "REVISOR" | "DIRECTOR",
   rechazadoPor?: "GESTION" | "NORMATIVIDAD"
-) {
+): StatusBadgeConfig {
   const baseConfig = getStatusBadgeConfig(estado);
   
-  if (contexto === "REVISOR" && (estado === "Aprobada" || estado === "APROBADO_FINAL" || estado === "RESOLUCION_GENERADA" || estado === "APROBADO_GESTION")) {
-    return { ...baseConfig, label: "Aprobada" };
+  if (contexto === "REVISOR") {
+    if (
+      estado === "Aprobada" ||
+      estado === "APROBADO_FINAL" ||
+      estado === "RESOLUCION_GENERADA" ||
+      estado === "APROBADO_GESTION" ||
+      estado === "PENDIENTE_ASIGNACION_NORMATIVIDAD" ||
+      estado === "EN_REVISION_NORMATIVIDAD" ||
+      estado === "PENDIENTE_GENERAR_RESOLUCION" ||
+      estado === "EN_GENERACION_RESOLUCION" ||
+      estado === "GENERACION_PENDIENTE" ||
+      estado === "INSTITUCION_ACTIVA" ||
+      estado === "PENDIENTE_DE_FIRMA"
+    ) {
+      return { tone: "success", appearance: "soft", scale: "100", dot: true, label: "Aprobada" as const };
+    }
+    if (estado === "Rechazada" || estado === "Cancelada") {
+      return { tone: "danger", appearance: "soft", scale: "50", dot: true, label: "Rechazada" as const };
+    }
+    if (estado === "EN_REVISION_GESTION") {
+      if (revisionIniciada) {
+        return { tone: "info", appearance: "soft", scale: "100", dot: true, label: "En revisión" as const };
+      }
+      return { tone: "warning", appearance: "soft", scale: "50", dot: true, label: "Pendiente" as const };
+    }
+    if (estado === "Pendiente" || estado === "PENDIENTE_ASIGNACION_GESTION" || estado === "PENDIENTE_ENVIO") {
+      return { tone: "warning", appearance: "soft", scale: "50", dot: true, label: "Pendiente" as const };
+    }
   }
+
   if ((estado === "EN_GENERACION_RESOLUCION" || estado === "EN_REVISION_NORMATIVIDAD") && revisionIniciada) {
     return { ...baseConfig, label: "En generación de resolución" };
   }
@@ -69,8 +96,8 @@ export function puedeReasignarSolicitud(solicitud: SolicitudIngreso | null | und
   const esReasignacion = Boolean(revisorActual);
 
   // Si la revisión o generación de resolución ya fue iniciada formalmente por el funcionario
-  if (solicitud.revisionIniciada && (solicitud.estado === "EN_GENERACION_RESOLUCION" || solicitud.estado === "EN_REVISION_GESTION" || solicitud.estado === "EN_REVISION_NORMATIVIDAD")) {
-    return { puedeReasignar: false, esReasignacion, motivoBloqueo: "Generación de resolución ya iniciada por el responsable" };
+  if (isNormativa ? (solicitud.revisionIniciada && Boolean(solicitud.revisorNormatividad) && (solicitud.estado === "EN_GENERACION_RESOLUCION" || solicitud.estado === "EN_REVISION_NORMATIVIDAD")) : (solicitud.revisionIniciada && solicitud.estado === "EN_REVISION_GESTION")) {
+    return { puedeReasignar: false, esReasignacion, motivoBloqueo: "Revisión ya iniciada por el responsable" };
   }
 
   return { puedeReasignar: true, esReasignacion, motivoBloqueo: undefined };
@@ -289,9 +316,196 @@ export interface SolicitudIngreso {
   anexoC?: DatosAnexoC;
 }
 
-export const STORAGE_KEY_INGRESOS = "dinarp_solicitudes_ingreso_v15";
+export const STORAGE_KEY_INGRESOS = "dinarp_solicitudes_ingreso_v16";
 
 export const INITIAL_SOLICITUDES_INGRESO: SolicitudIngreso[] = [
+  // CASO 1 (PRIORITARIO NORMATIVA): APROBADO POR GESTIÓN → PENDIENTE ASIGNACIÓN EN NORMATIVIDAD
+  {
+    id: "SOL-ING-102",
+    tipoTramite: "PROCESO_A_REGISTRO_INSTITUCION",
+    codigoDocumental: "ARP-R01",
+    tituloTramite: "Solicitud de Acceso SINARP (Registro Institución)",
+    cedula: "1709998887",
+    nombres: "Roberto",
+    apellidos: "García",
+    nombreCompleto: "Roberto García",
+    iniciales: "RG",
+    correo: "roberto.garcia@salud.gob.ec",
+    institucion: "Ministerio de Salud Pública",
+    fechaSolicitud: "29/09/2026 15:45",
+    estado: "PENDIENTE_ASIGNACION_NORMATIVIDAD",
+    revisorGestion: "Revisor Gestión",
+    revisor: "Por asignar",
+    revisorNormatividad: undefined,
+    revisionIniciada: false,
+    fechaAsignacionGestion: "25/09/2026 15:00",
+    fechaRevision: "26/09/2026 10:30",
+    fechaAprobacionGestion: "26/09/2026 10:30",
+    documentos: ["ARP-R01_Solicitud_Acceso_MSP.pdf"],
+    historial: [
+      {
+        id: "h-ing-102",
+        fechaHora: "25/09/2026 14:20",
+        accion: "Ingreso de trámite",
+        realizadoPor: "Roberto García",
+        rol: "Solicitante Institucional",
+        detalles: "Ingreso formal de solicitud de registro institucional para consumo de interoperabilidad."
+      },
+      {
+        id: "h-asig-102",
+        fechaHora: "25/09/2026 15:00",
+        accion: "Asignación de trámite",
+        realizadoPor: "Director Gestión",
+        rol: "Director / Coordinador",
+        detalles: "Asignado a Revisor Gestión para control formal y documental."
+      },
+      {
+        id: "h-rev-102",
+        fechaHora: "26/09/2026 09:15",
+        accion: "Revisión técnica iniciada",
+        realizadoPor: "Revisor Gestión",
+        rol: "Revisor de Gestión",
+        detalles: "El revisor Revisor Gestión ha iniciado formalmente la verificación técnica y documental del expediente."
+      },
+      {
+        id: "h1-102",
+        fechaHora: "26/09/2026 10:30",
+        accion: "Solicitud aprobada por Gestión",
+        realizadoPor: "Revisor Gestión",
+        rol: "Revisor de Gestión",
+        detalles: "Documentación legal y técnica conforme a la normativa SINARP. Expediente remitido a Normatividad para asignación jurídica."
+      }
+    ],
+    anexoA: {
+      entidadTipo: "Publica",
+      nombreEntidad: "Ministerio de Salud Pública",
+      rucEntidad: "1760001120001",
+      direccionEntidad: "Av. Quitumbe Ñan, Quito",
+      objetoSocial: "Salud pública",
+      representanteLegalNombre: "Dr. José Ruales",
+      representanteLegalCargo: "Ministro de Salud",
+      representanteLegalEmail: "ministro@salud.gob.ec",
+      esDelegado: false,
+      titularNombreCompleto: "Roberto García",
+      titularCedula: "1709998887",
+      titularCargo: "Director de Tecnologías",
+      titularAreaUnidad: "DNTIC",
+      titularEmail: "roberto.garcia@salud.gob.ec",
+      titularTelefonoFijo: "023814400",
+      titularMovilInstitucional: "0981112233",
+      titularMovilPersonal: "0992223344",
+      suplenteNombreCompleto: "Marta Sánchez",
+      suplenteCedula: "1718889990",
+      suplenteCargo: "Especialista TIC",
+      suplenteAreaUnidad: "DNTIC",
+      suplenteEmail: "marta.sanchez@salud.gob.ec",
+      suplenteTelefonoFijo: "023814400",
+      suplenteMovilInstitucional: "0995556677",
+      suplenteMovilPersonal: "0986667788",
+      serviciosHerramientas: ["Consulta de defunciones"],
+      areasUso: "Epidemiología",
+      procesosUso: "Registro estadístico",
+      declaracionesAceptadas: true,
+      ciudadFirma: "Quito D.M.",
+      fechaFirma: "25/09/2026",
+      firmadoDigitalmente: true,
+      archivoDocumentoFirmado: "ARP-R01_Solicitud_Acceso_MSP.pdf"
+    }
+  },
+
+  // CASO 2 (PRIORITARIO NORMATIVA): APROBADO POR GESTIÓN → PENDIENTE ASIGNACIÓN EN NORMATIVIDAD
+  {
+    id: "SOL-ING-104",
+    tipoTramite: "PROCESO_A_REGISTRO_INSTITUCION",
+    codigoDocumental: "ARP-R01",
+    tituloTramite: "Solicitud de Acceso SINARP (Registro Institución)",
+    cedula: "1714443322",
+    nombres: "Mariana",
+    apellidos: "Almeida Cárdenas",
+    nombreCompleto: "Mariana Almeida Cárdenas",
+    iniciales: "MA",
+    correo: "mariana.almeida@educacion.gob.ec",
+    institucion: "Ministerio de Educación",
+    fechaSolicitud: "29/09/2026 15:30",
+    estado: "PENDIENTE_ASIGNACION_NORMATIVIDAD",
+    revisorGestion: "Revisor Gestión",
+    revisor: "Por asignar",
+    revisorNormatividad: undefined,
+    revisionIniciada: false,
+    fechaAsignacionGestion: "28/09/2026 09:00",
+    fechaRevision: "28/09/2026 11:30",
+    fechaAprobacionGestion: "28/09/2026 11:30",
+    documentos: ["ARP-R01_Solicitud_Acceso_MINEDUC.pdf"],
+    historial: [
+      {
+        id: "h-ing-104",
+        fechaHora: "28/09/2026 08:30",
+        accion: "Ingreso de trámite",
+        realizadoPor: "Mariana Almeida Cárdenas",
+        rol: "Solicitante Institucional",
+        detalles: "Formulario oficial ARP-R01 ingresado formalmente al sistema."
+      },
+      {
+        id: "h-asig-104",
+        fechaHora: "28/09/2026 09:00",
+        accion: "Asignación de trámite",
+        realizadoPor: "Director Gestión",
+        rol: "Director / Coordinador",
+        detalles: "Trámite asignado a Revisor Gestión. Verificar datos del titular y suplente para consulta de títulos académicos."
+      },
+      {
+        id: "h-rev-104",
+        fechaHora: "28/09/2026 09:40",
+        accion: "Revisión técnica iniciada",
+        realizadoPor: "Revisor Gestión",
+        rol: "Revisor de Gestión",
+        detalles: "El revisor Revisor Gestión ha iniciado formalmente la verificación técnica y documental del expediente."
+      },
+      {
+        id: "h-aprob-104",
+        fechaHora: "28/09/2026 11:30",
+        accion: "Solicitud aprobada por Gestión",
+        realizadoPor: "Revisor Gestión",
+        rol: "Revisor de Gestión",
+        detalles: "Expediente validado técnicamente. Remitido a Normatividad para asignación de especialista jurídico y formulación de resolución."
+      }
+    ],
+    anexoA: {
+      entidadTipo: "Publica",
+      nombreEntidad: "Ministerio de Educación",
+      rucEntidad: "1760008200001",
+      direccionEntidad: "Av. Amazonas N34-451 y Atahualpa, Quito",
+      objetoSocial: "Garantizar el acceso y calidad de la educación nacional inicial, básica y bachillerato.",
+      representanteLegalNombre: "Dra. María Brown Pérez",
+      representanteLegalCargo: "Ministra de Educación",
+      representanteLegalEmail: "ministra@educacion.gob.ec",
+      esDelegado: false,
+      titularNombreCompleto: "Mariana Almeida Cárdenas",
+      titularCedula: "1714443322",
+      titularCargo: "Directora Nacional de Tecnologías de la Información",
+      titularAreaUnidad: "Dirección de TI",
+      titularEmail: "mariana.almeida@educacion.gob.ec",
+      titularTelefonoFijo: "023961300",
+      titularMovilInstitucional: "0998877665",
+      titularMovilPersonal: "0987766554",
+      suplenteNombreCompleto: "Jorge Andrés Morales",
+      suplenteCedula: "1713332211",
+      suplenteCargo: "Analista de Seguridad de la Información",
+      suplenteAreaUnidad: "Dirección de TI",
+      suplenteEmail: "jorge.morales@educacion.gob.ec",
+      suplenteTelefonoFijo: "023961300",
+      suplenteMovilInstitucional: "0991112233",
+      suplenteMovilPersonal: "0982223344",
+      serviciosHerramientas: ["Consulta de títulos bachiller", "Consulta de actas"],
+      areasUso: "Matriculación y Certificación",
+      procesosUso: "Validación de expedientes estudiantiles",
+      declaracionesAceptadas: true,
+      ciudadFirma: "Quito D.M.",
+      fechaFirma: "28/09/2026",
+      firmadoDigitalmente: true,
+      archivoDocumentoFirmado: "ARP-R01_Solicitud_Acceso_MINEDUC.pdf"
+    }
+  },
   // CASO 1: PENDIENTE POR REVISAR (Asignado por el Director al Revisor, en espera de iniciar formalmente)
   {
     id: "SOL-ING-101",
@@ -387,7 +601,8 @@ export const INITIAL_SOLICITUDES_INGRESO: SolicitudIngreso[] = [
     revisor: "Revisor Gestión",
     fechaAsignacionGestion: "29/09/2026 08:45",
     observacionesAsignacion: "Verificar acceso para sorteo de peritos judiciales.",
-    revisionIniciada: false,
+    revisionIniciada: true,
+    fechaInicioRevision: "29/09/2026 09:10",
     documentos: ["ARP-R01_Solicitud_Acceso_Judicatura.pdf"],
     historial: [
       {
@@ -1069,183 +1284,6 @@ export const INITIAL_SOLICITUDES_INGRESO: SolicitudIngreso[] = [
       fechaFirma: "29/09/2026",
       firmadoDigitalmente: true,
       archivoDocumentoFirmado: "ARP-R01_Solicitud_Acceso_CNJ.pdf"
-    }
-  },
-
-  // CASO 2: REVISIÓN INICIADA (El revisor ya ingresó y se encuentra validando activamente el expediente)
-  {
-    id: "SOL-ING-104",
-    tipoTramite: "PROCESO_A_REGISTRO_INSTITUCION",
-    codigoDocumental: "ARP-R01",
-    tituloTramite: "Solicitud de Acceso SINARP (Registro Institución)",
-    cedula: "1714443322",
-    nombres: "Mariana",
-    apellidos: "Almeida Cárdenas",
-    nombreCompleto: "Mariana Almeida Cárdenas",
-    iniciales: "MA",
-    correo: "mariana.almeida@educacion.gob.ec",
-    institucion: "Ministerio de Educación",
-    fechaSolicitud: "28/09/2026 08:30",
-    estado: "PENDIENTE_ASIGNACION_NORMATIVIDAD",
-    revisorGestion: "Revisor Gestión",
-    revisor: "Revisor Gestión",
-    fechaAsignacionGestion: "28/09/2026 09:00",
-    observacionesAsignacion: "Verificar datos del titular y suplente para consulta de títulos académicos.",
-    revisionIniciada: true,
-    documentos: ["ARP-R01_Solicitud_Acceso_MINEDUC.pdf"],
-    historial: [
-      {
-        id: "h-ing-104",
-        fechaHora: "28/09/2026 08:30",
-        accion: "Ingreso de trámite",
-        realizadoPor: "Mariana Almeida Cárdenas",
-        rol: "Solicitante Institucional",
-        detalles: "Formulario oficial ARP-R01 ingresado formalmente al sistema."
-      },
-      {
-        id: "h-asig-104",
-        fechaHora: "28/09/2026 09:00",
-        accion: "Asignación de trámite",
-        realizadoPor: "Director Gestión",
-        rol: "Director / Coordinador",
-        detalles: "Trámite asignado a Revisor Gestión. Verificar datos del titular y suplente para consulta de títulos académicos."
-      },
-      {
-        id: "h-rev-104",
-        fechaHora: "28/09/2026 09:40",
-        accion: "Revisión técnica iniciada",
-        realizadoPor: "Revisor Gestión",
-        rol: "Revisor de Gestión",
-        detalles: "El revisor Revisor Gestión ha iniciado formalmente la verificación técnica y documental del expediente."
-      }
-    ],
-    anexoA: {
-      entidadTipo: "Publica",
-      nombreEntidad: "Ministerio de Educación",
-      rucEntidad: "1760000820001",
-      direccionEntidad: "Av. Amazonas N34-451 y Atahualpa, Quito",
-      objetoSocial: "Garantizar el acceso y calidad de la educación nacional inicial, básica y bachillerato.",
-      representanteLegalNombre: "Dra. María Brown Pérez",
-      representanteLegalCargo: "Ministra de Educación",
-      representanteLegalEmail: "ministra@educacion.gob.ec",
-      esDelegado: false,
-      titularNombreCompleto: "Mariana Almeida Cárdenas",
-      titularCedula: "1714443322",
-      titularCargo: "Directora Nacional de Tecnologías de la Información",
-      titularAreaUnidad: "Dirección de TI",
-      titularEmail: "mariana.almeida@educacion.gob.ec",
-      titularTelefonoFijo: "023961300",
-      titularMovilInstitucional: "0998877665",
-      titularMovilPersonal: "0987766554",
-      suplenteNombreCompleto: "Jorge Andrés Morales",
-      suplenteCedula: "1713332211",
-      suplenteCargo: "Analista de Seguridad de la Información",
-      suplenteAreaUnidad: "Dirección de TI",
-      suplenteEmail: "jorge.morales@educacion.gob.ec",
-      suplenteTelefonoFijo: "023961300",
-      suplenteMovilInstitucional: "0991122334",
-      suplenteMovilPersonal: "0982233445",
-      serviciosHerramientas: ["Consulta de datos de identidad y estado civil", "Consulta de defunciones"],
-      areasUso: "Matriculación y Certificación",
-      procesosUso: "Validación registral de postulantes y emisión de certificados estudiantiles.",
-      declaracionesAceptadas: true,
-      ciudadFirma: "Quito D.M.",
-      fechaFirma: "28/09/2026",
-      firmadoDigitalmente: true,
-      archivoDocumentoFirmado: "ARP-R01_Solicitud_Acceso_MINEDUC.pdf"
-    }
-  },
-
-  // CASO 3: APROBADO POR GESTIÓN â†’ PENDIENTE ASIGNACIÓN EN NORMATIVIDAD
-  {
-    id: "SOL-ING-102",
-    tipoTramite: "PROCESO_A_REGISTRO_INSTITUCION",
-    codigoDocumental: "ARP-R01",
-    tituloTramite: "Solicitud de Acceso SINARP (Registro Institución)",
-    cedula: "1709998887",
-    nombres: "Roberto",
-    apellidos: "García",
-    nombreCompleto: "Roberto García",
-    iniciales: "RG",
-    correo: "roberto.garcia@salud.gob.ec",
-    institucion: "Ministerio de Salud Pública",
-    fechaSolicitud: "25/09/2026 14:20",
-    estado: "PENDIENTE_ASIGNACION_NORMATIVIDAD",
-    revisorGestion: "Revisor Gestión",
-    revisor: "Revisor Gestión",
-    revisionIniciada: true,
-    fechaAsignacionGestion: "25/09/2026 15:00",
-    fechaRevision: "26/09/2026 10:30",
-    fechaAprobacionGestion: "26/09/2026 10:30",
-    documentos: ["ARP-R01_Solicitud_Acceso_MSP.pdf"],
-    historial: [
-      {
-        id: "h-ing-102",
-        fechaHora: "25/09/2026 14:20",
-        accion: "Ingreso de trámite",
-        realizadoPor: "Roberto García",
-        rol: "Solicitante Institucional",
-        detalles: "Ingreso formal de solicitud de registro institucional para consumo de interoperabilidad."
-      },
-      {
-        id: "h-asig-102",
-        fechaHora: "25/09/2026 15:00",
-        accion: "Asignación de trámite",
-        realizadoPor: "Director Gestión",
-        rol: "Director / Coordinador",
-        detalles: "Asignado a Revisor Gestión para control formal y documental."
-      },
-      {
-        id: "h-rev-102",
-        fechaHora: "26/09/2026 09:15",
-        accion: "Revisión técnica iniciada",
-        realizadoPor: "Revisor Gestión",
-        rol: "Revisor de Gestión",
-        detalles: "El revisor Revisor Gestión ha iniciado formalmente la verificación técnica y documental del expediente."
-      },
-      {
-        id: "h1-102",
-        fechaHora: "26/09/2026 10:30",
-        accion: "Solicitud aprobada por Gestión",
-        realizadoPor: "Revisor Gestión",
-        rol: "Revisor de Gestión",
-        detalles: "Documentación legal y técnica conforme a la normativa SINARP. Expediente remitido a Normatividad para asignación jurídica."
-      }
-    ],
-    anexoA: {
-      entidadTipo: "Publica",
-      nombreEntidad: "Ministerio de Salud Pública",
-      rucEntidad: "1760001120001",
-      direccionEntidad: "Av. Quitumbe Ñan, Quito",
-      objetoSocial: "Salud pública",
-      representanteLegalNombre: "Dr. José Ruales",
-      representanteLegalCargo: "Ministro de Salud",
-      representanteLegalEmail: "ministro@salud.gob.ec",
-      esDelegado: false,
-      titularNombreCompleto: "Roberto García",
-      titularCedula: "1709998887",
-      titularCargo: "Director de Tecnologías",
-      titularAreaUnidad: "DNTIC",
-      titularEmail: "roberto.garcia@salud.gob.ec",
-      titularTelefonoFijo: "023814400",
-      titularMovilInstitucional: "0981112233",
-      titularMovilPersonal: "0992223344",
-      suplenteNombreCompleto: "Marta Sánchez",
-      suplenteCedula: "1718889990",
-      suplenteCargo: "Especialista TIC",
-      suplenteAreaUnidad: "DNTIC",
-      suplenteEmail: "marta.sanchez@salud.gob.ec",
-      suplenteTelefonoFijo: "023814400",
-      suplenteMovilInstitucional: "0995556677",
-      suplenteMovilPersonal: "0986667788",
-      serviciosHerramientas: ["Consulta de defunciones"],
-      areasUso: "Epidemiología",
-      procesosUso: "Registro estadístico",
-      declaracionesAceptadas: true,
-      ciudadFirma: "Quito D.M.",
-      fechaFirma: "25/09/2026",
-      firmadoDigitalmente: true,
-      archivoDocumentoFirmado: "ARP-R01_Solicitud_Acceso_MSP.pdf"
     }
   },
 
@@ -4157,14 +4195,14 @@ export function useSolicitudesIngresoStore() {
             detalles: `Resolución institucional ${numRes} generada y vinculada a la solicitud y Anexo A aprobado. ${observaciones || ""}`.trim()
           });
 
-          // 2. Hito: Pendiente de firma (INS-07)
+          // 2. Hito: Remisión a Máxima Autoridad para firma digital y posterior activación (INS-07)
           nuevoHistorial.push({
             id: `hist-${Date.now()}-firma-pend`,
             fechaHora: now,
-            accion: "Pendiente de firma",
+            accion: "Remisión a Máxima Autoridad para firma digital",
             realizadoPor: "Sistema DINARP",
             rol: "Sistema",
-            detalles: "Enviado a firma externa de la Máxima Autoridad mediante FirmaEC. La activación de la institución y emisión de invitaciones de coordinadores permanecen a la espera de la firma verificada."
+            detalles: "Resolución institucional remitida al despacho de la Máxima Autoridad para suscripción electrónica mediante FirmaEC. Al suscribirse la resolución, se activará la institución en el sistema SINARP y se enviarán automáticamente las invitaciones de enrolamiento al Coordinador Titular y Coordinador Suplente."
           });
 
           return {

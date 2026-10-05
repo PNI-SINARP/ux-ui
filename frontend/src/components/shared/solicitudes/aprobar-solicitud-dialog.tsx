@@ -1,25 +1,18 @@
 "use client";
 
 import React, { useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { CheckCircle2, Mail, ShieldCheck, User, Building2, CreditCard, Loader2, FileCheck2, Info, AlertTriangle } from "lucide-react";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { Mail, User, Building2, CreditCard, AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import { type SolicitudIngreso } from "@/modules/gestion-solicitudes/data/gestion-ingresos-store";
 
 interface AprobarSolicitudDialogProps {
   solicitud: SolicitudIngreso | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: (solicitud: SolicitudIngreso) => void;
+  onConfirm: (solicitud: SolicitudIngreso, opcionCaso?: "CASO_A" | "CASO_B") => void;
 }
 
 export function AprobarSolicitudDialog({
@@ -29,62 +22,80 @@ export function AprobarSolicitudDialog({
   onConfirm,
 }: AprobarSolicitudDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [opcionCaso, setOpcionCaso] = useState<"CASO_A" | "CASO_B">("CASO_B");
 
   if (!solicitud) return null;
 
   const isProcesoA = solicitud.tipoTramite === "PROCESO_A_REGISTRO_INSTITUCION";
   const isProcesoB = solicitud.tipoTramite === "PROCESO_B_ENROLAMIENTO_COORDINADOR";
-  const isProcesoC = solicitud.tipoTramite === "PROCESO_C_CAMBIO_COORDINADOR";
+  const isProcesoC = solicitud.tipoTramite === "PROCESO_C_CAMBIO_COORDINADOR" || solicitud.codigoDocumental === "ARP-R03" || solicitud.id.startsWith("CAM-");
+
+  const title = isProcesoA
+    ? "Confirmar Aprobación — Registro Institucional"
+    : isProcesoB
+    ? "Confirmar Aprobación y Activación"
+    : "Dictamen Técnico — Aprobación de Anexo C";
+
+  const description = isProcesoA
+    ? "Al aprobar la solicitud, la institución queda dada de alta en el SINARP y sus coordinadores quedarán PRERREGISTRADOS con envío de invitación (no activos aún)."
+    : isProcesoB
+    ? "Al aprobar el Acuerdo de Confidencialidad (Anexo B), el coordinador queda ACTIVO y podrá iniciar sesión en la plataforma."
+    : "Evalúa el expediente de sustitución ARP-R03. Selecciona la condición del nuevo coordinador según posea o no un Anexo B suscrito previamente.";
 
   const handleApprove = () => {
     setIsSubmitting(true);
     setTimeout(() => {
       setIsSubmitting(false);
-      onConfirm(solicitud);
+      onConfirm(solicitud, opcionCaso);
       onOpenChange(false);
 
       if (isProcesoA) {
         toast.success("Institución registrada exitosamente.", {
-          description: `Se prerregistraron los coordinadores titular y suplente, enviando invitaciones de enrolamiento.`
+          description: "Se prerregistraron los coordinadores titular y suplente, enviando invitaciones de enrolamiento."
         });
       } else if (isProcesoB) {
         toast.success("Coordinador activado exitosamente.", {
           description: `${solicitud.nombreCompleto} ahora tiene estado ACTIVO para iniciar sesión.`
         });
       } else {
-        toast.success("Cambio de coordinador aprobado.", {
-          description: `Se habilitó el prerregistro del nuevo coordinador para suscribir el Acuerdo (Anexo B).`
-        });
+        if (opcionCaso === "CASO_A") {
+          toast.success("Cambio de coordinador aplicado exitosamente (Caso A).", {
+            description: "El nuevo coordinador cuenta con Anexo B vigente. El cambio entra en vigencia de forma inmediata."
+          });
+        } else {
+          toast.success("Anexo C aprobado — Enrolamiento pendiente (Caso B).", {
+            description: "Se remitió la invitación de enrolamiento para que suscriba el Acuerdo (Anexo B)."
+          });
+        }
       }
     }, 400);
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md p-6 max-h-[90vh] overflow-y-auto">
-        <DialogHeader className="space-y-2">
-          <div className="size-10 rounded-full bg-warning/15 text-warning-foreground border border-warning/30 flex items-center justify-center mb-1">
-            <AlertTriangle className="size-5" />
-          </div>
-          <div className="flex items-center gap-2">
-            <Badge tone="warning" appearance="soft" size="sm" className="border border-warning/30">
-              {solicitud.codigoDocumental}
-            </Badge>
-            <DialogTitle className="text-base font-bold text-foreground">
-              {isProcesoA && "Confirmar Aprobación — Registro Institucional"}
-              {isProcesoB && "Confirmar Aprobación y Activación"}
-              {isProcesoC && "Confirmar Aprobación — Cambio de Coordinador"}
-            </DialogTitle>
-          </div>
-          <DialogDescription className="text-xs text-muted-foreground leading-relaxed">
-            {isProcesoA && "Al aprobar la solicitud, la institución queda dada de alta en el SINARP y sus coordinadores quedarán PRERREGISTRADOS con envío de invitación (no activos aún)."}
-            {isProcesoB && "Al aprobar el Acuerdo de Confidencialidad (Anexo B), el coordinador queda ACTIVO y podrá iniciar sesión en la plataforma."}
-            {isProcesoC && "Al aprobar el Anexo C, se actualiza el registro institucional y se habilita el prerregistro del nuevo coordinador para que complete su Proceso B."}
-          </DialogDescription>
-        </DialogHeader>
+    <ConfirmDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      variant="warning"
+      title={title}
+      description={description}
+      onConfirm={handleApprove}
+      confirmText="Confirmar y Aprobar"
+      cancelText="Cancelar"
+      confirmVariant="warning"
+      isLoading={isSubmitting}
+      isConfirmDisabled={isSubmitting}
+      className="sm:max-w-[500px]"
+    >
+      <div className="space-y-3 pt-1">
+        {/* Badge Código Documental */}
+        <div className="flex justify-center">
+          <Badge tone="warning" appearance="soft" size="sm" className="border border-warning/30 font-semibold text-[11px]">
+            {solicitud.codigoDocumental} · {solicitud.id}
+          </Badge>
+        </div>
 
         {/* Resumen de la Solicitud */}
-        <div className="my-2 p-3.5 bg-muted/40 rounded-xl border border-border/70 space-y-2 text-xs">
+        <div className="p-3.5 bg-muted/40 rounded-xl border border-border/70 space-y-2 text-xs">
           <div className="flex items-center justify-between pb-2 border-b border-border/50">
             <span className="text-muted-foreground flex items-center gap-1.5 font-medium">
               <Building2 className="size-3.5 text-muted-foreground" /> Entidad:
@@ -114,46 +125,63 @@ export function AprobarSolicitudDialog({
           </div>
         </div>
 
+        {/* Selector de Condición de Anexo C (Regla CAM-03: Caso A vs Caso B) */}
+        {isProcesoC && (
+          <div className="p-3.5 bg-surface rounded-xl border border-border space-y-2.5 text-xs">
+            <span className="font-bold text-foreground block text-[11px] uppercase tracking-wider">
+              Condición del Nuevo Coordinador (CAM-03)
+            </span>
+            <div className="space-y-2">
+              <label className={cn(
+                "flex items-start gap-2.5 p-2.5 rounded-lg border cursor-pointer transition-all",
+                opcionCaso === "CASO_B" ? "border-primary bg-primary/5 text-foreground" : "border-border/70 hover:bg-muted/30 text-muted-foreground"
+              )}>
+                <input
+                  type="radio"
+                  name="opcionCaso"
+                  checked={opcionCaso === "CASO_B"}
+                  onChange={() => setOpcionCaso("CASO_B")}
+                  className="mt-0.5 text-primary"
+                />
+                <div>
+                  <strong className="block text-foreground text-xs font-semibold">Caso B — No posee Anexo B suscrito (Recomendado)</strong>
+                  <span className="text-[11px] text-muted-foreground">
+                    El trámite pasa a estado <strong>&quot;Enrolamiento pendiente&quot;</strong> y se remite la invitación para suscribir el Acuerdo ARP-R02.
+                  </span>
+                </div>
+              </label>
+
+              <label className={cn(
+                "flex items-start gap-2.5 p-2.5 rounded-lg border cursor-pointer transition-all",
+                opcionCaso === "CASO_A" ? "border-primary bg-primary/5 text-foreground" : "border-border/70 hover:bg-muted/30 text-muted-foreground"
+              )}>
+                <input
+                  type="radio"
+                  name="opcionCaso"
+                  checked={opcionCaso === "CASO_A"}
+                  onChange={() => setOpcionCaso("CASO_A")}
+                  className="mt-0.5 text-primary"
+                />
+                <div>
+                  <strong className="block text-foreground text-xs font-semibold">Caso A — Ya posee Anexo B suscrito previamente</strong>
+                  <span className="text-[11px] text-muted-foreground">
+                    El funcionario ya cuenta con acuerdo vigente. El trámite pasa directamente a estado <strong>&quot;Aplicado&quot;</strong> y sus credenciales quedan activas.
+                  </span>
+                </div>
+              </label>
+            </div>
+          </div>
+        )}
+
         {/* Advertencia Informativa de Confirmación */}
         <div className="p-3 bg-warning/10 rounded-xl border border-warning/30 text-[11px] text-warning-foreground flex items-start gap-2">
           <AlertTriangle className="size-4 shrink-0 mt-0.5 text-warning-foreground" />
           <span>
-            <strong>Confirmación requerida:</strong> Se registrará este dictamen en el historial oficial del trámite y se notificará a las partes.
+            <strong>Garantía operativa:</strong> La aprobación de este trámite preserva íntegros los proyectos, cupos, contratos y credenciales institucionales.
           </span>
         </div>
-
-        <DialogFooter className="gap-3 pt-3 sm:flex-row sm:justify-end sm:[&>*]:flex-none sm:[&>*]:w-auto">
-          <Button
-            type="button"
-            variant="neutral"
-            disabled={isSubmitting}
-            onClick={() => onOpenChange(false)}
-            className="h-10 px-5 text-xs font-semibold rounded-xl"
-          >
-            Cancelar
-          </Button>
-
-          <Button
-            type="button"
-            variant="primary"
-            disabled={isSubmitting}
-            onClick={handleApprove}
-            className="h-11 px-6 text-xs font-semibold gap-2 rounded-full shadow-sm"
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="size-3.5 animate-spin" />
-                <span>Procesando...</span>
-              </>
-            ) : (
-              <>
-                <CheckCircle2 className="size-4" />
-                <span>Confirmar y Aprobar</span>
-              </>
-            )}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </ConfirmDialog>
   );
 }
+

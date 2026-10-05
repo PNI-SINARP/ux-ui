@@ -13,7 +13,10 @@ import {
   Send,
   ShieldCheck,
   FileCheck2,
+  FileSignature,
+  Eye,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { TimelineItem } from "@/components/ui/timeline";
 import { SolicitudIngreso } from "@/modules/gestion-solicitudes/data/gestion-ingresos-store";
 
@@ -95,12 +98,22 @@ export function deduplicateTimelineItems(rawItems: TimelineItem[]): TimelineItem
 }
 
 /**
- * Construye la trazabilidad completa del trámite desde el Registro de Institución
- * (Anexo A completado â†’ Enviado a FirmaEC â†’ Firma verificada en FirmaEC â†’
- *  Datos de firma confirmados â†’ Solicitud enviada a Gestión DINARP â†’
- *  Asignación de revisor â†’ Pendiente de revisión / En revisión).
+ * Opciones adicionales para la generación de la trazabilidad.
  */
-export function buildTramiteTimelineItems(solicitud: SolicitudIngreso | null | undefined): TimelineItem[] {
+export interface TramiteTimelineOptions {
+  onViewBorradorAnexoA?: (solicitud: SolicitudIngreso) => void;
+}
+
+/**
+ * Construye la trazabilidad completa del trámite desde el Registro de Institución
+ * (Anexo A completado → Enviado a FirmaEC → Firma verificada en FirmaEC →
+ *  Datos de firma confirmados → Solicitud enviada a Gestión DINARP →
+ *  Asignación de revisor → Pendiente de revisión / En revisión).
+ */
+export function buildTramiteTimelineItems(
+  solicitud: SolicitudIngreso | null | undefined,
+  options?: TramiteTimelineOptions
+): TimelineItem[] {
   if (!solicitud) return [];
 
   const rawItems: TimelineItem[] = [];
@@ -184,6 +197,19 @@ export function buildTramiteTimelineItems(solicitud: SolicitudIngreso | null | u
       statusLabel: "DATOS CONFIRMADOS",
       icon: <FileCheck2 className="size-4" />,
       user: "Portal Web DINARP / Interoperabilidad",
+      action: options?.onViewBorradorAnexoA ? (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => options.onViewBorradorAnexoA?.(solicitud)}
+          className="h-8 text-xs font-semibold gap-1.5 rounded-full px-3 text-primary hover:text-primary hover:bg-primary/10 border-primary/30 shadow-2xs transition-colors shrink-0"
+          title="Ver borrador del documento"
+        >
+          <Eye className="size-3.5 shrink-0" />
+          <span>Ver borrador</span>
+        </Button>
+      ) : undefined,
     });
 
     rawItems.push({
@@ -243,6 +269,19 @@ export function buildTramiteTimelineItems(solicitud: SolicitudIngreso | null | u
       statusLabel: "DATOS CONFIRMADOS",
       icon: <FileCheck2 className="size-4" />,
       user: "Portal Web DINARP / Interoperabilidad",
+      action: options?.onViewBorradorAnexoA ? (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => options.onViewBorradorAnexoA?.(solicitud)}
+          className="h-8 text-xs font-semibold gap-1.5 rounded-full px-3 text-primary hover:text-primary hover:bg-primary/10 border-primary/30 shadow-2xs transition-colors shrink-0"
+          title="Ver borrador del Formulario Anexo A (ARP-R01)"
+        >
+          <Eye className="size-3.5 shrink-0" />
+          <span>Ver borrador Anexo A</span>
+        </Button>
+      ) : undefined,
     });
 
     // 5. Hito: Solicitud enviada a Gestión DINARP
@@ -297,6 +336,13 @@ export function buildTramiteTimelineItems(solicitud: SolicitudIngreso | null | u
 
       const isInvitacionB =
         accionLower.includes("invitac") || accionLower.includes("coordinador");
+
+      const isRemisionFirma =
+        accionLower.includes("máxima autoridad") ||
+        accionLower.includes("maxima autoridad") ||
+        accionLower.includes("remisión a máxima") ||
+        accionLower.includes("remision a maxima") ||
+        (accionLower.includes("pendiente") && accionLower.includes("firma") && !accionLower.includes("fallo"));
 
       const isInstitucionActiva =
         accionLower.includes("institución activ") || accionLower.includes("institucion activ");
@@ -357,6 +403,10 @@ export function buildTramiteTimelineItems(solicitud: SolicitudIngreso | null | u
         status = "info";
         statusLabel = "INVITACIÓN B";
         icon = <CheckCircle2 className="size-4" />;
+      } else if (isRemisionFirma) {
+        status = "info";
+        statusLabel = "PENDIENTE DE FIRMA";
+        icon = <FileSignature className="size-4" />;
       } else if (isFirmaResolucion) {
         status = accionLower.includes("no") ? "danger" : "success";
         statusLabel = accionLower.includes("no") ? "FIRMA FALLIDA" : "FIRMA VERIFICADA";

@@ -1,4 +1,4 @@
-import { CambioCoordinadorView } from "@/modules/coordinadores/views/cambio-coordinador-view";
+import { CambioCoordinadorView } from "@/modules/cambio-coordinador/views/cambio-coordinador-view";
 
 export default function CambioCoordinadorPage() {
   return <CambioCoordinadorView />;

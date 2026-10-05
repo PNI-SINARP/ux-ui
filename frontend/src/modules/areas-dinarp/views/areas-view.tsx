@@ -314,8 +314,18 @@ export function AreasView() {
             <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block">
               Responsable
             </span>
-            <p className="text-xs font-semibold text-foreground truncate">{area.responsableNombre}</p>
-            <p className="text-[10px] text-muted-foreground truncate">{area.responsableCargo}</p>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="cursor-help">
+                  <p className="text-xs font-semibold text-foreground truncate">{area.responsableNombre}</p>
+                  <p className="text-[10px] text-muted-foreground truncate">{area.responsableCargo}</p>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="text-xs max-w-xs">
+                <p className="font-semibold">{area.responsableNombre}</p>
+                <p className="text-[10px] text-muted-foreground">{area.responsableCargo}</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
 
           <div className="p-2.5 rounded-lg bg-surface/80 backdrop-blur-xs border border-border/40 space-y-1">
@@ -737,9 +747,16 @@ export function AreasView() {
                     appearance="soft"
                     className="pl-3 pr-1 py-1 rounded-full text-xs h-7 gap-1 font-semibold bg-muted text-foreground border border-border max-w-full"
                   >
-                    <span className="max-w-[180px] sm:max-w-[260px] truncate">
-                      Búsqueda: &ldquo;{searchQuery}&rdquo;
-                    </span>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="max-w-[180px] sm:max-w-[260px] truncate cursor-help">
+                          Búsqueda: &ldquo;{searchQuery}&rdquo;
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="text-xs max-w-xs z-[100]">
+                        Búsqueda: &ldquo;{searchQuery}&rdquo;
+                      </TooltipContent>
+                    </Tooltip>
                     <button
                       type="button"
                       onClick={() => {
@@ -889,14 +906,22 @@ export function AreasView() {
 
                           {/* 4. Responsable */}
                           <TableCell className="w-[200px] min-w-[180px] text-left align-middle">
-                            <div className="space-y-0.5">
-                              <p className="text-xs font-semibold text-foreground truncate">
-                                {area.responsableNombre}
-                              </p>
-                              <p className="text-[10px] text-muted-foreground truncate">
-                                {area.responsableCargo}
-                              </p>
-                            </div>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div className="space-y-0.5 cursor-help">
+                                  <p className="text-xs font-semibold text-foreground truncate">
+                                    {area.responsableNombre}
+                                  </p>
+                                  <p className="text-[10px] text-muted-foreground truncate">
+                                    {area.responsableCargo}
+                                  </p>
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="text-xs max-w-xs">
+                                <p className="font-semibold">{area.responsableNombre}</p>
+                                <p className="text-[10px] text-muted-foreground">{area.responsableCargo}</p>
+                              </TooltipContent>
+                            </Tooltip>
                           </TableCell>
 
                           {/* 5. Usuarios vinculados */}

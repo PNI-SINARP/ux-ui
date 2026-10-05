@@ -2410,7 +2410,7 @@ function EnrolamientoContent() {
                   )}
 
                   {preregistroCargado && !isSubmittedSuccess && step > 1 && (
-                    <Button type="button" variant="outline" size="default" onClick={handleSimulateFillAnexoB} className="rounded-full px-3 sm:px-4 flex items-center gap-1.5 text-xs h-8 sm:h-9 bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 border-amber-500/20">
+                    <Button type="button" variant="outline" size="default" onClick={handleSimulateFillAnexoB} className="rounded-full px-3 sm:px-4 flex items-center gap-1.5 text-xs h-8 sm:h-9 bg-warning/10 text-warning hover:bg-warning/20 border-warning/20">
                       <Sparkles className="size-3.5" /> Autocompletar Anexo B
                     </Button>
                   )}
@@ -2453,7 +2453,7 @@ function EnrolamientoContent() {
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => handleSimularFalloFirma("CADUCADA")}
-                            className="flex items-start gap-2.5 p-2 rounded-lg text-amber-600 focus:text-amber-600 focus:bg-amber-500/10 cursor-pointer"
+                            className="flex items-start gap-2.5 p-2 rounded-lg text-warning focus:text-warning focus:bg-warning/10 cursor-pointer"
                           >
                             <Clock className="size-4 shrink-0 mt-0.5" />
                             <div>

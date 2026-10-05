@@ -1,6 +1,9 @@
-import { type BadgeProps } from "@/components/ui/badge";
+import { type BadgeProps, type BadgeTone } from "@/components/ui/badge";
 
-export type StatusBadgeConfig = Omit<BadgeProps, "children"> & { label: string };
+export type StatusBadgeConfig = Omit<BadgeProps, "children" | "tone"> & {
+  tone: BadgeTone;
+  label: string;
+};
 
 export const STATUS_BADGE_CONFIG: Record<string, StatusBadgeConfig> = {
   // EstadoUsuario
@@ -13,7 +16,7 @@ export const STATUS_BADGE_CONFIG: Record<string, StatusBadgeConfig> = {
   "Pendiente": { tone: "warning", appearance: "soft", scale: "50", dot: true, label: "Pendiente" },
   "PENDIENTE_ENVIO": { tone: "secondary", appearance: "soft", scale: "50", dot: true, label: "Pendiente Envío" },
   "PENDIENTE_ASIGNACION_GESTION": { tone: "warning", appearance: "outline", scale: "300", dot: true, label: "Pend. Asignación Gestión" },
-  "EN_REVISION_GESTION": { tone: "info", appearance: "soft", scale: "100", dot: true, label: "En Revisión Gestión" },
+  "EN_REVISION_GESTION": { tone: "info", appearance: "soft", scale: "100", dot: true, label: "En Revisión" },
   "APROBADO_GESTION": { tone: "success", appearance: "soft", scale: "50", dot: true, label: "Aprobado por Gestión" },
   "PENDIENTE_ASIGNACION_NORMATIVIDAD": { tone: "primary", appearance: "outline", scale: "300", dot: true, label: "Pend. Asignación Normativa" },
   "PENDIENTE_GENERAR_RESOLUCION": { tone: "primary", appearance: "soft", scale: "50", dot: true, label: "Pend. Generar Resolución" },

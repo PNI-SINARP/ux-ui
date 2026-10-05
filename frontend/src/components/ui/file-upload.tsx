@@ -271,45 +271,54 @@ function DropZoneHeader({
       }}
       className={cn(
         "w-full p-4 sm:p-5 transition-all duration-300 cursor-pointer select-none",
-        "flex flex-col sm:flex-row items-start sm:items-center gap-3.5 sm:gap-4 bg-muted/30 hover:bg-muted/60",
+        "flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3.5 sm:gap-4 bg-muted/30 hover:bg-muted/60",
         isDragging && "bg-primary/5 border-primary/20",
         disabled && "opacity-50 cursor-not-allowed pointer-events-none"
       )}
     >
-      <Button
-        type="button"
-        variant="primary"
-        size="sm"
-        disabled={disabled}
-        tabIndex={-1}
-        onClick={(e) => { e.stopPropagation(); if (!disabled) onClick() }}
-        className="shrink-0 w-auto font-semibold shadow-sm h-9 text-[13px] px-4 rounded-full cursor-pointer"
-      >
-        <UploadCloud className="size-4 mr-2" />
-        {multiple ? "Seleccionar archivos..." : "Seleccionar archivo..."}
-      </Button>
-
-      <div className="flex flex-col min-w-0 justify-center">
-        <span
-          className={cn(
-            "text-[13px] font-medium leading-snug transition-colors",
-            isDragging ? "text-primary" : "text-foreground"
-          )}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3.5 sm:gap-4 min-w-0">
+        <Button
+          type="button"
+          variant="primary"
+          size="sm"
+          disabled={disabled}
+          tabIndex={-1}
+          onClick={(e) => { e.stopPropagation(); if (!disabled) onClick() }}
+          className="shrink-0 w-auto font-semibold shadow-sm h-9 text-[13px] px-4 rounded-full cursor-pointer"
         >
-          {isDragging ? "Suelta los archivos para cargarlos" : "Arrastra y suelta archivos aquí"}
-        </span>
+          <UploadCloud className="size-4 mr-2" />
+          {multiple ? "Seleccionar archivos..." : "Seleccionar archivo..."}
+        </Button>
 
-        {(allowedFormats || accept || maxSizeMB) && (
-          <span className="text-[11px] sm:text-xs text-muted-foreground leading-normal mt-0.5 flex flex-wrap items-center gap-1.5">
-            <span>
-              Formatos permitidos:{" "}
-              <strong className="font-semibold text-foreground/80">
-                {allowedFormats || (accept ? accept.toUpperCase().replace(/\./g, "") : "PDF")}
-              </strong>
-            </span>
-            {maxSizeMB && <span>• Máx. {maxSizeMB}MB</span>}
+        <div className="flex flex-col min-w-0 justify-center">
+          <span
+            className={cn(
+              "text-[13px] font-medium leading-snug transition-colors",
+              isDragging ? "text-primary" : "text-foreground"
+            )}
+          >
+            {isDragging ? "Suelta los archivos para cargarlos" : "Arrastra y suelta archivos aquí"}
           </span>
-        )}
+
+          {(allowedFormats || accept || maxSizeMB) && (
+            <span className="text-[11px] sm:text-xs text-muted-foreground leading-normal mt-0.5 flex flex-wrap items-center gap-1.5">
+              <span>
+                Formatos permitidos:{" "}
+                <strong className="font-semibold text-foreground/80">
+                  {allowedFormats || (accept ? accept.toUpperCase().replace(/\./g, "") : "PDF")}
+                </strong>
+              </span>
+              {maxSizeMB && <span>• Máx. {maxSizeMB}MB</span>}
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div className="hidden md:flex items-center gap-1.5 text-xs text-muted-foreground shrink-0 pr-1">
+        <FileIcon className="size-3.5 text-muted-foreground/70" />
+        <span className="text-[11px] font-medium">
+          {allowedFormats || (accept ? accept.toUpperCase().replace(/\./g, "") : "PDF")}
+        </span>
       </div>
     </div>
   )

@@ -526,7 +526,14 @@ export function RolesView({ initialSelectedId = null }: RolesViewProps) {
                       appearance="soft"
                       className="pl-3 pr-1 py-1 rounded-full text-xs h-7 gap-1 font-semibold"
                     >
-                      <span>Búsqueda: &ldquo;{searchQuery}&rdquo;</span>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="max-w-[180px] sm:max-w-[260px] truncate cursor-help">Búsqueda: &ldquo;{searchQuery}&rdquo;</span>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="text-xs max-w-xs z-[100]">
+                          Búsqueda: &ldquo;{searchQuery}&rdquo;
+                        </TooltipContent>
+                      </Tooltip>
                       <button
                         type="button"
                         onClick={() => setSearchQuery("")}
@@ -648,18 +655,25 @@ export function RolesView({ initialSelectedId = null }: RolesViewProps) {
                           {/* 2. Nombre (Clic para ver detalle) */}
                           <TableCell className="w-[240px] min-w-[220px] text-left align-middle">
                             <div className="space-y-0.5 min-w-0 pr-3">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setSelectedRolId(r.id);
-                                  if (typeof window !== "undefined") {
-                                    window.history.pushState({}, "", `/roles?id=${r.id}`);
-                                  }
-                                }}
-                                className="text-xs font-bold text-foreground hover:text-primary transition-colors text-left block truncate max-w-full cursor-pointer"
-                              >
-                                {r.nombre}
-                              </button>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setSelectedRolId(r.id);
+                                      if (typeof window !== "undefined") {
+                                        window.history.pushState({}, "", `/roles?id=${r.id}`);
+                                      }
+                                    }}
+                                    className="text-xs font-bold text-foreground hover:text-primary transition-colors text-left block truncate max-w-full cursor-pointer"
+                                  >
+                                    {r.nombre}
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent side="top" className="text-xs max-w-xs">
+                                  {r.nombre}
+                                </TooltipContent>
+                              </Tooltip>
                               <span className="text-[10px] text-muted-foreground font-mono block">
                                 {r.id}
                               </span>

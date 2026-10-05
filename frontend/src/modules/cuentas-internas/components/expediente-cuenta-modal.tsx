@@ -91,28 +91,28 @@ export function ExpedienteCuentaModal({
             {/* Estado Badge (Pill en la esquina superior derecha) */}
             <div className="shrink-0 pt-0.5">
               {usuario.estado === "ACTIVO" && (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-success/10 text-success border border-success/30">
+                <Badge tone="success" appearance="soft" size="sm" className="font-bold gap-1.5">
                   <span className="size-1.5 rounded-full bg-success"></span>
                   ACTIVO
-                </span>
+                </Badge>
               )}
               {usuario.estado === "PENDIENTE_ACTIVACION" && (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-warning/10 text-warning border border-warning/30">
+                <Badge tone="warning" appearance="soft" size="sm" className="font-bold gap-1.5">
                   <span className="size-1.5 rounded-full bg-warning"></span>
                   PENDIENTE
-                </span>
+                </Badge>
               )}
               {usuario.estado === "SUSPENDIDO" && (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-danger/10 text-danger border border-danger/30">
+                <Badge tone="danger" appearance="soft" size="sm" className="font-bold gap-1.5">
                   <span className="size-1.5 rounded-full bg-danger"></span>
                   SUSPENDIDO
-                </span>
+                </Badge>
               )}
               {usuario.estado === "RETIRADO" && (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-muted text-muted-foreground border border-border">
+                <Badge tone="neutral" appearance="soft" size="sm" className="font-bold gap-1.5">
                   <span className="size-1.5 rounded-full bg-muted-foreground"></span>
                   RETIRADO
-                </span>
+                </Badge>
               )}
             </div>
           </div>

@@ -74,6 +74,7 @@ function validarCedula(cedula: string) {
       "1712345602",
       "1724589632",
       "1718956234",
+      "1716789019",
       "0999999999",
       "1788888888",
       "1234567890",
@@ -242,7 +243,7 @@ export function DinarpWireframe2LoginFlow({
         description: "Bienvenido al portal institucional del SINARP.",
       });
       const loggedUser = login(cedula);
-      if (loggedUser?.role === "ADMIN") { router.push("/cuentas-internas"); } else if (loggedUser?.role === "DIR_GESTION" || loggedUser?.role === "DIR_NORMATIVA") { router.push("/asignacion-solicitudes"); } else if (loggedUser?.role === "EQ_GESTION") { router.push("/solicitudes-pendientes"); } else if (loggedUser?.role === "EQ_NORMATIVA") { router.push("/revision-normativa"); } else { router.push("/catalogo-interoperabilidad"); }
+      if (loggedUser?.role === "ADMIN") { router.push("/cuentas-internas"); } else if (loggedUser?.role === "DIR_GESTION" || loggedUser?.role === "DIR_NORMATIVA") { router.push("/asignacion-solicitudes"); } else if (loggedUser?.role === "EQ_GESTION") { router.push("/solicitudes-pendientes"); } else if (loggedUser?.role === "EQ_NORMATIVA") { router.push("/revision-normativa"); } else if (loggedUser?.role === "REPRESENTANTE_INSTITUCIONAL") { router.push("/cambio-coordinador"); } else { router.push("/catalogo-interoperabilidad"); }
     }, 600);
   };
 
@@ -284,16 +285,26 @@ export function DinarpWireframe2LoginFlow({
     <div className="space-y-4 relative">
       {/* â”€â”€ Flotante de Cuentas y Roles de Prueba (Desplegable / Ocultable en esquina derecha) â”€â”€ */}
       <DinarpTestAccountsDrawer
-        onSelectCedula={(c) => {
+        onSelectCedula={(c, targetRoute) => {
           setCedula(c);
           setPassword(c === "1714443322" ? "Temporal2026*" : "Admin2026*");
           toast.success("Autenticación automática", { description: "Redirigiendo a tu bandeja..." });
           const loggedUser = login(c);
-          if (loggedUser?.role === "ADMIN") { router.push("/cuentas-internas"); } 
-          else if (loggedUser?.role === "DIR_GESTION" || loggedUser?.role === "DIR_NORMATIVA") { router.push("/asignacion-solicitudes"); } 
-          else if (loggedUser?.role === "EQ_GESTION") { router.push("/solicitudes-pendientes"); } 
-          else if (loggedUser?.role === "EQ_NORMATIVA") { router.push("/revision-normativa"); } 
-          else { router.push("/catalogo-interoperabilidad"); }
+          if (targetRoute) {
+            router.push(targetRoute);
+          } else if (loggedUser?.role === "ADMIN") {
+            router.push("/cuentas-internas");
+          } else if (loggedUser?.role === "DIR_GESTION" || loggedUser?.role === "DIR_NORMATIVA") {
+            router.push("/asignacion-solicitudes");
+          } else if (loggedUser?.role === "EQ_GESTION") {
+            router.push("/solicitudes-pendientes");
+          } else if (loggedUser?.role === "EQ_NORMATIVA") {
+            router.push("/revision-normativa");
+          } else if (loggedUser?.role === "REPRESENTANTE_INSTITUCIONAL") {
+            router.push("/cambio-coordinador");
+          } else {
+            router.push("/catalogo-interoperabilidad");
+          }
         }}
       />
 

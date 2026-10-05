@@ -658,7 +658,6 @@ function AuditoriaCuentasContent() {
       activeMenu="auditoria-cuentas"
       currentUser={currentUser}
       breadcrumbs={[
-        { label: "Inicio", href: "/" },
         { label: "Auditoría de cuentas" },
       ]}
     >
@@ -1613,9 +1612,16 @@ function AuditoriaCuentasContent() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-muted-foreground pt-1 border-t border-border/40">
                     <div>
                       <span className="text-[10px] text-muted-foreground/80 uppercase font-medium block">Nombre</span>
-                      <span className="font-semibold text-foreground text-xs block truncate" title={selectedAuditLog.usuarioAfectadoNombre || "Persona registrada"}>
-                        {selectedAuditLog.usuarioAfectadoNombre || "Persona registrada"}
-                      </span>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="font-semibold text-foreground text-xs block truncate cursor-help">
+                            {selectedAuditLog.usuarioAfectadoNombre || "Persona registrada"}
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="text-xs max-w-xs">
+                          {selectedAuditLog.usuarioAfectadoNombre || "Persona registrada"}
+                        </TooltipContent>
+                      </Tooltip>
                     </div>
                     <div>
                       <span className="text-[10px] text-muted-foreground/80 uppercase font-medium block">Cédula</span>
@@ -1627,9 +1633,16 @@ function AuditoriaCuentasContent() {
                     </div>
                     <div>
                       <span className="text-[10px] text-muted-foreground/80 uppercase font-medium block">Institución / Ámbito</span>
-                      <span className="text-foreground text-xs block truncate" title={selectedAuditLog.institucion || (selectedAuditLog.tipoCuenta === "COORDINADOR" ? "Institución externa" : "DINARP Central")}>
-                        {selectedAuditLog.institucion || (selectedAuditLog.tipoCuenta === "COORDINADOR" ? "Institución externa" : "DINARP Central")}
-                      </span>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="text-foreground text-xs block truncate cursor-help">
+                            {selectedAuditLog.institucion || (selectedAuditLog.tipoCuenta === "COORDINADOR" ? "Institución externa" : "DINARP Central")}
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="text-xs max-w-xs">
+                          {selectedAuditLog.institucion || (selectedAuditLog.tipoCuenta === "COORDINADOR" ? "Institución externa" : "DINARP Central")}
+                        </TooltipContent>
+                      </Tooltip>
                     </div>
                   </div>
                 </div>
@@ -1643,9 +1656,16 @@ function AuditoriaCuentasContent() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-muted-foreground pt-1 border-t border-border/40">
                     <div>
                       <span className="text-[10px] text-muted-foreground/80 uppercase font-medium block">Actor responsable</span>
-                      <span className="font-semibold text-foreground text-xs block truncate" title={selectedAuditLog.actor}>
-                        {selectedAuditLog.actor}
-                      </span>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="font-semibold text-foreground text-xs block truncate cursor-help">
+                            {selectedAuditLog.actor}
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="text-xs max-w-xs">
+                          {selectedAuditLog.actor}
+                        </TooltipContent>
+                      </Tooltip>
                     </div>
                     <div>
                       <span className="text-[10px] text-muted-foreground/80 uppercase font-medium block">Fecha y hora</span>

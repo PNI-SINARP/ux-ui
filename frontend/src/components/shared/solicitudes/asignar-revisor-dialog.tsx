@@ -208,7 +208,7 @@ export function AsignarRevisorPanel({
       const pendientesCount = solicitudesDelRevisor.filter((s) =>
         tipoArea === "GESTION"
           ? s.estado === "PENDIENTE_ASIGNACION_GESTION" || s.estado === "Pendiente"
-          : s.estado === "PENDIENTE_ASIGNACION_NORMATIVIDAD"
+          : s.estado === "PENDIENTE_ASIGNACION_NORMATIVIDAD" || s.estado === "PENDIENTE_GENERAR_RESOLUCION"
       ).length;
 
       return {
@@ -303,18 +303,34 @@ export function AsignarRevisorPanel({
 
   const yaEmpezoRevision = useMemo(() => {
     if (!solicitud) return false;
+    // Si estamos en área de Normatividad o la solicitud está pendiente de asignación en Normatividad
+    if (tipoArea === "NORMATIVIDAD" || solicitud.estado === "PENDIENTE_ASIGNACION_NORMATIVIDAD") {
+      // Si aún no tiene revisor de normatividad asignado, la revisión de normatividad NUNCA ha empezado
+      if (!solicitud.revisorNormatividad) return false;
+      return Boolean(
+        solicitud.estado === "EN_GENERACION_RESOLUCION" ||
+        solicitud.estado === "RESOLUCION_GENERADA" ||
+        (solicitud.revisionIniciada && solicitud.estado === "EN_REVISION_NORMATIVIDAD") ||
+        solicitud.historial?.some((h) =>
+          h.accion.toLowerCase().includes("generación de resolución iniciada") ||
+          h.accion.toLowerCase().includes("dictamen jurídico") ||
+          h.accion.toLowerCase().includes("análisis normativo iniciado")
+        )
+      );
+    }
+    // Si estamos en Gestión:
+    if (!solicitud.revisorGestion && !solicitud.revisor) return false;
     return Boolean(
-      solicitud.revisionIniciada ||
-      solicitud.estado === "EN_GENERACION_RESOLUCION" ||
+      (solicitud.revisionIniciada && solicitud.estado === "EN_REVISION_GESTION") ||
       solicitud.historial?.some((h) =>
+        h.accion.toLowerCase().includes("revisión técnica iniciada") ||
         h.accion.toLowerCase().includes("revisión iniciada") ||
-        h.accion.toLowerCase().includes("generación de resolución iniciada") ||
         h.accion.toLowerCase().includes("observación") ||
         h.accion.toLowerCase().includes("dictamen") ||
         h.accion.toLowerCase().includes("análisis iniciado")
       )
     );
-  }, [solicitud]);
+  }, [solicitud, tipoArea]);
 
   // Regla BPM estricta: solo reasignar si fue asignado y todavía no está siendo revisado por el revisor
   const puedeReasignar = !isMasiva && tieneAsignado && esReasignacion && permitidaAsignacionOReasignacion && !esTramiteAprobado && !yaEmpezoRevision;

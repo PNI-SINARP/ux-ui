@@ -681,42 +681,6 @@ export function SolicitudAnexoBDetail({ solicitud }: SolicitudAnexoBDetailProps)
       {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
       {viewMode === "documento" && (
         <div className="space-y-6 animate-in fade-in duration-200">
-          {/* Barra de Acciones del Documento */}
-          <div className="flex items-center justify-between p-3.5 bg-surface border border-border rounded-xl shadow-xs">
-            <div className="flex items-center gap-2 text-xs">
-              <FileText className="size-4 text-primary shrink-0" />
-              <span className="font-semibold text-foreground">Visor Oficial de Oficio ARP-R02</span>
-              <span className="text-muted-foreground hidden sm:inline">· Vista íntegra del instrumento legal suscrito</span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  window.print();
-                }}
-                className="text-xs font-semibold gap-1.5"
-              >
-                <Printer className="size-3.5" />
-                <span className="hidden sm:inline">Imprimir</span>
-              </Button>
-              <Button
-                type="button"
-                variant="primary"
-                size="sm"
-                onClick={() => {
-                  toast.success("Generando copia fidedigna en PDF del Acuerdo ARP-R02...");
-                }}
-                className="text-xs font-semibold gap-1.5"
-              >
-                <Download className="size-3.5" />
-                <span>Descargar PDF Oficial</span>
-              </Button>
-            </div>
-          </div>
-
           {/* Hoja de Oficio Formal del Documento Anexo B (ARP-R02) */}
           <div className="bg-surface border border-border rounded-2xl p-6 sm:p-10 space-y-6 shadow-md max-w-4xl mx-auto border-t-4 border-t-primary">
             {/* Encabezado Institucional Oficial DINARP */}
@@ -858,6 +822,42 @@ export function SolicitudAnexoBDetail({ solicitud }: SolicitudAnexoBDetailProps)
                   </span>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Barra de Acciones del Documento (Ubicada abajo del documento) */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-surface border border-border rounded-xl shadow-xs max-w-4xl mx-auto">
+            <div className="flex items-center gap-2 text-xs">
+              <FileText className="size-4 text-primary shrink-0" />
+              <span className="font-semibold text-foreground">Visor Oficial de Oficio ARP-R02</span>
+              <span className="text-muted-foreground hidden sm:inline">· Vista íntegra del instrumento legal suscrito</span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  window.print();
+                }}
+                className="text-xs font-semibold gap-1.5"
+              >
+                <Printer className="size-3.5" />
+                <span className="hidden sm:inline">Imprimir</span>
+              </Button>
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                onClick={() => {
+                  toast.success("Generando copia fidedigna en PDF del Acuerdo ARP-R02...");
+                }}
+                className="text-xs font-semibold gap-1.5"
+              >
+                <Download className="size-3.5" />
+                <span>Descargar PDF Oficial</span>
+              </Button>
             </div>
           </div>
         </div>

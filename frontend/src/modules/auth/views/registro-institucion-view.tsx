@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -59,9 +59,15 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-button";
-import { FileUpload } from "@/components/ui/file-upload";
+import { FileUpload, type FileUploadItem } from "@/components/ui/file-upload";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Stepper, type Step as StepperStep } from "@/components/ui/stepper";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -98,6 +104,13 @@ export function RegistroInstitucionView() {
   const [readOnlyTab, setReadOnlyTab] = useState<number>(0);
   const [rucError, setRucError] = useState(false);
   const [showDemoToolbar, setShowDemoToolbar] = useState(true);
+  const [signingTimer, setSigningTimer] = useState<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (signingTimer) clearTimeout(signingTimer);
+    };
+  }, [signingTimer]);
 
   const stepsList: StepperStep[] = [
     { id: "1", title: "Entidad", description: "Datos y autoridad", icon: Building2 },
@@ -153,6 +166,98 @@ export function RegistroInstitucionView() {
     firmadoDigitalmente: false,
     archivoDocumentoFirmado: "ARP-R01_Solicitud_Acceso_SINARP_Firmada.pdf"
   });
+
+  // Simulación de carga de archivo de delegación
+  const [delegacionFiles, setDelegacionFiles] = useState<FileUploadItem[]>([]);
+  const uploadTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (uploadTimerRef.current) clearInterval(uploadTimerRef.current);
+    };
+  }, []);
+
+  const handleDelegacionFileSelect = (files: File[]) => {
+    const file = files[0];
+    if (!file) return;
+
+    if (uploadTimerRef.current) clearInterval(uploadTimerRef.current);
+
+    const newItem: FileUploadItem = {
+      id: `delegacion-${Date.now()}`,
+      file,
+      status: "uploading",
+      errorType: null,
+      progress: 15,
+    };
+
+    setDelegacionFiles([newItem]);
+
+    let currentProgress = 15;
+    uploadTimerRef.current = setInterval(() => {
+      currentProgress += Math.floor(Math.random() * 20) + 18;
+      if (currentProgress >= 100) {
+        if (uploadTimerRef.current) clearInterval(uploadTimerRef.current);
+        setDelegacionFiles([
+          {
+            ...newItem,
+            status: "success",
+            progress: 100,
+          },
+        ]);
+        setFormData((prev) => ({ ...prev, archivoSoporteDelegacion: file.name }));
+        toast.success("Documento cargado con éxito", {
+          description: `El archivo "${file.name}" fue verificado y cargado correctamente.`,
+        });
+      } else {
+        setDelegacionFiles([
+          {
+            ...newItem,
+            status: "uploading",
+            progress: currentProgress,
+          },
+        ]);
+      }
+    }, 200);
+  };
+
+  const handleDelegacionRemove = () => {
+    if (uploadTimerRef.current) clearInterval(uploadTimerRef.current);
+    setDelegacionFiles([]);
+    setFormData((prev) => ({ ...prev, archivoSoporteDelegacion: "" }));
+    toast.info("Documento de delegación eliminado");
+  };
+
+  const handleDelegacionCancel = () => {
+    if (uploadTimerRef.current) clearInterval(uploadTimerRef.current);
+    setDelegacionFiles([]);
+    setFormData((prev) => ({ ...prev, archivoSoporteDelegacion: "" }));
+    toast.info("Carga cancelada");
+  };
+
+  const handleDelegacionRetry = () => {
+    if (delegacionFiles.length > 0) {
+      handleDelegacionFileSelect([delegacionFiles[0].file]);
+    }
+  };
+
+  const displayedDelegacionItems: FileUploadItem[] =
+    delegacionFiles.length > 0
+      ? delegacionFiles
+      : formData.archivoSoporteDelegacion
+        ? [
+            {
+              id: "soporte-delegacion-default",
+              file:
+                typeof File !== "undefined"
+                  ? new File([""], formData.archivoSoporteDelegacion, { type: "application/pdf" })
+                  : ({ name: formData.archivoSoporteDelegacion, size: 1024 * 500, type: "application/pdf" } as unknown as File),
+              status: "success",
+              errorType: null,
+              progress: 100,
+            },
+          ]
+        : [];
 
   // Remove auto-advance timer for FIRMADO
 
@@ -226,6 +331,8 @@ export function RegistroInstitucionView() {
   };
 
   const handleVolverYCorregir = (targetStep = 4) => {
+    if (signingTimer) clearTimeout(signingTimer);
+    setIsCheckingFirma(false);
     if (isSigned) {
       setPendingTargetStep(targetStep);
       setShowConfirmInvalidateModal(true);
@@ -266,15 +373,13 @@ export function RegistroInstitucionView() {
   };
 
   const handleIniciarFirmaEC = () => {
+    if (signingTimer) clearTimeout(signingTimer);
     setIsCheckingFirma(true);
     setBpmState("EN_PROCESO");
     setFirmaFallo(null);
-    toast.info("Operación enviada a FirmaEC", {
-      description: `Se notificó a ${formData.representanteLegalEmail || "el correo institucional"} para la suscripción digital.`,
+    toast.info("Notificación de firma enviada al correo institucional", {
+      description: `Se ha remitido la notificación de suscripción digital al correo ${formData.representanteLegalEmail || "tu correo institucional registrado"}.`,
     });
-    setTimeout(() => {
-      setIsCheckingFirma(false);
-    }, 1200);
   };
 
   const handleSimulateFill = () => {
@@ -349,72 +454,102 @@ export function RegistroInstitucionView() {
   };
 
   const handleSimulateFirmaSuccess = () => {
+    if (signingTimer) clearTimeout(signingTimer);
+    setIsCheckingFirma(false);
     setIsSigned(true);
     setBpmState("FIRMADO");
     setFirmaFallo(null);
+    const now = new Date();
+    const fechaStr = `${String(now.getDate()).padStart(2, "0")}/${String(now.getMonth() + 1).padStart(2, "0")}/${now.getFullYear()} ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+    const transId = `FIRMA-EC-2026-${Math.floor(10000 + Math.random() * 90000)}-A`;
+    setSignatureInfo({
+      fechaHora: fechaStr,
+      identificador: transId,
+    });
     persistAnexoA("FIRMADO");
     agregarRegistroInstitucion(formData, "PENDIENTE_ENVIO");
-    toast.success("Firma electrónica verificada", {
-      description: "FirmaEC confirmó la validez del certificado digital de la máxima autoridad o delegado.",
+    toast.success("Documento firmado correctamente", {
+      description: "El certificado digital fue estampado en el instrumento oficial ARP-R01.",
     });
   };
 
-  const handleSimulateFirmaRechazada = (motivo = "Certificado revocado o no reconocido por la entidad de certificación en FirmaEC.") => {
+  const handleSimularFalloFirma = (tipo: "RECHAZADA" | "CADUCADA" | "INCIERTA") => {
+    if (signingTimer) clearTimeout(signingTimer);
+    setIsCheckingFirma(false);
     setIsSigned(false);
-    setBpmState("FIRMA_RECHAZADA");
-    setFirmaFallo({
-      tipo: "RECHAZADA",
-      motivo,
-      transaccionId: "FEC-ERR-2026-7842"
-    });
-    persistAnexoA("FIRMA_RECHAZADA");
-    toast.error("No se pudo completar la firma", {
-      description: motivo,
-    });
+
+    if (tipo === "RECHAZADA") {
+      const transId = `FEC-ERR-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+      const motivo = "FirmaEC rechazó la transacción: el certificado digital no es válido, se encuentra revocado o la clave ingresada fue incorrecta.";
+      setBpmState("FIRMA_RECHAZADA");
+      setFirmaFallo({ tipo, motivo, transaccionId: transId });
+      persistAnexoA("FIRMA_RECHAZADA");
+      toast.error("Firma de Anexo A no confirmada; revisa o reintenta", {
+        description: "El certificado no fue validado por FirmaEC.",
+      });
+    } else if (tipo === "CADUCADA") {
+      const transId = `FEC-CAD-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+      const motivo = "La sesión de firma en FirmaEC ha caducado por superar el tiempo límite de espera sin confirmación del firmante.";
+      setBpmState("FIRMA_CADUCADA");
+      setFirmaFallo({ tipo, motivo, transaccionId: transId });
+      persistAnexoA("FIRMA_CADUCADA");
+      toast.warning("Firma de Anexo A caducada; revisa o reintenta", {
+        description: "El plazo límite ha expirado. El borrador permanece intacto.",
+      });
+    } else {
+      const transId = `FEC-UNC-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+      const motivo = "FirmaEC devolvió una respuesta incierta (timeout o estado indeterminado). Consulta la transacción original antes de solicitar una nueva firma para evitar duplicidad.";
+      setBpmState("FIRMA_DESCONOCIDA");
+      setFirmaFallo({ tipo, motivo, transaccionId: transId });
+      persistAnexoA("FIRMA_DESCONOCIDA");
+      toast.info("Respuesta incierta de FirmaEC", {
+        description: "Consulta el estado de la transacción original para validar la firma sin duplicar la solicitud.",
+      });
+    }
   };
 
-  const handleSimulateFirmaCaducada = () => {
-    setIsSigned(false);
-    setBpmState("FIRMA_CADUCADA");
-    setFirmaFallo({
-      tipo: "CADUCADA",
-      motivo: "El plazo límite de 48 horas en FirmaEC ha expirado sin registrarse la suscripción.",
-      transaccionId: "FEC-CAD-2026-1029"
-    });
-    persistAnexoA("FIRMA_CADUCADA");
-    toast.warning("Firma caducada", {
-      description: "El plazo límite de firma en FirmaEC ha expirado. El Anexo A se conserva como borrador intacto.",
-    });
-  };
+  const handleSimulateFirmaRechazada = () => handleSimularFalloFirma("RECHAZADA");
+  const handleSimulateFirmaCaducada = () => handleSimularFalloFirma("CADUCADA");
+  const handleSimulateFirmaDesconocida = () => handleSimularFalloFirma("INCIERTA");
 
-  const handleSimulateFirmaDesconocida = () => {
-    setIsSigned(false);
-    setBpmState("FIRMA_DESCONOCIDA");
-    setFirmaFallo({
-      tipo: "INCIERTA",
-      motivo: "No se pudo sincronizar el estado de la operación con los servidores de FirmaEC.",
-      transaccionId: "FEC-UNC-2026-9901"
-    });
-    persistAnexoA("FIRMA_DESCONOCIDA");
-    toast.info("No se pudo confirmar la firma", {
-      description: "No se pudo sincronizar el estado con FirmaEC. Consulta el estado antes de un nuevo intento.",
-    });
-  };
-
-  const handleConsultarEstadoFirma = () => {
+  const handleConsultarTransaccionOriginal = () => {
+    if (!firmaFallo) return;
+    if (signingTimer) clearTimeout(signingTimer);
     setIsCheckingFirma(true);
-    toast.info("Consultando estado en FirmaEC...", {
-      description: "Verificando certificado y firma digital de la operación en curso.",
+    toast.info("Consultando transacción en FirmaEC...", {
+      description: `Verificando estado de la transacción original ${firmaFallo.transaccionId}.`,
     });
     setTimeout(() => {
       setIsCheckingFirma(false);
+      const now = new Date();
+      const fechaStr = `${String(now.getDate()).padStart(2, "0")}/${String(now.getMonth() + 1).padStart(2, "0")}/${now.getFullYear()} ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+      setSignatureInfo({
+        fechaHora: fechaStr,
+        identificador: firmaFallo.transaccionId,
+      });
+      setIsSigned(true);
       setBpmState("FIRMADO");
+      setFirmaFallo(null);
       persistAnexoA("FIRMADO");
       agregarRegistroInstitucion(formData, "PENDIENTE_ENVIO");
-      toast.success("Firma verificada correctamente", {
-        description: "FirmaEC confirmó la validez de la firma digital del Anexo A.",
+      toast.success("Transacción original confirmada", {
+        description: `Se validó con FirmaEC la transacción ${firmaFallo.transaccionId} exitosamente sin duplicar el expediente.`,
       });
-    }, 1000);
+    }, 1200);
+  };
+
+  const handleConsultarEstadoFirma = () => {
+    if (signingTimer) clearTimeout(signingTimer);
+    setIsCheckingFirma(true);
+    toast.info("Consultando estado en FirmaEC...", {
+      description: "Verificando certificado y suscripción digital de la operación en curso.",
+    });
+    setTimeout(() => {
+      setIsCheckingFirma(false);
+      toast.info("Estado en FirmaEC: Pendiente de suscripción", {
+        description: "El firmante aún no ha suscrito el documento en FirmaEC. Utiliza el botón flotante 'Casos de Uso' para simular la confirmación o contingencia.",
+      });
+    }, 800);
   };
 
   const handleVolverAEditar = () => {
@@ -438,6 +573,20 @@ export function RegistroInstitucionView() {
       });
     }, 600);
   };
+
+  // Auto-iniciar ciclo de validación de firma con FirmaEC al ingresar al Paso 6 si aún no está firmado
+  useEffect(() => {
+    if (step === 6 && !isSigned && bpmState !== "EN_REVISION" && bpmState !== "EN_PROCESO" && !firmaFallo) {
+      handleIniciarFirmaEC();
+    }
+  }, [step, isSigned, bpmState, firmaFallo]);
+
+  // Limpiar temporizador de firma al desmontar o cambiar
+  useEffect(() => {
+    return () => {
+      if (signingTimer) clearTimeout(signingTimer);
+    };
+  }, [signingTimer]);
 
   const handleDescargarDocumentoFirmado = () => {
     toast.success("Descarga iniciada", {
@@ -768,11 +917,11 @@ export function RegistroInstitucionView() {
                     </Badge>
                   </div>
 
-                    <div className="bg-primary/5 dark:bg-primary-950/20 border border-primary/15 dark:border-primary-800/30 p-3.5 mb-5 flex items-start sm:items-center justify-between gap-3 rounded-xl">
+                    <div className="bg-primary/5 dark:bg-primary-950/20 p-3.5 mb-5 flex items-start sm:items-center justify-between gap-3 rounded-xl">
                       <div className="flex items-start gap-2.5 min-w-0">
-                        <Building2 className="size-4 text-primary shrink-0 mt-0.5" />
+                        <Building2 className="size-4 text-primary dark:text-primary-300 shrink-0 mt-0.5" />
                         <div className="min-w-0">
-                          <h2 className="text-sm font-bold font-heading text-foreground leading-snug">
+                          <h2 className="text-sm font-bold font-heading text-primary dark:text-primary-300 leading-snug">
                             1.1 Naturaleza de la Entidad
                           </h2>
                           <p className="text-xs text-muted-foreground mt-0.5">
@@ -786,7 +935,7 @@ export function RegistroInstitucionView() {
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
-                      <div className="flex flex-col gap-1.5 sm:col-span-2">
+                      <div className="flex flex-col gap-1.5 col-span-full">
                         <Label className="text-xs font-semibold text-foreground">
                           Naturaleza de la Entidad
                         </Label>
@@ -812,22 +961,6 @@ export function RegistroInstitucionView() {
                       </div>
 
                       <div className="flex flex-col gap-1.5">
-                        <Label htmlFor="nombreEntidad" className="text-xs font-semibold text-foreground">
-                          Nombre de la Entidad <span className="text-warning">*</span>
-                        </Label>
-                        <InputGroup leftIcon={<Building2 className="size-4 text-muted-foreground" />}>
-                          <InputGroupInput
-                            id="nombreEntidad"
-                            value={formData.nombreEntidad}
-                            onChange={(e) => setFormData({ ...formData, nombreEntidad: e.target.value })}
-                            placeholder="Ej. Ministerio de Salud Pública"
-                            className="text-xs"
-                            required
-                          />
-                        </InputGroup>
-                      </div>
-
-                      <div className="flex flex-col gap-1.5">
                         <Label htmlFor="rucEntidad" className="text-xs font-semibold text-foreground">
                           RUC de la Entidad (13 dígitos) <span className="text-warning">*</span>
                         </Label>
@@ -844,7 +977,23 @@ export function RegistroInstitucionView() {
                         </InputGroup>
                       </div>
 
-                      <div className="flex flex-col gap-1.5 sm:col-span-2">
+                      <div className="flex flex-col gap-1.5">
+                        <Label htmlFor="nombreEntidad" className="text-xs font-semibold text-foreground">
+                          Nombre de la Entidad <span className="text-warning">*</span>
+                        </Label>
+                        <InputGroup leftIcon={<Building2 className="size-4 text-muted-foreground" />}>
+                          <InputGroupInput
+                            id="nombreEntidad"
+                            value={formData.nombreEntidad}
+                            onChange={(e) => setFormData({ ...formData, nombreEntidad: e.target.value })}
+                            placeholder="Ej. Ministerio de Salud Pública"
+                            className="text-xs"
+                            required
+                          />
+                        </InputGroup>
+                      </div>
+
+                      <div className="flex flex-col gap-1.5">
                         <Label htmlFor="direccionEntidad" className="text-xs font-semibold text-foreground">
                           Dirección de la Entidad <span className="text-warning">*</span>
                         </Label>
@@ -860,7 +1009,7 @@ export function RegistroInstitucionView() {
                         </InputGroup>
                       </div>
 
-                      <div className="flex flex-col gap-1.5 sm:col-span-2">
+                      <div className="flex flex-col gap-1.5 col-span-full">
                         <Label htmlFor="objetoSocial" className="text-xs font-semibold text-foreground">
                           Objeto Social y/o Actividad de la Entidad <span className="text-warning">*</span>
                         </Label>
@@ -876,11 +1025,11 @@ export function RegistroInstitucionView() {
                     </div>
 
                     {/* Datos del firmante del Anexo A */}
-                    <div className="bg-primary/5 dark:bg-primary-950/20 border border-primary/15 dark:border-primary-800/30 p-3.5 mb-5 flex items-start sm:items-center justify-between gap-3 rounded-xl">
+                    <div className="bg-primary/5 dark:bg-primary-950/20 p-3.5 mb-5 flex items-start sm:items-center justify-between gap-3 rounded-xl">
                       <div className="flex items-start gap-2.5 min-w-0">
-                        <User className="size-4 text-primary shrink-0 mt-0.5" />
+                        <User className="size-4 text-primary dark:text-primary-300 shrink-0 mt-0.5" />
                         <div className="min-w-0">
-                          <h2 className="text-sm font-bold font-heading text-foreground leading-snug">
+                          <h2 className="text-sm font-bold font-heading text-primary dark:text-primary-300 leading-snug">
                             Datos del firmante del Anexo A
                           </h2>
                           <p className="text-xs text-muted-foreground mt-0.5">
@@ -894,7 +1043,7 @@ export function RegistroInstitucionView() {
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
-                      <div className="flex flex-col gap-3 sm:col-span-2 pb-2">
+                      <div className="flex flex-col gap-3 col-span-full pb-2">
                         <Label className="text-xs font-semibold text-foreground">
                           ¿Quién firmará el Anexo A? <span className="text-warning">*</span>
                         </Label>
@@ -968,12 +1117,17 @@ export function RegistroInstitucionView() {
                       </div>
 
                       {formData.esDelegado && (
-                        <div className="flex flex-col gap-2 sm:col-span-2 mt-2 animate-in fade-in slide-in-from-top-2 duration-300">
-                          <Label className="text-xs font-semibold text-foreground">
-                            Autorización de delegación <span className="text-warning">*</span>
-                          </Label>
-                          <p className="text-[11px] text-muted-foreground mb-2">
-                            La autorización es obligatoria cuando el Anexo A será firmado por un delegado de la máxima autoridad.
+                        <div className="flex flex-col gap-2 col-span-full sm:col-span-2 lg:col-span-3 w-full mt-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                            <Label className="text-xs font-semibold text-foreground">
+                              Autorización de delegación <span className="text-warning">*</span>
+                            </Label>
+                            <span className="text-[11px] text-muted-foreground font-mono">
+                              PDF habilitante · Máx. 2MB
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-muted-foreground mb-1.5">
+                            La autorización es obligatoria cuando el Anexo A será firmado por un delegado de la máxima autoridad institucional.
                           </p>
                           
                           <div className="w-full">
@@ -981,17 +1135,12 @@ export function RegistroInstitucionView() {
                               accept=".pdf"
                               allowedFormats="PDF"
                               maxSizeMB={2}
-                              onFileSelect={(files: File[]) => {
-                                const file = files[0];
-                                if (file) {
-                                  setFormData({ ...formData, archivoSoporteDelegacion: file.name });
-                                  toast.success("Archivo adjunto", {
-                                    description: `El documento "${file.name}" ha sido cargado.`,
-                                  });
-                                } else {
-                                  setFormData({ ...formData, archivoSoporteDelegacion: "" });
-                                }
-                              }}
+                              className="w-full"
+                              items={displayedDelegacionItems}
+                              onFileSelect={handleDelegacionFileSelect}
+                              onRemove={handleDelegacionRemove}
+                              onCancel={handleDelegacionCancel}
+                              onRetry={handleDelegacionRetry}
                             />
                           </div>
                         </div>
@@ -1050,8 +1199,8 @@ export function RegistroInstitucionView() {
                   {/* Coordinadores Header al ras */}
                   <div className="bg-primary/5 dark:bg-primary-950/20 border-b border-border p-4 sm:p-5 -mx-6 -mt-6 sm:-mx-8 sm:-mt-8 rounded-t-2xl rounded-b-none flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
-                      <h2 className="text-base font-bold font-heading text-primary flex items-center gap-2">
-                        <User className="size-5 text-primary shrink-0" />
+                      <h2 className="text-base font-bold font-heading text-primary dark:text-primary-300 flex items-center gap-2">
+                        <User className="size-5 text-primary dark:text-primary-300 shrink-0" />
                         <span>Coordinadores Institucionales del SINARP</span>
                       </h2>
                       <p className="text-xs text-muted-foreground mt-0.5">
@@ -1062,11 +1211,11 @@ export function RegistroInstitucionView() {
                       COORDINACIÓN
                     </Badge>
                   </div>
-                    <div className="bg-primary/5 dark:bg-primary-950/20 border border-primary/15 dark:border-primary-800/30 p-3.5 mb-5 flex items-start sm:items-center justify-between gap-3 rounded-xl">
+                    <div className="bg-primary/5 dark:bg-primary-950/20 p-3.5 mb-5 flex items-start sm:items-center justify-between gap-3 rounded-xl">
                       <div className="flex items-start gap-2.5 min-w-0">
-                        <User className="size-4 text-primary shrink-0 mt-0.5" />
+                        <User className="size-4 text-primary dark:text-primary-300 shrink-0 mt-0.5" />
                         <div className="min-w-0">
-                          <h2 className="text-sm font-bold font-heading text-foreground leading-snug">
+                          <h2 className="text-sm font-bold font-heading text-primary dark:text-primary-300 leading-snug">
                             1.2 Coordinador Institucional Principal (Titular)
                           </h2>
                           <p className="text-xs text-muted-foreground mt-0.5">
@@ -1188,11 +1337,11 @@ export function RegistroInstitucionView() {
                     </div>
 
                     {/* Coordinador Suplente */}
-                    <div className="bg-primary/5 dark:bg-primary-950/20 border border-primary/15 dark:border-primary-800/30 p-3.5 mb-5 flex items-start sm:items-center justify-between gap-3 rounded-xl">
+                    <div className="bg-primary/5 dark:bg-primary-950/20 p-3.5 mb-5 flex items-start sm:items-center justify-between gap-3 rounded-xl">
                       <div className="flex items-start gap-2.5 min-w-0">
-                        <User className="size-4 text-primary shrink-0 mt-0.5" />
+                        <User className="size-4 text-primary dark:text-primary-300 shrink-0 mt-0.5" />
                         <div className="min-w-0">
-                          <h2 className="text-sm font-bold font-heading text-foreground leading-snug">
+                          <h2 className="text-sm font-bold font-heading text-primary dark:text-primary-300 leading-snug">
                             1.3 Coordinador Institucional Suplente
                           </h2>
                           <p className="text-xs text-muted-foreground mt-0.5">
@@ -1380,10 +1529,10 @@ export function RegistroInstitucionView() {
                   <div className="flex flex-col gap-6 sm:gap-8">
                     {/* 2.1 Servicios */}
                     <div className="space-y-4">
-                      <div className="bg-primary/5 dark:bg-primary-950/20 border border-primary/15 dark:border-primary-800/30 p-3.5 flex items-center justify-between rounded-xl">
+                      <div className="bg-primary/5 dark:bg-primary-950/20 p-3.5 flex items-center justify-between rounded-xl">
                         <div>
-                          <h3 className="text-sm font-bold font-heading text-foreground flex items-center gap-2">
-                            <FileCheck2 className="size-4 text-primary" />
+                          <h3 className="text-sm font-bold font-heading text-primary dark:text-primary-300 flex items-center gap-2">
+                            <FileCheck2 className="size-4 text-primary dark:text-primary-300" />
                             2.1 Servicios y/o herramientas requeridas <span className="text-warning">*</span>
                           </h3>
                           <p className="text-xs text-muted-foreground mt-0.5">
@@ -1413,10 +1562,10 @@ export function RegistroInstitucionView() {
 
                     {/* 2.2 Áreas de uso */}
                     <div className="space-y-4">
-                      <div className="bg-primary/5 dark:bg-primary-950/20 border border-primary/15 dark:border-primary-800/30 p-3.5 flex items-center justify-between rounded-xl">
+                      <div className="bg-primary/5 dark:bg-primary-950/20 p-3.5 flex items-center justify-between rounded-xl">
                         <div>
-                          <h3 className="text-sm font-bold font-heading text-foreground flex items-center gap-2">
-                            <Building2 className="size-4 text-primary" />
+                          <h3 className="text-sm font-bold font-heading text-primary dark:text-primary-300 flex items-center gap-2">
+                            <Building2 className="size-4 text-primary dark:text-primary-300" />
                             2.2 Áreas de uso institucional <span className="text-warning">*</span>
                           </h3>
                           <p className="text-xs text-muted-foreground mt-0.5">
@@ -1439,10 +1588,10 @@ export function RegistroInstitucionView() {
 
                     {/* 2.3 Procesos de uso */}
                     <div className="space-y-4">
-                      <div className="bg-primary/5 dark:bg-primary-950/20 border border-primary/15 dark:border-primary-800/30 p-3.5 flex items-center justify-between rounded-xl">
+                      <div className="bg-primary/5 dark:bg-primary-950/20 p-3.5 flex items-center justify-between rounded-xl">
                         <div>
-                          <h3 className="text-sm font-bold font-heading text-foreground flex items-center gap-2">
-                            <FileText className="size-4 text-primary" />
+                          <h3 className="text-sm font-bold font-heading text-primary dark:text-primary-300 flex items-center gap-2">
+                            <FileText className="size-4 text-primary dark:text-primary-300" />
                             2.3 Procesos para los cuales utilizará los servicios <span className="text-warning">*</span>
                           </h3>
                           <p className="text-xs text-muted-foreground mt-0.5">
@@ -1551,53 +1700,53 @@ export function RegistroInstitucionView() {
                   {/* Resumen de Firmante y Lugar */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <Card
-                      variant="featured"
+                      variant="default"
                       disableHover={true}
-                      className="bg-secondary-100/30 dark:bg-secondary-900/20 border-0 shadow-none hover:shadow-none hover:translate-y-0 relative overflow-hidden"
+                      className="bg-surface border border-border shadow-xs relative overflow-hidden"
                     >
-                      <CardBadge className="bg-secondary/20 text-secondary text-[10px] uppercase font-bold tracking-wider px-2.5 py-1 border-0 flex items-center gap-1.5 w-fit">
-                        <User className="size-3.5 text-secondary" />
+                      <Badge tone="neutral" appearance="soft" size="sm" className="flex items-center gap-1.5 w-fit">
+                        <User className="size-3.5 text-muted-foreground" />
                         <span>Firmante Autorizado Designado</span>
-                      </CardBadge>
+                      </Badge>
 
                       <div className="space-y-0.5 mt-2">
-                        <CardTitle className="text-base font-bold font-heading text-secondary break-words">
+                        <CardTitle className="text-base font-bold font-heading text-foreground break-words">
                           {formData.representanteLegalNombre || "Sin asignar"}
                         </CardTitle>
 
-                        <CardDescription className="text-xs text-secondary-800/80 dark:text-secondary-200/80 font-medium break-words">
+                        <CardDescription className="text-xs text-muted-foreground font-medium break-words">
                           {formData.representanteLegalCargo || "Representante Legal o Delegado"}
                         </CardDescription>
                       </div>
 
-                      <CardDecorativeIcon className="-bottom-6 -right-6 opacity-20 group-hover/card:scale-100 hidden sm:block">
-                        <User className="size-28 text-secondary" />
+                      <CardDecorativeIcon className="-bottom-6 -right-6 opacity-10 group-hover/card:scale-100 hidden sm:block">
+                        <User className="size-28 text-muted-foreground" />
                       </CardDecorativeIcon>
                     </Card>
 
                     <Card
-                      variant="featured"
+                      variant="default"
                       disableHover={true}
-                      className="bg-secondary-100/30 dark:bg-secondary-900/20 border-0 shadow-none hover:shadow-none hover:translate-y-0 relative overflow-hidden"
+                      className="bg-surface border border-border shadow-xs relative overflow-hidden"
                     >
-                      <CardBadge className="bg-secondary/20 text-secondary text-[10px] uppercase font-bold tracking-wider px-2.5 py-1 border-0 flex items-center gap-1.5 w-fit">
-                        <MapPin className="size-3.5 text-secondary" />
+                      <Badge tone="neutral" appearance="soft" size="sm" className="flex items-center gap-1.5 w-fit">
+                        <MapPin className="size-3.5 text-muted-foreground" />
                         <span>Lugar y Fecha</span>
-                      </CardBadge>
+                      </Badge>
 
                       <div className="space-y-0.5 mt-2">
-                        <CardTitle className="text-base font-bold font-heading text-secondary break-words">
+                        <CardTitle className="text-base font-bold font-heading text-foreground break-words">
                           {formData.ciudadFirma || "Quito D.M."}
                         </CardTitle>
 
-                        <CardDescription className="text-xs text-secondary-800/80 dark:text-secondary-200/80 font-mono font-medium flex items-center gap-1.5 mt-0.5">
-                          <Calendar className="size-3.5 text-secondary/80" />
+                        <CardDescription className="text-xs text-muted-foreground font-mono font-medium flex items-center gap-1.5 mt-0.5">
+                          <Calendar className="size-3.5 text-muted-foreground/80" />
                           <span>{formData.fechaFirma || "24/09/2026"}</span>
                         </CardDescription>
                       </div>
 
-                      <CardDecorativeIcon className="-bottom-6 -right-6 opacity-20 group-hover/card:scale-100 hidden sm:block">
-                        <Calendar className="size-28 text-secondary" />
+                      <CardDecorativeIcon className="-bottom-6 -right-6 opacity-10 group-hover/card:scale-100 hidden sm:block">
+                        <Calendar className="size-28 text-muted-foreground" />
                       </CardDecorativeIcon>
                     </Card>
                   </div>
@@ -1780,7 +1929,7 @@ export function RegistroInstitucionView() {
                               </div>
                             </div>
                             {formData.esDelegado && (
-                              <div className="pt-2 border-t border-border/50 flex items-center gap-2 text-[11px] text-secondary font-medium">
+                              <div className="pt-2 border-t border-border/50 flex items-center gap-2 text-[11px] text-primary font-medium">
                                 <FileText className="size-3.5 shrink-0" />
                                 <span>Acto administrativo de delegación adjunto: {formData.archivoSoporteDelegacion || "Resolución_Delegación_Oficial.pdf"}</span>
                               </div>
@@ -1847,7 +1996,7 @@ export function RegistroInstitucionView() {
                             <div className="p-4 rounded-xl bg-muted/30 border border-border space-y-2.5">
                               <div className="flex items-center justify-between border-b border-border/60 pb-2">
                                 <span className="font-bold text-foreground text-xs flex items-center gap-1.5">
-                                  <User className="size-3.5 text-secondary" />
+                                  <User className="size-3.5 text-muted-foreground" />
                                   <span>Coordinador Suplente</span>
                                 </span>
                                 <Badge tone="neutral" appearance="soft" size="sm" className="text-[9px] uppercase font-bold">
@@ -1959,26 +2108,26 @@ export function RegistroInstitucionView() {
 
                         {/* BLOQUE DE FIRMAS TIPO HOJA DE OFICIO */}
                         <div className="pt-6 grid grid-cols-1 sm:grid-cols-2 gap-6 text-xs">
-                          {/* Tarjeta 1: Representante Legal */}
+                          {/* Tarjeta 1: Representante Legal (Variante Neutral) */}
                           <Card
-                            variant="featured"
+                            variant="default"
                             disableHover={true}
-                            className="bg-secondary/5 dark:bg-secondary/10 border border-secondary/20 shadow-none text-center p-6 relative overflow-hidden rounded-2xl flex flex-col items-center justify-center"
+                            className="bg-surface dark:bg-surface/50 border border-border shadow-xs text-center p-6 relative overflow-hidden rounded-2xl flex flex-col items-center justify-center"
                           >
-                            <CardDecorativeIcon className="-bottom-6 -right-6 opacity-15 pointer-events-none">
-                              <FileSignature className="size-28 text-secondary" />
+                            <CardDecorativeIcon className="-bottom-6 -right-6 opacity-10 pointer-events-none">
+                              <FileSignature className="size-28 text-muted-foreground" />
                             </CardDecorativeIcon>
 
                             <div className="space-y-3 relative z-10 w-full flex flex-col items-center">
-                              <div className="size-14 rounded-2xl bg-secondary/10 border border-secondary/20 flex items-center justify-center text-secondary shadow-xs">
+                              <div className="size-14 rounded-2xl bg-muted border border-border flex items-center justify-center text-muted-foreground shadow-xs">
                                 <FileSignature className="size-7 opacity-80" />
                               </div>
 
-                              <div className="text-secondary/70 italic text-[11px] font-medium">
+                              <div className="text-muted-foreground italic text-[11px] font-medium">
                                 [Firmante Autorizado del Solicitante]
                               </div>
 
-                              <div className="w-full border-t border-secondary/20 pt-3 flex flex-col items-center text-center">
+                              <div className="w-full border-t border-border pt-3 flex flex-col items-center text-center">
                                 <span className="font-bold font-heading text-foreground block text-sm sm:text-base">
                                   {formData.representanteLegalNombre || "Máxima Autoridad o Delegado"}
                                 </span>
@@ -2062,10 +2211,10 @@ export function RegistroInstitucionView() {
                           size="default"
                           onClick={() => {
                             setStep(6);
-                            if (bpmState === "DRAFT") {
-                              setBpmState("PENDIENTE_FIRMA");
-                            }
                             window.scrollTo({ top: 0, behavior: "smooth" });
+                            if (!isSigned && bpmState !== "EN_REVISION") {
+                              handleIniciarFirmaEC();
+                            }
                           }}
                           className="text-xs font-semibold gap-1.5 w-full sm:w-auto sm:min-w-[200px]"
                         >
@@ -2107,9 +2256,7 @@ export function RegistroInstitucionView() {
                         {bpmState === "EN_REVISION" && "ENVIADO A GESTIÓN"}
                         {bpmState === "FIRMADO" && "FIRMA CONFIRMADA"}
                         {(bpmState === "FIRMA_RECHAZADA" || bpmState === "FIRMA_CADUCADA" || bpmState === "FIRMA_DESCONOCIDA") && "FIRMA NO CONFIRMADA"}
-                        {bpmState === "EN_PROCESO" && "FIRMA EN PROCESO"}
-                        {bpmState === "PENDIENTE_FIRMA" && "PENDIENTE DE FIRMA"}
-                        {bpmState === "DRAFT" && "PENDIENTE DE FIRMA"}
+                        {(bpmState === "EN_PROCESO" || bpmState === "PENDIENTE_FIRMA" || bpmState === "DRAFT") && "FIRMA EN PROCESO"}
                       </Badge>
                     </div>
 
@@ -2194,32 +2341,23 @@ export function RegistroInstitucionView() {
                         <div className="pt-2 border-t border-border/60 space-y-4 animate-in fade-in duration-300">
                           <Alert
                             variant="success"
-                            className="flex flex-col items-center justify-center text-center p-6 sm:p-7 gap-3.5 rounded-2xl [&_.alert-line]:hidden [&_.alert-icon]:size-12 [&_.alert-icon]:rounded-2xl [&_.alert-icon_svg]:size-6 [&_.alert-title]:text-center [&_.alert-title]:text-base [&_.alert-title]:font-bold [&_.alert-title]:font-heading [&>div:last-of-type]:text-center [&>div:last-of-type]:items-center [&>div:last-of-type]:w-full"
-                            icon={<CheckCircle2 className="size-6" />}
+                            className="flex flex-col items-center justify-center text-center p-6 sm:p-8 gap-3.5 rounded-2xl [&_.alert-line]:hidden [&_.alert-icon]:size-14 sm:[&_.alert-icon]:size-16 [&_.alert-icon]:rounded-2xl [&_.alert-icon_svg]:size-7 sm:[&_.alert-icon_svg]:size-8 [&_.alert-icon]:shadow-sm [&_.alert-icon]:mb-1 [&_.alert-title]:text-center [&_.alert-title]:text-base sm:[&_.alert-title]:text-lg [&_.alert-title]:font-bold [&_.alert-title]:font-heading [&>div:last-of-type]:text-center [&>div:last-of-type]:items-center [&>div:last-of-type]:w-full animate-in fade-in duration-300"
+                            icon={<CheckCircle2 className="size-7 sm:size-8" />}
                             title="Firma Electrónica Confirmada por FirmaEC"
                           >
-                            <div className="space-y-4 mt-1 w-full max-w-lg mx-auto text-center">
-                              <p className="text-xs text-muted-foreground leading-relaxed">
-                                El formulario oficial Anexo A ha sido firmado digitalmente por <strong className="text-foreground">{formData.representanteLegalNombre}</strong>. El documento cuenta con plena validez jurídica.
+                            <div className="flex flex-col items-center justify-center text-center space-y-4 mt-1 w-full">
+                              <p className="text-xs sm:text-sm text-muted-foreground max-w-lg mx-auto leading-relaxed">
+                                El documento oficial ARP-R01 ha sido firmado digitalmente de forma válida por <strong className="text-foreground">{formData.representanteLegalNombre}</strong> y los cambios se actualizaron en esta pantalla.
                               </p>
 
-                              {/* Metadatos del certificado */}
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-left p-3.5 rounded-xl bg-surface/80 dark:bg-surface/40 border border-success/30 text-xs">
-                                <div>
-                                  <span className="text-muted-foreground text-[10px] block">Fecha y Hora:</span>
-                                  <strong className="font-mono text-foreground text-[11px]">{signatureInfo.fechaHora}</strong>
+                              <div className="flex flex-wrap items-center justify-center gap-2.5 pt-2 text-xs w-full">
+                                <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-surface/80 dark:bg-surface/40 border border-success/30 shadow-xs text-foreground font-mono text-[11px] sm:text-xs">
+                                  <span className="font-sans font-medium text-muted-foreground">Fecha y Hora:</span>
+                                  <strong className="text-foreground font-bold">{signatureInfo.fechaHora}</strong>
                                 </div>
-                                <div>
-                                  <span className="text-muted-foreground text-[10px] block">Serie Certificado / ID:</span>
-                                  <strong className="font-mono text-foreground text-[11px]">{signatureInfo.identificador}</strong>
-                                </div>
-                                <div>
-                                  <span className="text-muted-foreground text-[10px] block">Entidad Certificadora:</span>
-                                  <span className="text-foreground text-[11px] font-medium">Banco Central del Ecuador</span>
-                                </div>
-                                <div>
-                                  <span className="text-muted-foreground text-[10px] block">Integridad SHA-256:</span>
-                                  <span className="font-mono text-[10px] text-muted-foreground truncate block">a7f92e...4d18</span>
+                                <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-surface/80 dark:bg-surface/40 border border-success/30 shadow-xs text-foreground font-mono text-[11px] sm:text-xs">
+                                  <span className="font-sans font-medium text-muted-foreground">Serie Certificado / ID:</span>
+                                  <strong className="text-foreground font-bold">{signatureInfo.identificador}</strong>
                                 </div>
                               </div>
                             </div>
@@ -2242,9 +2380,9 @@ export function RegistroInstitucionView() {
                       {(bpmState === "FIRMA_RECHAZADA" || bpmState === "FIRMA_CADUCADA" || bpmState === "FIRMA_DESCONOCIDA") && (
                         <div className="pt-2 border-t border-border/60 space-y-4 animate-in fade-in duration-200">
                           <Alert
-                            variant="danger"
+                            variant={bpmState === "FIRMA_CADUCADA" ? "warning" : "danger"}
                             icon={<AlertTriangle className="size-4" />}
-                            title="Firma electrónica no confirmada"
+                            title="Firma electrónica no confirmada; revisa o reintenta"
                           >
                             {firmaFallo?.motivo || "No se pudo confirmar la firma digital del Anexo A mediante FirmaEC."}
                           </Alert>
@@ -2253,10 +2391,15 @@ export function RegistroInstitucionView() {
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 p-3.5 rounded-xl bg-surface/80 dark:bg-surface/50 border border-border text-xs">
                             <div className="flex items-center justify-between gap-2">
                               <span className="text-muted-foreground text-[11px]">Diagnóstico FirmaEC:</span>
-                              <Badge tone="danger" appearance="soft" size="sm" className="font-bold uppercase text-[10px]">
-                                {bpmState === "FIRMA_RECHAZADA" && "Certificado Inválido o Cancelado"}
-                                {bpmState === "FIRMA_CADUCADA" && "Plazo de 48h Expirado"}
-                                {bpmState === "FIRMA_DESCONOCIDA" && "Fallo de Conexión"}
+                              <Badge
+                                tone={bpmState === "FIRMA_CADUCADA" ? "warning" : "danger"}
+                                appearance="soft"
+                                size="sm"
+                                className="font-bold uppercase text-[10px]"
+                              >
+                                {bpmState === "FIRMA_RECHAZADA" && "Certificado Inválido o Revocado"}
+                                {bpmState === "FIRMA_CADUCADA" && "Plazo de Espera Expirado"}
+                                {bpmState === "FIRMA_DESCONOCIDA" && "Respuesta Incierta / Timeout"}
                               </Badge>
                             </div>
                             <div className="flex items-center justify-between gap-2">
@@ -2274,91 +2417,102 @@ export function RegistroInstitucionView() {
                               <span className="text-foreground font-semibold text-[11px]">Inmediato (sin duplicar)</span>
                             </div>
                           </div>
+
+                          {bpmState === "FIRMA_DESCONOCIDA" && (
+                            <div className="p-3.5 rounded-xl bg-muted/40 border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                              <p className="text-[11px] text-muted-foreground">
+                                Si el firmante completó la operación en FirmaEC, puedes consultar la transacción original sin emitir un nuevo requerimiento.
+                              </p>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={handleConsultarTransaccionOriginal}
+                                disabled={isCheckingFirma}
+                                className="text-xs font-semibold gap-1.5 shrink-0"
+                              >
+                                <Search className="size-3.5" />
+                                <span>Consultar transacción original</span>
+                              </Button>
+                            </div>
+                          )}
                         </div>
                       )}
 
-                      {/* CASO D: FIRMA EN PROCESO */}
-                      {bpmState === "EN_PROCESO" && (
+                      {/* CASO D: FIRMA EN PROCESO O INICIANDO */}
+                      {(bpmState === "EN_PROCESO" || bpmState === "PENDIENTE_FIRMA" || bpmState === "DRAFT") && (
                         <div className="pt-2 border-t border-border/60 space-y-4 animate-in fade-in duration-200">
-                          <div className="p-4 rounded-xl border border-secondary/25 bg-secondary/5 space-y-2 text-xs">
-                            <div className="flex items-center gap-2 font-bold text-secondary">
+                          {/* Alerta de notificación por correo (idéntica a enrolamiento-coordinador) */}
+                          <div className="p-4 rounded-xl border border-primary/25 bg-primary/5 space-y-2 text-xs">
+                            <div className="flex items-center gap-2 font-bold text-primary">
                               <Mail className="size-4 shrink-0" />
-                              <span>Operación enviada a FirmaEC / Notificación remitida</span>
+                              <span>Notificación de firma enviada al correo institucional</span>
                             </div>
                             <p className="text-[11px] leading-relaxed text-muted-foreground">
-                              Se ha remitido la solicitud de firma digital al correo <strong className="text-foreground font-semibold">{formData.representanteLegalEmail || "del representante legal"}</strong>.
+                              Se ha remitido la notificación de suscripción digital al correo <strong className="text-foreground font-semibold">{formData.representanteLegalEmail || "tu correo institucional registrado"}</strong>.
                             </p>
-                            <p className="text-[11px] font-semibold text-secondary flex items-center gap-1.5 pt-1">
+                            <p className="text-[11px] font-semibold text-primary flex items-center gap-1.5 pt-1">
                               <RefreshCw className="size-3.5 animate-spin shrink-0" />
-                              <span>Esperando que el firmante complete el proceso en la aplicación FirmaEC o con token digital.</span>
+                              <span>Revisa tu correo. Cuando firmes en FirmaEC o Token, el estado de esta pantalla se actualizará automáticamente.</span>
                             </p>
                           </div>
 
                           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3.5 rounded-xl bg-surface border border-border">
                             <div className="flex items-center gap-2 text-xs text-muted-foreground">
                               <LoadingSpinner size="sm" className="size-3.5 text-primary shrink-0" />
-                              <span className="text-[11px] font-medium">Monitoreando estado de firma en vivo...</span>
+                              <span className="text-[11px] font-medium">Validando firma con FirmaEC en vivo...</span>
                             </div>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={handleConsultarEstadoFirma}
-                              disabled={isCheckingFirma}
-                              className="text-xs font-semibold gap-1.5 w-full sm:w-auto"
-                            >
-                              <RefreshCw className={cn("size-3.5", isCheckingFirma && "animate-spin")} />
-                              <span>{isCheckingFirma ? "Consultando FirmaEC..." : "Consultar estado de firma"}</span>
-                            </Button>
+                            <div className="flex items-center gap-2 w-full sm:w-auto">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={handleConsultarEstadoFirma}
+                                disabled={isCheckingFirma}
+                                className="text-xs font-semibold gap-1.5 w-full sm:w-auto"
+                              >
+                                <RefreshCw className={cn("size-3.5", isCheckingFirma && "animate-spin")} />
+                                <span>{isCheckingFirma ? "Consultando FirmaEC..." : "Consultar estado ahora"}</span>
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       )}
 
-                      {/* CASO E: PENDIENTE DE FIRMA (Inicial en Paso 6) */}
-                      {(bpmState === "PENDIENTE_FIRMA" || bpmState === "DRAFT") && (
-                        <div className="pt-2 border-t border-border/60 space-y-4 animate-in fade-in duration-200">
-                          <Alert
-                            variant="info"
-                            icon={<ShieldCheck className="size-4" />}
-                            title="Listo para suscripción digital"
-                          >
-                            El borrador del Anexo A ha sido validado y consolidado. Inicia el proceso con FirmaEC para que {formData.esDelegado ? "el delegado institucional autorizado" : "la máxima autoridad institucional"} suscriba digitalmente el documento.
-                          </Alert>
-
-                          {/* Datos del firmante */}
-                          <div className="p-4 rounded-xl bg-surface border border-border space-y-3 text-xs">
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
-                                Firmante Autorizado Designado
-                              </span>
-                              <Badge tone="primary" appearance="soft" size="sm" className="w-fit text-[10px] font-semibold">
-                                {formData.esDelegado ? "Delegado Autorizado" : "Máxima Autoridad Institucional"}
-                              </Badge>
-                            </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                              <div>
-                                <span className="text-[10px] text-muted-foreground block">Nombre:</span>
-                                <p className="font-semibold text-foreground text-xs">{formData.representanteLegalNombre || "—"}</p>
-                              </div>
-                              <div>
-                                <span className="text-[10px] text-muted-foreground block">Cargo:</span>
-                                <p className="font-semibold text-foreground text-xs">{formData.representanteLegalCargo || "—"}</p>
-                              </div>
-                              <div>
-                                <span className="text-[10px] text-muted-foreground block">Correo de Notificación:</span>
-                                <p className="font-semibold text-foreground text-xs">{formData.representanteLegalEmail || "—"}</p>
-                              </div>
-                            </div>
-                            {formData.esDelegado && (
-                              <div className="pt-2 border-t border-border/60 flex items-center gap-2 text-[11px] text-muted-foreground">
-                                <FileText className="size-3.5 text-primary shrink-0" />
-                                <span>Acto administrativo de delegación:</span>
-                                <strong className="font-mono text-foreground font-medium">
-                                  {formData.archivoSoporteDelegacion || "Resolución / Autorización de delegación adjunta"}
-                                </strong>
-                              </div>
-                            )}
+                      {/* Datos del firmante autorizado designado */}
+                      {bpmState !== "EN_REVISION" && (
+                        <div className="p-4 rounded-xl bg-surface border border-border space-y-3 text-xs">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
+                              Firmante Autorizado Designado
+                            </span>
+                            <Badge tone="primary" appearance="soft" size="sm" className="w-fit text-[10px] font-semibold">
+                              {formData.esDelegado ? "Delegado Autorizado" : "Máxima Autoridad Institucional"}
+                            </Badge>
                           </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div>
+                              <span className="text-[10px] text-muted-foreground block">Nombre:</span>
+                              <p className="font-semibold text-foreground text-xs">{formData.representanteLegalNombre || "—"}</p>
+                            </div>
+                            <div>
+                              <span className="text-[10px] text-muted-foreground block">Cargo:</span>
+                              <p className="font-semibold text-foreground text-xs">{formData.representanteLegalCargo || "—"}</p>
+                            </div>
+                            <div>
+                              <span className="text-[10px] text-muted-foreground block">Correo de Notificación:</span>
+                              <p className="font-semibold text-foreground text-xs">{formData.representanteLegalEmail || "—"}</p>
+                            </div>
+                          </div>
+                          {formData.esDelegado && (
+                            <div className="pt-2 border-t border-border/60 flex items-center gap-2 text-[11px] text-muted-foreground">
+                              <FileText className="size-3.5 text-primary shrink-0" />
+                              <span>Acto administrativo de delegación:</span>
+                              <strong className="font-mono text-foreground font-medium">
+                                {formData.archivoSoporteDelegacion || "Resolución / Autorización de delegación adjunta"}
+                              </strong>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -2382,7 +2536,7 @@ export function RegistroInstitucionView() {
                           {bpmState !== "FIRMADO" && (
                             <Button
                               type="button"
-                              variant="secondary"
+                              variant="outline"
                               size="default"
                               onClick={() => handleVolverYCorregir(5)}
                               className="text-xs font-semibold gap-1.5 w-full sm:w-auto px-4 whitespace-nowrap"
@@ -2392,20 +2546,21 @@ export function RegistroInstitucionView() {
                             </Button>
                           )}
 
-                          {(bpmState === "PENDIENTE_FIRMA" || bpmState === "DRAFT") && (
+                          {(bpmState === "EN_PROCESO" || bpmState === "PENDIENTE_FIRMA" || bpmState === "DRAFT") && (
                             <Button
                               type="button"
                               variant="primary"
                               size="default"
-                              onClick={handleIniciarFirmaEC}
+                              onClick={handleConsultarEstadoFirma}
+                              disabled={isCheckingFirma}
                               className="text-xs font-semibold gap-2 w-full sm:w-auto shadow-xs whitespace-nowrap px-6"
                             >
-                              <ShieldCheck className="size-4" />
-                              <span>Iniciar firma con FirmaEC</span>
+                              <RefreshCw className={cn("size-3.5", isCheckingFirma && "animate-spin")} />
+                              <span>{isCheckingFirma ? "Validando con FirmaEC..." : "Consultar estado ahora"}</span>
                             </Button>
                           )}
 
-                          {(bpmState === "FIRMA_RECHAZADA" || bpmState === "FIRMA_CADUCADA" || bpmState === "FIRMA_DESCONOCIDA") && (
+                          {(bpmState === "FIRMA_RECHAZADA" || bpmState === "FIRMA_CADUCADA") && (
                             <Button
                               type="button"
                               variant="primary"
@@ -2416,6 +2571,32 @@ export function RegistroInstitucionView() {
                               <RefreshCw className="size-3.5" />
                               <span>Reintentar firma con FirmaEC</span>
                             </Button>
+                          )}
+
+                          {bpmState === "FIRMA_DESCONOCIDA" && (
+                            <>
+                              <Button
+                                type="button"
+                                variant="secondary"
+                                size="default"
+                                onClick={handleIniciarFirmaEC}
+                                className="text-xs font-semibold gap-1.5 w-full sm:w-auto whitespace-nowrap px-4"
+                              >
+                                <RefreshCw className="size-3.5" />
+                                <span>Reintentar firma</span>
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="primary"
+                                size="default"
+                                onClick={handleConsultarTransaccionOriginal}
+                                disabled={isCheckingFirma}
+                                className="text-xs font-semibold gap-1.5 w-full sm:w-auto shadow-xs whitespace-nowrap px-5"
+                              >
+                                <Search className="size-3.5" />
+                                <span>Consultar transacción original</span>
+                              </Button>
+                            </>
                           )}
 
                           {bpmState === "FIRMADO" && (
@@ -2530,37 +2711,84 @@ export function RegistroInstitucionView() {
               </Button>
             )}
 
-            {step === 6 && (
+            {step === 6 && !isSigned && (
               <>
-                <Button type="button" variant="success" size="default" onClick={handleSimulateFirmaSuccess} className="rounded-full px-3 sm:px-4 flex items-center gap-1.5 text-xs h-8 sm:h-9">
-                  <Sparkles className="size-3.5" /> Demo: Firma confirmada
-                </Button>
-                <Button type="button" variant="danger" size="default" onClick={() => handleSimulateFirmaRechazada()} className="rounded-full px-3 sm:px-4 flex items-center gap-1.5 text-xs h-8 sm:h-9">
-                  <Sparkles className="size-3.5" /> Demo: Firma rechazada
-                </Button>
-                <Button type="button" variant="warning" size="default" onClick={handleSimulateFirmaCaducada} className="rounded-full px-3 sm:px-4 flex items-center gap-1.5 text-xs h-8 sm:h-9">
-                  <Sparkles className="size-3.5" /> Demo: Firma caducada
-                </Button>
-                <Button type="button" variant="outline" size="default" onClick={handleSimulateFirmaDesconocida} className="rounded-full px-3 sm:px-4 flex items-center gap-1.5 text-xs h-8 sm:h-9">
-                  <Sparkles className="size-3.5" /> Demo: Fallo FirmaEC
-                </Button>
                 <Button
                   type="button"
-                  variant="secondary"
+                  variant="success"
                   size="default"
-                  onClick={() => {
-                    setBpmState("PENDIENTE_FIRMA");
-                    setIsSigned(false);
-                    persistAnexoA("PENDIENTE_FIRMA");
-                    toast.info("Estado reiniciado", {
-                      description: "Documento en estado inicial Pendiente de firma.",
-                    });
-                  }}
+                  onClick={handleSimulateFirmaSuccess}
                   className="rounded-full px-3 sm:px-4 flex items-center gap-1.5 text-xs h-8 sm:h-9"
                 >
-                  <Clock className="size-3.5" /> Demo: Pendiente de firma
+                  <ShieldCheck className="size-3.5" /> Simular Firma Válida
                 </Button>
+
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="default"
+                      className="rounded-full px-3 sm:px-4 flex items-center gap-1.5 text-xs h-8 sm:h-9 border-danger/40 text-danger hover:bg-danger/10"
+                    >
+                      <AlertCircle className="size-3.5" />
+                      <span>Simular Fallo FirmaEC</span>
+                      <ChevronDown className="size-3" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-64 text-xs p-1.5">
+                    <DropdownMenuItem
+                      onClick={() => handleSimularFalloFirma("RECHAZADA")}
+                      className="flex items-start gap-2.5 p-2 rounded-lg text-danger focus:text-danger focus:bg-danger/10 cursor-pointer"
+                    >
+                      <XCircle className="size-4 shrink-0 mt-0.5" />
+                      <div>
+                        <div className="font-bold leading-none">Firma Rechazada</div>
+                        <div className="text-[10px] text-muted-foreground mt-0.5">Certificado no válido o revocado</div>
+                      </div>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => handleSimularFalloFirma("CADUCADA")}
+                      className="flex items-start gap-2.5 p-2 rounded-lg text-amber-600 focus:text-amber-600 focus:bg-amber-500/10 cursor-pointer"
+                    >
+                      <Clock className="size-4 shrink-0 mt-0.5" />
+                      <div>
+                        <div className="font-bold leading-none">Firma Caducada</div>
+                        <div className="text-[10px] text-muted-foreground mt-0.5">Tiempo de espera expirado</div>
+                      </div>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => handleSimularFalloFirma("INCIERTA")}
+                      className="flex items-start gap-2.5 p-2 rounded-lg text-warning focus:text-warning focus:bg-warning/10 cursor-pointer"
+                    >
+                      <RefreshCw className="size-4 shrink-0 mt-0.5" />
+                      <div>
+                        <div className="font-bold leading-none">Respuesta Incierta</div>
+                        <div className="text-[10px] text-muted-foreground mt-0.5">Timeout / Consulta transacción</div>
+                      </div>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </>
+            )}
+
+            {step === 6 && isSigned && (
+              <Button
+                type="button"
+                variant="outline"
+                size="default"
+                onClick={() => {
+                  if (signingTimer) clearTimeout(signingTimer);
+                  setIsSigned(false);
+                  setSignatureInfo({ fechaHora: "", identificador: "" });
+                  setFirmaFallo(null);
+                  handleIniciarFirmaEC();
+                  toast.info("Estado de firma restablecido a validación en curso");
+                }}
+                className="rounded-full px-3 sm:px-4 flex items-center gap-1.5 text-xs h-8 sm:h-9"
+              >
+                <RefreshCw className="size-3.5" /> Deshacer Firma
+              </Button>
             )}
 
             <Button
@@ -2584,7 +2812,7 @@ export function RegistroInstitucionView() {
             title="Desplegar opciones de simulación"
           >
             <Sparkles className="size-3.5 text-primary" />
-            <span className="font-semibold text-foreground">Opciones de simulación</span>
+            <span className="font-medium">Casos de Uso</span>
             <ChevronUp className="size-3.5 text-muted-foreground" />
           </Button>
         )}

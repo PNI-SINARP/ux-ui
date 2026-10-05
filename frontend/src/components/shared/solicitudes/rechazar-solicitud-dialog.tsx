@@ -21,6 +21,11 @@ interface RechazarSolicitudDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: (solicitud: SolicitudIngreso, motivo: string) => void;
+  title?: string;
+  description?: string;
+  warningNotice?: string;
+  confirmLabel?: string;
+  directConfirm?: boolean;
 }
 
 const MAX_MOTIVO_LENGTH = 500;
@@ -30,6 +35,11 @@ export function RechazarSolicitudDialog({
   open,
   onOpenChange,
   onConfirm,
+  title,
+  description,
+  warningNotice,
+  confirmLabel = "Confirmar rechazo",
+  directConfirm = false,
 }: RechazarSolicitudDialogProps) {
   const [motivo, setMotivo] = useState("");
   const [touched, setTouched] = useState(false);
@@ -73,12 +83,24 @@ export function RechazarSolicitudDialog({
           <>
             <DialogHeader className="space-y-2">
               <DialogTitle className="text-base font-bold text-foreground">
-                Rechazar solicitud
+                {title || "Rechazar solicitud"}
               </DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground leading-relaxed">
-                Indica detalladamente la razón por la cual no se aprueba el trámite.
+                {description || "Indica detalladamente la razón por la cual no se aprueba el trámite."}
               </DialogDescription>
             </DialogHeader>
+
+            {warningNotice && (
+              <div className="p-3 bg-warning/10 border border-warning/30 rounded-xl text-xs space-y-1">
+                <div className="flex items-center gap-1.5 font-bold text-warning-700 dark:text-warning">
+                  <AlertTriangle className="size-4 shrink-0" />
+                  <span>Advertencia importante</span>
+                </div>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  {warningNotice}
+                </p>
+              </div>
+            )}
 
             <div className="space-y-1.5 pt-1 w-full text-left">
               <div className="flex items-center justify-between">
@@ -120,6 +142,7 @@ export function RechazarSolicitudDialog({
               <Button
                 type="button"
                 variant="neutral"
+                disabled={isSubmitting}
                 onClick={() => onOpenChange(false)}
                 className="w-full"
               >
@@ -128,10 +151,25 @@ export function RechazarSolicitudDialog({
               <Button
                 type="button"
                 variant="warning"
-                onClick={handleContinue}
+                disabled={isSubmitting}
+                onClick={() => {
+                  if (directConfirm) {
+                    setTouched(true);
+                    if (isMotivoEmpty) return;
+                    handleReject();
+                  } else {
+                    handleContinue();
+                  }
+                }}
                 className="w-full"
               >
-                Continuar
+                {directConfirm && isSubmitting ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : directConfirm ? (
+                  confirmLabel
+                ) : (
+                  "Continuar"
+                )}
               </Button>
             </DialogFooter>
           </>

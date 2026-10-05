@@ -13,6 +13,11 @@ const SOLICITUDES_INGRESOS_IDS = [
   "SOL-ING-110",
   "SOL-ING-111",
   "SOL-ING-112",
+  "SOL-NORM-201",
+  "SOL-NORM-202",
+  "SOL-NORM-203",
+  "SOL-NORM-204",
+  "SOL-NORM-205",
 ];
 
 export function generateStaticParams() {
@@ -29,7 +34,6 @@ export default async function SolicitudDetailPage({ params }: PageProps) {
     <SolicitudDetalleView
       id={id}
       basePath="/revision-normativa"
-      sectionTitle="Solicitudes generación resolución"
       showEnr03={false}
     />
   );

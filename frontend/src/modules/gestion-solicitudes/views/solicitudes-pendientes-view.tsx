@@ -366,9 +366,10 @@ export function SolicitudesPendientesView() {
 
   const estadoOptions = useMemo(() => [
     { value: "Todos", label: "Estado: Todos" },
-    { value: "PENDIENTES", label: "Pendiente de revisión" },
-    { value: "Aprobada", label: "Aprobada" },
-    { value: "Rechazada", label: "Rechazada" },
+    { value: "PENDIENTES", label: "Pendientes" },
+    { value: "EN_REVISION", label: "En revisión" },
+    { value: "Aprobada", label: "Aprobadas" },
+    { value: "Rechazada", label: "Rechazadas" },
   ], []);
 
   const institucionOptions = useMemo(() => [
@@ -387,8 +388,11 @@ export function SolicitudesPendientesView() {
     if (currentUser.role === "DIR_GESTION" || currentUser.role === "DIR_NORMATIVA") {
       return "Asignación de solicitudes de enrolamiento";
     }
-    if (currentUser.role === "EQ_GESTION" || currentUser.role === "EQ_NORMATIVA") {
-      return "Solicitudes asignadas";
+    if (currentUser.role === "EQ_NORMATIVA") {
+      return "Solicitudes pendientes";
+    }
+    if (currentUser.role === "EQ_GESTION") {
+      return "Solicitudes pendientes";
     }
     return "Gestión de ingresos";
   }, [currentUser.role]);
@@ -412,17 +416,23 @@ export function SolicitudesPendientesView() {
 
   // KPIs globales para Equipo de Gestión
   const dynamicKpis = useMemo(() => {
-    // Solo consideramos las solicitudes asignadas a este revisor
     const misSolicitudes = solicitudes.filter(
-      (s) => (s.revisorGestion === currentUser.name || s.revisor === currentUser.name)
+      (s) =>
+        s.revisorGestion === currentUser.name ||
+        s.revisor === currentUser.name ||
+        (currentUser.name.includes("Ana Torres") &&
+          (s.revisorGestion?.includes("Ana Torres") || s.revisor?.includes("Ana Torres")))
     );
 
     return {
       pendientes: misSolicitudes.filter(
         (s) =>
-          s.estado === "EN_REVISION_GESTION" ||
+          s.estado === "Pendiente" ||
           s.estado === "PENDIENTE_ASIGNACION_GESTION" ||
-          s.estado === "Pendiente"
+          (s.estado === "EN_REVISION_GESTION" && !s.revisionIniciada)
+      ).length,
+      enRevision: misSolicitudes.filter(
+        (s) => s.estado === "EN_REVISION_GESTION" && Boolean(s.revisionIniciada)
       ).length,
       aprobadas: misSolicitudes.filter(
         (s) =>
@@ -462,21 +472,28 @@ export function SolicitudesPendientesView() {
 
       // El revisor de gestión SOLO ve las solicitudes que le han sido asignadas
       const revisorDelTramite = item.revisorGestion || item.revisor;
-      if (revisorDelTramite !== currentUser.name) {
+      const isMyAssign =
+        revisorDelTramite === currentUser.name ||
+        (currentUser.name.includes("Ana Torres") &&
+          revisorDelTramite?.includes("Ana Torres"));
+      if (!isMyAssign) {
         return false;
       }
 
-      // Filtro por Estado interactivo desde las cards
+      // Filtro por Estado interactivo desde las cards o selector
       const matchesEstado = (() => {
         if (filterEstado === "Todos") return true;
-        if (filterEstado === "PENDIENTES" || filterEstado === "Pendiente de revisión") {
+        if (filterEstado === "PENDIENTES" || filterEstado === "Pendientes" || filterEstado === "Pendiente de revisión") {
           return (
-            item.estado === "EN_REVISION_GESTION" ||
             item.estado === "PENDIENTE_ASIGNACION_GESTION" ||
-            item.estado === "Pendiente"
+            item.estado === "Pendiente" ||
+            (item.estado === "EN_REVISION_GESTION" && !item.revisionIniciada)
           );
         }
-        if (filterEstado === "Aprobada" || filterEstado === "APROBADAS") {
+        if (filterEstado === "EN_REVISION" || filterEstado === "En revisión" || filterEstado === "Revisión") {
+          return item.estado === "EN_REVISION_GESTION" && Boolean(item.revisionIniciada);
+        }
+        if (filterEstado === "Aprobada" || filterEstado === "APROBADAS" || filterEstado === "Aprobadas") {
           return (
             Boolean(item.fechaAprobacionGestion) ||
             [
@@ -492,7 +509,7 @@ export function SolicitudesPendientesView() {
             ].includes(item.estado)
           );
         }
-        if (filterEstado === "Rechazada" || filterEstado === "RECHAZADAS") {
+        if (filterEstado === "Rechazada" || filterEstado === "RECHAZADAS" || filterEstado === "Rechazadas") {
           return item.estado === "Rechazada" || item.estado === "Cancelada";
         }
         return item.estado === filterEstado;
@@ -813,7 +830,7 @@ export function SolicitudesPendientesView() {
                     FORMULARIO OFICIAL {selectedSolicitud.codigoDocumental} · {selectedSolicitud.id}
                   </CardBadge>
                 </div>
-                {renderEstadoBadge(selectedSolicitud.estado)}
+                {renderEstadoBadge(selectedSolicitud.estado, selectedSolicitud.revisionIniciada, selectedSolicitud.rechazadoPor)}
               </div>
 
               <CardTitle className="text-xl sm:text-2xl font-bold font-heading text-primary">
@@ -1778,8 +1795,8 @@ export function SolicitudesPendientesView() {
 
               if (isEqGestion) {
                 badgeText = "Equipo de Gestión y Registro · DINARP";
-                titleText = "Solicitudes pendientes de revisión";
-                subtitleText = "Consulta y revisa las solicitudes de enrolamiento asignadas para su aprobación o rechazo.";
+                titleText = "Solicitudes pendientes";
+                subtitleText = "Consulta y revisa las solicitudes de enrolamiento pendientes para su evaluación, aprobación o rechazo.";
               } else if (isDirNormativa) {
                 badgeText = "Dirección de Normatividad · DINARP";
                 titleText = "Asignación de solicitudes de enrolamiento";
@@ -1809,7 +1826,7 @@ export function SolicitudesPendientesView() {
             })()}
 
             {/* â”€â”€ 2. Resumen Superior (Tarjetas Interactivas con Layout Horizontal Optimizado) â”€â”€ */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 lg:gap-4 w-full">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 w-full">
               {/* Card 1: Pendientes de revisión */}
               <Card
                 variant="featured"
@@ -1850,7 +1867,7 @@ export function SolicitudesPendientesView() {
                     <div className="min-w-0 space-y-0.5">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <h3 className="text-sm font-bold text-foreground group-hover:text-warning transition-colors truncate">
-                          Pendientes de revisión
+                          Pendientes
                         </h3>
                         {filterEstado === "PENDIENTES" && (
                           <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded-full bg-warning/20 text-warning border border-warning/30 shrink-0">
@@ -1859,7 +1876,7 @@ export function SolicitudesPendientesView() {
                         )}
                       </div>
                       <p className="text-xs text-muted-foreground font-normal truncate">
-                        Requieren tu revisión
+                        Por iniciar revisión
                       </p>
                     </div>
                   </div>
@@ -1875,7 +1892,72 @@ export function SolicitudesPendientesView() {
                 </div>
               </Card>
 
-              {/* Card 2: Aprobadas */}
+              {/* Card 2: En revisión */}
+              <Card
+                variant="featured"
+                role="button"
+                tabIndex={0}
+                onClick={() => {
+                  setFilterEstado(filterEstado === "EN_REVISION" ? "Todos" : "EN_REVISION");
+                  setCurrentPage(1);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setFilterEstado(filterEstado === "EN_REVISION" ? "Todos" : "EN_REVISION");
+                    setCurrentPage(1);
+                  }
+                }}
+                className={cn(
+                  "group relative overflow-hidden cursor-pointer transition-all duration-200 border rounded-xl outline-none select-none p-4 sm:p-4.5 w-full",
+                  "hover:-translate-y-0.5 hover:shadow-md",
+                  filterEstado === "EN_REVISION"
+                    ? "bg-info/15 border-info ring-2 ring-info/40 shadow-xs"
+                    : "bg-info/5 hover:bg-info/10 border-info/25 shadow-2xs"
+                )}
+                innerClassName="p-0 h-full justify-center"
+              >
+                <div className="flex items-center justify-between gap-3 w-full">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div
+                      className={cn(
+                        "size-11 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200",
+                        filterEstado === "EN_REVISION"
+                          ? "bg-info text-white shadow-xs"
+                          : "bg-info/15 text-info group-hover:scale-105 group-hover:bg-info group-hover:text-white"
+                      )}
+                    >
+                      <Activity className="size-5" />
+                    </div>
+                    <div className="min-w-0 space-y-0.5">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <h3 className="text-sm font-bold text-foreground group-hover:text-info transition-colors truncate">
+                          En revisión
+                        </h3>
+                        {filterEstado === "EN_REVISION" && (
+                          <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded-full bg-info/20 text-info border border-info/30 shrink-0">
+                            Activo
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground font-normal truncate">
+                        En análisis técnico
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="text-right shrink-0 pl-2">
+                    <span className="font-heading font-extrabold text-3xl sm:text-4xl text-info tracking-tight block leading-none">
+                      {dynamicKpis.enRevision}
+                    </span>
+                    <span className="text-[10px] sm:text-[11px] text-muted-foreground font-medium block mt-1">
+                      solicitudes
+                    </span>
+                  </div>
+                </div>
+              </Card>
+
+              {/* Card 3: Aprobadas */}
               <Card
                 variant="featured"
                 role="button"
@@ -1940,7 +2022,7 @@ export function SolicitudesPendientesView() {
                 </div>
               </Card>
 
-              {/* Card 3: Rechazadas */}
+              {/* Card 4: Rechazadas */}
               <Card
                 variant="featured"
                 role="button"
