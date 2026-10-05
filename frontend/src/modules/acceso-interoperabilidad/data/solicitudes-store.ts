@@ -37,22 +37,77 @@ export interface TrazabilidadEvento {
 }
 
 export type SolicitudEstado =
-    | "Por asignar"
-    | "Por revisar"
-    | "En revisión"
-    | "Reenviada"
-    | "Aprobada"
-    | "Rechazada"
-    | "Observada"
-    | "Pago pendiente"
-  | "Con observaciones"
+  | "Pendiente de asignación en Gestión"
+  | "Asignada a revisión de Gestión"
+  | "En revisión de Gestión"
+  | "Observada"
+  | "Pendiente de nueva asignación"
+  | "Cerrada"
+  | "Aprobada por Gestión"
+  | "Pendiente de asignación en Normatividad"
+  | "En revisión normativa"
+  | "Aprobada por Normatividad"
+  | "Por asignar"
+  | "Por revisar"
+  | "En revisión"
+  | "Reenviada"
+  | "Aprobada"
+  | "Rechazada"
   | "Pago pendiente"
+  | "Con observaciones"
   | "Pendiente de validación de pago"
   | "Pago en validación"
   | "Pago validado"
   | "Pago verificado"
   | "Creación de paquetes"
   | "Acceso generado";
+
+export type ModalidadAcceso = "API individual" | "API masiva" | "Ambas";
+
+export type TipoElementoObservado =
+  | "campo"
+  | "finalidad"
+  | "justificacion"
+  | "modalidad"
+  | "cupo"
+  | "documento"
+  | "general";
+
+export interface ObservacionItem {
+  id: string;
+  tipo: TipoElementoObservado;
+  elementoId?: string;
+  elementoNombre?: string;
+  descripcion: string;
+  fecha: string;
+  revisor: string;
+  etapa: "Gestión" | "Normatividad";
+}
+
+export interface AsignacionRegistro {
+  id: string;
+  director: string;
+  revisorId: string;
+  revisorNombre: string;
+  fecha: string;
+  versionExpediente: number;
+  etapa: "Gestión" | "Normatividad";
+  observacion?: string;
+}
+
+export interface InformeNormativa {
+  numero: string;
+  titulo: string;
+  fechaEmision: string;
+  dictamen: "FAVORABLE" | "OBSERVADO";
+  fundamento: string;
+  revisorNombre: string;
+  firmadoRevisor: boolean;
+  fechaFirmaRevisor?: string;
+  directorNombre: string;
+  firmadoDirector: boolean;
+  fechaFirmaDirector?: string;
+}
 
 export interface CredencialesAcceso {
   usuario: string;
@@ -79,6 +134,26 @@ export interface SolicitudAcceso {
   camposCount: number;
   fuentePrincipal?: string;
   servicioPrincipal?: string;
+  proyectoId?: string;
+  proyectoNombre?: string;
+  modalidad?: ModalidadAcceso;
+  cupo?: number;
+  modalidadAprobada?: ModalidadAcceso;
+  cupoAprobado?: number;
+  versionExpediente?: number;
+  revisorAsignado?: string;
+  revisorAsignadoId?: string;
+  fechaAsignacion?: string;
+  historialAsignaciones?: AsignacionRegistro[];
+  revisorNormativoAsignado?: string;
+  revisorNormativoAsignadoId?: string;
+  fechaAsignacionNormativa?: string;
+  historialAsignacionesNormativa?: AsignacionRegistro[];
+  observacionesEstructuradas?: ObservacionItem[];
+  fechaLimiteSubsanacion?: string;
+  diasRestantesSubsanacion?: number;
+  detalleSubsanacion?: string;
+  informeNormativa?: InformeNormativa;
   instrumento?: "Convenio" | "Contrato";
   contrato?: string;
   motivoRechazo?: string;
@@ -108,7 +183,7 @@ export interface SolicitudAcceso {
   historial: TrazabilidadEvento[];
 }
 
-const STORAGE_KEY = "dinarp_solicitudes_v6";
+const STORAGE_KEY = "dinarp_solicitudes_v7";
 
 export const INITIAL_SOLICITUDES: SolicitudAcceso[] = [
   {
@@ -195,10 +270,16 @@ export const INITIAL_SOLICITUDES: SolicitudAcceso[] = [
     institucion: "Ministerio de Salud Pública",
     tipoInstitucion: "Pública",
     coordinador: "Andrea López",
+    proyectoId: "PRJ-2026-001",
+    proyectoNombre: "Sistema Único de Registro y Matrícula Estudiantil",
     fecha: "2026-09-22 09:30",
     ultimaActualizacion: "2026-09-22 11:00",
-    estado: "Por revisar",
+    estado: "Pendiente de asignación en Gestión",
     responsable: "Director de Gestión",
+    modalidad: "Ambas",
+    cupo: 50000,
+    versionExpediente: 1,
+    historialAsignaciones: [],
     fuentesCount: 1,
     camposCount: 2,
     fuentePrincipal: "Registro Civil de Ciudadanos",
@@ -249,18 +330,35 @@ export const INITIAL_SOLICITUDES: SolicitudAcceso[] = [
     historial: [
       { fecha: "2026-09-22 09:30", evento: "Solicitud creada", actor: "Coordinador SINARP", detalle: "Registro formal de requerimiento de interoperabilidad con 2 campos solicitados." },
       { fecha: "2026-09-22 10:15", evento: "Enviada a revisión", actor: "Coordinador SINARP", detalle: "Expediente formal remitido para dictamen técnico y legal." },
-      { fecha: "2026-09-22 11:00", evento: "Por revisar", actor: "Aprobador", detalle: "Asignado para validación de justificación y finalidad de uso de datos." }
+      { fecha: "2026-09-22 11:00", evento: "Pendiente de asignación en Gestión", actor: "Director de Gestión", detalle: "Expediente disponible en la bandeja exclusiva de asignación de Gestión." }
     ]
   },
   {
     id: "SOL-2026-007",
-    institucion: "IESS",
+    institucion: "Instituto Ecuatoriano de Seguridad Social (IESS)",
     tipoInstitucion: "Pública",
     coordinador: "Andrea López",
+    proyectoId: "PRJ-2026-001",
+    proyectoNombre: "Sistema Único de Registro y Matrícula Estudiantil",
     fecha: "2026-09-21 14:00",
     ultimaActualizacion: "2026-09-23 08:45",
-    estado: "Reenviada",
-    responsable: "Aprobador",
+    estado: "Pendiente de nueva asignación",
+    responsable: "Director de Gestión",
+    modalidad: "API individual",
+    cupo: 30000,
+    versionExpediente: 2,
+    detalleSubsanacion: "Se aclaró el fundamento legal específico del Art. 89 para el campo confidencial conforme a la observación recibida.",
+    historialAsignaciones: [
+      {
+        id: "asig-prev-1",
+        director: "Director Gestión",
+        revisorId: "U-EQGEST",
+        revisorNombre: "Ana Torres (Revisor)",
+        fecha: "2026-09-21 15:00",
+        versionExpediente: 1,
+        etapa: "Gestión"
+      }
+    ],
     fuentesCount: 1,
     camposCount: 3,
     fuentePrincipal: "Registro Único de Contribuyentes (RUC)",
@@ -320,9 +418,393 @@ export const INITIAL_SOLICITUDES: SolicitudAcceso[] = [
     historial: [
       { fecha: "2026-09-21 14:00", evento: "Solicitud creada", actor: "Coordinador SINARP", detalle: "Registro inicial de solicitud institucional." },
       { fecha: "2026-09-21 14:20", evento: "Enviada a revisión", actor: "Coordinador SINARP" },
-      { fecha: "2026-09-21 16:00", evento: "En revisión", actor: "Aprobador" },
-      { fecha: "2026-09-22 09:10", evento: "Solicitud rechazada con observaciones", actor: "Aprobador", detalle: "Se requirió fundamentar específicamente el campo confidencial con base legal vigente." },
-      { fecha: "2026-09-23 08:45", evento: "Ajustes subsanados y reenviada", actor: "Coordinador SINARP", detalle: "Se adjuntó Memoria Técnica v2 y aclaración de fundamento legal. Reingreso para dictamen." }
+      { fecha: "2026-09-21 15:00", evento: "Revisor de Gestión asignado", actor: "Director Gestión", detalle: "Asignado a Ana Torres para revisión funcional v1." },
+      { fecha: "2026-09-22 09:10", evento: "Solicitud observada por Gestión", actor: "Ana Torres (Revisor)", detalle: "Se requirió fundamentar específicamente el campo confidencial con base legal vigente." },
+      { fecha: "2026-09-23 08:45", evento: "Solicitud subsanada y reenviada (v2)", actor: "Coordinador SINARP", detalle: "Se adjuntó Memoria Técnica v2 y aclaración de fundamento legal. Reingreso para dictamen." },
+      { fecha: "2026-09-23 08:45", evento: "Pendiente de nueva asignación", actor: "Director de Gestión", detalle: "Vuelve a la bandeja de asignación para que el Director asigne revisor (no va directo al anterior)." }
+    ]
+  },
+  {
+    id: "SOL-2026-008",
+    institucion: "Ministerio de Educación",
+    tipoInstitucion: "Pública",
+    coordinador: "Mariana Almeida",
+    proyectoId: "PRJ-2026-001",
+    proyectoNombre: "Sistema Único de Registro y Matrícula Estudiantil",
+    fecha: "2026-09-24 10:00",
+    ultimaActualizacion: "2026-09-24 11:30",
+    estado: "Asignada a revisión de Gestión",
+    responsable: "Ana Torres (Revisor)",
+    revisorAsignado: "Ana Torres (Revisor)",
+    revisorAsignadoId: "U-EQGEST",
+    fechaAsignacion: "2026-09-24 11:30",
+    modalidad: "Ambas",
+    cupo: 75000,
+    versionExpediente: 1,
+    fuentesCount: 1,
+    camposCount: 2,
+    fuentePrincipal: "Registro Civil de Ciudadanos",
+    servicioPrincipal: "Validación de Identidad y Filiación",
+    instrumento: "Convenio",
+    fuentes: [
+      {
+        id: "FNT-001",
+        nombre: "Registro Civil de Ciudadanos",
+        institucion: "Dirección General de Registro Civil",
+        campos: [
+          {
+            id: "cmp-01",
+            nombre: "cedulaCiudadania",
+            descripcion: "Número oficial de cédula de ciudadanía.",
+            clasificacion: "Accesible",
+            finalidad: "Validación obligatoria de identidad de los postulantes escolares en el proceso de matrícula."
+          },
+          {
+            id: "cmp-02",
+            nombre: "lugarNacimiento",
+            descripcion: "Provincia, cantón y parroquia de nacimiento según registro civil.",
+            clasificacion: "Confidencial",
+            finalidad: "Determinación de asignación de cupos por territorialidad y pertinencia intercultural bilingüe.",
+            fundamento: "Ley Orgánica de Educación Intercultural Art. 47 y Ley Orgánica de Protección de Datos Personales Art. 12."
+          }
+        ]
+      }
+    ],
+    documentos: [
+      {
+        id: "doc-008-1",
+        nombre: "Oficio_MinEduc_Matriculas_2026.pdf",
+        tipo: "PDF",
+        tamano: "2.1 MB",
+        fechaCarga: "2026-09-24 10:00",
+        categoria: "Oficio Formal"
+      }
+    ],
+    historialAsignaciones: [
+      {
+        id: "asig-008",
+        director: "Director Gestión",
+        revisorId: "U-EQGEST",
+        revisorNombre: "Ana Torres (Revisor)",
+        fecha: "2026-09-24 11:30",
+        versionExpediente: 1,
+        etapa: "Gestión"
+      }
+    ],
+    historial: [
+      { fecha: "2026-09-24 10:00", evento: "Solicitud creada y enviada", actor: "Coordinador SINARP", detalle: "Expediente radicado para acceso a Registro Civil." },
+      { fecha: "2026-09-24 11:30", evento: "Revisor de Gestión asignado", actor: "Director Gestión", detalle: "Asignado a Ana Torres para revisión técnica y funcional." }
+    ]
+  },
+  {
+    id: "SOL-2026-009",
+    institucion: "Servicio de Rentas Internas",
+    tipoInstitucion: "Pública",
+    coordinador: "Andrea López",
+    proyectoId: "PRJ-2026-001",
+    proyectoNombre: "Sistema Único de Registro y Matrícula Estudiantil",
+    fecha: "2026-09-23 08:00",
+    ultimaActualizacion: "2026-09-24 14:00",
+    estado: "Observada",
+    responsable: "Coordinador SINARP",
+    versionExpediente: 1,
+    modalidad: "API masiva",
+    cupo: 120000,
+    fuentesCount: 1,
+    camposCount: 2,
+    fuentePrincipal: "Registro Civil de Ciudadanos",
+    servicioPrincipal: "Consulta de Datos Registrales",
+    instrumento: "Convenio",
+    fechaLimiteSubsanacion: "2026-10-12",
+    diasRestantesSubsanacion: 5,
+    observacionesEstructuradas: [
+      {
+        id: "obs-1",
+        tipo: "campo",
+        elementoId: "cmp-02",
+        elementoNombre: "estadoCivil",
+        descripcion: "La finalidad indicada no explica por qué este dato es necesario para el proyecto educativo.",
+        fecha: "2026-09-24 14:00",
+        revisor: "Ana Torres (Revisor)",
+        etapa: "Gestión"
+      },
+      {
+        id: "obs-2",
+        tipo: "cupo",
+        elementoNombre: "Cupo solicitado",
+        descripcion: "El cupo de 120,000 registros excede la estimación del proyecto. Se sugiere ajustar a máximo 50,000 registros.",
+        fecha: "2026-09-24 14:00",
+        revisor: "Ana Torres (Revisor)",
+        etapa: "Gestión"
+      }
+    ],
+    fuentes: [
+      {
+        id: "FNT-001",
+        nombre: "Registro Civil de Ciudadanos",
+        institucion: "Dirección General de Registro Civil",
+        campos: [
+          {
+            id: "cmp-01",
+            nombre: "cedulaCiudadania",
+            descripcion: "Número oficial de cédula de ciudadanía.",
+            clasificacion: "Accesible",
+            finalidad: "Validación de identidad para cruce de información tributaria."
+          },
+          {
+            id: "cmp-02",
+            nombre: "estadoCivil",
+            descripcion: "Condición civil registrada ante el Estado.",
+            clasificacion: "Confidencial",
+            finalidad: "Cruce fiscal general sin detalle de vinculación.",
+            fundamento: "Código Tributario Art. 96."
+          }
+        ]
+      }
+    ],
+    documentos: [
+      {
+        id: "doc-009-1",
+        nombre: "Oficio_SRI_Solicitud_RC.pdf",
+        tipo: "PDF",
+        tamano: "1.5 MB",
+        fechaCarga: "2026-09-23 08:00",
+        categoria: "Oficio Formal"
+      }
+    ],
+    historial: [
+      { fecha: "2026-09-23 08:00", evento: "Solicitud creada y enviada", actor: "Coordinador SINARP" },
+      { fecha: "2026-09-23 10:00", evento: "Revisor asignado", actor: "Director Gestión", detalle: "Asignado a Ana Torres." },
+      { fecha: "2026-09-24 14:00", evento: "Solicitud observada por Gestión", actor: "Ana Torres (Revisor)", detalle: "Se registraron 2 observaciones en finalidad de estado civil y cupo solicitado. Plazo de 5 días hábiles." }
+    ]
+  },
+  {
+    id: "SOL-2026-011",
+    institucion: "Agencia Nacional de Tránsito",
+    tipoInstitucion: "Pública",
+    coordinador: "Andrea López",
+    proyectoId: "PRJ-2026-001",
+    proyectoNombre: "Sistema Único de Registro y Matrícula Estudiantil",
+    fecha: "2026-08-10 09:00",
+    ultimaActualizacion: "2026-08-25 18:00",
+    estado: "Cerrada",
+    responsable: "Archivo Histórico",
+    versionExpediente: 1,
+    modalidad: "API individual",
+    cupo: 15000,
+    fuentesCount: 1,
+    camposCount: 1,
+    fuentePrincipal: "Registro Civil de Ciudadanos",
+    servicioPrincipal: "Consulta de Licencias",
+    instrumento: "Convenio",
+    fechaLimiteSubsanacion: "2026-08-24",
+    diasRestantesSubsanacion: 0,
+    fuentes: [
+      {
+        id: "FNT-001",
+        nombre: "Registro Civil de Ciudadanos",
+        institucion: "Dirección General de Registro Civil",
+        campos: [
+          {
+            id: "cmp-01",
+            nombre: "cedulaCiudadania",
+            descripcion: "Número oficial de cédula de ciudadanía.",
+            clasificacion: "Accesible",
+            finalidad: "Validación para emisión de turnos de licencias."
+          }
+        ]
+      }
+    ],
+    documentos: [],
+    historial: [
+      { fecha: "2026-08-10 09:00", evento: "Solicitud creada y enviada", actor: "Coordinador SINARP" },
+      { fecha: "2026-08-12 11:00", evento: "Solicitud observada", actor: "Ana Torres (Revisor)", detalle: "Documento de soporte desactualizado." },
+      { fecha: "2026-08-25 18:00", evento: "Expediente cerrado por vencimiento de plazo", actor: "Sistema DINARP", detalle: "El plazo de subsanación venció sin que el Coordinador reenviara las correcciones requeridas. Se archiva el trámite." }
+    ]
+  },
+  {
+    id: "SOL-2026-012",
+    institucion: "Ministerio de Salud Pública",
+    tipoInstitucion: "Pública",
+    coordinador: "Andrea López",
+    proyectoId: "PRJ-2026-001",
+    proyectoNombre: "Sistema Único de Registro y Matrícula Estudiantil",
+    fecha: "2026-09-20 08:30",
+    ultimaActualizacion: "2026-09-23 16:00",
+    estado: "Pendiente de asignación en Normatividad",
+    responsable: "Director de Normatividad",
+    versionExpediente: 1,
+    modalidad: "Ambas",
+    cupo: 60000,
+    modalidadAprobada: "Ambas",
+    cupoAprobado: 60000,
+    fuentesCount: 1,
+    camposCount: 2,
+    fuentePrincipal: "Registro Civil de Ciudadanos",
+    servicioPrincipal: "Validación de Nacimiento y Filiación",
+    instrumento: "Convenio",
+    fuentes: [
+      {
+        id: "FNT-001",
+        nombre: "Registro Civil de Ciudadanos",
+        institucion: "Dirección General de Registro Civil",
+        campos: [
+          {
+            id: "cmp-01",
+            nombre: "fechaNacimiento",
+            descripcion: "Fecha oficial de nacimiento registrada en acta.",
+            clasificacion: "Accesible",
+            finalidad: "Validación de esquemas de vacunación por grupos etarios."
+          },
+          {
+            id: "cmp-02",
+            nombre: "datosMadrePadre",
+            descripcion: "Filiación materna y paterna registrada en acta de nacimiento.",
+            clasificacion: "Confidencial",
+            finalidad: "Filiación legal para consentimiento informado en atención hospitalaria pediátrica.",
+            fundamento: "Código de la Niñez Art. 21 y LOPDP Art. 12 numeral 4."
+          }
+        ]
+      }
+    ],
+    documentos: [
+      {
+        id: "doc-012-1",
+        nombre: "Oficio_MSP_PoblacionInfantil_2026.pdf",
+        tipo: "PDF",
+        tamano: "2.8 MB",
+        fechaCarga: "2026-09-20 08:30",
+        categoria: "Oficio Formal"
+      }
+    ],
+    historial: [
+      { fecha: "2026-09-20 08:30", evento: "Solicitud creada y enviada", actor: "Coordinador SINARP" },
+      { fecha: "2026-09-21 10:00", evento: "Revisor de Gestión asignado", actor: "Director Gestión", detalle: "Asignado a Marcos Silva." },
+      { fecha: "2026-09-23 16:00", evento: "Aprobada por Gestión", actor: "Marcos Silva (Revisor)", detalle: "Aprobación funcional emitida. Contiene campos confidenciales: remitida a la Dirección de Normatividad." }
+    ]
+  },
+  {
+    id: "SOL-2026-013",
+    institucion: "Ministerio de Gobierno",
+    tipoInstitucion: "Pública",
+    coordinador: "Andrea López",
+    proyectoId: "PRJ-2026-001",
+    proyectoNombre: "Sistema Único de Registro y Matrícula Estudiantil",
+    fecha: "2026-09-19 11:00",
+    ultimaActualizacion: "2026-09-24 09:30",
+    estado: "En revisión normativa",
+    responsable: "Carlos Mora (Personal Facultado)",
+    revisorNormativoAsignado: "Carlos Mora (Personal Facultado)",
+    revisorNormativoAsignadoId: "U-EQNORM",
+    fechaAsignacionNormativa: "2026-09-24 09:30",
+    versionExpediente: 1,
+    modalidad: "API individual",
+    cupo: 40000,
+    modalidadAprobada: "API individual",
+    cupoAprobado: 40000,
+    fuentesCount: 1,
+    camposCount: 2,
+    fuentePrincipal: "Registro Civil de Ciudadanos",
+    servicioPrincipal: "Identificación Ciudadana",
+    instrumento: "Convenio",
+    fuentes: [
+      {
+        id: "FNT-001",
+        nombre: "Registro Civil de Ciudadanos",
+        institucion: "Dirección General de Registro Civil",
+        campos: [
+          {
+            id: "cmp-01",
+            nombre: "cedulaCiudadania",
+            descripcion: "Cédula de identidad.",
+            clasificacion: "Accesible",
+            finalidad: "Validación de ciudadanías en proyectos de gobernanza."
+          },
+          {
+            id: "cmp-02",
+            nombre: "huellaDactilarHash",
+            descripcion: "Código hash de cotejo dactiloscópico biométrico.",
+            clasificacion: "Confidencial",
+            finalidad: "Seguridad y cotejo en accesos biométricos de alta seguridad.",
+            fundamento: "Ley de Seguridad Pública del Estado Art. 14 y LOPDP Art. 25."
+          }
+        ]
+      }
+    ],
+    documentos: [
+      {
+        id: "doc-013-1",
+        nombre: "Oficio_MinGobierno_Seguridad_2026.pdf",
+        tipo: "PDF",
+        tamano: "3.1 MB",
+        fechaCarga: "2026-09-19 11:00",
+        categoria: "Oficio Formal"
+      }
+    ],
+    historial: [
+      { fecha: "2026-09-19 11:00", evento: "Solicitud creada y enviada", actor: "Coordinador SINARP" },
+      { fecha: "2026-09-21 14:00", evento: "Aprobada por Gestión", actor: "Elena Viteri (Revisor)", detalle: "Aprobación funcional emitida." },
+      { fecha: "2026-09-24 09:30", evento: "Revisor de Normatividad asignado", actor: "Director de Normatividad", detalle: "Asignado a Carlos Mora para dictamen jurídico y firma de informe." }
+    ]
+  },
+  {
+    id: "SOL-2026-014",
+    institucion: "Secretaría de Educación Superior (SENESCYT)",
+    tipoInstitucion: "Pública",
+    coordinador: "Andrea López",
+    proyectoId: "PRJ-2026-001",
+    proyectoNombre: "Sistema Único de Registro y Matrícula Estudiantil",
+    fecha: "2026-09-22 14:00",
+    ultimaActualizacion: "2026-09-24 16:00",
+    estado: "Aprobada por Gestión",
+    responsable: "Coordinador SINARP",
+    versionExpediente: 1,
+    modalidad: "API individual",
+    cupo: 25000,
+    modalidadAprobada: "API individual",
+    cupoAprobado: 25000,
+    fuentesCount: 1,
+    camposCount: 2,
+    fuentePrincipal: "Registro Civil de Ciudadanos",
+    servicioPrincipal: "Verificación de Títulos y Datos Civiles",
+    instrumento: "Convenio",
+    fuentes: [
+      {
+        id: "FNT-001",
+        nombre: "Registro Civil de Ciudadanos",
+        institucion: "Dirección General de Registro Civil",
+        campos: [
+          {
+            id: "cmp-01",
+            nombre: "cedulaCiudadania",
+            descripcion: "Número oficial de cédula.",
+            clasificacion: "Accesible",
+            finalidad: "Validación para registro nacional de cupos universitarios."
+          },
+          {
+            id: "cmp-02",
+            nombre: "nombresCompletos",
+            descripcion: "Nombres y apellidos completos.",
+            clasificacion: "Accesible",
+            finalidad: "Emisión de comprobante de asignación académica oficial."
+          }
+        ]
+      }
+    ],
+    documentos: [
+      {
+        id: "doc-014-1",
+        nombre: "Oficio_SENESCYT_Admision2026.pdf",
+        tipo: "PDF",
+        tamano: "1.9 MB",
+        fechaCarga: "2026-09-22 14:00",
+        categoria: "Oficio Formal"
+      }
+    ],
+    historial: [
+      { fecha: "2026-09-22 14:00", evento: "Solicitud creada y enviada", actor: "Coordinador SINARP" },
+      { fecha: "2026-09-23 10:00", evento: "Revisor asignado", actor: "Director Gestión", detalle: "Asignado a Ana Torres." },
+      { fecha: "2026-09-24 16:00", evento: "Aprobada por Gestión", actor: "Ana Torres (Revisor)", detalle: "Aprobada. Solo contiene campos accesibles: continúa directamente a formalización pública." }
     ]
   },
   {
@@ -918,30 +1400,35 @@ export function useSolicitudesStore() {
 
     const updated = current.map(s => {
       if (s.id === id) {
+        const nextVersion = (s.versionExpediente || 1) + 1;
         const nuevoHistorial: TrazabilidadEvento[] = [
           ...s.historial,
           {
             fecha: now,
-            evento: "Ajustes subsanados y reenviada",
+            evento: `Solicitud subsanada y reenviada (v${nextVersion})`,
             actor: "Coordinador SINARP",
-            detalle: comentarioSubsanacion || "Se realizaron las correcciones y precisiones solicitadas por el Aprobador."
+            detalle: comentarioSubsanacion || "Se realizaron las correcciones y precisiones solicitadas en el expediente."
           },
           {
             fecha: now,
-            evento: "Por asignar",
+            evento: "Pendiente de nueva asignación",
             actor: "Director de Gestión",
             detalle: "La solicitud subsanada volvió a la bandeja del Director de Gestión para una nueva asignación."
           }
         ];
         return {
           ...s,
+          versionExpediente: nextVersion,
           fuentes: nuevasFuentes || s.fuentes,
           fuentesCount: nuevasFuentes ? nuevasFuentes.length : s.fuentesCount,
           camposCount: nuevasFuentes
             ? nuevasFuentes.reduce((acc, f) => acc + (f.campos?.length || 0), 0)
             : s.camposCount,
-          estado: "Por asignar" as const,
+          estado: "Pendiente de nueva asignación" as const,
           responsable: "Director de Gestión",
+          revisorAsignado: undefined,
+          revisorAsignadoId: undefined,
+          detalleSubsanacion: comentarioSubsanacion,
           ultimaActualizacion: dateOnly,
           historial: nuevoHistorial
         };
@@ -953,7 +1440,7 @@ export function useSolicitudesStore() {
     setSolicitudes(updated);
   }, []);
 
-  // Flujo Coordinador: Crear nueva solicitud y enviar a firmas
+  // Flujo Coordinador: Crear nueva solicitud y enviar a firmas / asignación
   const crearNuevaSolicitud = useCallback((nueva: Partial<SolicitudAcceso>) => {
     const current = getStoredSolicitudes();
     const now = new Date().toISOString().replace("T", " ").substring(0, 16);
@@ -967,8 +1454,14 @@ export function useSolicitudesStore() {
       coordinador: nueva.coordinador || "Andrea López",
       fecha: now,
       ultimaActualizacion: dateOnly,
-      estado: "Por revisar",
-      responsable: "Aprobador",
+      estado: "Pendiente de asignación en Gestión",
+      responsable: "Director de Gestión",
+      proyectoId: nueva.proyectoId || "PRJ-2026-001",
+      proyectoNombre: nueva.proyectoNombre || "Sistema Único de Registro y Matrícula Estudiantil",
+      modalidad: nueva.modalidad || "API individual",
+      cupo: nueva.cupo || 50000,
+      versionExpediente: 1,
+      historialAsignaciones: [],
       fuentesCount: nueva.fuentes?.length || 1,
       camposCount: nueva.camposCount || 2,
       fuentePrincipal: nueva.fuentePrincipal || nueva.fuentes?.[0]?.nombre || "Dirección General de Registro Civil, Identificación y Cedulación",
@@ -988,15 +1481,15 @@ export function useSolicitudesStore() {
       historial: [
         {
           fecha: now,
-          evento: "Solicitud creada y enviada a firmas",
+          evento: "Solicitud creada y enviada",
           actor: "Coordinador SINARP",
-          detalle: "Solicitud registrada mediante el asistente de 3 pasos y enviada formalmente al Aprobador."
+          detalle: "Solicitud registrada mediante el asistente y enviada a la Dirección de Gestión para asignación."
         },
         {
           fecha: now,
-          evento: "Por revisar",
-          actor: "Aprobador",
-          detalle: "Expediente disponible para revisión de pertinencia, finalidad y justificación jurídica."
+          evento: "Pendiente de asignación en Gestión",
+          actor: "Director de Gestión",
+          detalle: "Expediente disponible en la bandeja exclusiva de asignación de Gestión."
         }
       ]
     };
@@ -1005,6 +1498,502 @@ export function useSolicitudesStore() {
     saveStoredSolicitudes(updated);
     setSolicitudes(updated);
     return solicitudCompleta;
+  }, []);
+
+  // Flujo BN-07: Director de Gestión asigna Revisor
+  const asignarRevisorGestion = useCallback((
+    id: string,
+    revisorId: string,
+    revisorNombre: string,
+    directorNombre = "Director Gestión",
+    observacion?: string
+  ) => {
+    const current = getStoredSolicitudes();
+    const now = new Date().toISOString().replace("T", " ").substring(0, 16);
+    const dateOnly = now.substring(0, 10);
+
+    const updated = current.map(s => {
+      if (s.id === id) {
+        const version = s.versionExpediente || 1;
+        const nuevaAsignacion: AsignacionRegistro = {
+          id: `asig-${Date.now()}`,
+          director: directorNombre,
+          revisorId,
+          revisorNombre,
+          fecha: now,
+          versionExpediente: version,
+          etapa: "Gestión",
+          observacion
+        };
+
+        const historialAsignaciones = [nuevaAsignacion, ...(s.historialAsignaciones || [])];
+
+        const nuevosEventos: TrazabilidadEvento[] = [
+          ...s.historial,
+          {
+            fecha: now,
+            evento: "Revisor de Gestión asignado",
+            actor: directorNombre,
+            detalle: `Asignado a ${revisorNombre} para revisión funcional y de interoperabilidad del expediente (versión ${version}).`
+          }
+        ];
+
+        return {
+          ...s,
+          estado: "Asignada a revisión de Gestión" as const,
+          responsable: revisorNombre,
+          revisorAsignado: revisorNombre,
+          revisorAsignadoId: revisorId,
+          fechaAsignacion: now,
+          historialAsignaciones,
+          ultimaActualizacion: dateOnly,
+          historial: nuevosEventos
+        };
+      }
+      return s;
+    });
+
+    saveStoredSolicitudes(updated);
+    setSolicitudes(updated);
+  }, []);
+
+  // Flujo BN-07: Revisor de Gestión aprueba solicitud
+  const aprobarGestion = useCallback((
+    id: string,
+    params: {
+      revisor: string;
+      camposAprobados: string[];
+      modalidadesAutorizadas: ModalidadAcceso;
+      cupoAprobado: number;
+    }
+  ) => {
+    const current = getStoredSolicitudes();
+    const now = new Date().toISOString().replace("T", " ").substring(0, 16);
+    const dateOnly = now.substring(0, 10);
+
+    const updated = current.map(s => {
+      if (s.id === id) {
+        // Determinar si contiene campos confidenciales
+        const tieneConfidencial = s.fuentes.some(f =>
+          f.campos?.some(c => c.clasificacion === "Confidencial")
+        );
+
+        const version = s.versionExpediente || 1;
+        const esPrivada = s.tipoInstitucion === "Privada";
+
+        const nuevoEstado: SolicitudEstado = tieneConfidencial
+          ? "Pendiente de asignación en Normatividad"
+          : "Aprobada por Gestión";
+
+        const nuevoResponsable = tieneConfidencial
+          ? "Director de Normatividad"
+          : (esPrivada ? "Facturación" : "Coordinador SINARP");
+
+        const nuevosEventos: TrazabilidadEvento[] = [
+          ...s.historial,
+          {
+            fecha: now,
+            evento: "Aprobada por Gestión",
+            actor: params.revisor,
+            detalle: `Revisión funcional aprobada (Expediente v${version}). Modalidad autorizada: ${params.modalidadesAutorizadas}. Cupo aprobado: ${params.cupoAprobado.toLocaleString()} registros. ${
+              tieneConfidencial
+                ? "Contiene campos confidenciales: derivada a la Dirección de Normatividad."
+                : "Solo campos accesibles: continúa directamente a formalización."
+            }`
+          }
+        ];
+
+        if (tieneConfidencial) {
+          nuevosEventos.push({
+            fecha: now,
+            evento: "Pendiente de asignación en Normatividad",
+            actor: "Director de Normatividad",
+            detalle: "Expediente con campos confidenciales remitido a Normatividad para asignación de revisor jurídico."
+          });
+        }
+
+        return {
+          ...s,
+          estado: nuevoEstado,
+          responsable: nuevoResponsable,
+          modalidadAprobada: params.modalidadesAutorizadas,
+          cupoAprobado: params.cupoAprobado,
+          fechaAprobacion: dateOnly,
+          ultimaActualizacion: dateOnly,
+          historial: nuevosEventos
+        };
+      }
+      return s;
+    });
+
+    saveStoredSolicitudes(updated);
+    setSolicitudes(updated);
+  }, []);
+
+  // Flujo BN-07: Revisor de Gestión observa solicitud
+  const observarGestion = useCallback((
+    id: string,
+    params: {
+      revisor: string;
+      observaciones: ObservacionItem[];
+      diasPlazo?: number;
+    }
+  ) => {
+    const current = getStoredSolicitudes();
+    const now = new Date().toISOString().replace("T", " ").substring(0, 16);
+    const dateOnly = now.substring(0, 10);
+    const dias = params.diasPlazo || 5;
+
+    // Calcular fecha límite
+    const limitDate = new Date();
+    limitDate.setDate(limitDate.getDate() + dias);
+    const fechaLimiteStr = limitDate.toISOString().substring(0, 10);
+
+    const updated = current.map(s => {
+      if (s.id === id) {
+        const resumenObs = params.observaciones.map(o => `[${o.tipo.toUpperCase()}] ${o.elementoNombre ? o.elementoNombre + ": " : ""}${o.descripcion}`).join(" | ");
+
+        const nuevosEventos: TrazabilidadEvento[] = [
+          ...s.historial,
+          {
+            fecha: now,
+            evento: "Solicitud observada por Gestión",
+            actor: params.revisor,
+            detalle: `Se registraron ${params.observaciones.length} observaciones. Plazo de subsanación: ${dias} días hábiles (hasta ${fechaLimiteStr}).`
+          }
+        ];
+
+        return {
+          ...s,
+          estado: "Observada" as const,
+          responsable: "Coordinador SINARP",
+          observacionesEstructuradas: params.observaciones,
+          fechaLimiteSubsanacion: fechaLimiteStr,
+          diasRestantesSubsanacion: dias,
+          observaciones: resumenObs,
+          motivoRechazo: resumenObs,
+          ultimaActualizacion: dateOnly,
+          historial: nuevosEventos
+        };
+      }
+      return s;
+    });
+
+    saveStoredSolicitudes(updated);
+    setSolicitudes(updated);
+  }, []);
+
+  // Flujo BN-07: Subsanar y Reenviar
+  const subsanarYReenviar = useCallback((
+    id: string,
+    params: {
+      comentario: string;
+      fuentesActualizadas: FuenteDetalle[];
+      modalidad?: ModalidadAcceso;
+      cupo?: number;
+      documentos?: DocumentoSoporte[];
+    }
+  ) => {
+    const current = getStoredSolicitudes();
+    const now = new Date().toISOString().replace("T", " ").substring(0, 16);
+    const dateOnly = now.substring(0, 10);
+
+    const updated = current.map(s => {
+      if (s.id === id) {
+        const nextVersion = (s.versionExpediente || 1) + 1;
+        const nuevosEventos: TrazabilidadEvento[] = [
+          ...s.historial,
+          {
+            fecha: now,
+            evento: `Solicitud subsanada y reenviada (v${nextVersion})`,
+            actor: "Coordinador SINARP",
+            detalle: params.comentario || "Expediente corregido conforme a las observaciones recibidas."
+          },
+          {
+            fecha: now,
+            evento: "Pendiente de nueva asignación",
+            actor: "Director de Gestión",
+            detalle: "Expediente subsanado remitido a /acceso-interoperabilidad/asignacion para nueva asignación manual."
+          }
+        ];
+
+        return {
+          ...s,
+          versionExpediente: nextVersion,
+          fuentes: params.fuentesActualizadas,
+          fuentesCount: params.fuentesActualizadas.length,
+          camposCount: params.fuentesActualizadas.reduce((acc, f) => acc + (f.campos?.length || 0), 0),
+          modalidad: params.modalidad || s.modalidad,
+          cupo: params.cupo || s.cupo,
+          documentos: params.documentos || s.documentos,
+          estado: "Pendiente de nueva asignación" as const,
+          responsable: "Director de Gestión",
+          revisorAsignado: undefined,
+          revisorAsignadoId: undefined,
+          detalleSubsanacion: params.comentario,
+          ultimaActualizacion: dateOnly,
+          historial: nuevosEventos
+        };
+      }
+      return s;
+    });
+
+    saveStoredSolicitudes(updated);
+    setSolicitudes(updated);
+  }, []);
+
+  // Flujo BN-07: Cerrar por vencimiento de plazo de subsanación
+  const cerrarPorVencimiento = useCallback((id: string) => {
+    const current = getStoredSolicitudes();
+    const now = new Date().toISOString().replace("T", " ").substring(0, 16);
+    const dateOnly = now.substring(0, 10);
+
+    const updated = current.map(s => {
+      if (s.id === id) {
+        const nuevosEventos: TrazabilidadEvento[] = [
+          ...s.historial,
+          {
+            fecha: now,
+            evento: "Expediente cerrado por vencimiento de plazo",
+            actor: "Sistema DINARP",
+            detalle: "El plazo de subsanación venció sin que el Coordinador reenviara las correcciones requeridas. Se archiva el trámite."
+          }
+        ];
+
+        return {
+          ...s,
+          estado: "Cerrada" as const,
+          responsable: "Archivo Histórico",
+          diasRestantesSubsanacion: 0,
+          ultimaActualizacion: dateOnly,
+          historial: nuevosEventos
+        };
+      }
+      return s;
+    });
+
+    saveStoredSolicitudes(updated);
+    setSolicitudes(updated);
+  }, []);
+
+  // Flujo BN-07 Normatividad: Director de Normatividad asigna revisor
+  const asignarRevisorNormativa = useCallback((
+    id: string,
+    revisorId: string,
+    revisorNombre: string,
+    directorNombre = "Director de Normatividad"
+  ) => {
+    const current = getStoredSolicitudes();
+    const now = new Date().toISOString().replace("T", " ").substring(0, 16);
+    const dateOnly = now.substring(0, 10);
+
+    const updated = current.map(s => {
+      if (s.id === id) {
+        const version = s.versionExpediente || 1;
+        const nuevaAsignacion: AsignacionRegistro = {
+          id: `asig-norm-${Date.now()}`,
+          director: directorNombre,
+          revisorId,
+          revisorNombre,
+          fecha: now,
+          versionExpediente: version,
+          etapa: "Normatividad"
+        };
+
+        const historialAsignacionesNormativa = [
+          nuevaAsignacion,
+          ...(s.historialAsignacionesNormativa || [])
+        ];
+
+        const nuevosEventos: TrazabilidadEvento[] = [
+          ...s.historial,
+          {
+            fecha: now,
+            evento: "Revisor de Normatividad asignado",
+            actor: directorNombre,
+            detalle: `Asignado a ${revisorNombre} para emisión de dictamen jurídico sobre campos confidenciales (Expediente v${version}).`
+          }
+        ];
+
+        return {
+          ...s,
+          estado: "En revisión normativa" as const,
+          responsable: revisorNombre,
+          revisorNormativoAsignado: revisorNombre,
+          revisorNormativoAsignadoId: revisorId,
+          fechaAsignacionNormativa: now,
+          historialAsignacionesNormativa,
+          ultimaActualizacion: dateOnly,
+          historial: nuevosEventos
+        };
+      }
+      return s;
+    });
+
+    saveStoredSolicitudes(updated);
+    setSolicitudes(updated);
+  }, []);
+
+  // Flujo BN-07 Normatividad: Aprobar y generar informe jurídico
+  const aprobarNormativa = useCallback((
+    id: string,
+    params: {
+      revisor: string;
+      director: string;
+      fundamento?: string;
+    }
+  ) => {
+    const current = getStoredSolicitudes();
+    const now = new Date().toISOString().replace("T", " ").substring(0, 16);
+    const dateOnly = now.substring(0, 10);
+
+    const updated = current.map(s => {
+      if (s.id === id) {
+        const informe: InformeNormativa = {
+          numero: `INF-NORM-2026-0${Math.floor(Math.random() * 80 + 10)}`,
+          titulo: "Informe Jurídico de Pertinencia de Campos Confidenciales",
+          fechaEmision: now,
+          dictamen: "FAVORABLE",
+          fundamento: params.fundamento || "Conforme a la Ley Orgánica de Protección de Datos Personales, se valida la pertinencia y fundamento de los campos confidenciales solicitados.",
+          revisorNombre: params.revisor,
+          firmadoRevisor: true,
+          fechaFirmaRevisor: now,
+          directorNombre: params.director,
+          firmadoDirector: false
+        };
+
+        const nuevosEventos: TrazabilidadEvento[] = [
+          ...s.historial,
+          {
+            fecha: now,
+            evento: "Informe de Aprobación Jurídica emitido",
+            actor: params.revisor,
+            detalle: `Informe ${informe.numero} suscrito digitalmente por ${params.revisor}. Pendiente de refrenda por ${params.director}.`
+          }
+        ];
+
+        return {
+          ...s,
+          informeNormativa: informe,
+          responsable: params.director,
+          ultimaActualizacion: dateOnly,
+          historial: nuevosEventos
+        };
+      }
+      return s;
+    });
+
+    saveStoredSolicitudes(updated);
+    setSolicitudes(updated);
+  }, []);
+
+  // Flujo BN-07 Normatividad: Firmar informe (Revisor o Director)
+  const firmarInformeNormativa = useCallback((
+    id: string,
+    rol: "REVISOR" | "DIRECTOR",
+    firmante: string
+  ) => {
+    const current = getStoredSolicitudes();
+    const now = new Date().toISOString().replace("T", " ").substring(0, 16);
+    const dateOnly = now.substring(0, 10);
+
+    const updated = current.map(s => {
+      if (s.id === id && s.informeNormativa) {
+        const inf = { ...s.informeNormativa };
+        if (rol === "REVISOR") {
+          inf.firmadoRevisor = true;
+          inf.fechaFirmaRevisor = now;
+        } else {
+          inf.firmadoDirector = true;
+          inf.fechaFirmaDirector = now;
+        }
+
+        const ambasFirmas = inf.firmadoRevisor && inf.firmadoDirector;
+        const esPrivada = s.tipoInstitucion === "Privada";
+
+        const nuevoEstado = ambasFirmas ? ("Aprobada por Normatividad" as SolicitudEstado) : s.estado;
+        const nuevoResponsable = ambasFirmas
+          ? (esPrivada ? "Facturación" : "Coordinador SINARP")
+          : s.responsable;
+
+        const nuevosEventos: TrazabilidadEvento[] = [
+          ...s.historial,
+          {
+            fecha: now,
+            evento: `Informe suscrito por ${rol === "DIRECTOR" ? "Director de Normatividad" : "Revisor de Normatividad"}`,
+            actor: firmante,
+            detalle: ambasFirmas
+              ? "Ambas firmas registradas exitosamente. El trámite queda formalmente habilitado para formalización."
+              : "Firma registrada. Pendiente de firma de refrenda."
+          }
+        ];
+
+        return {
+          ...s,
+          informeNormativa: inf,
+          estado: nuevoEstado,
+          responsable: nuevoResponsable,
+          ultimaActualizacion: dateOnly,
+          historial: nuevosEventos
+        };
+      }
+      return s;
+    });
+
+    saveStoredSolicitudes(updated);
+    setSolicitudes(updated);
+  }, []);
+
+  // Flujo BN-07 Normatividad: Observar solicitud jurídica
+  const observarNormativa = useCallback((
+    id: string,
+    params: {
+      revisor: string;
+      observaciones: ObservacionItem[];
+      diasPlazo?: number;
+    }
+  ) => {
+    const current = getStoredSolicitudes();
+    const now = new Date().toISOString().replace("T", " ").substring(0, 16);
+    const dateOnly = now.substring(0, 10);
+    const dias = params.diasPlazo || 5;
+
+    const limitDate = new Date();
+    limitDate.setDate(limitDate.getDate() + dias);
+    const fechaLimiteStr = limitDate.toISOString().substring(0, 10);
+
+    const updated = current.map(s => {
+      if (s.id === id) {
+        const resumenObs = params.observaciones.map(o => `[JURÍDICO - ${o.tipo.toUpperCase()}] ${o.elementoNombre ? o.elementoNombre + ": " : ""}${o.descripcion}`).join(" | ");
+
+        const nuevosEventos: TrazabilidadEvento[] = [
+          ...s.historial,
+          {
+            fecha: now,
+            evento: "Solicitud observada por Normatividad",
+            actor: params.revisor,
+            detalle: `Observaciones jurídicas en campos confidenciales. Plazo de subsanación: ${dias} días hábiles (hasta ${fechaLimiteStr}). Tras subsanar pasará por Gestión antes de Normatividad.`
+          }
+        ];
+
+        return {
+          ...s,
+          estado: "Observada" as const,
+          responsable: "Coordinador SINARP",
+          observacionesEstructuradas: params.observaciones,
+          fechaLimiteSubsanacion: fechaLimiteStr,
+          diasRestantesSubsanacion: dias,
+          observaciones: resumenObs,
+          motivoRechazo: resumenObs,
+          ultimaActualizacion: dateOnly,
+          historial: nuevosEventos
+        };
+      }
+      return s;
+    });
+
+    saveStoredSolicitudes(updated);
+    setSolicitudes(updated);
   }, []);
 
   // Simulación: entidad privada realiza pago externamente
@@ -1156,6 +2145,15 @@ export function useSolicitudesStore() {
     solicitarAjustes,
     reenviarSolicitud,
     crearNuevaSolicitud,
+    asignarRevisorGestion,
+    aprobarGestion,
+    observarGestion,
+    subsanarYReenviar,
+    cerrarPorVencimiento,
+    asignarRevisorNormativa,
+    aprobarNormativa,
+    firmarInformeNormativa,
+    observarNormativa,
     simularPagoRealizado,
     validarPagoConCur,
     generarAcceso

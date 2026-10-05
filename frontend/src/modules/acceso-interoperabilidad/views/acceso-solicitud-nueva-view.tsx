@@ -22,6 +22,10 @@ import {
   Unlock,
   Info,
   X,
+  Briefcase,
+  Paperclip,
+  UploadCloud,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -54,6 +58,9 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { useSolicitudesStore } from "@/modules/acceso-interoperabilidad/data/solicitudes-store";
+import { INITIAL_PROYECTOS } from "@/modules/proyectos/data/proyectos-store";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-button";
+import { Input } from "@/components/ui/input";
 
 export function AccesoSolicitudNuevaView() {
   const router = useRouter();
@@ -61,7 +68,27 @@ export function AccesoSolicitudNuevaView() {
   const [step, setStep] = useState(1);
   const [isModalConfirmacionOpen, setIsModalConfirmacionOpen] = useState(false);
 
-  // Step 1 State
+  // Step 1 State - Proyecto, Modalidad, Cupo y Documentos
+  const [selectedProyectoId, setSelectedProyectoId] = useState("PRJ-2026-001");
+  const [modalidadSolicitada, setModalidadSolicitada] = useState<"API individual" | "API masiva" | "Ambas">("API individual");
+  const [cupoSolicitado, setCupoSolicitado] = useState<number>(50000);
+  const [documentosAdjuntos, setDocumentosAdjuntos] = useState<{ id: string; nombre: string; tamano: string; fecha: string }[]>([
+    { id: "doc-1", nombre: "Oficio_Solicitud_Interoperabilidad_Firmado.pdf", tamano: "1.8 MB", fecha: "2026-09-24" }
+  ]);
+  const [nuevoDocInput, setNuevoDocInput] = useState("");
+
+  const activeProyecto = useMemo(() => {
+    return INITIAL_PROYECTOS.find(p => p.id === selectedProyectoId) || INITIAL_PROYECTOS[0];
+  }, [selectedProyectoId]);
+
+  const proyectoOptions = useMemo(() => {
+    return INITIAL_PROYECTOS.map(p => ({
+      value: p.id,
+      label: `${p.id} - ${p.nombre}`
+    }));
+  }, []);
+
+  // Step 1 State - Filtros de Catálogo
   const [searchTerm, setSearchTerm] = useState("");
   const [institucionFilter, setInstitucionFilter] = useState("ALL");
   const [clasificacionFilter, setClasificacionFilter] = useState("ALL");

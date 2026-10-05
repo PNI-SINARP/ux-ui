@@ -1,6 +1,6 @@
 import { SolicitudDetalleView } from "@/modules/gestion-solicitudes/views/solicitud-detalle-view";
 
-export const dynamicParams = true;
+export const dynamicParams = false;
 
 const SOLICITUDES_INGRESOS_IDS = [
   "SOL-ING-101",
