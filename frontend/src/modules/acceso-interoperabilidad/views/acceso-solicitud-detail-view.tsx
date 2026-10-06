@@ -90,7 +90,8 @@ export function AccesoSolicitudDetailView({ params, searchParams }: PageProps) {
     rechazarSolicitud,
     reenviarSolicitud,
     simularPagoRealizado,
-    validarPagoConCur
+    validarPagoConCur,
+    subsanarYReenviar
   } = useSolicitudesStore();
 
   // Control de modo corrección para Coordinador
@@ -333,7 +334,9 @@ export function AccesoSolicitudDetailView({ params, searchParams }: PageProps) {
       estadoStr === "Reenviada" ||
       estadoStr === "Reenviada para aprobación");
 
-  const isRechazada = solicitud.estado === "Rechazada" || solicitud.estado === "Con observaciones";
+  const isObservada = solicitud.estado === "Observada";
+  const isCerrada = solicitud.estado === "Cerrada";
+  const isRechazada = solicitud.estado === "Rechazada" || solicitud.estado === "Con observaciones" || isObservada;
 
   return (
     <WireframeDashboardLayout

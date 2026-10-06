@@ -3965,19 +3965,35 @@ export function useSolicitudesIngresoStore() {
     });
   }, []);
 
-  const asignarRevisorMasivo = useCallback((solicitudIds: string[], revisorNombre: string, asignadoPor?: string, observaciones?: string, directorRol?: string) => {
+  const asignarRevisorMasivo = useCallback((
+    solicitudIds: string[],
+    revisorNombre: string,
+    areaOrAsignadoPor?: string,
+    dirOrObservaciones?: string,
+    observacionesOrRol?: string
+  ) => {
+    const isAreaProvided = areaOrAsignadoPor === "NORMATIVIDAD" || areaOrAsignadoPor === "GESTION";
+    const area = isAreaProvided ? areaOrAsignadoPor : (observacionesOrRol === "DIR_NORMATIVA" ? "NORMATIVIDAD" : "GESTION");
+    const asignadoPor = isAreaProvided ? dirOrObservaciones : areaOrAsignadoPor;
+    const observaciones = isAreaProvided ? observacionesOrRol : dirOrObservaciones;
+
     const now = new Date().toLocaleString("es-EC", { dateStyle: "short", timeStyle: "short" });
     setSolicitudes((prev) => {
       const updated = prev.map((item) => {
         if (solicitudIds.includes(item.id)) {
-          const esNormatividad = item.estado === "PENDIENTE_ASIGNACION_NORMATIVIDAD" || item.estado === "PENDIENTE_GENERAR_RESOLUCION" || item.estado === "EN_GENERACION_RESOLUCION" || item.estado === "EN_REVISION_NORMATIVIDAD" || directorRol === "DIR_NORMATIVA";
+          const esNormatividad = area === "NORMATIVIDAD" ||
+            item.estado === "PENDIENTE_ASIGNACION_NORMATIVIDAD" ||
+            item.estado === "PENDIENTE_GENERAR_RESOLUCION" ||
+            item.estado === "EN_GENERACION_RESOLUCION" ||
+            item.estado === "EN_REVISION_NORMATIVIDAD" ||
+            observacionesOrRol === "DIR_NORMATIVA";
           const esReasignacion = esNormatividad ? Boolean(item.revisorNormatividad) : Boolean(item.revisorGestion || item.revisor);
           const nuevoHistorial = [...(item.historial || [])];
           
           const accion = esNormatividad
             ? (esReasignacion ? "Reasignación de responsable en Normatividad" : "Responsable de Normatividad asignado")
             : (esReasignacion ? "Reasignación de trámite" : "Asignación de trámite");
-          const detalles = `Responsable: ${revisorNombre}. Asignado por: ${asignadoPor || "Director"}.${observaciones ? ` Observaciones: ${observaciones}` : ""}`.trim();
+          const detalles = `Responsable: ${revisorNombre}. Asignado por: ${asignadoPor || (esNormatividad ? "Director de Normatividad" : "Director de Gestión")}.${observaciones ? ` Observaciones: ${observaciones}` : ""}`.trim();
 
           nuevoHistorial.push({
             id: `hist-${Date.now()}-${item.id}`,
@@ -4102,7 +4118,7 @@ export function useSolicitudesIngresoStore() {
     setSolicitudes((prev) => {
       const updated = prev.map((item) => {
         if (item.id === solicitudId) {
-          const esAnexoB = item.tipoTramite === "PROCESO_B_ENROLAMIENTO_COORDINADOR";
+          const esAnexoB = item.tipoTramite === "PROCESO_B_ENROLAMIENTO_COORDINADOR" || item.codigoDocumental === "ARP-R02" || Boolean(item.anexoB);
           
           // ENR-03 / ENR-04: Idempotencia - evitar duplicar activación
           if (esAnexoB && item.enr04Ejecutado && item.estado === "Aprobada") {

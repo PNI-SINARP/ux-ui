@@ -39,6 +39,7 @@ import {
   KeyRound,
   History,
   Building2,
+  Scale,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -186,16 +187,30 @@ const navItems: NavItem[] = [
   },
   {
     id: "asignacion-solicitudes",
-    label: "Asignación de solicitudes",
+    label: "Asignación institucional (Anexos)",
     icon: UserCheck,
     href: "/asignacion-solicitudes",
     allowedRoles: ["DIR_GESTION"]
   },
   {
+    id: "asignacion-acceso",
+    label: "Asignación de acceso (BN-07)",
+    icon: Database,
+    href: "/acceso-interoperabilidad/asignacion",
+    allowedRoles: ["DIR_GESTION"]
+  },
+  {
     id: "solicitudes-pendientes",
-    label: "Solicitudes pendientes",
+    label: "Solicitudes institucionales (Anexos)",
     icon: FileSignature,
     href: "/solicitudes-pendientes",
+    allowedRoles: ["EQ_GESTION"]
+  },
+  {
+    id: "revision-gestion",
+    label: "Revisión funcional de acceso (BN-07)",
+    icon: Network,
+    href: "/revision-gestion",
     allowedRoles: ["EQ_GESTION"]
   },
   {
@@ -207,13 +222,17 @@ const navItems: NavItem[] = [
   },
   {
     id: "asignacion-normativa",
-    label: "Asignación normativa",
+    label: "Asignación institucional (Anexos)",
     icon: UserCheck,
     href: "/asignacion-solicitudes",
     allowedRoles: ["DIR_NORMATIVA"]
   },
   {
-    id: "revision-normativa", label: "Solicitudes pendientes", icon: FileSignature, href: "/revision-normativa", allowedRoles: ["EQ_NORMATIVA"]
+    id: "revision-normativa",
+    label: "Revisión jurídica (Normatividad)",
+    icon: Scale,
+    href: "/revision-normativa",
+    allowedRoles: ["DIR_NORMATIVA", "EQ_NORMATIVA"]
   },
   {
     id: "resoluciones",

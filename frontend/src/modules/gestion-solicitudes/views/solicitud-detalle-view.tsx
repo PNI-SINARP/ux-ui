@@ -103,7 +103,7 @@ export function SolicitudDetalleView({ id, basePath = "/asignacion-solicitudes",
   const tramiteCambioFromStore = cambioStore.getTramiteById(id);
 
   const solicitud = useMemo(() => {
-    const found = solicitudes.find((s) => s.id === id);
+    const found = solicitudes.find((s) => s.id.toLowerCase() === id.toLowerCase());
     if (found) return found;
     if (tramiteCambioFromStore) {
       return {
@@ -148,9 +148,16 @@ export function SolicitudDetalleView({ id, basePath = "/asignacion-solicitudes",
   const isAnexoC =
     solicitud?.tipoTramite === "PROCESO_C_CAMBIO_COORDINADOR" ||
     solicitud?.codigoDocumental === "ARP-R03" ||
-    id.startsWith("CAM-");
+    Boolean(solicitud?.anexoC) ||
+    id.startsWith("CAM-") ||
+    Boolean(solicitud?.tituloTramite?.toLowerCase().includes("anexo c"));
 
-  const esAnexoB = solicitud?.codigoDocumental === "ARP-R02" || solicitud?.tipoTramite === "PROCESO_B_ENROLAMIENTO_COORDINADOR";
+  const esAnexoB =
+    solicitud?.codigoDocumental === "ARP-R02" ||
+    solicitud?.tipoTramite === "PROCESO_B_ENROLAMIENTO_COORDINADOR" ||
+    Boolean(solicitud?.anexoB) ||
+    id.endsWith("-B") ||
+    Boolean(solicitud?.tituloTramite?.toLowerCase().includes("anexo b"));
 
   const [detailTab, setDetailTab] = useState<number>(0);
   const sim = useEnr03SimulationStore();
@@ -394,8 +401,8 @@ export function SolicitudDetalleView({ id, basePath = "/asignacion-solicitudes",
               <span>Volver</span>
             </Button>
 
-            {/* Botones de acción en la cabecera (excluidos en Anexo B para no duplicar con el contenedor de revisión técnica) */}
-            {currentUser.role === "EQ_GESTION" && !esAnexoB && (solicitud.estado === "EN_REVISION_GESTION" || solicitud.estado === "PENDIENTE_ASIGNACION_GESTION" || solicitud.estado === "Pendiente") ? (
+            {/* Botones de acción en la cabecera */}
+            {currentUser.role === "EQ_GESTION" && (solicitud.estado === "EN_REVISION_GESTION" || solicitud.estado === "PENDIENTE_ASIGNACION_GESTION" || solicitud.estado === "Pendiente") ? (
               <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
                 <Button
                   type="button"

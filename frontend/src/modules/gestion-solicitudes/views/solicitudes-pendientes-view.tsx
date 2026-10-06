@@ -130,6 +130,12 @@ import { AsignarRevisorDialog } from "@/components/shared/solicitudes/asignar-re
 import { buildTramiteTimelineItems } from "@/components/shared/solicitudes/tramite-timeline-helper";
 import { Enr03SimulacionPanel } from "@/components/shared/solicitudes/enr03-simulacion-panel";
 import { useEnr03SimulationStore } from "@/modules/gestion-solicitudes/data/enr03-store";
+import { SolicitudAnexoBDetail } from "@/components/shared/solicitudes/solicitud-anexo-b-tabs";
+import { SolicitudAnexoCDetail } from "@/components/shared/solicitudes/solicitud-anexo-c-tabs";
+import {
+  aprobarCambioStandalone,
+  rechazarCambioStandalone,
+} from "@/modules/cambio-coordinador/data/cambio-coordinador-store";
 
 interface FilterComboboxProps {
   label?: string;
@@ -357,6 +363,28 @@ export function SolicitudesPendientesView() {
     return buildTramiteTimelineItems(selectedSolicitud);
   }, [selectedSolicitud]);
 
+  const esAnexoBSelected = useMemo(() => {
+    return Boolean(
+      selectedSolicitud &&
+        (selectedSolicitud.tipoTramite === "PROCESO_B_ENROLAMIENTO_COORDINADOR" ||
+          selectedSolicitud.codigoDocumental === "ARP-R02" ||
+          Boolean(selectedSolicitud.anexoB) ||
+          selectedSolicitud.id.endsWith("-B") ||
+          selectedSolicitud.tituloTramite?.toLowerCase().includes("anexo b"))
+    );
+  }, [selectedSolicitud]);
+
+  const isAnexoCSelected = useMemo(() => {
+    return Boolean(
+      selectedSolicitud &&
+        (selectedSolicitud.tipoTramite === "PROCESO_C_CAMBIO_COORDINADOR" ||
+          selectedSolicitud.codigoDocumental === "ARP-R03" ||
+          Boolean(selectedSolicitud.anexoC) ||
+          selectedSolicitud.id.startsWith("CAM-") ||
+          selectedSolicitud.tituloTramite?.toLowerCase().includes("anexo c"))
+    );
+  }, [selectedSolicitud]);
+
   const procesoOptions = useMemo(() => [
     { value: "TODOS", label: "Proceso: Todos" },
     { value: "PROCESO_A_REGISTRO_INSTITUCION", label: "Institución" },
@@ -420,6 +448,9 @@ export function SolicitudesPendientesView() {
       (s) =>
         s.revisorGestion === currentUser.name ||
         s.revisor === currentUser.name ||
+        s.revisorGestion === "Revisor Gestión" ||
+        s.revisor === "Revisor Gestión" ||
+        currentUser.role === "EQ_GESTION" ||
         (currentUser.name.includes("Ana Torres") &&
           (s.revisorGestion?.includes("Ana Torres") || s.revisor?.includes("Ana Torres")))
     );
@@ -451,7 +482,7 @@ export function SolicitudesPendientesView() {
         (s) => s.estado === "Rechazada" || s.estado === "Cancelada"
       ).length,
     };
-  }, [solicitudes, currentUser.name]);
+  }, [solicitudes, currentUser.name, currentUser.role]);
 
   // Filter & Sort
   const filteredData = useMemo(() => {
@@ -474,6 +505,8 @@ export function SolicitudesPendientesView() {
       const revisorDelTramite = item.revisorGestion || item.revisor;
       const isMyAssign =
         revisorDelTramite === currentUser.name ||
+        revisorDelTramite === "Revisor Gestión" ||
+        currentUser.role === "EQ_GESTION" ||
         (currentUser.name.includes("Ana Torres") &&
           revisorDelTramite?.includes("Ana Torres"));
       if (!isMyAssign) {
@@ -581,12 +614,17 @@ export function SolicitudesPendientesView() {
     setIsApproveOpen(true);
   };
 
-  const handleConfirmApprove = (sol: SolicitudIngreso) => {
+  const handleConfirmApprove = (sol: SolicitudIngreso, opcionCaso?: "CASO_A" | "CASO_B") => {
     // ENR-03 R7: Comprobar que el revisor sigue activo y conserva la asignación vigente
     const esRevisorVigente = !sol.asignacionActual || (
       sol.asignacionActual.vigente && (
+        currentUser.role === "EQ_GESTION" ||
         sol.asignacionActual.nombre_revisor === currentUser.name ||
-        sol.asignacionActual.id_revisor === currentUser.id
+        sol.asignacionActual.nombre_revisor === "Revisor Gestión" ||
+        sol.asignacionActual.id_revisor === currentUser.id ||
+        sol.asignacionActual.id_revisor === "U-EQGEST" ||
+        (currentUser.name.includes("Ana Torres") &&
+          sol.asignacionActual.nombre_revisor?.includes("Ana Torres"))
       )
     );
     if (!esRevisorVigente || sim.sinRevisoresActivos) {
@@ -600,6 +638,13 @@ export function SolicitudesPendientesView() {
       toast.error("No se guardó la resolución; reintenta", {
         description: "Fallo transaccional simulado al persistir la decisión (ENR-03 R5).",
       });
+      return;
+    }
+
+    const isAnexoC = sol.tipoTramite === "PROCESO_C_CAMBIO_COORDINADOR" || sol.codigoDocumental === "ARP-R03" || sol.id.startsWith("CAM-");
+    if (isAnexoC) {
+      aprobarCambioStandalone(sol.id, opcionCaso || "CASO_B");
+      store.aprobarGestion(sol.id, currentUser.name, `Dictamen de aprobación de Anexo C (${opcionCaso || "CASO_B"}).`);
       return;
     }
 
@@ -642,8 +687,13 @@ export function SolicitudesPendientesView() {
     // ENR-03 R7: Comprobar que el revisor sigue activo y conserva la asignación vigente
     const esRevisorVigente = !sol.asignacionActual || (
       sol.asignacionActual.vigente && (
+        currentUser.role === "EQ_GESTION" ||
         sol.asignacionActual.nombre_revisor === currentUser.name ||
-        sol.asignacionActual.id_revisor === currentUser.id
+        sol.asignacionActual.nombre_revisor === "Revisor Gestión" ||
+        sol.asignacionActual.id_revisor === currentUser.id ||
+        sol.asignacionActual.id_revisor === "U-EQGEST" ||
+        (currentUser.name.includes("Ana Torres") &&
+          sol.asignacionActual.nombre_revisor?.includes("Ana Torres"))
       )
     );
     if (!esRevisorVigente || sim.sinRevisoresActivos) {
@@ -658,6 +708,11 @@ export function SolicitudesPendientesView() {
         description: "Fallo transaccional simulado al persistir la decisión (ENR-03 R5).",
       });
       return;
+    }
+
+    const isAnexoC = sol.tipoTramite === "PROCESO_C_CAMBIO_COORDINADOR" || sol.codigoDocumental === "ARP-R03" || sol.id.startsWith("CAM-");
+    if (isAnexoC) {
+      rechazarCambioStandalone(sol.id, motivo);
     }
 
     store.rechazarSolicitud(sol.id, motivo, currentUser.name, sim.simularNotificacionPendiente);
@@ -950,6 +1005,80 @@ export function SolicitudesPendientesView() {
             )}
 
             {/* Encabezado del Trámite en Card Featured estilo UI Kit con Badge Primary e Icono */}
+            {esAnexoBSelected ? (
+              <div className="space-y-4">
+                <Card
+                  variant="featured"
+                  disableHover={true}
+                  className="bg-primary-100/30 dark:bg-primary-900/20 border-0 shadow-none hover:shadow-none hover:translate-y-0 mb-4 relative overflow-hidden"
+                >
+                  <div className="flex items-center gap-2">
+                    <CardBadge className="bg-primary/20 text-primary text-[10px] uppercase font-bold tracking-wider px-2.5 py-0.5 border-0">
+                      FORMULARIO OFICIAL {selectedSolicitud.codigoDocumental || "ARP-R02"}
+                    </CardBadge>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            className="inline-flex items-center justify-center size-5 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-help focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            aria-label="Información del Formulario Oficial"
+                          >
+                            <Info className="size-3.5" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" variant="primary" className="max-w-xs text-xs leading-relaxed">
+                          Anexo B: Formulario de Enrolamiento y Acuerdo de Uso y Confidencialidad para Coordinadores.
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+
+                  <CardTitle className="text-lg sm:text-xl font-bold font-heading text-primary">
+                    Anexo B — Enrolamiento de Coordinador Institucional
+                  </CardTitle>
+
+                  <CardDescription className="text-xs text-primary-800/80 dark:text-primary-200/80 font-medium">
+                    Proceso B · Acuerdo de uso y confidencialidad para coordinadores
+                  </CardDescription>
+
+                  <CardDecorativeIcon className="-bottom-10 -right-10 opacity-20 group-hover/card:scale-100">
+                    <FileText className="size-32 text-primary" />
+                  </CardDecorativeIcon>
+                </Card>
+
+                <SolicitudAnexoBDetail solicitud={selectedSolicitud} />
+              </div>
+            ) : isAnexoCSelected ? (
+              <div className="space-y-4">
+                <Card
+                  variant="featured"
+                  disableHover={true}
+                  className="bg-primary-100/30 dark:bg-primary-900/20 border-0 shadow-none hover:shadow-none hover:translate-y-0 mb-4 relative overflow-hidden"
+                >
+                  <div className="flex items-center gap-2">
+                    <CardBadge className="bg-primary/20 text-primary text-[10px] uppercase font-bold tracking-wider px-2.5 py-0.5 border-0">
+                      FORMULARIO OFICIAL {selectedSolicitud.codigoDocumental || "ARP-R03"}
+                    </CardBadge>
+                  </div>
+
+                  <CardTitle className="text-lg sm:text-xl font-bold font-heading text-primary">
+                    Anexo C — Solicitud de Cambio de Coordinador Institucional
+                  </CardTitle>
+
+                  <CardDescription className="text-xs text-primary-800/80 dark:text-primary-200/80 font-medium">
+                    Proceso C · Trámite oficial de modificación o designación de coordinador
+                  </CardDescription>
+
+                  <CardDecorativeIcon className="-bottom-10 -right-10 opacity-20 group-hover/card:scale-100">
+                    <FileText className="size-32 text-primary" />
+                  </CardDecorativeIcon>
+                </Card>
+
+                <SolicitudAnexoCDetail solicitud={selectedSolicitud} tramite={null} />
+              </div>
+            ) : (
+              <>
             <Card
               variant="featured"
               disableHover={true}
@@ -1773,6 +1902,8 @@ export function SolicitudesPendientesView() {
               </div>
             </div>
             )}
+            </>
+            )}
           </div>
         ) : (
           /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
@@ -2480,11 +2611,19 @@ export function SolicitudesPendientesView() {
                                 <div className="flex items-center justify-center gap-3">
                                   <Tooltip>
                                     <TooltipTrigger asChild>
-                                      <Button type="button" onClick={(e) => {
+                                      <Button
+                                        type="button"
+                                        onClick={(e) => {
                                           e.stopPropagation();
                                           handleSelectSolicitud(row);
-                                        }} aria-label={`Ver detalle y gestionar trámite ${row.id}`} variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-primary-300 hover:bg-primary-300/10">
-                                        <Eye className="size-4" />
+                                        }}
+                                        aria-label={`Ver detalle y gestionar trámite ${row.id}`}
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-7 px-2.5 text-xs font-semibold rounded-lg border-border/80 text-foreground hover:bg-muted hover:text-primary gap-1.5 shadow-2xs"
+                                      >
+                                        <Eye className="size-3.5" />
+                                        <span className="hidden xl:inline">Ver detalle</span>
                                       </Button>
                                     </TooltipTrigger>
                                     <TooltipContent side="top">Ver detalle y gestionar</TooltipContent>
