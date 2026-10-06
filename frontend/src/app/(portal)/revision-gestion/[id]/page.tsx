@@ -1,6 +1,6 @@
 import { RevisionGestionDetailView } from "@/modules/acceso-interoperabilidad/views/revision-gestion-detail-view";
 
-export const dynamicParams = true;
+export const dynamicParams = false;
 
 const ACCESO_IDS = [
   "SOL-2026-001",

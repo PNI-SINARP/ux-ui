@@ -1,6 +1,6 @@
 import { SolicitudDetalleView } from "@/modules/gestion-solicitudes/views/solicitud-detalle-view";
 
-export const dynamicParams = true;
+export const dynamicParams = false;
 
 const STATIC_SOLICITUDES_IDS = [
   ...Array.from({ length: 150 }, (_, i) => `SOL-ING-${String(i + 1).padStart(3, "0")}`),
