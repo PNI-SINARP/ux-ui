@@ -365,7 +365,7 @@ export function CoordinadorEntranteForm({
                   placeholder="Ej: Ing. Roberto Carlos Dávila Silva"
                   value={nombreCompleto}
                   onChange={(e) => setNombreCompleto(e.target.value)}
-                  className="text-sm font-semibold"
+                  className="text-sm font-normal text-foreground placeholder:font-normal"
                 />
               </InputGroup>
             </FormField>

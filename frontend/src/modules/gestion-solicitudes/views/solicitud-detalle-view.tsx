@@ -85,7 +85,9 @@ interface SolicitudDetalleViewProps { id: string; basePath?: string; sectionTitl
 export function SolicitudDetalleView({ id, basePath = "/asignacion-solicitudes", sectionTitle, showEnr03 = true }: SolicitudDetalleViewProps) {
   const router = useRouter();
   const { activeUser } = useAuthStore();
-  const currentUser = activeUser || MOCK_USERS_BY_ROLE.DIR_GESTION;
+  const isNormativaPath = basePath?.includes("revision-normativa");
+  const defaultUser = isNormativaPath ? MOCK_USERS_BY_ROLE.EQ_NORMATIVA : MOCK_USERS_BY_ROLE.DIR_GESTION;
+  const currentUser = (activeUser && (isNormativaPath ? (activeUser.role === "EQ_NORMATIVA" || activeUser.role === "DIR_NORMATIVA") : true)) ? activeUser : defaultUser;
   const isDirector = currentUser.role === "DIR_GESTION" || currentUser.role === "DIR_NORMATIVA";
   const isRevisor = currentUser.role === "EQ_GESTION" || currentUser.role === "EQ_NORMATIVA";
 
@@ -158,6 +160,27 @@ export function SolicitudDetalleView({ id, basePath = "/asignacion-solicitudes",
     Boolean(solicitud?.anexoB) ||
     id.endsWith("-B") ||
     Boolean(solicitud?.tituloTramite?.toLowerCase().includes("anexo b"));
+
+  // Título e icono corto estandarizado para la pestaña principal (ej. Anexo A — Registro Institución / Anexo B — Enrolamiento Coordinador)
+  const tabTituloResumen = useMemo(() => {
+    if (esAnexoB || solicitud?.tipoTramite === "PROCESO_B_ENROLAMIENTO_COORDINADOR") {
+      return "Anexo B — Enrolamiento Coordinador";
+    }
+    if (isAnexoC || solicitud?.tipoTramite === "PROCESO_C_CAMBIO_COORDINADOR") {
+      return "Anexo C — Cambio Coordinador";
+    }
+    return "Anexo A — Registro Institución";
+  }, [esAnexoB, isAnexoC, solicitud?.tipoTramite]);
+
+  const tabIconResumen = useMemo(() => {
+    if (esAnexoB || solicitud?.tipoTramite === "PROCESO_B_ENROLAMIENTO_COORDINADOR") {
+      return <User className="size-3.5 sm:size-4 shrink-0" />;
+    }
+    if (isAnexoC || solicitud?.tipoTramite === "PROCESO_C_CAMBIO_COORDINADOR") {
+      return <UserCheck className="size-3.5 sm:size-4 shrink-0" />;
+    }
+    return <Building2 className="size-3.5 sm:size-4 shrink-0" />;
+  }, [esAnexoB, isAnexoC, solicitud?.tipoTramite]);
 
   const [detailTab, setDetailTab] = useState<number>(0);
   const sim = useEnr03SimulationStore();
@@ -425,32 +448,6 @@ export function SolicitudDetalleView({ id, basePath = "/asignacion-solicitudes",
               </div>
             ) : null}
 
-            {/* Botones de acción en la cabecera para EQ_NORMATIVA */}
-            {currentUser.role === "EQ_NORMATIVA" && (solicitud.estado === "PENDIENTE_GENERAR_RESOLUCION" || solicitud.estado === "EN_GENERACION_RESOLUCION" || solicitud.estado === "GENERACION_PENDIENTE") ? (
-              <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsRejectOpen(true)}
-                  className="h-9 sm:h-10 px-3 sm:px-4 text-xs font-semibold gap-2 border-danger/30 text-danger hover:bg-danger/10 rounded-xl w-full sm:w-auto"
-                >
-                  <XCircle className="size-4" />
-                  <span>Rechazar trámite</span>
-                </Button>
-                <Button
-                  type="button"
-                  variant="primary"
-                  onClick={() => {
-                    store.iniciarRevision(solicitud.id, currentUser.name);
-                    router.push(`${basePath}/${solicitud.id}/gestionar-resolucion`);
-                  }}
-                  className="h-9 sm:h-10 px-3 sm:px-4 text-xs font-semibold gap-2 shadow-xs w-full sm:w-auto"
-                >
-                  <FileSignature className="size-4" />
-                  <span>Generar resolución</span>
-                </Button>
-              </div>
-            ) : null}
           </div>
 
           <div className="pb-4 border-b border-border/80">
@@ -574,11 +571,11 @@ export function SolicitudDetalleView({ id, basePath = "/asignacion-solicitudes",
               </div>
               <div className="p-3.5 bg-surface rounded-xl border border-danger/20 text-xs">
                 <span className="font-semibold text-danger block mb-1">
-                  Dictamen técnico de revisión:
+                  Motivo de la resolución:
                 </span>
                 <p className="text-foreground leading-relaxed">
                   {solicitud.motivoRechazo ||
-                    "Revisión técnica desfavorable por documentación caducada o inconsistencias insubsanables en la firma. La solicitud ha sido cancelada y cerrada formalmente."}
+                    "Evaluación desfavorable por documentación caducada o inconsistencias insubsanables en la firma. La solicitud ha sido cancelada y cerrada formalmente."}
                 </p>
               </div>
               <div className="p-3 bg-muted/40 rounded-xl border border-border text-xs flex items-start gap-2.5 text-muted-foreground">
@@ -638,8 +635,8 @@ export function SolicitudDetalleView({ id, basePath = "/asignacion-solicitudes",
                         value="resumen"
                         className="px-3.5 sm:px-5 py-1.5 sm:py-2 text-xs font-bold gap-1.5 sm:gap-2 shrink-0"
                       >
-                        <Building2 className="size-3.5 sm:size-4 shrink-0" />
-                        <span className="truncate max-w-[210px] sm:max-w-none">Solicitud Registro Institución</span>
+                        {tabIconResumen}
+                        <span className="truncate max-w-[210px] sm:max-w-none">{tabTituloResumen}</span>
                       </TabsTrigger>
                       <TabsTrigger
                         value="trazabilidad"
@@ -1516,7 +1513,7 @@ export function SolicitudDetalleView({ id, basePath = "/asignacion-solicitudes",
                 </div>
               )}
 
-              {/* SI ES REVISOR DE GESTIÓN (EQ_GESTION): Panel de Revisión Técnica y Dictamen */}
+              {/* SI ES REVISOR DE GESTIÓN (EQ_GESTION): Panel de Evaluación y Decisión */}
               {currentUser.role === "EQ_GESTION" && (
                 <div className="bg-surface border border-border rounded-2xl p-5 shadow-xs space-y-4">
                   <div className="flex items-center justify-between pb-3 border-b border-border/70">
@@ -1524,7 +1521,7 @@ export function SolicitudDetalleView({ id, basePath = "/asignacion-solicitudes",
                       <UserCheck className="size-5 text-primary" />
                       <div>
                         <h3 className="font-heading font-bold text-sm text-foreground">
-                          Revisión Técnica Asignada
+                          Evaluación Asignada
                         </h3>
                         <p className="text-[11px] text-muted-foreground">
                           Responsable: <strong className="text-foreground">{currentUser.name}</strong>
@@ -1551,19 +1548,19 @@ export function SolicitudDetalleView({ id, basePath = "/asignacion-solicitudes",
                     )}
                   </div>
 
-                  {/* Acciones de dictamen para Revisor de Gestión */}
+                  {/* Acciones directas para Revisor de Gestión */}
                   {(solicitud.estado === "EN_REVISION_GESTION" ||
                     solicitud.estado === "PENDIENTE_ASIGNACION_GESTION" ||
                     solicitud.estado === "Pendiente") && (
                     <div className="space-y-3 pt-2">
                       <div className="flex items-center justify-between">
                         <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                          Dictamen y Validación
+                          Resolución de Trámite
                         </h4>
                       </div>
                       <div className="space-y-3">
                         <p className="text-xs text-muted-foreground leading-relaxed">
-                          Verifica la documentación del trámite y emite el dictamen de aprobación o rechazo correspondiente.
+                          Verifica la información del trámite y registra tu decisión de aprobación o rechazo.
                         </p>
                         <div className="flex items-center gap-2 pt-1">
                           <Button

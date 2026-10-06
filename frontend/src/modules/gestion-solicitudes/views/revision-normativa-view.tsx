@@ -191,11 +191,11 @@ function FilterCombobox({
 
   return (
     <div className={cn("flex flex-col gap-1", className)}>
-      {label &&
-      <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider text-left ml-1 truncate">
+      {label && (
+        <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider text-left ml-1 truncate">
           {label}
-        </label>
-      }
+        </span>
+      )}
       <Combobox
         value={value}
         onValueChange={handleValueChange}
@@ -234,7 +234,10 @@ function FilterCombobox({
 export function RevisionNormativaView() {
   const router = useRouter();
   const { activeUser } = useAuthStore();
-  const currentUser = activeUser || MOCK_USERS_BY_ROLE.EQ_NORMATIVA;
+  const currentUser =
+    activeUser?.role === "EQ_NORMATIVA" || activeUser?.role === "DIR_NORMATIVA"
+      ? activeUser
+      : MOCK_USERS_BY_ROLE.EQ_NORMATIVA;
 
   const store = useSolicitudesIngresoStore();
   const {
@@ -290,18 +293,7 @@ export function RevisionNormativaView() {
   };
 
   const handleGestionarResolucion = (solicitud: SolicitudIngreso) => {
-    if (
-      solicitud.estado === "PENDIENTE_GENERAR_RESOLUCION" ||
-      solicitud.estado === "EN_GENERACION_RESOLUCION" ||
-      solicitud.estado === "GENERACION_PENDIENTE"
-    ) {
-      if (solicitud.estado === "PENDIENTE_GENERAR_RESOLUCION") {
-        store.iniciarRevision(solicitud.id, currentUser.name);
-      }
-      router.push(`/revision-normativa/${solicitud.id}/gestionar-resolucion`);
-    } else {
-      router.push(`/revision-normativa/${solicitud.id}`);
-    }
+    router.push(`/revision-normativa/${solicitud.id}`);
   };
 
   const handleOpenAssign = (solicitud: SolicitudIngreso) => {
@@ -387,10 +379,9 @@ export function RevisionNormativaView() {
     if (currentUser.role === "EQ_NORMATIVA") {
       return [
         { value: "Todos", label: "Estado: Todos" },
-        { value: "PENDIENTES", label: "Pendiente de resolución" },
+        { value: "PENDIENTES", label: "Pendiente por generar resolución" },
         { value: "EN_GENERACION_RESOLUCION", label: "En generación de resolución" },
-        { value: "RESOLUCION_GENERADA", label: "Resolución generada" },
-        { value: "Rechazada", label: "Rechazada" },
+        { value: "GENERACION_PENDIENTE", label: "Generación pausada / pendiente" },
       ];
     }
     if (currentUser.role === "DIR_NORMATIVA") {
@@ -491,27 +482,38 @@ export function RevisionNormativaView() {
     }
     if (currentUser.role === "EQ_NORMATIVA") {
       const misSolicitudes = solicitudes.filter(
-        (s) => s.revisorNormatividad === currentUser.name || s.revisor === currentUser.name
+        (s) =>
+          s.tipoTramite === "PROCESO_A_REGISTRO_INSTITUCION" &&
+          (s.revisorNormatividad === currentUser.name ||
+            s.revisor === currentUser.name ||
+            s.revisorNormatividad === "Personal facultado de Normatividad" ||
+            s.revisor === "Personal facultado de Normatividad" ||
+            (!s.revisorNormatividad && currentUser.role === "EQ_NORMATIVA")) &&
+          s.estado !== "Rechazada" &&
+          s.estado !== "Cancelada" &&
+          s.estado !== "Aprobada" &&
+          s.estado !== "APROBADO_FINAL" &&
+          s.estado !== "RESOLUCION_GENERADA" &&
+          s.estado !== "INSTITUCION_ACTIVA" &&
+          s.estado !== "PENDIENTE_DE_FIRMA" &&
+          s.rechazadoPor !== "GESTION"
       );
       return {
         pendientes: misSolicitudes.filter(
           (s) =>
             s.estado === "PENDIENTE_GENERAR_RESOLUCION" ||
-            s.estado === "EN_REVISION_NORMATIVIDAD" ||
-            s.estado === "GENERACION_PENDIENTE"
+            s.estado === "EN_REVISION_NORMATIVIDAD"
         ).length,
         enRevision: misSolicitudes.filter(
           (s) => s.estado === "EN_GENERACION_RESOLUCION"
         ).length,
+        pausadas: misSolicitudes.filter(
+          (s) => s.estado === "GENERACION_PENDIENTE"
+        ).length,
         resueltas: misSolicitudes.filter(
-          (s) =>
-            s.estado === "RESOLUCION_GENERADA" ||
-            s.estado === "APROBADO_FINAL" ||
-            s.estado === "Aprobada"
+          (s) => s.estado === "GENERACION_PENDIENTE"
         ).length,
-        rechazadas: misSolicitudes.filter(
-          (s) => s.estado === "Rechazada" || s.estado === "Cancelada"
-        ).length,
+        rechazadas: 0,
         sinAsignar: 0,
         aprobadas: 0,
       };
@@ -644,23 +646,44 @@ export function RevisionNormativaView() {
       if (currentUser.role === "DIR_NORMATIVA" && item.tipoTramite === "PROCESO_B_ENROLAMIENTO_COORDINADOR") return false;
 
       if (currentUser.role === "EQ_NORMATIVA") {
-        if (![
-          "PENDIENTE_GENERAR_RESOLUCION",
-          "EN_GENERACION_RESOLUCION",
-          "GENERACION_PENDIENTE",
-          "RESOLUCION_GENERADA",
-          "EN_REVISION_NORMATIVIDAD",
-          "APROBADO_FINAL",
-          "Aprobada",
-          "Rechazada",
-          "Cancelada",
-        ].includes(item.estado)) {
+        // Solo solicitudes del proceso de Registro de Institución (Anexo A)
+        if (item.tipoTramite !== "PROCESO_A_REGISTRO_INSTITUCION") {
           return false;
         }
 
-        // El revisor de normatividad SOLO ve las solicitudes que le han sido asignadas a él
+        // NO ver las que se rechazaron o aprobaron en gestión, ni canceladas o ya concluidas
+        if (
+          item.estado === "Rechazada" ||
+          item.estado === "Cancelada" ||
+          item.estado === "Aprobada" ||
+          item.estado === "APROBADO_FINAL" ||
+          item.rechazadoPor === "GESTION" ||
+          item.estado === "RESOLUCION_GENERADA" ||
+          item.estado === "INSTITUCION_ACTIVA" ||
+          item.estado === "PENDIENTE_DE_FIRMA"
+        ) {
+          return false;
+        }
+
+        // SOLO ver las que están pendientes para Normatividad
+        if (
+          ![
+            "PENDIENTE_GENERAR_RESOLUCION",
+            "EN_GENERACION_RESOLUCION",
+            "GENERACION_PENDIENTE",
+            "EN_REVISION_NORMATIVIDAD",
+          ].includes(item.estado)
+        ) {
+          return false;
+        }
+
+        // El revisor de normatividad SOLO ve las solicitudes asignadas a él
         const revisorDelTramite = item.revisorNormatividad || item.revisor;
-        if (revisorDelTramite !== currentUser.name) {
+        const isMyAssign =
+          revisorDelTramite === currentUser.name ||
+          revisorDelTramite === "Personal facultado de Normatividad" ||
+          (!revisorDelTramite && currentUser.role === "EQ_NORMATIVA");
+        if (!isMyAssign) {
           return false;
         }
       }
@@ -668,26 +691,33 @@ export function RevisionNormativaView() {
       const matchesEstado = (() => {
         if (filterEstado === "Todos") return true;
         if (currentUser.role === "EQ_NORMATIVA") {
-          if (filterEstado === "PENDIENTES" || filterEstado === "Pendiente de resolución" || filterEstado === "Pendiente de revisión") {
+          if (
+            filterEstado === "PENDIENTES" ||
+            filterEstado === "Pendiente por generar resolución" ||
+            filterEstado === "Pendiente de resolución" ||
+            filterEstado === "Pendiente de revisión"
+          ) {
             return (
               item.estado === "PENDIENTE_GENERAR_RESOLUCION" ||
-              item.estado === "EN_REVISION_NORMATIVIDAD" ||
-              item.estado === "GENERACION_PENDIENTE"
+              item.estado === "EN_REVISION_NORMATIVIDAD"
             );
           }
-          if (filterEstado === "EN_GENERACION_RESOLUCION" || filterEstado === "EN_GENERACION" || filterEstado === "En generación de resolución") {
+          if (
+            filterEstado === "EN_GENERACION_RESOLUCION" ||
+            filterEstado === "EN_GENERACION" ||
+            filterEstado === "En generación de resolución"
+          ) {
             return item.estado === "EN_GENERACION_RESOLUCION";
           }
-          if (filterEstado === "RESOLUCION_GENERADA" || filterEstado === "Resolución generada" || filterEstado === "APROBADO_FINAL" || filterEstado === "Aprobada") {
-            return (
-              item.estado === "RESOLUCION_GENERADA" ||
-              item.estado === "APROBADO_FINAL" ||
-              item.estado === "Aprobada"
-            );
+          if (
+            filterEstado === "GENERACION_PENDIENTE" ||
+            filterEstado === "Generación pendiente" ||
+            filterEstado === "Generación pausada / pendiente" ||
+            filterEstado === "Generación pausada"
+          ) {
+            return item.estado === "GENERACION_PENDIENTE";
           }
-          if (filterEstado === "Rechazada" || filterEstado === "RECHAZADAS") {
-            return item.estado === "Rechazada" || item.estado === "Cancelada";
-          }
+          return item.estado === filterEstado;
         }
         if (currentUser.role === "EQ_GESTION") {
           if (filterEstado === "PENDIENTES" || filterEstado === "Pendiente de revisión") {
@@ -2163,7 +2193,7 @@ export function RevisionNormativaView() {
             const isEqNormativa = currentUser.role === "EQ_NORMATIVA";
 
             let badgeText = "Equipo de Normatividad · DINARP";
-            let titleText = "Solicitudes pendientes por generar solución";
+            let titleText = "Solicitudes pendientes por generar resolución";
             let subtitleText = "Análisis normativo y resolución jurídica de solicitudes asignadas a tu usuario.";
 
             if (isEqGestion) {
@@ -2176,12 +2206,12 @@ export function RevisionNormativaView() {
               subtitleText = "Asignación de solicitudes para generar resoluciones a instituciones aprobadas.";
             } else if (isEqNormativa) {
               badgeText = "Equipo de Normatividad · DINARP";
-              titleText = "Solicitudes pendientes por generar solución";
+              titleText = "Solicitudes pendientes por generar resolución";
               subtitleText = "Análisis normativo y resolución jurídica de solicitudes asignadas a tu usuario.";
             } else if (isDirGestion) {
               badgeText = "Dirección de Gestión y Registro · DINARP";
               titleText = "Asignación de solicitudes";
-              subtitleText = "Gestiona y asigna las solicitudes pendientes a los revisores del área correspondiente.";
+              subtitleText = "Gestiona y asigna las solicitudes pendientes a los revisores del área de gestión.";
             }
             return (
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -2200,65 +2230,65 @@ export function RevisionNormativaView() {
 
             {/* -- 2. Resumen Superior (Tarjetas Interactivas con Layout Horizontal Optimizado) -- */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 lg:gap-4 w-full">
-              {/* Card 1: Sin Asignar / Pendientes por generar resolución */}
+              {/* Card 1: Pendientes por generar resolución (EQ_NORMATIVA) / Pendientes de asignación (DIR_NORMATIVA) */}
               <Card
-              variant="featured"
-              role="button"
-              tabIndex={0}
-              onClick={() => {
-                const targetFilter = (currentUser.role === "EQ_GESTION" || currentUser.role === "EQ_NORMATIVA") ? "PENDIENTES" : "SIN_ASIGNAR";
-                setFilterEstado(filterEstado === targetFilter ? "Todos" : targetFilter);
-                setCurrentPage(1);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  const targetFilter = (currentUser.role === "EQ_GESTION" || currentUser.role === "EQ_NORMATIVA") ? "PENDIENTES" : "SIN_ASIGNAR";
+                variant="featured"
+                role="button"
+                tabIndex={0}
+                onClick={() => {
+                  const targetFilter = currentUser.role === "EQ_NORMATIVA" ? "PENDIENTES" : "SIN_ASIGNAR";
                   setFilterEstado(filterEstado === targetFilter ? "Todos" : targetFilter);
                   setCurrentPage(1);
-                }
-              }}
-              className={cn(
-                "group relative overflow-hidden cursor-pointer transition-all duration-200 border rounded-xl outline-none select-none p-4 sm:p-4.5 w-full",
-                "hover:-translate-y-0.5 hover:shadow-md",
-                ((currentUser.role === "EQ_GESTION" || currentUser.role === "EQ_NORMATIVA") ? filterEstado === "PENDIENTES" : filterEstado === "SIN_ASIGNAR") ?
-                "bg-warning/15 border-warning ring-2 ring-warning/40 shadow-xs" :
-                "bg-warning/5 hover:bg-warning/10 border-warning/25 shadow-2xs"
-              )}
-              innerClassName="p-0 h-full justify-center">
-              
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    const targetFilter = currentUser.role === "EQ_NORMATIVA" ? "PENDIENTES" : "SIN_ASIGNAR";
+                    setFilterEstado(filterEstado === targetFilter ? "Todos" : targetFilter);
+                    setCurrentPage(1);
+                  }
+                }}
+                className={cn(
+                  "group relative overflow-hidden cursor-pointer transition-all duration-200 border rounded-xl outline-none select-none p-4 sm:p-4.5 w-full",
+                  "hover:-translate-y-0.5 hover:shadow-md",
+                  (currentUser.role === "EQ_NORMATIVA" ? filterEstado === "PENDIENTES" : filterEstado === "SIN_ASIGNAR") ?
+                  "bg-warning/15 border-warning ring-2 ring-warning/40 shadow-xs" :
+                  "bg-warning/5 hover:bg-warning/10 border-warning/25 shadow-2xs"
+                )}
+                innerClassName="p-0 h-full justify-center"
+              >
                 <div className="flex items-center justify-between gap-3 w-full">
                   <div className="flex items-center gap-3 min-w-0">
                     <div
-                    className={cn(
-                      "size-11 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200",
-                      ((currentUser.role === "EQ_GESTION" || currentUser.role === "EQ_NORMATIVA") ? filterEstado === "PENDIENTES" : filterEstado === "SIN_ASIGNAR") ?
-                      "bg-warning text-white shadow-xs" :
-                      "bg-warning/15 text-warning group-hover:scale-105 group-hover:bg-warning group-hover:text-white"
-                    )}>
-                    
+                      className={cn(
+                        "size-11 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200",
+                        (currentUser.role === "EQ_NORMATIVA" ? filterEstado === "PENDIENTES" : filterEstado === "SIN_ASIGNAR") ?
+                        "bg-warning text-white shadow-xs" :
+                        "bg-warning/15 text-warning group-hover:scale-105 group-hover:bg-warning group-hover:text-white"
+                      )}
+                    >
                       <Clock className="size-5" />
                     </div>
                     <div className="min-w-0 space-y-0.5">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <h3 className="text-sm font-bold text-foreground group-hover:text-warning transition-colors truncate">
-                          {currentUser.role === "EQ_NORMATIVA" ? "Pendientes por generar resolución" : currentUser.role === "EQ_GESTION" ? "Pendientes de revisión" : "Pendientes de asignación"}
+                          {currentUser.role === "EQ_NORMATIVA" ? "Pendientes por generar resolución" : "Pendientes de asignación"}
                         </h3>
-                        {((currentUser.role === "EQ_GESTION" || currentUser.role === "EQ_NORMATIVA") ? filterEstado === "PENDIENTES" : filterEstado === "SIN_ASIGNAR") &&
-                      <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded-full bg-warning/20 text-warning border border-warning/30 shrink-0">
+                        {(currentUser.role === "EQ_NORMATIVA" ? filterEstado === "PENDIENTES" : filterEstado === "SIN_ASIGNAR") && (
+                          <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded-full bg-warning/20 text-warning border border-warning/30 shrink-0">
                             Activo
                           </span>
-                      }
+                        )}
                       </div>
                       <p className="text-xs text-muted-foreground font-normal truncate">
-                        {currentUser.role === "EQ_NORMATIVA" ? "Asignadas para generar resolución" : currentUser.role === "EQ_GESTION" ? "Requieren tu revisión" : "Requieren asignar un revisor"}
+                        {currentUser.role === "EQ_NORMATIVA" ? "Asignadas para generar resolución" : "Requieren asignar un revisor"}
                       </p>
                     </div>
                   </div>
 
                   <div className="text-right shrink-0 pl-2">
                     <span className="font-heading font-extrabold text-3xl sm:text-4xl text-warning tracking-tight block leading-none">
-                      {(currentUser.role === "EQ_GESTION" || currentUser.role === "EQ_NORMATIVA") ? dynamicKpis.pendientes : dynamicKpis.sinAsignar}
+                      {currentUser.role === "EQ_NORMATIVA" ? dynamicKpis.pendientes : dynamicKpis.sinAsignar}
                     </span>
                     <span className="text-[10px] sm:text-[11px] text-muted-foreground font-medium block mt-1">
                       solicitudes
@@ -2267,88 +2297,65 @@ export function RevisionNormativaView() {
                 </div>
               </Card>
 
-              {/* Card 2: En Revisión (Director) / En Generación (EQ Normativa) / Aprobadas (EQ Gestión) */}
+              {/* Card 2: En Generación (EQ_NORMATIVA) / Asignadas (DIR_NORMATIVA) */}
               <Card
-              variant="featured"
-              role="button"
-              tabIndex={0}
-              onClick={() => {
-                const targetFilter = currentUser.role === "EQ_GESTION" ? "Aprobada" : currentUser.role === "EQ_NORMATIVA" ? "EN_GENERACION_RESOLUCION" : "EN_REVISION";
-                setFilterEstado(filterEstado === targetFilter ? "Todos" : targetFilter);
-                setCurrentPage(1);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  const targetFilter = currentUser.role === "EQ_GESTION" ? "Aprobada" : currentUser.role === "EQ_NORMATIVA" ? "EN_GENERACION_RESOLUCION" : "EN_REVISION";
+                variant="featured"
+                role="button"
+                tabIndex={0}
+                onClick={() => {
+                  const targetFilter = currentUser.role === "EQ_NORMATIVA" ? "EN_GENERACION_RESOLUCION" : "EN_REVISION";
                   setFilterEstado(filterEstado === targetFilter ? "Todos" : targetFilter);
                   setCurrentPage(1);
-                }
-              }}
-              className={cn(
-                "group relative overflow-hidden cursor-pointer transition-all duration-200 border rounded-xl outline-none select-none p-4 sm:p-4.5 w-full",
-                "hover:-translate-y-0.5 hover:shadow-md",
-                currentUser.role === "EQ_GESTION" ?
-                filterEstado === "Aprobada" ?
-                "bg-success/15 border-success ring-2 ring-success/40 shadow-xs" :
-                "bg-success/5 hover:bg-success/10 border-success/25 shadow-2xs" :
-                (currentUser.role === "EQ_NORMATIVA" ? (filterEstado === "EN_GENERACION_RESOLUCION" || filterEstado === "EN_GENERACION") : filterEstado === "EN_REVISION") ?
-                "bg-primary/15 border-primary ring-2 ring-primary/40 shadow-xs" :
-                "bg-primary/5 hover:bg-primary/10 border-primary/25 shadow-2xs"
-              )}
-              innerClassName="p-0 h-full justify-center">
-              
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    const targetFilter = currentUser.role === "EQ_NORMATIVA" ? "EN_GENERACION_RESOLUCION" : "EN_REVISION";
+                    setFilterEstado(filterEstado === targetFilter ? "Todos" : targetFilter);
+                    setCurrentPage(1);
+                  }
+                }}
+                className={cn(
+                  "group relative overflow-hidden cursor-pointer transition-all duration-200 border rounded-xl outline-none select-none p-4 sm:p-4.5 w-full",
+                  "hover:-translate-y-0.5 hover:shadow-md",
+                  (currentUser.role === "EQ_NORMATIVA" ? (filterEstado === "EN_GENERACION_RESOLUCION" || filterEstado === "EN_GENERACION") : filterEstado === "EN_REVISION") ?
+                  "bg-primary/15 border-primary ring-2 ring-primary/40 shadow-xs" :
+                  "bg-primary/5 hover:bg-primary/10 border-primary/25 shadow-2xs"
+                )}
+                innerClassName="p-0 h-full justify-center"
+              >
                 <div className="flex items-center justify-between gap-3 w-full">
                   <div className="flex items-center gap-3 min-w-0">
                     <div
-                    className={cn(
-                      "size-11 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200",
-                      currentUser.role === "EQ_GESTION" ?
-                      filterEstado === "Aprobada" ?
-                      "bg-success text-white shadow-xs" :
-                      "bg-success/15 text-success group-hover:scale-105 group-hover:bg-success group-hover:text-white" :
-                      (currentUser.role === "EQ_NORMATIVA" ? (filterEstado === "EN_GENERACION_RESOLUCION" || filterEstado === "EN_GENERACION") : filterEstado === "EN_REVISION") ?
-                      "bg-primary text-white shadow-xs" :
-                      "bg-primary/15 text-primary group-hover:scale-105 group-hover:bg-primary group-hover:text-white"
-                    )}>
-                    
-                      {currentUser.role === "EQ_GESTION" ?
-                    <CheckCircle2 className="size-5" /> :
-
-                    <Activity className="size-5" />
-                    }
+                      className={cn(
+                        "size-11 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200",
+                        (currentUser.role === "EQ_NORMATIVA" ? (filterEstado === "EN_GENERACION_RESOLUCION" || filterEstado === "EN_GENERACION") : filterEstado === "EN_REVISION") ?
+                        "bg-primary text-white shadow-xs" :
+                        "bg-primary/15 text-primary group-hover:scale-105 group-hover:bg-primary group-hover:text-white"
+                      )}
+                    >
+                      <Activity className="size-5" />
                     </div>
                     <div className="min-w-0 space-y-0.5">
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        <h3 className={cn(
-                        "text-sm font-bold text-foreground transition-colors truncate",
-                        currentUser.role === "EQ_GESTION" ? "group-hover:text-success" : "group-hover:text-primary"
-                      )}>
-                  {currentUser.role === "EQ_GESTION" ? "Aprobadas" : currentUser.role === "EQ_NORMATIVA" ? "En generación" : currentUser.role === "DIR_NORMATIVA" ? "Asignadas" : "En revisión"}
+                        <h3 className="text-sm font-bold text-foreground transition-colors truncate group-hover:text-primary">
+                          {currentUser.role === "EQ_NORMATIVA" ? "En generación" : "Asignadas"}
                         </h3>
-                        {(currentUser.role === "EQ_GESTION" ? filterEstado === "Aprobada" : (currentUser.role === "EQ_NORMATIVA" ? (filterEstado === "EN_GENERACION_RESOLUCION" || filterEstado === "EN_GENERACION") : filterEstado === "EN_REVISION")) &&
-                      <span className={cn(
-                        "text-[10px] font-semibold px-1.5 py-0.2 rounded-full border shrink-0",
-                        currentUser.role === "EQ_GESTION" ?
-                        "bg-success/20 text-success border-success/30" :
-                        "bg-primary/20 text-primary border-primary/30"
-                      )}>
+                        {(currentUser.role === "EQ_NORMATIVA" ? (filterEstado === "EN_GENERACION_RESOLUCION" || filterEstado === "EN_GENERACION") : filterEstado === "EN_REVISION") && (
+                          <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded-full border shrink-0 bg-primary/20 text-primary border-primary/30">
                             Activo
                           </span>
-                      }
+                        )}
                       </div>
                       <p className="text-xs text-muted-foreground font-normal truncate">
-                  {currentUser.role === "EQ_GESTION" ? "Solicitudes aprobadas" : currentUser.role === "EQ_NORMATIVA" ? "En redacción o análisis jurídico" : currentUser.role === "DIR_NORMATIVA" ? "En gestión de resolución" : "Actualmente en análisis"}
+                        {currentUser.role === "EQ_NORMATIVA" ? "En redacción o análisis jurídico" : "En gestión de resolución"}
                       </p>
                     </div>
                   </div>
 
                   <div className="text-right shrink-0 pl-2">
-                    <span className={cn(
-                    "font-heading font-extrabold text-3xl sm:text-4xl tracking-tight block leading-none",
-                    currentUser.role === "EQ_GESTION" ? "text-success" : "text-primary"
-                  )}>
-                      {currentUser.role === "EQ_GESTION" ? dynamicKpis.aprobadas : dynamicKpis.enRevision}
+                    <span className="font-heading font-extrabold text-3xl sm:text-4xl tracking-tight block leading-none text-primary">
+                      {dynamicKpis.enRevision}
                     </span>
                     <span className="text-[10px] sm:text-[11px] text-muted-foreground font-medium block mt-1">
                       solicitudes
@@ -2357,88 +2364,74 @@ export function RevisionNormativaView() {
                 </div>
               </Card>
 
-              {/* Card 3: Finalizadas (Director) / Resoluciones Generadas (EQ Normativa) / Rechazadas (EQ Gestión) */}
+              {/* Card 3: Generación pausada / con consultas (EQ_NORMATIVA) / Resoluciones generadas (DIR_NORMATIVA) */}
               <Card
-              variant="featured"
-              role="button"
-              tabIndex={0}
-              onClick={() => {
-                const targetFilter = currentUser.role === "EQ_GESTION" ? "Rechazada" : currentUser.role === "EQ_NORMATIVA" ? "RESOLUCION_GENERADA" : "Aprobada";
-                setFilterEstado(filterEstado === targetFilter ? "Todos" : targetFilter);
-                setCurrentPage(1);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  const targetFilter = currentUser.role === "EQ_GESTION" ? "Rechazada" : currentUser.role === "EQ_NORMATIVA" ? "RESOLUCION_GENERADA" : "Aprobada";
+                variant="featured"
+                role="button"
+                tabIndex={0}
+                onClick={() => {
+                  const targetFilter = currentUser.role === "EQ_NORMATIVA" ? "GENERACION_PENDIENTE" : "RESOLUCION_GENERADA";
                   setFilterEstado(filterEstado === targetFilter ? "Todos" : targetFilter);
                   setCurrentPage(1);
-                }
-              }}
-              className={cn(
-                "group relative overflow-hidden cursor-pointer transition-all duration-200 border rounded-xl outline-none select-none p-4 sm:p-4.5 w-full",
-                "hover:-translate-y-0.5 hover:shadow-md",
-                currentUser.role === "EQ_GESTION" ?
-                filterEstado === "Rechazada" ?
-                "bg-danger/15 border-danger ring-2 ring-danger/40 shadow-xs" :
-                "bg-danger/5 hover:bg-danger/10 border-danger/25 shadow-2xs" :
-                (currentUser.role === "EQ_NORMATIVA" ? (filterEstado === "RESOLUCION_GENERADA" || filterEstado === "APROBADO_FINAL") : filterEstado === "Aprobada") ?
-                "bg-success/15 border-success ring-2 ring-success/40 shadow-xs" :
-                "bg-success/5 hover:bg-success/10 border-success/25 shadow-2xs"
-              )}
-              innerClassName="p-0 h-full justify-center">
-              
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    const targetFilter = currentUser.role === "EQ_NORMATIVA" ? "GENERACION_PENDIENTE" : "RESOLUCION_GENERADA";
+                    setFilterEstado(filterEstado === targetFilter ? "Todos" : targetFilter);
+                    setCurrentPage(1);
+                  }
+                }}
+                className={cn(
+                  "group relative overflow-hidden cursor-pointer transition-all duration-200 border rounded-xl outline-none select-none p-4 sm:p-4.5 w-full",
+                  "hover:-translate-y-0.5 hover:shadow-md",
+                  (currentUser.role === "EQ_NORMATIVA" ? filterEstado === "GENERACION_PENDIENTE" : (filterEstado === "RESOLUCION_GENERADA" || filterEstado === "APROBADO_FINAL")) ?
+                  (currentUser.role === "EQ_NORMATIVA" ? "bg-warning/15 border-warning ring-2 ring-warning/40 shadow-xs" : "bg-success/15 border-success ring-2 ring-success/40 shadow-xs") :
+                  (currentUser.role === "EQ_NORMATIVA" ? "bg-warning/5 hover:bg-warning/10 border-warning/25 shadow-2xs" : "bg-success/5 hover:bg-success/10 border-success/25 shadow-2xs")
+                )}
+                innerClassName="p-0 h-full justify-center"
+              >
                 <div className="flex items-center justify-between gap-3 w-full">
                   <div className="flex items-center gap-3 min-w-0">
                     <div
-                    className={cn(
-                      "size-11 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200",
-                      currentUser.role === "EQ_GESTION" ?
-                      filterEstado === "Rechazada" ?
-                      "bg-danger text-white shadow-xs" :
-                      "bg-danger/15 text-danger group-hover:scale-105 group-hover:bg-danger group-hover:text-white" :
-                      (currentUser.role === "EQ_NORMATIVA" ? (filterEstado === "RESOLUCION_GENERADA" || filterEstado === "APROBADO_FINAL") : filterEstado === "Aprobada") ?
-                      "bg-success text-white shadow-xs" :
-                      "bg-success/15 text-success group-hover:scale-105 group-hover:bg-success group-hover:text-white"
-                    )}>
-                    
-                      {currentUser.role === "EQ_GESTION" ?
-                    <XCircle className="size-5" /> :
-
-                    <CheckCircle2 className="size-5" />
-                    }
+                      className={cn(
+                        "size-11 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200",
+                        (currentUser.role === "EQ_NORMATIVA" ? filterEstado === "GENERACION_PENDIENTE" : (filterEstado === "RESOLUCION_GENERADA" || filterEstado === "APROBADO_FINAL")) ?
+                        (currentUser.role === "EQ_NORMATIVA" ? "bg-warning text-white shadow-xs" : "bg-success text-white shadow-xs") :
+                        (currentUser.role === "EQ_NORMATIVA" ? "bg-warning/15 text-warning group-hover:scale-105 group-hover:bg-warning group-hover:text-white" : "bg-success/15 text-success group-hover:scale-105 group-hover:bg-success group-hover:text-white")
+                      )}
+                    >
+                      {currentUser.role === "EQ_NORMATIVA" ? <Clock className="size-5" /> : <CheckCircle2 className="size-5" />}
                     </div>
                     <div className="min-w-0 space-y-0.5">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <h3 className={cn(
-                        "text-sm font-bold text-foreground transition-colors truncate",
-                        currentUser.role === "EQ_GESTION" ? "group-hover:text-danger" : "group-hover:text-success"
-                      )}>
-                          {currentUser.role === "EQ_GESTION" ? "Rechazadas" : currentUser.role === "DIR_NORMATIVA" || currentUser.role === "EQ_NORMATIVA" ? "Resoluciones generadas" : "Finalizadas"}
+                          "text-sm font-bold text-foreground transition-colors truncate",
+                          currentUser.role === "EQ_NORMATIVA" ? "group-hover:text-warning" : "group-hover:text-success"
+                        )}>
+                          {currentUser.role === "EQ_NORMATIVA" ? "Generación pausada" : "Resoluciones generadas"}
                         </h3>
-                        {(currentUser.role === "EQ_GESTION" ? filterEstado === "Rechazada" : (currentUser.role === "EQ_NORMATIVA" ? (filterEstado === "RESOLUCION_GENERADA" || filterEstado === "APROBADO_FINAL") : filterEstado === "Aprobada")) &&
-                      <span className={cn(
-                        "text-[10px] font-semibold px-1.5 py-0.2 rounded-full border shrink-0",
-                        currentUser.role === "EQ_GESTION" ?
-                        "bg-danger/20 text-danger border-danger/30" :
-                        "bg-success/20 text-success border-success/30"
-                      )}>
+                        {(currentUser.role === "EQ_NORMATIVA" ? filterEstado === "GENERACION_PENDIENTE" : (filterEstado === "RESOLUCION_GENERADA" || filterEstado === "APROBADO_FINAL")) && (
+                          <span className={cn(
+                            "text-[10px] font-semibold px-1.5 py-0.2 rounded-full border shrink-0",
+                            currentUser.role === "EQ_NORMATIVA" ? "bg-warning/20 text-warning border-warning/30" : "bg-success/20 text-success border-success/30"
+                          )}>
                             Activo
                           </span>
-                      }
+                        )}
                       </div>
                       <p className="text-xs text-muted-foreground font-normal truncate">
-                  {currentUser.role === "EQ_GESTION" ? "Solicitudes rechazadas" : currentUser.role === "DIR_NORMATIVA" || currentUser.role === "EQ_NORMATIVA" ? "Resoluciones emitidas formalmente" : "Trámites concluidos"}
+                        {currentUser.role === "EQ_NORMATIVA" ? "Con requerimiento o consulta jurídica" : "Resoluciones emitidas formalmente"}
                       </p>
                     </div>
                   </div>
 
                   <div className="text-right shrink-0 pl-2">
                     <span className={cn(
-                    "font-heading font-extrabold text-3xl sm:text-4xl tracking-tight block leading-none",
-                    currentUser.role === "EQ_GESTION" ? "text-danger" : "text-success"
-                  )}>
-                      {currentUser.role === "EQ_GESTION" ? dynamicKpis.rechazadas : dynamicKpis.resueltas}
+                      "font-heading font-extrabold text-3xl sm:text-4xl tracking-tight block leading-none",
+                      currentUser.role === "EQ_NORMATIVA" ? "text-warning" : "text-success"
+                    )}>
+                      {currentUser.role === "EQ_NORMATIVA" ? dynamicKpis.pausadas : dynamicKpis.resueltas}
                     </span>
                     <span className="text-[10px] sm:text-[11px] text-muted-foreground font-medium block mt-1">
                       solicitudes
@@ -2666,7 +2659,7 @@ export function RevisionNormativaView() {
                             ASIGNADO
                           </TableHead>
                         )}
-                        <TableHead className={cn("text-center", currentUser.role === "EQ_NORMATIVA" ? "w-32" : "w-24")}>
+                        <TableHead className={cn("text-right pr-4", currentUser.role === "EQ_NORMATIVA" ? "w-32" : "w-24")}>
                           Acciones
                         </TableHead>
                       </TableRow>
@@ -2904,8 +2897,8 @@ export function RevisionNormativaView() {
                               )}
 
                               {/* Acciones */}
-                              <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
-                                <div className="flex items-center justify-center gap-3">
+                              <TableCell className="text-right pr-4" onClick={(e) => e.stopPropagation()}>
+                                <div className="flex items-center justify-end gap-1.5">
                                   {/* Si es Personal de Normatividad (EQ_NORMATIVA), acción principal directa: 'Gestionar resolución' */}
                                   {currentUser.role === "EQ_NORMATIVA" ? (
                                     <Tooltip>
@@ -2917,12 +2910,11 @@ export function RevisionNormativaView() {
                                             handleGestionarResolucion(row);
                                           }}
                                           aria-label={`Gestionar resolución para trámite ${row.id}`}
-                                          variant="outline"
-                                          size="sm"
-                                          className="h-8 px-2.5 text-xs font-semibold gap-1.5 border-border hover:border-primary/50 hover:bg-primary/5 hover:text-primary transition-all shadow-2xs"
+                                          variant="ghost"
+                                          size="icon-sm"
+                                          className="text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
                                         >
-                                          <FileSignature className="size-3.5 text-primary" />
-                                          <span>Gestionar</span>
+                                          <FileSignature className="size-4" />
                                         </Button>
                                       </TooltipTrigger>
                                       <TooltipContent side="top">
@@ -3098,17 +3090,16 @@ export function RevisionNormativaView() {
                                 {currentUser.role === "EQ_NORMATIVA" ? (
                                   <Button
                                     type="button"
-                                    variant="primary"
-                                    size="sm"
+                                    variant="ghost"
+                                    size="icon-sm"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleGestionarResolucion(row);
                                     }}
-                                    className="h-7 px-2.5 text-xs font-semibold rounded-lg shadow-2xs gap-1.5"
+                                    className="size-7 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10"
                                     aria-label={`Gestionar resolución para trámite ${row.id}`}
                                   >
                                     <FileSignature className="size-3.5" />
-                                    <span>Gestionar resolución</span>
                                   </Button>
                                 ) : (
                                   <>

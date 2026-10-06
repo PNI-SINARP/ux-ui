@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -200,9 +200,9 @@ function FilterCombobox({
   return (
     <div className={cn("flex flex-col gap-1 min-w-[170px]", className)}>
       {label && (
-        <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider text-left ml-1 truncate">
+        <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider text-left ml-1 truncate">
           {label}
-        </label>
+        </span>
       )}
       <Combobox
         value={value}
@@ -255,6 +255,12 @@ export function SolicitudesPendientesView() {
   } = store;
 
   const sim = useEnr03SimulationStore();
+
+  useEffect(() => {
+    if (activeUser?.role === "EQ_NORMATIVA") {
+      router.replace("/revision-normativa");
+    }
+  }, [activeUser, router]);
 
   // Filtro de proceso (Todos / Proceso A / Proceso B / Proceso C)
   const [filterTramite, setFilterTramite] = useState<string>("TODOS");
@@ -395,7 +401,6 @@ export function SolicitudesPendientesView() {
   const estadoOptions = useMemo(() => [
     { value: "Todos", label: "Estado: Todos" },
     { value: "PENDIENTES", label: "Pendientes" },
-    { value: "EN_REVISION", label: "En revisión" },
     { value: "Aprobada", label: "Aprobadas" },
     { value: "Rechazada", label: "Rechazadas" },
   ], []);
@@ -456,14 +461,21 @@ export function SolicitudesPendientesView() {
     );
 
     return {
+      total: misSolicitudes.length,
       pendientes: misSolicitudes.filter(
         (s) =>
-          s.estado === "Pendiente" ||
-          s.estado === "PENDIENTE_ASIGNACION_GESTION" ||
-          (s.estado === "EN_REVISION_GESTION" && !s.revisionIniciada)
-      ).length,
-      enRevision: misSolicitudes.filter(
-        (s) => s.estado === "EN_REVISION_GESTION" && Boolean(s.revisionIniciada)
+          !s.fechaAprobacionGestion &&
+          s.estado !== "Aprobada" &&
+          s.estado !== "APROBADO_FINAL" &&
+          s.estado !== "PENDIENTE_ASIGNACION_NORMATIVIDAD" &&
+          s.estado !== "EN_REVISION_NORMATIVIDAD" &&
+          s.estado !== "PENDIENTE_GENERAR_RESOLUCION" &&
+          s.estado !== "EN_GENERACION_RESOLUCION" &&
+          s.estado !== "GENERACION_PENDIENTE" &&
+          s.estado !== "RESOLUCION_GENERADA" &&
+          s.estado !== "INSTITUCION_ACTIVA" &&
+          s.estado !== "Rechazada" &&
+          s.estado !== "Cancelada"
       ).length,
       aprobadas: misSolicitudes.filter(
         (s) =>
@@ -516,15 +528,21 @@ export function SolicitudesPendientesView() {
       // Filtro por Estado interactivo desde las cards o selector
       const matchesEstado = (() => {
         if (filterEstado === "Todos") return true;
-        if (filterEstado === "PENDIENTES" || filterEstado === "Pendientes" || filterEstado === "Pendiente de revisión") {
+        if (filterEstado === "PENDIENTES" || filterEstado === "Pendientes" || filterEstado === "Pendiente de revisión" || filterEstado === "EN_REVISION" || filterEstado === "En revisión") {
           return (
-            item.estado === "PENDIENTE_ASIGNACION_GESTION" ||
-            item.estado === "Pendiente" ||
-            (item.estado === "EN_REVISION_GESTION" && !item.revisionIniciada)
+            !item.fechaAprobacionGestion &&
+            item.estado !== "Aprobada" &&
+            item.estado !== "APROBADO_FINAL" &&
+            item.estado !== "PENDIENTE_ASIGNACION_NORMATIVIDAD" &&
+            item.estado !== "EN_REVISION_NORMATIVIDAD" &&
+            item.estado !== "PENDIENTE_GENERAR_RESOLUCION" &&
+            item.estado !== "EN_GENERACION_RESOLUCION" &&
+            item.estado !== "GENERACION_PENDIENTE" &&
+            item.estado !== "RESOLUCION_GENERADA" &&
+            item.estado !== "INSTITUCION_ACTIVA" &&
+            item.estado !== "Rechazada" &&
+            item.estado !== "Cancelada"
           );
-        }
-        if (filterEstado === "EN_REVISION" || filterEstado === "En revisión" || filterEstado === "Revisión") {
-          return item.estado === "EN_REVISION_GESTION" && Boolean(item.revisionIniciada);
         }
         if (filterEstado === "Aprobada" || filterEstado === "APROBADAS" || filterEstado === "Aprobadas") {
           return (
@@ -644,7 +662,7 @@ export function SolicitudesPendientesView() {
     const isAnexoC = sol.tipoTramite === "PROCESO_C_CAMBIO_COORDINADOR" || sol.codigoDocumental === "ARP-R03" || sol.id.startsWith("CAM-");
     if (isAnexoC) {
       aprobarCambioStandalone(sol.id, opcionCaso || "CASO_B");
-      store.aprobarGestion(sol.id, currentUser.name, `Dictamen de aprobación de Anexo C (${opcionCaso || "CASO_B"}).`);
+      store.aprobarGestion(sol.id, currentUser.name, `Aprobación de Anexo C (${opcionCaso || "CASO_B"}).`);
       return;
     }
 
@@ -820,29 +838,25 @@ export function SolicitudesPendientesView() {
 
               {/* Botones de acción en la cabecera */}
               <div className="flex items-center gap-2 self-start sm:self-auto">
-                {currentUser.role === "EQ_GESTION" && selectedSolicitud.estado === "EN_REVISION_GESTION" ? (
+                {currentUser.role === "EQ_GESTION" && (selectedSolicitud.estado === "EN_REVISION_GESTION" || selectedSolicitud.estado === "Pendiente" || selectedSolicitud.estado === "PENDIENTE_ASIGNACION_GESTION") ? (
                   <>
                     <Button
                       type="button"
                       variant="outline"
                       onClick={() => handleOpenReject(selectedSolicitud)}
-                      className="h-10 px-4 text-xs font-semibold gap-2 border-border text-foreground hover:bg-muted rounded-xl"
+                      className="h-10 px-4 text-xs font-semibold gap-2 border-danger/30 text-danger hover:bg-danger/10 rounded-xl"
                     >
                       <XCircle className="size-4" />
-                      <span>Registrar observaciones / Devolver</span>
+                      <span>Rechazar</span>
                     </Button>
                     <Button
                       type="button"
                       variant="primary"
-                      onClick={() => {
-                        store.aprobarGestion(selectedSolicitud.id, currentUser.name);
-                        toast.success("Trámite aprobado por Gestión y enviado a Normatividad");
-                        setSelectedSolicitud(null);
-                      }}
+                      onClick={() => handleOpenApprove(selectedSolicitud)}
                       className="h-10 px-4 text-xs font-semibold gap-2 shadow-xs"
                     >
                       <CheckCircle2 className="size-4" />
-                      <span>Aprobar revisión</span>
+                      <span>Aprobar</span>
                     </Button>
                   </>
                 ) : (currentUser.role === "EQ_NORMATIVA" && selectedSolicitud.estado === "EN_REVISION_NORMATIVIDAD") ? (
@@ -914,7 +928,7 @@ export function SolicitudesPendientesView() {
                         Trámite Cancelado y Expediente Cerrado Definitivamente
                       </h3>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        Este expediente no superó la revisión técnica obligatoria del Área de Gestión.
+                        Este expediente fue rechazado tras la validación obligatoria del Área de Gestión.
                       </p>
                     </div>
                   </div>
@@ -1958,7 +1972,72 @@ export function SolicitudesPendientesView() {
 
             {/* â”€â”€ 2. Resumen Superior (Tarjetas Interactivas con Layout Horizontal Optimizado) â”€â”€ */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 w-full">
-              {/* Card 1: Pendientes de revisión */}
+              {/* Card 1: Total Asignadas */}
+              <Card
+                variant="featured"
+                role="button"
+                tabIndex={0}
+                onClick={() => {
+                  setFilterEstado("Todos");
+                  setCurrentPage(1);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setFilterEstado("Todos");
+                    setCurrentPage(1);
+                  }
+                }}
+                className={cn(
+                  "group relative overflow-hidden cursor-pointer transition-all duration-200 border rounded-xl outline-none select-none p-4 sm:p-4.5 w-full",
+                  "hover:-translate-y-0.5 hover:shadow-md",
+                  filterEstado === "Todos"
+                    ? "bg-primary/15 border-primary ring-2 ring-primary/40 shadow-xs"
+                    : "bg-surface hover:bg-muted/30 border-border/70 shadow-2xs"
+                )}
+                innerClassName="p-0 h-full justify-center"
+              >
+                <div className="flex items-center justify-between gap-3 w-full">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div
+                      className={cn(
+                        "size-11 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200",
+                        filterEstado === "Todos"
+                          ? "bg-primary text-white shadow-xs"
+                          : "bg-primary/10 text-primary group-hover:scale-105 group-hover:bg-primary group-hover:text-white"
+                      )}
+                    >
+                      <FileText className="size-5" />
+                    </div>
+                    <div className="min-w-0 space-y-0.5">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <h3 className="text-sm font-bold text-foreground group-hover:text-primary transition-colors truncate">
+                          Total asignadas
+                        </h3>
+                        {filterEstado === "Todos" && (
+                          <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded-full bg-primary/20 text-primary border border-primary/30 shrink-0">
+                            Activo
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground font-normal truncate">
+                        Todas las solicitudes
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="text-right shrink-0 pl-2">
+                    <span className="font-heading font-extrabold text-3xl sm:text-4xl text-foreground tracking-tight block leading-none">
+                      {dynamicKpis.total}
+                    </span>
+                    <span className="text-[10px] sm:text-[11px] text-muted-foreground font-medium block mt-1">
+                      solicitudes
+                    </span>
+                  </div>
+                </div>
+              </Card>
+
+              {/* Card 2: Pendientes */}
               <Card
                 variant="featured"
                 role="button"
@@ -2007,7 +2086,7 @@ export function SolicitudesPendientesView() {
                         )}
                       </div>
                       <p className="text-xs text-muted-foreground font-normal truncate">
-                        Por iniciar revisión
+                        Por evaluar y resolver
                       </p>
                     </div>
                   </div>
@@ -2015,71 +2094,6 @@ export function SolicitudesPendientesView() {
                   <div className="text-right shrink-0 pl-2">
                     <span className="font-heading font-extrabold text-3xl sm:text-4xl text-warning tracking-tight block leading-none">
                       {dynamicKpis.pendientes}
-                    </span>
-                    <span className="text-[10px] sm:text-[11px] text-muted-foreground font-medium block mt-1">
-                      solicitudes
-                    </span>
-                  </div>
-                </div>
-              </Card>
-
-              {/* Card 2: En revisión */}
-              <Card
-                variant="featured"
-                role="button"
-                tabIndex={0}
-                onClick={() => {
-                  setFilterEstado(filterEstado === "EN_REVISION" ? "Todos" : "EN_REVISION");
-                  setCurrentPage(1);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    setFilterEstado(filterEstado === "EN_REVISION" ? "Todos" : "EN_REVISION");
-                    setCurrentPage(1);
-                  }
-                }}
-                className={cn(
-                  "group relative overflow-hidden cursor-pointer transition-all duration-200 border rounded-xl outline-none select-none p-4 sm:p-4.5 w-full",
-                  "hover:-translate-y-0.5 hover:shadow-md",
-                  filterEstado === "EN_REVISION"
-                    ? "bg-info/15 border-info ring-2 ring-info/40 shadow-xs"
-                    : "bg-info/5 hover:bg-info/10 border-info/25 shadow-2xs"
-                )}
-                innerClassName="p-0 h-full justify-center"
-              >
-                <div className="flex items-center justify-between gap-3 w-full">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div
-                      className={cn(
-                        "size-11 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200",
-                        filterEstado === "EN_REVISION"
-                          ? "bg-info text-white shadow-xs"
-                          : "bg-info/15 text-info group-hover:scale-105 group-hover:bg-info group-hover:text-white"
-                      )}
-                    >
-                      <Activity className="size-5" />
-                    </div>
-                    <div className="min-w-0 space-y-0.5">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <h3 className="text-sm font-bold text-foreground group-hover:text-info transition-colors truncate">
-                          En revisión
-                        </h3>
-                        {filterEstado === "EN_REVISION" && (
-                          <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded-full bg-info/20 text-info border border-info/30 shrink-0">
-                            Activo
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-xs text-muted-foreground font-normal truncate">
-                        En análisis técnico
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="text-right shrink-0 pl-2">
-                    <span className="font-heading font-extrabold text-3xl sm:text-4xl text-info tracking-tight block leading-none">
-                      {dynamicKpis.enRevision}
                     </span>
                     <span className="text-[10px] sm:text-[11px] text-muted-foreground font-medium block mt-1">
                       solicitudes
@@ -2422,7 +2436,7 @@ export function SolicitudesPendientesView() {
                         <TableHead className="w-[170px] px-2 py-2.5 whitespace-nowrap">
                           ESTADO
                         </TableHead>
-                        <TableHead className="w-24 text-center">Acciones</TableHead>
+                        <TableHead className="w-24 text-right pr-4">Acciones</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -2607,8 +2621,8 @@ export function SolicitudesPendientesView() {
                               </TableCell>
 
                               {/* 7. Acciones */}
-                              <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
-                                <div className="flex items-center justify-center gap-3">
+                              <TableCell className="text-right pr-4" onClick={(e) => e.stopPropagation()}>
+                                <div className="flex items-center justify-end gap-1.5">
                                   <Tooltip>
                                     <TooltipTrigger asChild>
                                       <Button
@@ -2617,16 +2631,15 @@ export function SolicitudesPendientesView() {
                                           e.stopPropagation();
                                           handleSelectSolicitud(row);
                                         }}
-                                        aria-label={`Ver detalle y gestionar trámite ${row.id}`}
-                                        variant="outline"
-                                        size="sm"
-                                        className="h-7 px-2.5 text-xs font-semibold rounded-lg border-border/80 text-foreground hover:bg-muted hover:text-primary gap-1.5 shadow-2xs"
+                                        aria-label={`Ver detalle de trámite ${row.id}`}
+                                        variant="ghost"
+                                        size="icon-sm"
+                                        className="text-muted-foreground hover:text-primary hover:bg-primary/10"
                                       >
-                                        <Eye className="size-3.5" />
-                                        <span className="hidden xl:inline">Ver detalle</span>
+                                        <Eye className="size-4" />
                                       </Button>
                                     </TooltipTrigger>
-                                    <TooltipContent side="top">Ver detalle y gestionar</TooltipContent>
+                                    <TooltipContent side="top">Ver detalle</TooltipContent>
                                   </Tooltip>
                                 </div>
                               </TableCell>
@@ -2725,19 +2738,24 @@ export function SolicitudesPendientesView() {
                               </div>
 
                               <div className="shrink-0 ml-auto" onClick={(e) => e.stopPropagation()}>
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleSelectSolicitud(row);
-                                  }}
-                                  className="h-7 px-2.5 text-xs font-semibold rounded-lg border-border/80 text-foreground hover:bg-muted gap-1 shadow-2xs"
-                                >
-                                  <Eye className="size-3" />
-                                  <span>Ver detalle</span>
-                                </Button>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon-sm"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleSelectSolicitud(row);
+                                      }}
+                                      className="text-muted-foreground hover:text-primary hover:bg-primary/10"
+                                      aria-label={`Ver detalle de trámite ${row.id}`}
+                                    >
+                                      <Eye className="size-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top">Ver detalle</TooltipContent>
+                                </Tooltip>
                               </div>
                             </div>
                           </div>

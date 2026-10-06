@@ -166,19 +166,31 @@ export function ResolucionInstitucionalPanel({
             </p>
           </div>
 
-          <Button
-            type="button"
-            variant="primary"
-            size="default"
-            onClick={() => {
-              onIniciarGeneracion(solicitud.id);
-              router.push(`/revision-normativa/${solicitud.id}/gestionar-resolucion`);
-            }}
-            className="w-full text-xs font-semibold gap-2 shadow-xs"
-          >
-            <FileSignature className="size-4" />
-            <span>Generar resolución</span>
-          </Button>
+          <div className="flex flex-col gap-2 pt-1">
+            <Button
+              type="button"
+              variant="primary"
+              size="default"
+              onClick={() => {
+                onIniciarGeneracion(solicitud.id);
+                router.push(`/revision-normativa/${solicitud.id}/gestionar-resolucion`);
+              }}
+              className="w-full text-xs font-semibold gap-2 shadow-xs"
+            >
+              <FileSignature className="size-4" />
+              <span>Generar resolución</span>
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setIsRejectModalOpen(true)}
+              className="w-full text-xs font-semibold gap-1.5 text-danger border-danger/30 hover:bg-danger/10"
+            >
+              <XCircle className="size-3.5" />
+              <span>Rechazar trámite</span>
+            </Button>
+          </div>
         </div>
       )}
 
@@ -207,16 +219,28 @@ export function ResolucionInstitucionalPanel({
               <span>Completar y vincular resolución</span>
             </Button>
 
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setIsFalloModalOpen(true)}
-              className="w-full text-xs font-semibold gap-1.5 text-danger border-danger/30 hover:bg-danger/10"
-            >
-              <AlertTriangle className="size-3.5" />
-              <span>Reportar fallo en la generación</span>
-            </Button>
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsRejectModalOpen(true)}
+                className="w-full text-xs font-semibold gap-1.5 text-danger border-danger/30 hover:bg-danger/10"
+              >
+                <XCircle className="size-3.5" />
+                <span>Rechazar trámite</span>
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsFalloModalOpen(true)}
+                className="w-full text-xs font-semibold gap-1 text-muted-foreground border-border hover:bg-muted"
+              >
+                <AlertTriangle className="size-3.5 text-warning" />
+                <span className="truncate">Reportar fallo</span>
+              </Button>
+            </div>
           </div>
         </div>
       )}
@@ -496,19 +520,31 @@ export function ResolucionInstitucionalPanel({
             </div>
           </div>
 
-          <Button
-            type="button"
-            variant="primary"
-            size="default"
-            onClick={() => {
-              onReintentarGeneracion(solicitud.id);
-              router.push(`/revision-normativa/${solicitud.id}/gestionar-resolucion`);
-            }}
-            className="w-full text-xs font-semibold gap-2 shadow-xs"
-          >
-            <RotateCcw className="size-4" />
-            <span>Reintentar generación</span>
-          </Button>
+          <div className="flex flex-col gap-2 pt-1">
+            <Button
+              type="button"
+              variant="primary"
+              size="default"
+              onClick={() => {
+                onReintentarGeneracion(solicitud.id);
+                router.push(`/revision-normativa/${solicitud.id}/gestionar-resolucion`);
+              }}
+              className="w-full text-xs font-semibold gap-2 shadow-xs"
+            >
+              <RotateCcw className="size-4" />
+              <span>Reintentar generación</span>
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setIsRejectModalOpen(true)}
+              className="w-full text-xs font-semibold gap-1.5 text-danger border-danger/30 hover:bg-danger/10"
+            >
+              <XCircle className="size-3.5" />
+              <span>Rechazar trámite</span>
+            </Button>
+          </div>
         </div>
       )}
 

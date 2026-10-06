@@ -351,6 +351,8 @@ function SearchOverlay({
       >
         <div className="p-2">
           <SearchComponent
+            id="global-search-input"
+            name="global-search"
             ref={inputRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}

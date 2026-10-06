@@ -162,6 +162,27 @@ export function SolicitudPendienteDetailView({ id }: SolicitudPendienteDetailVie
     return "Anexo A";
   }, [solicitud, esAnexoB, isAnexoC]);
 
+  // Título e icono corto estandarizado para la pestaña principal (ej. Anexo A — Registro Institución / Anexo B — Enrolamiento Coordinador)
+  const tabTituloResumen = useMemo(() => {
+    if (esAnexoB || solicitud?.tipoTramite === "PROCESO_B_ENROLAMIENTO_COORDINADOR") {
+      return "Anexo B — Enrolamiento Coordinador";
+    }
+    if (isAnexoC || solicitud?.tipoTramite === "PROCESO_C_CAMBIO_COORDINADOR") {
+      return "Anexo C — Cambio Coordinador";
+    }
+    return "Anexo A — Registro Institución";
+  }, [esAnexoB, isAnexoC, solicitud?.tipoTramite]);
+
+  const tabIconResumen = useMemo(() => {
+    if (esAnexoB || solicitud?.tipoTramite === "PROCESO_B_ENROLAMIENTO_COORDINADOR") {
+      return <User className="size-3.5 sm:size-4 shrink-0" />;
+    }
+    if (isAnexoC || solicitud?.tipoTramite === "PROCESO_C_CAMBIO_COORDINADOR") {
+      return <UserCheck className="size-3.5 sm:size-4 shrink-0" />;
+    }
+    return <Building2 className="size-3.5 sm:size-4 shrink-0" />;
+  }, [esAnexoB, isAnexoC, solicitud?.tipoTramite]);
+
   const [detailTab, setDetailTab] = useState<number>(0);
   const sim = useEnr03SimulationStore();
 
@@ -427,8 +448,8 @@ export function SolicitudPendienteDetailView({ id }: SolicitudPendienteDetailVie
                         value="resumen"
                         className="px-3.5 sm:px-5 py-1.5 sm:py-2 text-xs font-bold gap-1.5 sm:gap-2 shrink-0"
                       >
-                        <Building2 className="size-3.5 sm:size-4 shrink-0" />
-                        <span className="truncate max-w-[210px] sm:max-w-none">{nombreAnexo} — {solicitud.tituloTramite || "Solicitud"}</span>
+                        {tabIconResumen}
+                        <span className="truncate max-w-[210px] sm:max-w-none">{tabTituloResumen}</span>
                       </TabsTrigger>
                       <TabsTrigger
                         value="trazabilidad"
@@ -1344,48 +1365,16 @@ export function SolicitudPendienteDetailView({ id }: SolicitudPendienteDetailVie
                     solicitud.estado === "PENDIENTE_ASIGNACION_GESTION" ||
                     solicitud.estado === "Pendiente") && (
                     <div className="space-y-4 pt-1">
-                      {!solicitud.revisionIniciada ? (
-                        <div className="space-y-3">
-                          <Alert
-                            variant="warning"
-                            icon={<Clock className="size-4" />}
-                            title="Solicitud pendiente de revisión"
-                            className="p-3 text-xs"
-                          >
-                            <p className="text-[11px] leading-relaxed text-muted-foreground mt-0.5">
-                              Este trámite te ha sido asignado y se encuentra en estado pendiente. Puedes iniciar formalmente la revisión técnica para registrar el análisis del expediente.
-                            </p>
-                          </Alert>
-                          {esRevisorVigente && !sim.sinRevisoresActivos && (
-                            <Button
-                              type="button"
-                              variant="primary"
-                              size="sm"
-                              onClick={() => {
-                                store.iniciarRevision(solicitud.id, currentUser.name);
-                                toast.success("Revisión técnica iniciada", {
-                                  description: `El trámite ${solicitud.id} ha pasado al estado 'En revisión'.`,
-                                });
-                              }}
-                              className="w-full text-xs font-semibold gap-2 shadow-2xs"
-                            >
-                              <Activity className="size-4" />
-                              <span>Iniciar revisión técnica</span>
-                            </Button>
-                          )}
-                        </div>
-                      ) : (
-                        <Alert
-                          variant="info"
-                          icon={<Activity className="size-4" />}
-                          title="Solicitud en revisión activa"
-                          className="p-3 text-xs"
-                        >
-                          <p className="text-[11px] leading-relaxed text-muted-foreground mt-0.5">
-                            Revisa la información del {nombreAnexo} en todas sus secciones, verifica los datos registrados, documentos, soportes y la validez de la firma electrónica antes de emitir tu dictamen.
-                          </p>
-                        </Alert>
-                      )}
+                      <Alert
+                        variant="info"
+                        icon={<Activity className="size-4" />}
+                        title="Expediente asignado para evaluación"
+                        className="p-3 text-xs"
+                      >
+                        <p className="text-[11px] leading-relaxed text-muted-foreground mt-0.5">
+                          Revisa la información del {nombreAnexo} en todas sus secciones, verifica los recaudos y selecciona tu decisión para continuar.
+                        </p>
+                      </Alert>
 
                       {/* Bloque: ¿Cuál es tu decisión? con acciones */}
                       <div className="space-y-3 pt-2 border-t border-border/70">
@@ -1405,7 +1394,7 @@ export function SolicitudPendienteDetailView({ id }: SolicitudPendienteDetailVie
                               </p>
                               <p className="text-[11px] text-muted-foreground leading-relaxed">
                                 {sim.sinRevisoresActivos
-                                  ? "No hay revisores activos en el Equipo de Gestión disponibles para registrar dictámenes."
+                                  ? "No hay revisores activos en el Equipo de Gestión disponibles para registrar decisiones."
                                   : "Este trámite no se encuentra asignado con vigencia a tu usuario o ha sido reasignado a otro funcionario."}
                               </p>
                             </div>
@@ -1524,7 +1513,7 @@ export function SolicitudPendienteDetailView({ id }: SolicitudPendienteDetailVie
             const isAnexoC = sol.tipoTramite === "PROCESO_C_CAMBIO_COORDINADOR" || sol.codigoDocumental === "ARP-R03" || sol.id.startsWith("CAM-");
             if (isAnexoC) {
               aprobarCambioStandalone(sol.id, opcionCaso || "CASO_B");
-              store.aprobarGestion(sol.id, currentUser.name, `Dictamen de aprobación de Anexo C (${opcionCaso || "CASO_B"}).`);
+              store.aprobarGestion(sol.id, currentUser.name, `Aprobación de Anexo C (${opcionCaso || "CASO_B"}).`);
               return;
             }
 

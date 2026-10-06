@@ -15,7 +15,10 @@ export interface SearchProps extends Omit<React.ComponentProps<"input">, "size">
 }
 
 const Search = React.forwardRef<HTMLInputElement, SearchProps>(
-  ({ className, size, onClear, value, onChange, ...props }, ref) => {
+  ({ className, size, onClear, value, onChange, id, name, ...props }, ref) => {
+    const generatedId = React.useId();
+    const inputId = id || generatedId;
+    const inputName = name || id || "search";
     const [internalValue, setInternalValue] = React.useState(value || "")
 
     React.useEffect(() => {
@@ -66,6 +69,8 @@ const Search = React.forwardRef<HTMLInputElement, SearchProps>(
       >
         <InputGroupInput
           ref={ref}
+          id={inputId}
+          name={inputName}
           value={internalValue}
           onChange={handleChange}
           {...props}

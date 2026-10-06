@@ -196,9 +196,9 @@ function FilterCombobox({
   return (
     <div className={cn("flex flex-col gap-1", className)}>
       {label && (
-        <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider text-left ml-1 truncate">
+        <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider text-left ml-1 truncate">
           {label}
-        </label>
+        </span>
       )}
       <Combobox
         value={value}
@@ -2134,7 +2134,7 @@ export function AsignacionSolicitudesView() {
 
               let badgeText = "Dirección de Gestión y Registro · DINARP";
               let titleText = "Asignación de solicitudes";
-              let subtitleText = "Gestiona y asigna las solicitudes pendientes a los revisores del área correspondiente.";
+              let subtitleText = "Gestiona y asigna las solicitudes pendientes a los revisores del área de gestión.";
 
               if (isEqGestion) {
                 badgeText = "Equipo de Gestión y Registro · DINARP";
@@ -2146,12 +2146,12 @@ export function AsignacionSolicitudesView() {
                 subtitleText = "Asignación de solicitudes para generar resoluciones a instituciones aprobadas.";
               } else if (isEqNormativa) {
                 badgeText = "Equipo de Normatividad · DINARP";
-                titleText = "Solicitudes pendientes por generar solución";
+                titleText = "Solicitudes pendientes por generar resolución";
                 subtitleText = "Análisis normativo y resolución jurídica de solicitudes asignadas a tu usuario.";
               } else if (isDirGestion) {
                 badgeText = "Dirección de Gestión y Registro · DINARP";
                 titleText = "Asignación de solicitudes";
-                subtitleText = "Gestiona y asigna las solicitudes pendientes a los revisores del área correspondiente.";
+                subtitleText = "Gestiona y asigna las solicitudes pendientes a los revisores del área de gestión.";
               }
               return (
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -2427,6 +2427,8 @@ export function AsignacionSolicitudesView() {
                 {/* Buscador amplio y flexible */}
                 <div className="flex-1 min-w-[240px] sm:min-w-[280px]">
                   <Search
+                    id="solicitudes-search-input"
+                    name="solicitudes-search"
                     placeholder="Buscar por cédula, nombre, código, correo o entidad..."
                     value={searchQuery}
                     onChange={(e) => {
@@ -2632,7 +2634,7 @@ export function AsignacionSolicitudesView() {
                         <TableHead className="w-[150px] px-2 py-2.5 whitespace-nowrap">
                           ASIGNADO
                         </TableHead>
-                        <TableHead className="w-24 text-center">Acciones</TableHead>
+                        <TableHead className="w-24 text-right pr-4">Acciones</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -2865,8 +2867,8 @@ export function AsignacionSolicitudesView() {
                               </TableCell>
 
                               {/* Acciones */}
-                              <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
-                                <div className="flex items-center justify-center gap-3">
+                              <TableCell className="text-right pr-4" onClick={(e) => e.stopPropagation()}>
+                                <div className="flex items-center justify-end gap-1.5">
                                   {/* Si es Personal de Normatividad (EQ_NORMATIVA), acción principal directa: 'Gestionar resolución' */}
                                   {currentUser.role === "EQ_NORMATIVA" ? ( 
                                     <Tooltip>
@@ -2895,13 +2897,13 @@ export function AsignacionSolicitudesView() {
                                             </Button>
                                           </TooltipTrigger>
                                           <TooltipContent side="top">
-                                            {esReasignacion ? `Reasignar revisor (trámite aún no iniciado por ${revisorAsignado})` : "Asignar"}
+                                            {esReasignacion ? (revisorAsignado ? `Reasignar revisor (${revisorAsignado})` : "Reasignar revisor") : "Asignar"}
                                           </TooltipContent>
                                         </Tooltip>
                                       ) : motivoBloqueo && revisorAsignado && !["Aprobada", "APROBADO_FINAL", "Finalizado", "Rechazada", "Cancelada", "Cerrada"].includes(row.estado) ? (
                                         <Tooltip>
                                           <TooltipTrigger asChild>
-                                            <div className="size-7 rounded-lg flex items-center justify-center text-muted-foreground/40 cursor-not-allowed border border-dashed border-border/50 gap-3">
+                                            <div className="size-10 rounded-lg flex items-center justify-center text-muted-foreground/40 cursor-not-allowed border border-dashed border-border/50">
                                               <Lock className="size-4" />
                                             </div>
                                           </TooltipTrigger>

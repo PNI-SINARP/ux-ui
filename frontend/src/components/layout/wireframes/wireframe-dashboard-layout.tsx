@@ -40,6 +40,7 @@ import {
   History,
   Building2,
   Scale,
+  Lock,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -187,28 +188,28 @@ const navItems: NavItem[] = [
   },
   {
     id: "asignacion-solicitudes",
-    label: "Asignación institucional (Anexos)",
+    label: "Asignación de solicitudes",
     icon: UserCheck,
     href: "/asignacion-solicitudes",
     allowedRoles: ["DIR_GESTION"]
   },
   {
     id: "asignacion-acceso",
-    label: "Asignación de acceso (BN-07)",
+    label: "Asignación de acceso",
     icon: Database,
     href: "/acceso-interoperabilidad/asignacion",
     allowedRoles: ["DIR_GESTION"]
   },
   {
     id: "solicitudes-pendientes",
-    label: "Solicitudes institucionales (Anexos)",
+    label: "Solicitudes pendientes",
     icon: FileSignature,
     href: "/solicitudes-pendientes",
     allowedRoles: ["EQ_GESTION"]
   },
   {
     id: "revision-gestion",
-    label: "Revisión funcional de acceso (BN-07)",
+    label: "Revisión de acceso",
     icon: Network,
     href: "/revision-gestion",
     allowedRoles: ["EQ_GESTION"]
@@ -222,16 +223,23 @@ const navItems: NavItem[] = [
   },
   {
     id: "asignacion-normativa",
-    label: "Asignación institucional (Anexos)",
+    label: "Asignación de solicitudes",
     icon: UserCheck,
     href: "/asignacion-solicitudes",
     allowedRoles: ["DIR_NORMATIVA"]
   },
   {
     id: "revision-normativa",
-    label: "Revisión jurídica (Normatividad)",
-    icon: Scale,
+    label: "Solicitudes pendientes",
+    icon: FileSignature,
     href: "/revision-normativa",
+    allowedRoles: ["DIR_NORMATIVA", "EQ_NORMATIVA"]
+  },
+  {
+    id: "revision-normativa-fuentes",
+    label: "Fuentes confidenciales (BN-07)",
+    icon: Lock,
+    href: "/revision-normativa/fuentes",
     allowedRoles: ["DIR_NORMATIVA", "EQ_NORMATIVA"]
   },
   {
@@ -390,6 +398,11 @@ export function WireframeDashboardLayout({
   const resolvedUser: MockUser = currentUser || activeUser || MOCK_USERS_BY_ROLE.COORDINADOR_SINARP;
   const activeUserRole = currentRole || resolvedUser?.role;
   const isAprobador = activeUserRole === "APROBADOR";
+  const isInternalDinarpRole =
+    activeUserRole === "DIR_GESTION" ||
+    activeUserRole === "DIR_NORMATIVA" ||
+    activeUserRole === "EQ_GESTION" ||
+    activeUserRole === "EQ_NORMATIVA";
 
   useEffect(() => {
     const stored = getStoredTheme();
@@ -565,38 +578,45 @@ export function WireframeDashboardLayout({
 
         {/* General & Theme Footer */}
         <SidebarFooter className="p-2 group-data-[collapsible=icon]:px-2 border-t border-sidebar-border shrink-0 space-y-1 group-data-[collapsible=icon]:space-y-1.5">
-          <div className="px-2 pt-1 pb-0.5 group-data-[collapsible=icon]:hidden">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70 dark:text-white/50 px-2">
-              General
-            </p>
-          </div>
-          <ul className="space-y-0.5 mb-1 group-data-[collapsible=icon]:space-y-1.5 group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:items-center">
-            <li className="w-full group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center">
-              <SidebarMenuButton
-                tooltip="Notificaciones"
-                asChild
-                isActive={pathname?.startsWith("/notificaciones")}
-              >
-                <SidebarNavigationItemLink href="/notificaciones" className="flex items-center gap-2.5 group-data-[collapsible=icon]:justify-center">
-                  <Bell className="size-4 shrink-0" />
-                  <span className="truncate group-data-[collapsible=icon]:hidden">Notificaciones</span>
-                </SidebarNavigationItemLink>
-              </SidebarMenuButton>
-            </li>
-            {activeUserRole !== "ADMIN" && (
-              <li className="w-full group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center">
-                <SidebarMenuButton
-                  tooltip="Configuración"
-                  asChild
-                  isActive={pathname?.startsWith("/construccion")}
-                >
-                  <SidebarNavigationItemLink href="/construccion" className="flex items-center gap-2.5 group-data-[collapsible=icon]:justify-center">
-                    <Settings className="size-4 shrink-0" />
-                    <span className="truncate group-data-[collapsible=icon]:hidden">Configuración</span>
-                  </SidebarNavigationItemLink>
-                </SidebarMenuButton>
-              </li>
-            )}
+          {!isInternalDinarpRole && (
+            <>
+              <div className="px-2 pt-1 pb-0.5 group-data-[collapsible=icon]:hidden">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70 dark:text-white/50 px-2">
+                  General
+                </p>
+              </div>
+              <ul className="space-y-0.5 mb-1 group-data-[collapsible=icon]:space-y-1.5 group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:items-center">
+                <li className="w-full group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center">
+                  <SidebarMenuButton
+                    tooltip="Notificaciones"
+                    asChild
+                    isActive={pathname?.startsWith("/notificaciones")}
+                  >
+                    <SidebarNavigationItemLink href="/notificaciones" className="flex items-center gap-2.5 group-data-[collapsible=icon]:justify-center">
+                      <Bell className="size-4 shrink-0" />
+                      <span className="truncate group-data-[collapsible=icon]:hidden">Notificaciones</span>
+                    </SidebarNavigationItemLink>
+                  </SidebarMenuButton>
+                </li>
+                {activeUserRole !== "ADMIN" && (
+                  <li className="w-full group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center">
+                    <SidebarMenuButton
+                      tooltip="Configuración"
+                      asChild
+                      isActive={pathname?.startsWith("/construccion")}
+                    >
+                      <SidebarNavigationItemLink href="/construccion" className="flex items-center gap-2.5 group-data-[collapsible=icon]:justify-center">
+                        <Settings className="size-4 shrink-0" />
+                        <span className="truncate group-data-[collapsible=icon]:hidden">Configuración</span>
+                      </SidebarNavigationItemLink>
+                    </SidebarMenuButton>
+                  </li>
+                )}
+              </ul>
+            </>
+          )}
+
+          <ul className="space-y-0.5 mb-1 group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:items-center">
             <li className="w-full group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center pt-0.5">
               <SidebarCollapseItem />
             </li>

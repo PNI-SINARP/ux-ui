@@ -57,9 +57,6 @@ export function getEstadoBadgeProps(
       return { tone: "danger", appearance: "soft", scale: "50", dot: true, label: "Rechazada" as const };
     }
     if (estado === "EN_REVISION_GESTION") {
-      if (revisionIniciada) {
-        return { tone: "info", appearance: "soft", scale: "100", dot: true, label: "En revisión" as const };
-      }
       return { tone: "warning", appearance: "soft", scale: "50", dot: true, label: "Pendiente" as const };
     }
     if (estado === "Pendiente" || estado === "PENDIENTE_ASIGNACION_GESTION" || estado === "PENDIENTE_ENVIO") {
@@ -94,6 +91,11 @@ export function puedeReasignarSolicitud(solicitud: SolicitudIngreso | null | und
   const isNormativa = tipoArea === "DIR_NORMATIVA" || tipoArea === "NORMATIVIDAD" || solicitud.estado.includes("NORMATIVIDAD") || solicitud.estado.includes("RESOLUCION") || solicitud.estado === "GENERACION_PENDIENTE";
   const revisorActual = isNormativa ? solicitud.revisorNormatividad : (solicitud.revisorGestion || solicitud.revisor);
   const esReasignacion = Boolean(revisorActual);
+
+  // Si el usuario tiene rol directivo, siempre tiene potestad de asignar o reasignar en su ámbito
+  if (tipoArea === "DIR_GESTION" || tipoArea === "DIR_NORMATIVA") {
+    return { puedeReasignar: true, esReasignacion, motivoBloqueo: undefined };
+  }
 
   // Si la revisión o generación de resolución ya fue iniciada formalmente por el funcionario
   if (isNormativa ? (solicitud.revisionIniciada && Boolean(solicitud.revisorNormatividad) && (solicitud.estado === "EN_GENERACION_RESOLUCION" || solicitud.estado === "EN_REVISION_NORMATIVIDAD")) : (solicitud.revisionIniciada && solicitud.estado === "EN_REVISION_GESTION")) {
@@ -316,7 +318,7 @@ export interface SolicitudIngreso {
   anexoC?: DatosAnexoC;
 }
 
-export const STORAGE_KEY_INGRESOS = "dinarp_solicitudes_ingreso_v16";
+export const STORAGE_KEY_INGRESOS = "dinarp_solicitudes_ingreso_v18";
 
 export const INITIAL_SOLICITUDES_INGRESO: SolicitudIngreso[] = [
   // CASO 1 (PRIORITARIO NORMATIVA): APROBADO POR GESTIÓN → PENDIENTE ASIGNACIÓN EN NORMATIVIDAD
@@ -2773,7 +2775,7 @@ export const INITIAL_SOLICITUDES_INGRESO: SolicitudIngreso[] = [
     fechaRevision: "29/09/2026 12:40",
     fechaAprobacionGestion: "29/09/2026 12:40",
     revisorGestion: "María Torres (Revisor Gestión)",
-    revisorNormatividad: undefined,
+    revisorNormatividad: "Personal facultado de Normatividad",
     revisor: "Personal facultado de Normatividad",
     fechaAsignacionNormatividad: "29/09/2026 13:00",
     observacionesAsignacion: "Verificar competencias institucionales para interconexión catastral.",
@@ -2864,7 +2866,7 @@ export const INITIAL_SOLICITUDES_INGRESO: SolicitudIngreso[] = [
     fechaRevision: "28/09/2026 16:00",
     fechaAprobacionGestion: "28/09/2026 16:00",
     revisorGestion: "María Torres (Revisor Gestión)",
-    revisorNormatividad: undefined,
+    revisorNormatividad: "Personal facultado de Normatividad",
     revisor: "Personal facultado de Normatividad",
     fechaAsignacionNormatividad: "29/09/2026 08:30",
     observacionesAsignacion: "Priorizar proyecto de resolución institucional interconectando áreas protegidas.",
@@ -2965,8 +2967,8 @@ export const INITIAL_SOLICITUDES_INGRESO: SolicitudIngreso[] = [
     fechaRevision: "28/09/2026 10:10",
     fechaAprobacionGestion: "28/09/2026 10:10",
     revisorGestion: "María Torres (Revisor Gestión)",
-    revisorNormatividad: "Gabriel Suárez",
-    revisor: "Gabriel Suárez",
+    revisorNormatividad: "Personal facultado de Normatividad",
+    revisor: "Personal facultado de Normatividad",
     fechaAsignacionNormatividad: "28/09/2026 11:00",
     observacionesAsignacion: "Revisar alcance de la personería municipal en los considerandos.",
     revisionIniciada: true,
@@ -3160,10 +3162,473 @@ export const INITIAL_SOLICITUDES_INGRESO: SolicitudIngreso[] = [
       ciudadFirma: "Quito D.M.",
       fechaFirma: "25/09/2026",
       firmadoDigitalmente: true,
-      archivoDocumentoFirmado: "ARP-R01_Solicitud_Registro_SNAI.pdf"
     }
-  }
-,
+  },
+
+  // CASO N6: ANT - PENDIENTE DE GENERAR RESOLUCIÓN (Asignado al personal facultado de Normatividad)
+  {
+    id: "SOL-NORM-206",
+    tipoTramite: "PROCESO_A_REGISTRO_INSTITUCION",
+    codigoDocumental: "ARP-R01",
+    tituloTramite: "Solicitud de Registro de Institución (Anexo A)",
+    cedula: "1716543210",
+    nombres: "Carlos",
+    apellidos: "Villavicencio Paredes",
+    nombreCompleto: "Ing. Carlos Villavicencio Paredes",
+    iniciales: "CV",
+    correo: "carlos.villavicencio@ant.gob.ec",
+    institucion: "Agencia Nacional de Tránsito (ANT)",
+    fechaSolicitud: "01/10/2026 09:15",
+    estado: "PENDIENTE_GENERAR_RESOLUCION",
+    fechaRevision: "01/10/2026 11:30",
+    fechaAprobacionGestion: "01/10/2026 11:30",
+    revisorGestion: "María Torres (Revisor Gestión)",
+    revisorNormatividad: "Personal facultado de Normatividad",
+    revisor: "Personal facultado de Normatividad",
+    fechaAsignacionNormatividad: "01/10/2026 14:00",
+    observacionesAsignacion: "Verificar base normativa de gravámenes e impedimentos vehiculares.",
+    revisionIniciada: false,
+    documentos: [
+      "ARP-R01_Solicitud_Registro_ANT.pdf",
+      "Resolucion_Directorio_ANT_2026.pdf",
+      "Dictamen_Tecnico_Gestion_Aprobado.pdf"
+    ],
+    historial: [
+      {
+        id: "h-norm-206-1",
+        fechaHora: "01/10/2026 09:15",
+        accion: "Ingreso de trámite",
+        realizadoPor: "Ing. Carlos Villavicencio Paredes",
+        rol: "Solicitante Institucional",
+        detalles: "Formulario ARP-R01 suscrito y registrado formalmente en el sistema."
+      },
+      {
+        id: "h-norm-206-2",
+        fechaHora: "01/10/2026 11:30",
+        accion: "Solicitud aprobada por Gestión",
+        realizadoPor: "María Torres",
+        rol: "Revisor de Gestión",
+        detalles: "Aprobación técnica de Anexo A efectuada por Gestión. Continúa a Normatividad."
+      },
+      {
+        id: "h-norm-206-3",
+        fechaHora: "01/10/2026 14:00",
+        accion: "Responsable de Normatividad asignado",
+        realizadoPor: "Director de Normatividad",
+        rol: "Director de Normatividad",
+        detalles: "Responsable: Personal facultado de Normatividad. Asignado por: Director de Normatividad. Observaciones: Verificar base normativa de gravámenes e impedimentos vehiculares."
+      }
+    ],
+    anexoA: {
+      entidadTipo: "Publica",
+      nombreEntidad: "Agencia Nacional de Tránsito (ANT)",
+      rucEntidad: "1768137380001",
+      direccionEntidad: "Av. Antonio José de Sucre y José Sánchez, Quito",
+      objetoSocial: "Planificación, regulación y control del transporte terrestre, tránsito y seguridad vial a nivel nacional.",
+      representanteLegalNombre: "Ing. Alejandro Freire",
+      representanteLegalCargo: "Director Ejecutivo de la ANT",
+      representanteLegalEmail: "direccion.ejecutiva@ant.gob.ec",
+      esDelegado: false,
+      titularNombreCompleto: "Carlos Villavicencio Paredes",
+      titularCedula: "1716543210",
+      titularCargo: "Director de Tecnologías de la Información",
+      titularAreaUnidad: "Dirección de TI",
+      titularEmail: "carlos.villavicencio@ant.gob.ec",
+      titularTelefonoFijo: "023828890 ext 1100",
+      titularMovilInstitucional: "0991234567",
+      titularMovilPersonal: "0982345678",
+      suplenteNombreCompleto: "Ing. Daniela Pazmiño",
+      suplenteCedula: "1719876543",
+      suplenteCargo: "Especialista en Interoperabilidad",
+      suplenteAreaUnidad: "Dirección de TI",
+      suplenteEmail: "daniela.pazmino@ant.gob.ec",
+      suplenteTelefonoFijo: "023828890 ext 1104",
+      suplenteMovilInstitucional: "0992345678",
+      suplenteMovilPersonal: "0983456789",
+      serviciosHerramientas: ["Interoperabilidad SINARP", "Infodigital"],
+      areasUso: "Dirección de Registro Nacional de Tránsito",
+      procesosUso: "Validación de historial de dominio vehicular y gravámenes registrales para emisión de matrículas y licencias.",
+      declaracionesAceptadas: true,
+      ciudadFirma: "Quito D.M.",
+      fechaFirma: "01/10/2026",
+      firmadoDigitalmente: true,
+      archivoDocumentoFirmado: "ARP-R01_Solicitud_Registro_ANT.pdf"
+    }
+  },
+
+  // CASO N7: IESS - EN GENERACIÓN DE RESOLUCIÓN (Redacción jurídica y considerandos en curso)
+  {
+    id: "SOL-NORM-207",
+    tipoTramite: "PROCESO_A_REGISTRO_INSTITUCION",
+    codigoDocumental: "ARP-R01",
+    tituloTramite: "Solicitud de Registro de Institución (Anexo A)",
+    cedula: "1712233445",
+    nombres: "Diana",
+    apellidos: "Carrión Salazar",
+    nombreCompleto: "Mgs. Diana Carrión Salazar",
+    iniciales: "DC",
+    correo: "diana.carrion@iess.gob.ec",
+    institucion: "Instituto Ecuatoriano de Seguridad Social (IESS)",
+    fechaSolicitud: "30/09/2026 14:20",
+    estado: "EN_GENERACION_RESOLUCION",
+    fechaRevision: "01/10/2026 09:30",
+    fechaAprobacionGestion: "01/10/2026 09:30",
+    revisorGestion: "María Torres (Revisor Gestión)",
+    revisorNormatividad: "Personal facultado de Normatividad",
+    revisor: "Personal facultado de Normatividad",
+    fechaAsignacionNormatividad: "01/10/2026 10:00",
+    observacionesAsignacion: "Redactar considerandos para interoperabilidad de defunciones y fondos de reserva.",
+    revisionIniciada: true,
+    fechaInicioRevision: "01/10/2026 10:45",
+    documentos: [
+      "ARP-R01_Solicitud_Registro_IESS.pdf",
+      "Acuerdo_Consejo_Directivo_IESS.pdf",
+      "Dictamen_Tecnico_Gestion_Aprobado.pdf",
+      "Borrador_Resolucion_IESS_v1.docx"
+    ],
+    historial: [
+      {
+        id: "h-norm-207-1",
+        fechaHora: "30/09/2026 14:20",
+        accion: "Ingreso de trámite",
+        realizadoPor: "Mgs. Diana Carrión Salazar",
+        rol: "Solicitante Institucional",
+        detalles: "Formulario ARP-R01 suscrito y registrado formalmente en el sistema."
+      },
+      {
+        id: "h-norm-207-2",
+        fechaHora: "01/10/2026 09:30",
+        accion: "Solicitud aprobada por Gestión",
+        realizadoPor: "María Torres",
+        rol: "Revisor de Gestión",
+        detalles: "Aprobación técnica efectuada por Gestión. Transferida a Normatividad."
+      },
+      {
+        id: "h-norm-207-3",
+        fechaHora: "01/10/2026 10:00",
+        accion: "Responsable de Normatividad asignado",
+        realizadoPor: "Director de Normatividad",
+        rol: "Director de Normatividad",
+        detalles: "Responsable: Personal facultado de Normatividad. Asignado por: Director de Normatividad."
+      },
+      {
+        id: "h-norm-207-4",
+        fechaHora: "01/10/2026 10:45",
+        accion: "Generación de resolución iniciada",
+        realizadoPor: "Personal facultado de Normatividad",
+        rol: "Personal facultado de Normatividad",
+        detalles: "Formulación de considerandos institucionales para consulta automatizada de actas de defunción."
+      }
+    ],
+    anexoA: {
+      entidadTipo: "Publica",
+      nombreEntidad: "Instituto Ecuatoriano de Seguridad Social (IESS)",
+      rucEntidad: "1760004650001",
+      direccionEntidad: "Av. 10 de Agosto y Bogotá, Edificio Matriz IESS, Quito",
+      objetoSocial: "Protección a la población urbana y rural con relación de dependencia o sin ella, contra las contingencias de enfermedad, maternidad, riesgos del trabajo, cesantía, vejez, invalidez y muerte.",
+      representanteLegalNombre: "Dr. Eduardo Peña Hurtado",
+      representanteLegalCargo: "Presidente del Consejo Directivo del IESS",
+      representanteLegalEmail: "presidencia@iess.gob.ec",
+      esDelegado: false,
+      titularNombreCompleto: "Diana Carrión Salazar",
+      titularCedula: "1712233445",
+      titularCargo: "Directora Nacional de Tecnologías de la Información",
+      titularAreaUnidad: "DNTI",
+      titularEmail: "diana.carrion@iess.gob.ec",
+      titularTelefonoFijo: "023945678 ext 2200",
+      titularMovilInstitucional: "0994567891",
+      titularMovilPersonal: "0985678912",
+      suplenteNombreCompleto: "Ing. Jorge Benítez",
+      suplenteCedula: "1708899112",
+      suplenteCargo: "Subdirector de Servicios Digitales",
+      suplenteAreaUnidad: "DNTI",
+      suplenteEmail: "jorge.benitez@iess.gob.ec",
+      suplenteTelefonoFijo: "023945678 ext 2205",
+      suplenteMovilInstitucional: "0995678912",
+      suplenteMovilPersonal: "0986789123",
+      serviciosHerramientas: ["Interoperabilidad SINARP", "Ficha de Registro Único"],
+      areasUso: "Dirección del Seguro General de Pensiones",
+      procesosUso: "Cotejo continuo de actas de defunción y estado civil para el pago seguro y oportuno de montepíos y pensiones jubilares.",
+      declaracionesAceptadas: true,
+      ciudadFirma: "Quito D.M.",
+      fechaFirma: "30/09/2026",
+      firmadoDigitalmente: true,
+      archivoDocumentoFirmado: "ARP-R01_Solicitud_Registro_IESS.pdf"
+    }
+  },
+
+  // CASO N8: GAD CUENCA - RESOLUCIÓN GENERADA (Resolución emitida y suscrita)
+  {
+    id: "SOL-NORM-208",
+    tipoTramite: "PROCESO_A_REGISTRO_INSTITUCION",
+    codigoDocumental: "ARP-R01",
+    tituloTramite: "Solicitud de Registro de Institución (Anexo A)",
+    cedula: "0102938475",
+    nombres: "Marcelo",
+    apellidos: "Vázquez Astudillo",
+    nombreCompleto: "Arq. Marcelo Vázquez Astudillo",
+    iniciales: "MV",
+    correo: "marcelo.vazquez@cuenca.gob.ec",
+    institucion: "Gobierno Autónomo Descentralizado Municipal del Cantón Cuenca",
+    fechaSolicitud: "24/09/2026 11:00",
+    estado: "RESOLUCION_GENERADA",
+    fechaRevision: "26/09/2026 15:00",
+    fechaAprobacionGestion: "25/09/2026 10:00",
+    revisorGestion: "María Torres (Revisor Gestión)",
+    revisorNormatividad: "Personal facultado de Normatividad",
+    revisor: "Personal facultado de Normatividad",
+    fechaAsignacionNormatividad: "25/09/2026 14:00",
+    revisionIniciada: true,
+    fechaInicioRevision: "25/09/2026 15:30",
+    resolucion: "RES-DINARP-2026-0089",
+    documentos: [
+      "ARP-R01_Solicitud_Registro_GAD_Cuenca.pdf",
+      "Dictamen_Tecnico_Gestion_Aprobado.pdf",
+      "RES-DINARP-2026-0089_Suscrita.pdf"
+    ],
+    historial: [
+      {
+        id: "h-norm-208-1",
+        fechaHora: "24/09/2026 11:00",
+        accion: "Ingreso de trámite",
+        realizadoPor: "Arq. Marcelo Vázquez Astudillo",
+        rol: "Solicitante Institucional",
+        detalles: "Formulario ARP-R01 registrado formalmente en la plataforma."
+      },
+      {
+        id: "h-norm-208-2",
+        fechaHora: "25/09/2026 10:00",
+        accion: "Solicitud aprobada por Gestión",
+        realizadoPor: "María Torres",
+        rol: "Revisor de Gestión",
+        detalles: "Control documental verificado con dictamen favorable."
+      },
+      {
+        id: "h-norm-208-3",
+        fechaHora: "25/09/2026 14:00",
+        accion: "Responsable de Normatividad asignado",
+        realizadoPor: "Director de Normatividad",
+        rol: "Director de Normatividad",
+        detalles: "Asignado a Personal facultado de Normatividad."
+      },
+      {
+        id: "h-norm-208-4",
+        fechaHora: "26/09/2026 15:00",
+        accion: "Resolución institucional generada",
+        realizadoPor: "Personal facultado de Normatividad",
+        rol: "Personal facultado de Normatividad",
+        detalles: "Resolución RES-DINARP-2026-0089 emitida y suscrita conforme a la ley."
+      }
+    ],
+    anexoA: {
+      entidadTipo: "Publica",
+      nombreEntidad: "Gobierno Autónomo Descentralizado Municipal del Cantón Cuenca",
+      rucEntidad: "0160000270001",
+      direccionEntidad: "Calle Bolívar y Borrero, Cuenca",
+      objetoSocial: "Planificación del desarrollo cantonal y ejercicio de competencias de ordenamiento territorial, catastro municipal y control urbano.",
+      representanteLegalNombre: "Dr. Cristian Zamora Matute",
+      representanteLegalCargo: "Alcalde de Cuenca",
+      representanteLegalEmail: "alcaldia@cuenca.gob.ec",
+      esDelegado: false,
+      titularNombreCompleto: "Marcelo Vázquez Astudillo",
+      titularCedula: "0102938475",
+      titularCargo: "Director de Tecnologías y Comunicaciones",
+      titularAreaUnidad: "DIT",
+      titularEmail: "marcelo.vazquez@cuenca.gob.ec",
+      titularTelefonoFijo: "074134900 ext 1201",
+      titularMovilInstitucional: "0996789123",
+      titularMovilPersonal: "0987891234",
+      suplenteNombreCompleto: "Ing. Lorena Ordóñez",
+      suplenteCedula: "0103847562",
+      suplenteCargo: "Jefa de Sistemas Geográficos",
+      suplenteAreaUnidad: "DIT",
+      suplenteEmail: "lorena.ordonez@cuenca.gob.ec",
+      suplenteTelefonoFijo: "074134900 ext 1206",
+      suplenteMovilInstitucional: "0997891234",
+      suplenteMovilPersonal: "0988901235",
+      serviciosHerramientas: ["Interoperabilidad SINARP"],
+      areasUso: "Dirección de Avalúos y Catastros",
+      procesosUso: "Actualización predial catastral en tiempo real cruzada con el Registro de la Propiedad del cantón.",
+      declaracionesAceptadas: true,
+      ciudadFirma: "Cuenca",
+      fechaFirma: "24/09/2026",
+      firmadoDigitalmente: true,
+      archivoDocumentoFirmado: "ARP-R01_Solicitud_Registro_GAD_Cuenca.pdf"
+    }
+  },
+
+  // CASO N9: SUPERINTENDENCIA DE BANCOS - PENDIENTE DE ASIGNACIÓN EN NORMATIVIDAD (Lista para que Director la asigne)
+  {
+    id: "SOL-NORM-209",
+    tipoTramite: "PROCESO_A_REGISTRO_INSTITUCION",
+    codigoDocumental: "ARP-R01",
+    tituloTramite: "Solicitud de Registro de Institución (Anexo A)",
+    cedula: "1708877665",
+    nombres: "Fernando",
+    apellidos: "Larrea Cisneros",
+    nombreCompleto: "Econ. Fernando Larrea Cisneros",
+    iniciales: "FL",
+    correo: "fernando.larrea@superbancos.gob.ec",
+    institucion: "Superintendencia de Bancos del Ecuador",
+    fechaSolicitud: "01/10/2026 10:15",
+    estado: "PENDIENTE_ASIGNACION_NORMATIVIDAD",
+    fechaRevision: "01/10/2026 11:20",
+    fechaAprobacionGestion: "01/10/2026 11:20",
+    revisorGestion: "María Torres (Revisor Gestión)",
+    revisorNormatividad: undefined,
+    revisor: "Por asignar",
+    revisionIniciada: false,
+    documentos: [
+      "ARP-R01_Solicitud_Registro_SuperBancos.pdf",
+      "Accion_Personal_Superintendente.pdf",
+      "Dictamen_Tecnico_Gestion_Aprobado.pdf"
+    ],
+    historial: [
+      {
+        id: "h-norm-209-1",
+        fechaHora: "01/10/2026 10:15",
+        accion: "Ingreso de trámite",
+        realizadoPor: "Econ. Fernando Larrea Cisneros",
+        rol: "Solicitante Institucional",
+        detalles: "Formulario ARP-R01 ingresado formalmente."
+      },
+      {
+        id: "h-norm-209-2",
+        fechaHora: "01/10/2026 11:20",
+        accion: "Solicitud aprobada por Gestión",
+        realizadoPor: "María Torres",
+        rol: "Revisor de Gestión",
+        detalles: "Aprobación técnica y legal de Anexo A efectuada por Gestión. Expediente transferido a Normatividad."
+      }
+    ],
+    anexoA: {
+      entidadTipo: "Publica",
+      nombreEntidad: "Superintendencia de Bancos del Ecuador",
+      rucEntidad: "1760001710001",
+      direccionEntidad: "Av. 12 de Octubre N24-185 y Madrid, Quito",
+      objetoSocial: "Supervisión y control de las entidades del sector financiero público y privado, protegiendo los intereses de los depositantes.",
+      representanteLegalNombre: "Abg. Roberto Romero von Buchwald",
+      representanteLegalCargo: "Superintendente de Bancos",
+      representanteLegalEmail: "superintendente@superbancos.gob.ec",
+      esDelegado: false,
+      titularNombreCompleto: "Fernando Larrea Cisneros",
+      titularCedula: "1708877665",
+      titularCargo: "Subdirector de Tecnologías de Información",
+      titularAreaUnidad: "Subdirección de TI",
+      titularEmail: "fernando.larrea@superbancos.gob.ec",
+      titularTelefonoFijo: "022997800 ext 1500",
+      titularMovilInstitucional: "0998901235",
+      titularMovilPersonal: "0989012345",
+      suplenteNombreCompleto: "Ing. Gabriela Ponce",
+      suplenteCedula: "1717788990",
+      suplenteCargo: "Especialista de Arquitectura de Datos",
+      suplenteAreaUnidad: "Subdirección de TI",
+      suplenteEmail: "gabriela.ponce@superbancos.gob.ec",
+      suplenteTelefonoFijo: "022997800 ext 1504",
+      suplenteMovilInstitucional: "0999012346",
+      suplenteMovilPersonal: "0980123456",
+      serviciosHerramientas: ["Interoperabilidad SINARP", "Infodigital"],
+      areasUso: "Dirección de Control Financiero y Riesgos",
+      procesosUso: "Monitoreo prudencial de gravámenes societarios y control de solvencia patrimonial en el sistema bancario.",
+      declaracionesAceptadas: true,
+      ciudadFirma: "Quito D.M.",
+      fechaFirma: "01/10/2026",
+      firmadoDigitalmente: true,
+      archivoDocumentoFirmado: "ARP-R01_Solicitud_Registro_SuperBancos.pdf"
+    }
+  },
+
+  // CASO N10: SENESCYT - PENDIENTE DE GENERAR RESOLUCIÓN (Con delegación de firma y soporte adjunto)
+  {
+    id: "SOL-NORM-210",
+    tipoTramite: "PROCESO_A_REGISTRO_INSTITUCION",
+    codigoDocumental: "ARP-R01",
+    tituloTramite: "Solicitud de Registro de Institución (Anexo A)",
+    cedula: "1713456789",
+    nombres: "Beatriz",
+    apellidos: "Guayasamín Terán",
+    nombreCompleto: "Ing. Beatriz Guayasamín Terán",
+    iniciales: "BG",
+    correo: "beatriz.guayasamin@senescyt.gob.ec",
+    institucion: "Secretaría de Educación Superior, Ciencia, Tecnología e Innovación (SENESCYT)",
+    fechaSolicitud: "29/09/2026 16:30",
+    estado: "PENDIENTE_GENERAR_RESOLUCION",
+    fechaRevision: "30/09/2026 11:00",
+    fechaAprobacionGestion: "30/09/2026 11:00",
+    revisorGestion: "María Torres (Revisor Gestión)",
+    revisorNormatividad: "Personal facultado de Normatividad",
+    revisor: "Personal facultado de Normatividad",
+    fechaAsignacionNormatividad: "30/09/2026 14:15",
+    observacionesAsignacion: "Verificar delegación de firma del Secretario a Coordinación General Jurídica.",
+    revisionIniciada: false,
+    documentos: [
+      "ARP-R01_Solicitud_Registro_SENESCYT.pdf",
+      "Acuerdo_Delegacion_Firma_0032.pdf",
+      "Dictamen_Tecnico_Gestion_Aprobado.pdf"
+    ],
+    historial: [
+      {
+        id: "h-norm-210-1",
+        fechaHora: "29/09/2026 16:30",
+        accion: "Ingreso de trámite",
+        realizadoPor: "Ing. Beatriz Guayasamín Terán",
+        rol: "Solicitante Institucional",
+        detalles: "Formulario ARP-R01 con delegación de firma adjunta registrado formalmente."
+      },
+      {
+        id: "h-norm-210-2",
+        fechaHora: "30/09/2026 11:00",
+        accion: "Solicitud aprobada por Gestión",
+        realizadoPor: "María Torres",
+        rol: "Revisor de Gestión",
+        detalles: "Documentación validada y aprobada por Gestión."
+      },
+      {
+        id: "h-norm-210-3",
+        fechaHora: "30/09/2026 14:15",
+        accion: "Responsable de Normatividad asignado",
+        realizadoPor: "Director de Normatividad",
+        rol: "Director de Normatividad",
+        detalles: "Responsable: Personal facultado de Normatividad. Asignado por: Director de Normatividad. Observaciones: Verificar delegación de firma del Secretario a Coordinación General Jurídica."
+      }
+    ],
+    anexoA: {
+      entidadTipo: "Publica",
+      nombreEntidad: "Secretaría de Educación Superior, Ciencia, Tecnología e Innovación (SENESCYT)",
+      rucEntidad: "1768157650001",
+      direccionEntidad: "Calle Whymper E7-37 y Alpallana, Quito",
+      objetoSocial: "Rectoría de la política pública de educación superior, ciencia, tecnología e innovación en el Ecuador.",
+      representanteLegalNombre: "Dr. César Augusto Vásquez",
+      representanteLegalCargo: "Secretario de Educación Superior",
+      representanteLegalEmail: "secretaria.general@senescyt.gob.ec",
+      esDelegado: true,
+      archivoSoporteDelegacion: "Acuerdo_Delegacion_Firma_0032.pdf",
+      titularNombreCompleto: "Beatriz Guayasamín Terán",
+      titularCedula: "1713456789",
+      titularCargo: "Coordinadora General de Tecnologías de la Información",
+      titularAreaUnidad: "CGTIC",
+      titularEmail: "beatriz.guayasamin@senescyt.gob.ec",
+      titularTelefonoFijo: "023934300 ext 1700",
+      titularMovilInstitucional: "0990123457",
+      titularMovilPersonal: "0981234567",
+      suplenteNombreCompleto: "Mgs. David Villalba",
+      suplenteCedula: "1716677889",
+      suplenteCargo: "Director de Gestión de Datos e Interoperabilidad",
+      suplenteAreaUnidad: "CGTIC",
+      suplenteEmail: "david.villalba@senescyt.gob.ec",
+      suplenteTelefonoFijo: "023934300 ext 1705",
+      suplenteMovilInstitucional: "0991234568",
+      suplenteMovilPersonal: "0982345679",
+      serviciosHerramientas: ["Interoperabilidad SINARP", "Ficha de Registro Único"],
+      areasUso: "Subsecretaría de Fortalecimiento del Conocimiento",
+      procesosUso: "Verificación de titulación de tercer y cuarto nivel e identidad registral para asignación de becas y registro de investigadores.",
+      declaracionesAceptadas: true,
+      ciudadFirma: "Quito D.M.",
+      fechaFirma: "29/09/2026",
+      firmadoDigitalmente: true,
+      archivoDocumentoFirmado: "ARP-R01_Solicitud_Registro_SENESCYT.pdf"
+    }
+  },
   // ENR-03: Trámite Anexo B en estado PENDIENTE DE ASIGNACIÓN (para Director de Gestión)
   {
     id: "SOL-ING-008-B",

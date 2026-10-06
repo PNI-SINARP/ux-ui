@@ -1087,7 +1087,7 @@ function EnrolamientoContent() {
                               value={formData.funcionarioNombre}
                               onChange={(e) => setFormData({ ...formData, funcionarioNombre: e.target.value })}
                               placeholder="Ej: Dr. Roberto Carlos Dávila Silva"
-                              className="text-sm font-semibold"
+                              className="text-sm font-normal text-foreground placeholder:font-normal"
                               required
                             />
                           </InputGroup>

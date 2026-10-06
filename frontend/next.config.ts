@@ -51,7 +51,7 @@ const nextConfig: NextConfig = {
               {
                 key: "Content-Security-Policy",
                 value:
-                  "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data:; frame-src 'self' https://www.youtube.com https://youtube.com; connect-src 'self' https:;",
+                  "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.cdnfonts.com; img-src 'self' data: https: blob:; font-src 'self' data: https://fonts.cdnfonts.com; frame-src 'self' https://www.youtube.com https://youtube.com; connect-src 'self' https:;",
               },
               {
                 key: "Strict-Transport-Security",

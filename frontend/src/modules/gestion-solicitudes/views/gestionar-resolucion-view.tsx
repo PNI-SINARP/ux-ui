@@ -127,7 +127,7 @@ export function GestionarResolucionView({ id, basePath = "/asignacion-solicitude
   );
 
   const renderPlaceholder = (title: string, description: string) => (
-    <div className="bg-surface border border-border rounded-2xl p-6 sm:p-10 text-center space-y-4 shadow-xs animate-in fade-in duration-200">
+    <div className="rounded-xl border border-dashed border-border bg-muted/20 p-8 sm:p-12 text-center space-y-4 animate-in fade-in duration-200">
       <div className="size-12 rounded-xl bg-muted flex items-center justify-center mx-auto text-muted-foreground">
         <Info className="size-6" />
       </div>
@@ -202,28 +202,6 @@ export function GestionarResolucionView({ id, basePath = "/asignacion-solicitude
         {/* Cabecera contextual */}
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 mb-3">
-              <Button
-                type="button"
-                variant="neutral"
-                size="sm"
-                onClick={() => router.push(`${basePath}/${solicitud.id}`)}
-                className="h-8 px-3 text-xs font-semibold gap-1.5 rounded-full"
-              >
-                <ArrowLeft className="size-3.5" />
-                <span>Volver al trámite</span>
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setIsRejectOpen(true)}
-                className="h-8 px-3 text-xs font-semibold gap-1.5 border-danger/30 text-danger hover:bg-danger/10 rounded-full"
-              >
-                <XCircle className="size-3.5" />
-                <span>Rechazar trámite</span>
-              </Button>
-            </div>
             <h1 className="font-heading font-extrabold text-xl sm:text-2xl text-foreground">
               Gestionar Resolución Institucional
             </h1>
@@ -269,24 +247,26 @@ export function GestionarResolucionView({ id, basePath = "/asignacion-solicitude
           </div>
         </div>
 
-        {/* Stepper */}
-        <div className="bg-surface border border-border rounded-2xl p-4 sm:p-6 lg:p-8 shadow-xs overflow-x-auto">
-          <Stepper
-            steps={stepsList}
-            activeStep={step - 1}
-            variant="default"
-            stepPrefix="PASO"
-            showBadge={true}
-            onStepClick={(index) => {
-              if (index + 1 < step) {
-                setStep((index + 1) as 1 | 2 | 3 | 4);
-              }
-            }}
-          />
-        </div>
+        {/* Contenedor principal del Wizard */}
+        <div className="bg-surface border border-border rounded-2xl p-5 sm:p-8 shadow-xs flex flex-col gap-6">
+          {/* Stepper del asistente */}
+          <div className="pb-6 border-b border-border/70 overflow-x-auto">
+            <Stepper
+              steps={stepsList}
+              activeStep={step - 1}
+              variant="default"
+              stepPrefix="PASO"
+              showBadge={true}
+              onStepClick={(index) => {
+                if (index + 1 < step) {
+                  setStep((index + 1) as 1 | 2 | 3 | 4);
+                }
+              }}
+            />
+          </div>
 
-        {/* Contenido de los Pasos */}
-        <div className="space-y-6">
+          {/* Contenido de los Pasos */}
+          <div className="min-h-[340px]">
           {step === 1 &&
             renderPlaceholder(
               "Información de la resolución",
@@ -466,20 +446,18 @@ export function GestionarResolucionView({ id, basePath = "/asignacion-solicitude
         </div>
 
         {/* Footer actions */}
-        <div className="flex flex-col-reverse sm:flex-row justify-between items-center gap-3 pt-4 border-t border-border mt-8">
+        <div className="flex flex-col-reverse sm:flex-row justify-between items-center gap-3 pt-6 border-t border-border mt-auto">
+          {/* Acciones a la izquierda: Volver al trámite (neutral) + Rechazar trámite (outline danger) */}
           <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
             <Button
               type="button"
-              variant="secondary"
+              variant="neutral"
               size="default"
-              onClick={
-                step === 1
-                  ? () => router.push(`${basePath}/${solicitud.id}`)
-                  : handlePrev
-              }
-              className="w-full sm:w-auto text-xs font-semibold rounded-full"
+              onClick={() => router.push(`${basePath}/${solicitud.id}`)}
+              className="w-full sm:w-auto text-xs font-semibold gap-1.5 rounded-full"
             >
-              {step === 1 ? "Cancelar" : "Atrás"}
+              <ArrowLeft className="size-4" />
+              <span>Volver al trámite</span>
             </Button>
             <Button
               type="button"
@@ -489,34 +467,51 @@ export function GestionarResolucionView({ id, basePath = "/asignacion-solicitude
               className="w-full sm:w-auto text-xs font-semibold gap-1.5 border-danger/30 text-danger hover:bg-danger/10 rounded-full"
             >
               <XCircle className="size-4" />
-              <span>Rechazar y no emitir resolución</span>
+              <span>Rechazar trámite</span>
             </Button>
           </div>
 
-          {step < 4 ? (
-            <Button
-              type="button"
-              variant="primary"
-              size="default"
-              onClick={handleNext}
-              className="w-full sm:w-auto text-xs font-semibold gap-1.5 shadow-2xs rounded-full"
-            >
-              <span>Siguiente</span>
-              <ArrowRight className="size-4" />
-            </Button>
-          ) : (
-            <Button
-              type="button"
-              variant="primary"
-              size="default"
-              onClick={handleGenerate}
-              className="w-full sm:w-auto text-xs font-semibold gap-1.5 shadow-2xs rounded-full"
-            >
-              <CheckCircle2 className="size-4" />
-              <span>Confirmar y Generar Resolución</span>
-            </Button>
-          )}
+          {/* Navegación a la derecha: Anterior (secondary) a la izquierda de Siguiente + Siguiente / Generar (primary) */}
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+            {step > 1 && (
+              <Button
+                type="button"
+                variant="secondary"
+                size="default"
+                onClick={handlePrev}
+                className="w-full sm:w-auto text-xs font-semibold gap-1.5 rounded-full"
+              >
+                <ArrowLeft className="size-4" />
+                <span>Anterior</span>
+              </Button>
+            )}
+
+            {step < 4 ? (
+              <Button
+                type="button"
+                variant="primary"
+                size="default"
+                onClick={handleNext}
+                className="w-full sm:w-auto text-xs font-semibold gap-1.5 shadow-2xs rounded-full"
+              >
+                <span>Siguiente</span>
+                <ArrowRight className="size-4" />
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                variant="primary"
+                size="default"
+                onClick={handleGenerate}
+                className="w-full sm:w-auto text-xs font-semibold gap-1.5 shadow-2xs rounded-full"
+              >
+                <CheckCircle2 className="size-4" />
+                <span>Confirmar y Generar Resolución</span>
+              </Button>
+            )}
+          </div>
         </div>
+      </div>
 
         {/* Modal de confirmación de rechazo con advertencia y campo de motivo */}
         <RechazarSolicitudDialog

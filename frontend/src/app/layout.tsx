@@ -95,7 +95,11 @@ export default async function RootLayout({
                     document.documentElement.classList.remove("dark");
                   }
                   if (!document.cookie.includes("glocation-theme=")) {
-                    document.cookie = "glocation-theme=" + theme + "; path=/; max-age=31536000; SameSite=Lax";
+                    setTimeout(function() {
+                      try {
+                        document.cookie = "glocation-theme=" + theme + "; path=/; max-age=31536000; SameSite=Lax";
+                      } catch (e) {}
+                    }, 0);
                   }
                 } catch (error) {}
               })();

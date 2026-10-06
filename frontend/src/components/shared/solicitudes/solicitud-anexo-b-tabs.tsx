@@ -605,7 +605,7 @@ export function SolicitudAnexoBDetail({ solicitud }: SolicitudAnexoBDetailProps)
                     Aclaración de competencia jurídica y operativa (ENR-03):
                   </span>
                   <p className="text-muted-foreground text-[11px] leading-relaxed mt-1">
-                    La firma electrónica válida constituye el requisito previo formal de suscripción por parte del coordinador compareciente y <strong>no debe confundirse con la aprobación de Gestión</strong>, la cual se emite exclusivamente mediante dictamen técnico y registro de decisión formal por parte del Revisor designado.
+                    La firma electrónica válida constituye el requisito previo formal de suscripción por parte del coordinador compareciente y <strong>no debe confundirse con la aprobación de Gestión</strong>, la cual se emite exclusivamente mediante el registro formal de aprobación o rechazo por parte del Revisor designado.
                   </p>
                 </div>
               </Alert>

@@ -34,7 +34,7 @@ export function AprobarSolicitudDialog({
     ? "Confirmar Aprobación — Registro Institucional"
     : isProcesoB
     ? "Confirmar Aprobación y Activación"
-    : "Dictamen Técnico — Aprobación de Anexo C";
+    : "Confirmar Aprobación — Cambio de Coordinador";
 
   const description = isProcesoA
     ? "Al aprobar la solicitud, la institución queda dada de alta en el SINARP y sus coordinadores quedarán PRERREGISTRADOS con envío de invitación (no activos aún)."

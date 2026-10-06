@@ -1,27 +1,18 @@
 import { GestionarResolucionView } from "@/modules/gestion-solicitudes/views/gestionar-resolucion-view";
 
-const SOLICITUDES_INGRESOS_IDS = [
-  "SOL-ING-101",
-  "SOL-ING-102",
-  "SOL-ING-103",
-  "SOL-ING-104",
-  "SOL-ING-105",
-  "SOL-ING-106",
-  "SOL-ING-107",
-  "SOL-ING-108",
-  "SOL-ING-109",
-  "SOL-ING-110",
-  "SOL-ING-111",
-  "SOL-ING-112",
-  "SOL-NORM-201",
-  "SOL-NORM-202",
-  "SOL-NORM-203",
-  "SOL-NORM-204",
-  "SOL-NORM-205",
+export const dynamicParams = true;
+
+const STATIC_SOLICITUDES_IDS = [
+  ...Array.from({ length: 150 }, (_, i) => `SOL-ING-${String(i + 1).padStart(3, "0")}`),
+  "SOL-ING-008-B",
+  "SOL-ING-009-B",
+  "SOL-ING-010-B",
+  "CAM-00023",
+  ...Array.from({ length: 25 }, (_, i) => `SOL-NORM-${String(i + 201).padStart(3, "0")}`),
 ];
 
 export function generateStaticParams() {
-  return SOLICITUDES_INGRESOS_IDS.map((id) => ({ id }));
+  return STATIC_SOLICITUDES_IDS.map((id) => ({ id }));
 }
 
 interface PageProps {
