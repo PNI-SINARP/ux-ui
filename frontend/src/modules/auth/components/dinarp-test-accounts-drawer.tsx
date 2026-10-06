@@ -7,10 +7,7 @@ import {
   X,
   Fingerprint,
   Search,
-  KeyRound,
-  ArrowRight,
   User,
-  Building2,
   Sparkles
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -23,16 +20,9 @@ import { cn } from "@/lib/utils";
 export interface TestAccountItem {
   roleName: string;
   userName: string;
-  institution: string;
   cedula: string;
-  password?: string;
-  badge?: string;
-  badgeTone?: "primary" | "secondary" | "success" | "warning" | "neutral";
-  highlight?: boolean;
   category: "enrolamiento" | "anexo-c" | "dinarp" | "institucion" | "otros";
   categories?: ("enrolamiento" | "anexo-c" | "dinarp" | "institucion" | "otros")[];
-  targetRoute?: string;
-  description?: string;
 }
 
 export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
@@ -40,238 +30,132 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
   {
     roleName: "Director Área de Gestión",
     userName: "Director Gestión",
-    institution: "DINARP",
     cedula: "1711223344",
-    password: "Admin2026*",
-    badge: "Gestión · Asigna Solicitud",
-    badgeTone: "secondary",
-    highlight: true,
     category: "enrolamiento",
-    categories: ["enrolamiento", "anexo-c", "dinarp"],
-    targetRoute: "/asignacion-solicitudes",
-    description: "Recibe solicitudes de ingreso y enrolamiento, distribuye y asigna a revisores de gestión."
+    categories: ["enrolamiento", "anexo-c", "dinarp"]
   },
   {
     roleName: "Revisor Área de Gestión",
     userName: "Ana Torres (Revisor)",
-    institution: "DINARP",
     cedula: "1111111111",
-    password: "Admin2026*",
-    badge: "Gestión · Revisa y Dictamina",
-    badgeTone: "success",
-    highlight: true,
     category: "enrolamiento",
-    categories: ["enrolamiento", "anexo-c", "dinarp"],
-    targetRoute: "/solicitudes-pendientes",
-    description: "Revisa documentación técnica del Anexo A/B, autorizaciones y dictamina Aprobación o Rechazo."
+    categories: ["enrolamiento", "anexo-c", "dinarp"]
   },
   {
     roleName: "Director Área de Normativa",
     userName: "Director Normativa",
-    institution: "DINARP",
     cedula: "2222222222",
-    password: "Admin2026*",
-    badge: "Normativa · Asigna Jurídico",
-    badgeTone: "secondary",
-    highlight: true,
     category: "enrolamiento",
-    categories: ["enrolamiento", "dinarp"],
-    targetRoute: "/asignacion-solicitudes",
-    description: "Supervisión jurídica y asignación de expedientes de ingreso a revisores de normativa."
+    categories: ["enrolamiento", "dinarp"]
   },
   {
     roleName: "Revisor Área de Normativa",
     userName: "Revisor Normativa",
-    institution: "DINARP",
     cedula: "3333333333",
-    password: "Admin2026*",
-    badge: "Normativa · Genera Resolución",
-    badgeTone: "primary",
-    highlight: true,
     category: "enrolamiento",
-    categories: ["enrolamiento", "dinarp"],
-    targetRoute: "/revision-normativa",
-    description: "Revisión jurídica final, vinculación de resolución administrativa y habilitación formal."
+    categories: ["enrolamiento", "dinarp"]
   },
   {
     roleName: "Coordinador Titular (Prerregistrado)",
     userName: "Roberto Dávila",
-    institution: "Ministerio de Salud Pública",
     cedula: "1715489621",
-    password: "Admin2026*",
-    badge: "Enrolamiento · Firma Anexo B",
-    badgeTone: "primary",
-    highlight: true,
     category: "enrolamiento",
-    categories: ["enrolamiento", "institucion"],
-    targetRoute: "/enrolamiento-coordinador?cedula=1715489621",
-    description: "Coordinador habilitado para completar enrolamiento mediante Acuerdo Anexo B."
+    categories: ["enrolamiento", "institucion"]
   },
   {
     roleName: "Representante Legal / Solicitante",
     userName: "Marcelo Albuja",
-    institution: "Consejo de la Judicatura",
     cedula: "1710001112",
-    password: "Admin2026*",
-    badge: "Anexo A · Registro Institución",
-    badgeTone: "neutral",
     category: "enrolamiento",
-    categories: ["enrolamiento", "institucion"],
-    targetRoute: "/registro-institucion",
-    description: "Solicitud inicial de acceso institucional al SINARP (Formulario ARP-R01)."
+    categories: ["enrolamiento", "institucion"]
   },
 
   // ── FLUJO CAMBIO DE COORDINADOR (ANEXO C / CAM-01) ──
   {
     roleName: "Representante Institucional",
     userName: "Carlos Andrade",
-    institution: "Ministerio de Educación",
     cedula: "1716789019",
-    password: "Admin2026*",
-    badge: "Anexo C · Inicia Solicitud",
-    badgeTone: "primary",
-    highlight: true,
     category: "anexo-c",
-    categories: ["anexo-c", "institucion"],
-    targetRoute: "/cambio-coordinador",
-    description: "Inicia el trámite CAM-01 de sustitución de Coordinador mediante Anexo C y FirmaEC."
+    categories: ["anexo-c", "institucion"]
   },
   {
     roleName: "Director Área de Gestión",
     userName: "Director Gestión",
-    institution: "DINARP",
     cedula: "1711223344",
-    password: "Admin2026*",
-    badge: "Anexo C · Asigna Revisor",
-    badgeTone: "secondary",
-    highlight: true,
     category: "anexo-c",
-    categories: ["anexo-c", "enrolamiento", "dinarp"],
-    targetRoute: "/asignacion-solicitudes",
-    description: "Recibe el Anexo C firmado y asigna a Revisor de Gestión (Ana Torres)."
+    categories: ["anexo-c", "enrolamiento", "dinarp"]
   },
   {
     roleName: "Revisor Área de Gestión",
     userName: "Ana Torres (Revisor)",
-    institution: "DINARP",
     cedula: "1111111111",
-    password: "Admin2026*",
-    badge: "Anexo C · Revisa y Dictamina",
-    badgeTone: "success",
-    highlight: true,
     category: "anexo-c",
-    categories: ["anexo-c", "enrolamiento", "dinarp"],
-    targetRoute: "/solicitudes-pendientes",
-    description: "Revisa documento Anexo C, autorizaciones y dictamina Aprobación o Rechazo."
+    categories: ["anexo-c", "enrolamiento", "dinarp"]
   },
 
   // ── COORDINADORES INSTITUCIONALES ──
   {
     roleName: "Coordinador Titular SINARP",
     userName: "Juan Pérez",
-    institution: "Ministerio de Educación",
     cedula: "1712345678",
-    password: "Admin2026*",
-    badge: "Saliente Titular",
-    badgeTone: "neutral",
     category: "institucion",
-    categories: ["institucion"],
-    targetRoute: "/catalogo-interoperabilidad",
-    description: "Coordinador activo titular registrado en el Ministerio de Educación."
+    categories: ["institucion"]
   },
   {
     roleName: "Coordinador Suplente SINARP",
     userName: "Mariana Almeida",
-    institution: "Ministerio de Educación",
     cedula: "1714443322",
-    password: "Temporal2026*",
-    badge: "Contraseña Temporal",
-    badgeTone: "warning",
     category: "institucion",
-    categories: ["institucion"],
-    targetRoute: "/cambiar-contrasena-temporal?cedula=1714443322",
-    description: "Coordinador suplente registrado con primer acceso obligatorio."
+    categories: ["institucion"]
   },
   {
     roleName: "Aprobador Institucional",
     userName: "Aprobador MinEduc",
-    institution: "Ministerio de Educación",
     cedula: "1718956234",
-    password: "Admin2026*",
-    badge: "Aprobador",
-    badgeTone: "neutral",
     category: "institucion",
-    categories: ["institucion"],
-    targetRoute: "/catalogo-interoperabilidad",
-    description: "Autoridad institucional para validaciones internas."
+    categories: ["institucion"]
   },
 
   // ── ADMINISTRACIÓN Y OTROS ROLES DINARP ──
   {
     roleName: "Administrador del Sistema",
     userName: "Admin Portal",
-    institution: "DINARP",
     cedula: "1799999999",
-    password: "Admin2026*",
-    badge: "Superadmin",
-    badgeTone: "neutral",
     category: "dinarp",
-    categories: ["dinarp"],
-    targetRoute: "/cuentas-internas",
-    description: "Administración integral de cuentas, roles, permisos y auditoría."
+    categories: ["dinarp"]
   },
   {
     roleName: "Dirección de Gestión y Registro (DGR)",
     userName: "Analista DGR",
-    institution: "DINARP",
     cedula: "1715489621",
-    password: "Admin2026*",
-    badge: "DGR",
-    badgeTone: "neutral",
     category: "dinarp",
-    categories: ["dinarp"],
-    targetRoute: "/catalogo-interoperabilidad"
+    categories: ["dinarp"]
   },
   {
     roleName: "Dirección de Tecnologías y Desarrollo (DTD)",
     userName: "Especialista DTD",
-    institution: "DINARP",
     cedula: "1712345602",
-    password: "Admin2026*",
-    badge: "DTD",
-    badgeTone: "neutral",
     category: "dinarp",
-    categories: ["dinarp"],
-    targetRoute: "/catalogo-interoperabilidad"
+    categories: ["dinarp"]
   },
   {
     roleName: "Dirección de Protección de Datos (DPI)",
     userName: "Auditor DPI",
-    institution: "DINARP",
     cedula: "1724589632",
-    password: "Admin2026*",
-    badge: "DPI",
-    badgeTone: "neutral",
     category: "dinarp",
-    categories: ["dinarp"],
-    targetRoute: "/catalogo-interoperabilidad"
+    categories: ["dinarp"]
   },
   {
     roleName: "Analista de Facturación",
     userName: "Analista Cobros",
-    institution: "DINARP",
     cedula: "0999999999",
-    password: "Admin2026*",
-    badge: "Facturación",
-    badgeTone: "neutral",
     category: "otros",
-    categories: ["otros", "dinarp"],
-    targetRoute: "/catalogo-interoperabilidad"
+    categories: ["otros", "dinarp"]
   }
 ];
 
 interface DinarpTestAccountsDrawerProps {
-  onSelectCedula?: (cedula: string, targetRoute?: string) => void;
+  onSelectCedula?: (cedula: string) => void;
 }
 
 export function DinarpTestAccountsDrawer({ onSelectCedula }: DinarpTestAccountsDrawerProps) {
@@ -318,19 +202,15 @@ export function DinarpTestAccountsDrawer({ onSelectCedula }: DinarpTestAccountsD
     if (e) e.stopPropagation();
     navigator.clipboard.writeText(cedula);
     setCopiedCedula(cedula);
+    if (onSelectCedula) {
+      onSelectCedula(cedula);
+    }
     toast.success("Cédula copiada al portapapeles", {
       description: cedula,
     });
     setTimeout(() => {
       setCopiedCedula(null);
     }, 2000);
-  };
-
-  const handleSelect = (cedula: string, targetRoute?: string) => {
-    handleCopy(cedula);
-    if (onSelectCedula) {
-      onSelectCedula(cedula, targetRoute);
-    }
   };
 
   const filteredAccounts = useMemo(() => {
@@ -348,10 +228,7 @@ export function DinarpTestAccountsDrawer({ onSelectCedula }: DinarpTestAccountsD
       return (
         acc.roleName.toLowerCase().includes(q) ||
         acc.userName.toLowerCase().includes(q) ||
-        acc.institution.toLowerCase().includes(q) ||
-        acc.cedula.includes(q) ||
-        (acc.badge && acc.badge.toLowerCase().includes(q)) ||
-        (acc.description && acc.description.toLowerCase().includes(q))
+        acc.cedula.includes(q)
       );
     });
   }, [searchQuery, selectedFilter]);
@@ -399,14 +276,11 @@ export function DinarpTestAccountsDrawer({ onSelectCedula }: DinarpTestAccountsD
                 <Fingerprint className="size-5" />
               </div>
               <div>
-                <h4 className="text-sm font-bold font-heading text-foreground flex items-center gap-2">
-                  <span>Roles y Cédulas de Prueba</span>
-                  <Badge tone="primary" appearance="soft" size="sm" className="text-[10px] px-1.5 py-0">
-                    Mocks
-                  </Badge>
+                <h4 className="text-sm font-bold font-heading text-foreground">
+                  Roles y Cédulas de Prueba
                 </h4>
                 <p className="text-[11px] text-muted-foreground">
-                  Haz clic en cualquier fila para ingresar directamente
+                  Haz clic para copiar la cédula al portapapeles
                 </p>
               </div>
             </div>
@@ -427,7 +301,7 @@ export function DinarpTestAccountsDrawer({ onSelectCedula }: DinarpTestAccountsD
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
               <Input
                 type="text"
-                placeholder="Buscar por cédula, rol o usuario..."
+                placeholder="Buscar por rol, nombre o cédula..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-8 text-xs h-8 bg-muted/30"
@@ -514,94 +388,54 @@ export function DinarpTestAccountsDrawer({ onSelectCedula }: DinarpTestAccountsD
             </div>
           </div>
 
-          {/* Listado de Cédulas y Roles */}
-          <div className="overflow-y-auto py-1 divide-y divide-border/40 space-y-1 pr-1 -mr-1 flex-1 [scrollbar-width:thin]">
+          {/* Listado de Cédulas y Roles (Diseño uniforme, solo Rol, Nombre y Cédula) */}
+          <div className="overflow-y-auto py-1 divide-y divide-border/40 space-y-1.5 pr-1 -mr-1 flex-1 [scrollbar-width:thin]">
             {filteredAccounts.map((acc) => {
               const isCopied = copiedCedula === acc.cedula;
               return (
                 <div
-                  key={acc.cedula}
-                  onClick={() => handleSelect(acc.cedula, acc.targetRoute)}
-                  className={cn(
-                    "p-2.5 rounded-xl cursor-pointer transition-all flex items-center justify-between group border border-transparent",
-                    acc.highlight
-                      ? "bg-primary/5 border-primary/20 hover:bg-primary/10 hover:border-primary/40 shadow-xs"
-                      : "hover:bg-muted/60"
-                  )}
+                  key={`${acc.category}-${acc.cedula}-${acc.roleName}`}
+                  onClick={() => handleCopy(acc.cedula)}
+                  className="p-2.5 rounded-xl cursor-pointer transition-colors flex items-center justify-between group border border-border/40 hover:border-border hover:bg-muted/40"
                 >
                   <div className="space-y-1 min-w-0 pr-2 flex-1">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <p className="text-xs font-bold text-foreground truncate group-hover:text-primary transition-colors">
-                        {acc.roleName}
-                      </p>
-                      {acc.badge && (
-                        <Badge
-                          tone={acc.badgeTone || "neutral"}
-                          appearance="soft"
-                          size="sm"
-                          className="text-[9px] px-1.5 py-0 font-semibold"
-                        >
-                          {acc.badge}
-                        </Badge>
-                      )}
+                    <p className="text-xs font-semibold text-foreground truncate">
+                      {acc.roleName}
+                    </p>
+
+                    <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground truncate">
+                      <User className="size-3 text-muted-foreground/70 shrink-0" />
+                      <span className="truncate">{acc.userName}</span>
                     </div>
 
-                    <div className="flex items-center gap-2 text-[11px] text-muted-foreground flex-wrap">
-                      <span className="flex items-center gap-1 text-foreground/80 font-medium truncate">
-                        <User className="size-3 text-muted-foreground shrink-0" />
-                        <span>{acc.userName}</span>
+                    <div className="flex items-center gap-1.5 pt-0.5 text-[11px]">
+                      <span className="text-[10px] text-muted-foreground font-medium">Cédula:</span>
+                      <span className="text-foreground bg-muted/60 px-1.5 py-0.5 rounded font-mono font-medium text-[11px]">
+                        {acc.cedula}
                       </span>
-                      <span>·</span>
-                      <span className="flex items-center gap-1 text-muted-foreground truncate text-[10px]">
-                        <Building2 className="size-2.5 shrink-0" />
-                        <span>{acc.institution}</span>
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-3 pt-0.5 text-[10px]">
-                      <div className="flex items-center gap-1 font-mono text-muted-foreground group-hover:text-foreground font-semibold">
-                        <span>Cédula:</span>
-                        <span className="text-foreground bg-muted/60 px-1 py-0.2 rounded font-mono">
-                          {acc.cedula}
-                        </span>
-                      </div>
-
-                      {acc.password && (
-                        <div className="flex items-center gap-1 text-muted-foreground font-mono">
-                          <KeyRound className="size-2.5 text-muted-foreground" />
-                          <span>{acc.password}</span>
-                        </div>
-                      )}
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <TooltipProvider delayDuration={0}>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon-xs"
-                            onClick={(e) => handleCopy(acc.cedula, e)}
-                            className="text-muted-foreground hover:text-foreground rounded-lg h-7 w-7"
-                          >
-                            {isCopied ? (
-                              <Check className="size-3.5 text-success" />
-                            ) : (
-                              <Copy className="size-3.5" />
-                            )}
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent side="left" className="text-xs">
-                          {isCopied ? "Copiado" : "Copiar cédula"}
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-
-                    <div className="p-1 rounded-full text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all">
-                      <ArrowRight className="size-3.5" />
-                    </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => handleCopy(acc.cedula, e)}
+                      className="text-xs h-7 px-2.5 gap-1.5 text-muted-foreground hover:text-foreground"
+                    >
+                      {isCopied ? (
+                        <>
+                          <Check className="size-3.5 text-success" />
+                          <span className="text-[10px] text-success font-medium">Copiado</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="size-3.5" />
+                          <span className="text-[10px]">Copiar</span>
+                        </>
+                      )}
+                    </Button>
                   </div>
                 </div>
               );
@@ -617,8 +451,8 @@ export function DinarpTestAccountsDrawer({ onSelectCedula }: DinarpTestAccountsD
           {/* Footer */}
           <div className="pt-2.5 mt-auto border-t border-border/60 flex items-center justify-between text-[10px] text-muted-foreground">
             <span className="flex items-center gap-1">
-              <span className="size-1.5 rounded-full bg-success inline-block"></span>
-              <span>Cuentas activas con auto-ingreso</span>
+              <span className="size-1.5 rounded-full bg-primary inline-block"></span>
+              <span>Cédulas disponibles para pruebas</span>
             </span>
             <Button
               type="button"

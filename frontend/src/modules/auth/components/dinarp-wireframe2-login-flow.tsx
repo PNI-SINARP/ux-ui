@@ -286,26 +286,8 @@ export function DinarpWireframe2LoginFlow({
     <div className="space-y-4 relative">
       {/* â”€â”€ Flotante de Cuentas y Roles de Prueba (Desplegable / Ocultable en esquina derecha) â”€â”€ */}
       <DinarpTestAccountsDrawer
-        onSelectCedula={(c, targetRoute) => {
+        onSelectCedula={(c) => {
           setCedula(c);
-          setPassword(c === "1714443322" ? "Temporal2026*" : "Admin2026*");
-          toast.success("Autenticación automática", { description: "Redirigiendo a tu bandeja..." });
-          const loggedUser = login(c);
-          if (targetRoute) {
-            router.push(targetRoute);
-          } else if (loggedUser?.role === "ADMIN") {
-            router.push("/cuentas-internas");
-          } else if (loggedUser?.role === "DIR_GESTION" || loggedUser?.role === "DIR_NORMATIVA") {
-            router.push("/asignacion-solicitudes");
-          } else if (loggedUser?.role === "EQ_GESTION") {
-            router.push("/solicitudes-pendientes");
-          } else if (loggedUser?.role === "EQ_NORMATIVA") {
-            router.push("/revision-normativa");
-          } else if (loggedUser?.role === "REPRESENTANTE_INSTITUCIONAL") {
-            router.push("/cambio-coordinador");
-          } else {
-            router.push("/catalogo-interoperabilidad");
-          }
         }}
       />
 
