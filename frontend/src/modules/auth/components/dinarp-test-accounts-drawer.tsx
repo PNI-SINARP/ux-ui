@@ -29,12 +29,98 @@ export interface TestAccountItem {
   badge?: string;
   badgeTone?: "primary" | "secondary" | "success" | "warning" | "neutral";
   highlight?: boolean;
-  category: "anexo-c" | "dinarp" | "institucion" | "otros";
+  category: "enrolamiento" | "anexo-c" | "dinarp" | "institucion" | "otros";
+  categories?: ("enrolamiento" | "anexo-c" | "dinarp" | "institucion" | "otros")[];
   targetRoute?: string;
   description?: string;
 }
 
 export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
+  // ── FLUJO ENROLAMIENTO (PROCESO A & B / ANEXO A & B) ──
+  {
+    roleName: "Director Área de Gestión",
+    userName: "Director Gestión",
+    institution: "DINARP",
+    cedula: "1711223344",
+    password: "Admin2026*",
+    badge: "Gestión · Asigna Solicitud",
+    badgeTone: "secondary",
+    highlight: true,
+    category: "enrolamiento",
+    categories: ["enrolamiento", "anexo-c", "dinarp"],
+    targetRoute: "/asignacion-solicitudes",
+    description: "Recibe solicitudes de ingreso y enrolamiento, distribuye y asigna a revisores de gestión."
+  },
+  {
+    roleName: "Revisor Área de Gestión",
+    userName: "Ana Torres (Revisor)",
+    institution: "DINARP",
+    cedula: "1111111111",
+    password: "Admin2026*",
+    badge: "Gestión · Revisa y Dictamina",
+    badgeTone: "success",
+    highlight: true,
+    category: "enrolamiento",
+    categories: ["enrolamiento", "anexo-c", "dinarp"],
+    targetRoute: "/solicitudes-pendientes",
+    description: "Revisa documentación técnica del Anexo A/B, autorizaciones y dictamina Aprobación o Rechazo."
+  },
+  {
+    roleName: "Director Área de Normativa",
+    userName: "Director Normativa",
+    institution: "DINARP",
+    cedula: "2222222222",
+    password: "Admin2026*",
+    badge: "Normativa · Asigna Jurídico",
+    badgeTone: "secondary",
+    highlight: true,
+    category: "enrolamiento",
+    categories: ["enrolamiento", "dinarp"],
+    targetRoute: "/asignacion-solicitudes",
+    description: "Supervisión jurídica y asignación de expedientes de ingreso a revisores de normativa."
+  },
+  {
+    roleName: "Revisor Área de Normativa",
+    userName: "Revisor Normativa",
+    institution: "DINARP",
+    cedula: "3333333333",
+    password: "Admin2026*",
+    badge: "Normativa · Genera Resolución",
+    badgeTone: "primary",
+    highlight: true,
+    category: "enrolamiento",
+    categories: ["enrolamiento", "dinarp"],
+    targetRoute: "/revision-normativa",
+    description: "Revisión jurídica final, vinculación de resolución administrativa y habilitación formal."
+  },
+  {
+    roleName: "Coordinador Titular (Prerregistrado)",
+    userName: "Roberto Dávila",
+    institution: "Ministerio de Salud Pública",
+    cedula: "1715489621",
+    password: "Admin2026*",
+    badge: "Enrolamiento · Firma Anexo B",
+    badgeTone: "primary",
+    highlight: true,
+    category: "enrolamiento",
+    categories: ["enrolamiento", "institucion"],
+    targetRoute: "/enrolamiento-coordinador?cedula=1715489621",
+    description: "Coordinador habilitado para completar enrolamiento mediante Acuerdo Anexo B."
+  },
+  {
+    roleName: "Representante Legal / Solicitante",
+    userName: "Marcelo Albuja",
+    institution: "Consejo de la Judicatura",
+    cedula: "1710001112",
+    password: "Admin2026*",
+    badge: "Anexo A · Registro Institución",
+    badgeTone: "neutral",
+    category: "enrolamiento",
+    categories: ["enrolamiento", "institucion"],
+    targetRoute: "/registro-institucion",
+    description: "Solicitud inicial de acceso institucional al SINARP (Formulario ARP-R01)."
+  },
+
   // ── FLUJO CAMBIO DE COORDINADOR (ANEXO C / CAM-01) ──
   {
     roleName: "Representante Institucional",
@@ -46,6 +132,7 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     badgeTone: "primary",
     highlight: true,
     category: "anexo-c",
+    categories: ["anexo-c", "institucion"],
     targetRoute: "/cambio-coordinador",
     description: "Inicia el trámite CAM-01 de sustitución de Coordinador mediante Anexo C y FirmaEC."
   },
@@ -59,6 +146,7 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     badgeTone: "secondary",
     highlight: true,
     category: "anexo-c",
+    categories: ["anexo-c", "enrolamiento", "dinarp"],
     targetRoute: "/asignacion-solicitudes",
     description: "Recibe el Anexo C firmado y asigna a Revisor de Gestión (Ana Torres)."
   },
@@ -72,11 +160,12 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     badgeTone: "success",
     highlight: true,
     category: "anexo-c",
+    categories: ["anexo-c", "enrolamiento", "dinarp"],
     targetRoute: "/solicitudes-pendientes",
     description: "Revisa documento Anexo C, autorizaciones y dictamina Aprobación o Rechazo."
   },
 
-  // ── COORDINADORES INSTITUCIONALES (MINEDUC) ──
+  // ── COORDINADORES INSTITUCIONALES ──
   {
     roleName: "Coordinador Titular SINARP",
     userName: "Juan Pérez",
@@ -86,6 +175,7 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     badge: "Saliente Titular",
     badgeTone: "neutral",
     category: "institucion",
+    categories: ["institucion"],
     targetRoute: "/catalogo-interoperabilidad",
     description: "Coordinador activo titular registrado en el Ministerio de Educación."
   },
@@ -98,6 +188,7 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     badge: "Contraseña Temporal",
     badgeTone: "warning",
     category: "institucion",
+    categories: ["institucion"],
     targetRoute: "/cambiar-contrasena-temporal?cedula=1714443322",
     description: "Coordinador suplente registrado con primer acceso obligatorio."
   },
@@ -110,11 +201,12 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     badge: "Aprobador",
     badgeTone: "neutral",
     category: "institucion",
+    categories: ["institucion"],
     targetRoute: "/catalogo-interoperabilidad",
     description: "Autoridad institucional para validaciones internas."
   },
 
-  // ── ADMINISTRACIÓN Y GESTIÓN DINARP ──
+  // ── ADMINISTRACIÓN Y OTROS ROLES DINARP ──
   {
     roleName: "Administrador del Sistema",
     userName: "Admin Portal",
@@ -124,32 +216,9 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     badge: "Superadmin",
     badgeTone: "neutral",
     category: "dinarp",
+    categories: ["dinarp"],
     targetRoute: "/cuentas-internas",
     description: "Administración integral de cuentas, roles, permisos y auditoría."
-  },
-  {
-    roleName: "Director Área de Normativa",
-    userName: "Director Normativa",
-    institution: "DINARP",
-    cedula: "2222222222",
-    password: "Admin2026*",
-    badge: "Normativa",
-    badgeTone: "neutral",
-    category: "dinarp",
-    targetRoute: "/asignacion-solicitudes",
-    description: "Supervisión y asignación de solicitudes de revisión jurídica."
-  },
-  {
-    roleName: "Revisor Área de Normativa",
-    userName: "Revisor Normativa",
-    institution: "DINARP",
-    cedula: "3333333333",
-    password: "Admin2026*",
-    badge: "Normativa",
-    badgeTone: "neutral",
-    category: "dinarp",
-    targetRoute: "/revision-normativa",
-    description: "Dictámenes jurídicos y resoluciones de acceso institucional."
   },
   {
     roleName: "Dirección de Gestión y Registro (DGR)",
@@ -160,6 +229,7 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     badge: "DGR",
     badgeTone: "neutral",
     category: "dinarp",
+    categories: ["dinarp"],
     targetRoute: "/catalogo-interoperabilidad"
   },
   {
@@ -171,6 +241,7 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     badge: "DTD",
     badgeTone: "neutral",
     category: "dinarp",
+    categories: ["dinarp"],
     targetRoute: "/catalogo-interoperabilidad"
   },
   {
@@ -182,6 +253,7 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     badge: "DPI",
     badgeTone: "neutral",
     category: "dinarp",
+    categories: ["dinarp"],
     targetRoute: "/catalogo-interoperabilidad"
   },
   {
@@ -193,6 +265,7 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     badge: "Facturación",
     badgeTone: "neutral",
     category: "otros",
+    categories: ["otros", "dinarp"],
     targetRoute: "/catalogo-interoperabilidad"
   }
 ];
@@ -204,8 +277,42 @@ interface DinarpTestAccountsDrawerProps {
 export function DinarpTestAccountsDrawer({ onSelectCedula }: DinarpTestAccountsDrawerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedFilter, setSelectedFilter] = useState<"todos" | "anexo-c" | "dinarp" | "institucion">("todos");
+  const [selectedFilter, setSelectedFilter] = useState<
+    "todos" | "enrolamiento" | "anexo-c" | "dinarp" | "institucion"
+  >("todos");
   const [copiedCedula, setCopiedCedula] = useState<string | null>(null);
+
+  const countEnrolamiento = useMemo(
+    () =>
+      TEST_ACCOUNTS_DATA.filter(
+        (a) => a.category === "enrolamiento" || a.categories?.includes("enrolamiento")
+      ).length,
+    []
+  );
+
+  const countAnexoC = useMemo(
+    () =>
+      TEST_ACCOUNTS_DATA.filter(
+        (a) => a.category === "anexo-c" || a.categories?.includes("anexo-c")
+      ).length,
+    []
+  );
+
+  const countDinarp = useMemo(
+    () =>
+      TEST_ACCOUNTS_DATA.filter(
+        (a) => a.category === "dinarp" || a.categories?.includes("dinarp")
+      ).length,
+    []
+  );
+
+  const countInstitucion = useMemo(
+    () =>
+      TEST_ACCOUNTS_DATA.filter(
+        (a) => a.category === "institucion" || a.categories?.includes("institucion")
+      ).length,
+    []
+  );
 
   const handleCopy = (cedula: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
@@ -231,11 +338,7 @@ export function DinarpTestAccountsDrawer({ onSelectCedula }: DinarpTestAccountsD
       const matchesFilter =
         selectedFilter === "todos"
           ? true
-          : selectedFilter === "anexo-c"
-          ? acc.category === "anexo-c"
-          : selectedFilter === "dinarp"
-          ? acc.category === "dinarp"
-          : acc.category === "institucion";
+          : acc.category === selectedFilter || acc.categories?.includes(selectedFilter);
 
       if (!matchesFilter) return false;
 
@@ -247,7 +350,8 @@ export function DinarpTestAccountsDrawer({ onSelectCedula }: DinarpTestAccountsD
         acc.userName.toLowerCase().includes(q) ||
         acc.institution.toLowerCase().includes(q) ||
         acc.cedula.includes(q) ||
-        (acc.badge && acc.badge.toLowerCase().includes(q))
+        (acc.badge && acc.badge.toLowerCase().includes(q)) ||
+        (acc.description && acc.description.toLowerCase().includes(q))
       );
     });
   }, [searchQuery, selectedFilter]);
@@ -279,7 +383,7 @@ export function DinarpTestAccountsDrawer({ onSelectCedula }: DinarpTestAccountsD
               </Button>
             </TooltipTrigger>
             <TooltipContent side="left" className="text-xs">
-              Ver roles y cédulas de prueba disponibles (incluye Anexo C)
+              Ver roles y cédulas de prueba (Enrolamiento, Anexo C, Gestión y Normativa)
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
@@ -356,6 +460,20 @@ export function DinarpTestAccountsDrawer({ onSelectCedula }: DinarpTestAccountsD
 
               <button
                 type="button"
+                onClick={() => setSelectedFilter("enrolamiento")}
+                className={cn(
+                  "text-[10px] font-semibold px-2.5 py-0.5 rounded-full border transition-all shrink-0 flex items-center gap-1",
+                  selectedFilter === "enrolamiento"
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-primary/10 text-primary border-primary/30 hover:bg-primary/20"
+                )}
+              >
+                <Sparkles className="size-2.5" />
+                <span>Flujo Enrolamiento ({countEnrolamiento})</span>
+              </button>
+
+              <button
+                type="button"
                 onClick={() => setSelectedFilter("anexo-c")}
                 className={cn(
                   "text-[10px] font-semibold px-2.5 py-0.5 rounded-full border transition-all shrink-0 flex items-center gap-1",
@@ -365,20 +483,7 @@ export function DinarpTestAccountsDrawer({ onSelectCedula }: DinarpTestAccountsD
                 )}
               >
                 <Sparkles className="size-2.5" />
-                <span>Flujo Anexo C (3)</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setSelectedFilter("institucion")}
-                className={cn(
-                  "text-[10px] font-semibold px-2.5 py-0.5 rounded-full border transition-all shrink-0",
-                  selectedFilter === "institucion"
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-muted/50 text-muted-foreground border-border/60 hover:text-foreground"
-                )}
-              >
-                Institución
+                <span>Flujo Anexo C ({countAnexoC})</span>
               </button>
 
               <button
@@ -391,7 +496,20 @@ export function DinarpTestAccountsDrawer({ onSelectCedula }: DinarpTestAccountsD
                     : "bg-muted/50 text-muted-foreground border-border/60 hover:text-foreground"
                 )}
               >
-                DINARP
+                DINARP ({countDinarp})
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setSelectedFilter("institucion")}
+                className={cn(
+                  "text-[10px] font-semibold px-2.5 py-0.5 rounded-full border transition-all shrink-0",
+                  selectedFilter === "institucion"
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-muted/50 text-muted-foreground border-border/60 hover:text-foreground"
+                )}
+              >
+                Institución ({countInstitucion})
               </button>
             </div>
           </div>

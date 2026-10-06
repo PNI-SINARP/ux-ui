@@ -38,18 +38,28 @@ export function Enr03SimulacionPanel() {
   const sim = useEnr03SimulationStore();
   const store = useSolicitudesIngresoStore();
 
-  const isDirector = activeUser?.role === "DIR_GESTION" || activeUser?.cedula === "1711223344";
-  const isRevisor = activeUser?.role === "EQ_GESTION" || activeUser?.cedula === "1111111111";
+  const isDirGestion = activeUser?.role === "DIR_GESTION" || activeUser?.cedula === "1711223344";
+  const isEqGestion = activeUser?.role === "EQ_GESTION" || activeUser?.cedula === "1111111111";
+  const isDirNormativa = activeUser?.role === "DIR_NORMATIVA" || activeUser?.cedula === "2222222222";
+  const isEqNormativa = activeUser?.role === "EQ_NORMATIVA" || activeUser?.cedula === "3333333333";
 
-  const handleSwitchUser = (cedula: "1711223344" | "1111111111") => {
+  const handleSwitchUser = (cedula: "1711223344" | "1111111111" | "2222222222" | "3333333333") => {
     login(cedula);
     if (cedula === "1711223344") {
       toast.success("Sesión cambiada a Director de Gestión (1711223344)", {
-        description: "Permisos habilitados: Asignar y Reasignar Anexo B. No dictamina.",
+        description: "Permisos habilitados: Asignar y Reasignar Solicitudes.",
+      });
+    } else if (cedula === "1111111111") {
+      toast.success("Sesión cambiada a Revisor de Gestión (1111111111)", {
+        description: "Permisos habilitados: Dictamen y resolución técnica de trámites.",
+      });
+    } else if (cedula === "2222222222") {
+      toast.success("Sesión cambiada a Director de Normativa (2222222222)", {
+        description: "Permisos habilitados: Supervisión y asignación jurídica.",
       });
     } else {
-      toast.success("Sesión cambiada a Revisor de Gestión (1111111111)", {
-        description: "Permisos habilitados: Resolver Anexos B asignados (Aprobar o Rechazar).",
+      toast.success("Sesión cambiada a Revisor de Normativa (3333333333)", {
+        description: "Permisos habilitados: Revisión jurídica y generación de resolución.",
       });
     }
   };
@@ -58,6 +68,8 @@ export function Enr03SimulacionPanel() {
     // Si estamos en asignacion-solicitudes o solicitudes-pendientes
     const basePath = pathname?.includes("solicitudes-pendientes")
       ? "/solicitudes-pendientes"
+      : pathname?.includes("revision-normativa")
+      ? "/revision-normativa"
       : "/asignacion-solicitudes";
 
     router.push(`${basePath}/${id}`);
@@ -85,14 +97,14 @@ export function Enr03SimulacionPanel() {
               <div>
                 <div className="flex items-center gap-1.5">
                   <h4 className="font-bold font-heading text-foreground text-xs">
-                    Simulación ENR-03
+                    Simulación y Roles de Prueba
                   </h4>
                   <Badge tone="primary" appearance="soft" size="sm" className="font-mono text-[9px] px-1 py-0">
-                    ARP-R02
+                    BPM DINARP
                   </Badge>
                 </div>
                 <p className="text-[10px] text-muted-foreground">
-                  Asignar y resolver Anexo B · Reglas de negocio
+                  Gestión y Normativa · Flujos de Ingreso y Resolución
                 </p>
               </div>
             </div>
@@ -109,12 +121,12 @@ export function Enr03SimulacionPanel() {
             </Button>
           </div>
 
-          {/* 1. Conmutador Rápido de Cuenta y Rol (Director â†” Revisor) */}
+          {/* 1. Conmutador Rápido de Cuenta y Rol (Gestión y Normativa) */}
           <div className="p-2.5 rounded-xl border border-border bg-muted/20 space-y-2">
             <div className="flex items-center justify-between text-[11px]">
               <span className="font-bold text-foreground">Cuenta Activa:</span>
               <Badge
-                tone={isDirector ? "primary" : isRevisor ? "success" : "neutral"}
+                tone={isDirGestion || isDirNormativa ? "primary" : isEqGestion || isEqNormativa ? "success" : "neutral"}
                 appearance="solid"
                 size="sm"
                 className="text-[10px] font-mono !text-white"
@@ -123,29 +135,49 @@ export function Enr03SimulacionPanel() {
               </Badge>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 pt-1">
+            <div className="grid grid-cols-2 gap-1.5 pt-1">
               <Button
                 type="button"
-                variant={isDirector ? "primary" : "outline"}
+                variant={isDirGestion ? "primary" : "outline"}
                 size="sm"
                 onClick={() => handleSwitchUser("1711223344")}
-                className="text-[11px] h-8 font-semibold justify-center"
+                className="text-[10px] h-7 px-1 font-semibold justify-center truncate"
               >
-                <span>Director (1711223344)</span>
+                <span>Dir. Gestión (1711223344)</span>
               </Button>
               <Button
                 type="button"
-                variant={isRevisor ? "primary" : "outline"}
+                variant={isEqGestion ? "primary" : "outline"}
                 size="sm"
                 onClick={() => handleSwitchUser("1111111111")}
-                className="text-[11px] h-8 font-semibold justify-center"
+                className="text-[10px] h-7 px-1 font-semibold justify-center truncate"
               >
-                <span>Revisor (1111111111)</span>
+                <span>Rev. Gestión (1111111111)</span>
+              </Button>
+              <Button
+                type="button"
+                variant={isDirNormativa ? "primary" : "outline"}
+                size="sm"
+                onClick={() => handleSwitchUser("2222222222")}
+                className="text-[10px] h-7 px-1 font-semibold justify-center truncate"
+              >
+                <span>Dir. Normativa (2222222222)</span>
+              </Button>
+              <Button
+                type="button"
+                variant={isEqNormativa ? "primary" : "outline"}
+                size="sm"
+                onClick={() => handleSwitchUser("3333333333")}
+                className="text-[10px] h-7 px-1 font-semibold justify-center truncate"
+              >
+                <span>Rev. Normativa (3333333333)</span>
               </Button>
             </div>
             <p className="text-[10px] text-muted-foreground italic">
-              {isDirector && "El Director solo asigna o reasigna. No dictamina aprobación/rechazo."}
-              {isRevisor && "El Revisor solo resuelve trámites asignados a su cuenta."}
+              {isDirGestion && "Director Gestión: asigna y distribuye solicitudes de ingreso y cambio de coordinador."}
+              {isEqGestion && "Revisor Gestión: resuelve y emite dictamen técnico de expedientes asignados."}
+              {isDirNormativa && "Director Normativa: supervisa y asigna expedientes jurídicos."}
+              {isEqNormativa && "Revisor Normativa: revisa jurídicamente y genera/vincula resolución institucional."}
             </p>
           </div>
 

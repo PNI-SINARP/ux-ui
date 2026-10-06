@@ -127,6 +127,7 @@ import {
 import { AprobarSolicitudDialog } from "@/components/shared/solicitudes/aprobar-solicitud-dialog";
 import { RechazarSolicitudDialog } from "@/components/shared/solicitudes/rechazar-solicitud-dialog";
 import { AsignarRevisorDialog } from "@/components/shared/solicitudes/asignar-revisor-dialog";
+import { Enr03SimulacionPanel } from "@/components/shared/solicitudes/enr03-simulacion-panel";
 import { buildTramiteTimelineItems } from "@/components/shared/solicitudes/tramite-timeline-helper";
 
 interface FilterComboboxProps {
@@ -3424,6 +3425,7 @@ export function RevisionNormativaView() {
           onConfirmAsignacion={handleConfirmAsignacion}
           onConfirmAsignacionMasiva={handleConfirmAsignacionMasiva} />
         
+        <Enr03SimulacionPanel />
       </main>
     </WireframeDashboardLayout>);
 
