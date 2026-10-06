@@ -3,7 +3,7 @@ import { Wireframes2ThemeReset } from "@/components/layout/wireframes/wireframes
 import { VincularAutenticadorView } from "@/modules/auth/views/vincular-autenticador-view";
 
 export const metadata: Metadata = {
-  title: "Vincular Google Authenticator | SURI DINARP",
+  title: "Vincular Google Authenticator | DINARP",
   description: "Enrolamiento de segundo factor de autenticación TOTP.",
 };
 

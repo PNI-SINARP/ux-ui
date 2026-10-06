@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { Wireframes2ThemeReset } from "@/components/layout/wireframes/wireframes2-theme-reset";
 
 export const metadata: Metadata = {
-  title: "SURI Interoperabilidad | DINARP",
-  description: "Plataforma de Interoperabilidad DINARP.",
+  title: "Portal de Interoperabilidad | DINARP",
+  description: "Portal de Interoperabilidad DINARP.",
 };
 
 interface PortalLayoutProps {
