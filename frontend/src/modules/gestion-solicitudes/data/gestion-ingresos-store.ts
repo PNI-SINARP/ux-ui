@@ -3905,7 +3905,9 @@ export function saveStoredSolicitudesIngreso(items: SolicitudIngreso[]) {
   if (typeof window === "undefined") return;
   try {
     localStorage.setItem(STORAGE_KEY_INGRESOS, JSON.stringify(items));
-    window.dispatchEvent(new CustomEvent("dinarp_ingresos_updated", { detail: items }));
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent("dinarp_ingresos_updated", { detail: items }));
+    }, 0);
   } catch {
     // Ignore storage issues
   }

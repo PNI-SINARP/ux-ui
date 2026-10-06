@@ -1261,7 +1261,9 @@ export function saveStoredSolicitudes(data: SolicitudAcceso[]) {
   if (typeof window === "undefined") return;
   try {
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    window.dispatchEvent(new CustomEvent("solicitudes_updated", { detail: data }));
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent("solicitudes_updated", { detail: data }));
+    }, 0);
   } catch (e) {}
 }
 

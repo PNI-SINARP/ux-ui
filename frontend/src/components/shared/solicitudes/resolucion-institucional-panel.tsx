@@ -31,7 +31,7 @@ import {
   DialogDescription,
   DialogFooter
 } from "@/components/ui/dialog";
-import { SolicitudIngreso, getEstadoBadgeProps, useSolicitudesIngresoStore } from "@/modules/gestion-solicitudes/data/gestion-ingresos-store";
+import { SolicitudIngreso, getEstadoBadgeProps } from "@/modules/gestion-solicitudes/data/gestion-ingresos-store";
 import { RechazarSolicitudDialog } from "@/components/shared/solicitudes/rechazar-solicitud-dialog";
 import { toast } from "sonner";
 
@@ -57,7 +57,6 @@ export function ResolucionInstitucionalPanel({
   onRechazarSolicitud
 }: ResolucionInstitucionalPanelProps) {
   const router = useRouter();
-  const store = useSolicitudesIngresoStore();
   
   const [isFalloModalOpen, setIsFalloModalOpen] = useState(false);
   const [isFirmaExitoModalOpen, setIsFirmaExitoModalOpen] = useState(false);
@@ -738,11 +737,6 @@ export function ResolucionInstitucionalPanel({
         onConfirm={(sol, motivo) => {
           if (onRechazarSolicitud) {
             onRechazarSolicitud(sol.id, motivo);
-          } else {
-            store.rechazarSolicitud(sol.id, motivo, currentUserName);
-            toast.success("Solicitud rechazada correctamente", {
-              description: "No se generó la resolución institucional y se notificó el motivo a la entidad.",
-            });
           }
           router.push("/revision-normativa");
         }}

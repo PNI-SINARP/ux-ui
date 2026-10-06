@@ -270,11 +270,11 @@ export function CoordinadorDetailClient({ id }: CoordinadorDetailClientProps) {
           {hasSyncPending && (
             <Alert
               variant="warning"
-              icon={<AlertTriangle className="size-4 text-warning" />}
+              icon={<AlertTriangle className="size-4.5 text-white" />}
               title="Cambio de cuenta pendiente de sincronización con Identity Platform"
-              className="animate-fade-in shadow-xs"
+              className="animate-fade-in shadow-xs shrink-0 py-4 sm:py-5 px-4 sm:px-5"
             >
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1.5">
                 <p className="text-xs text-muted-foreground leading-relaxed">
                   Esta cuenta tiene modificaciones aplicadas localmente que no han sido confirmadas en <strong>Identity Platform</strong>.
                 </p>

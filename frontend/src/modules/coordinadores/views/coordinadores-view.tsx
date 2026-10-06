@@ -261,7 +261,7 @@ export function CoordinadoresView() {
             </p>
           </div>
           <div className="flex flex-col items-end gap-1.5 shrink-0">
-            <div className="flex items-center gap-1.5 flex-wrap justify-end">
+            <div className="flex flex-col items-end gap-1">
               <Badge
                 tone={coord.estado === "ACTIVO" ? "success" : "danger"}
                 appearance="soft"
@@ -672,12 +672,12 @@ export function CoordinadoresView() {
           {cuentasPendientesSync.length > 0 && (
             <Alert
               variant="warning"
-              icon={<AlertTriangle className="size-4 text-warning" />}
+              icon={<AlertTriangle className="size-4.5 text-white" />}
               title={`Cambio de cuenta pendiente de sincronización (${cuentasPendientesSync.length})`}
-              className="animate-fade-in shadow-xs"
+              className="animate-fade-in shadow-xs shrink-0 py-4 sm:py-5 px-4 sm:px-5"
             >
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
-                <p className="text-muted-foreground text-xs leading-relaxed">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1.5">
+                <p className="text-muted-foreground text-xs sm:text-[13px] leading-relaxed">
                   Existen coordinadores con modificaciones aplicadas localmente pendientes de confirmación en <strong>Identity Platform</strong>:{" "}
                   <span className="font-semibold text-foreground">
                     {cuentasPendientesSync.map((c) => `${c.nombreCompleto} (${c.institucion})`).join("; ")}
@@ -1306,7 +1306,7 @@ export function CoordinadoresView() {
 
                           {/* 7. Estado Cuenta */}
                           <TableCell className="w-[130px] align-middle whitespace-nowrap">
-                            <div className="space-y-1">
+                            <div className="flex flex-col items-start gap-1">
                               <Badge
                                 tone={coord.estado === "ACTIVO" ? "success" : "danger"}
                                 appearance="soft"

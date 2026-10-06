@@ -31,7 +31,9 @@ function saveStoredSimConfig(config: Enr03SimulationConfig) {
   if (typeof window === "undefined") return;
   try {
     localStorage.setItem(STORAGE_KEY_ENR03_SIM, JSON.stringify(config));
-    window.dispatchEvent(new CustomEvent("dinarp_enr03_sim_updated", { detail: config }));
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent("dinarp_enr03_sim_updated", { detail: config }));
+    }, 0);
   } catch (err) {
     console.error("Error saving ENR-03 sim config", err);
   }
