@@ -1,23 +1,9 @@
 import { redirect } from "next/navigation";
 
-const CUENTAS_INTERNAS_IDS = [
-  "USR-INT-001",
-  "USR-INT-002",
-  "USR-INT-003",
-  "USR-INT-004",
-  "USR-INT-005",
-  "USR-INT-006",
-  "USR-INT-007",
-  "USR-INT-008",
-  "USR-INT-009",
-  "USR-INT-010",
-  "USR-INT-011",
-  "USR-INT-012",
-  "USR-INT-013",
-  "USR-INT-014",
-  "USR-INT-015",
-  "USR-INT-016",
-];
+const CUENTAS_INTERNAS_IDS = Array.from(
+  { length: 60 },
+  (_, i) => `USR-INT-${String(i + 1).padStart(3, "0")}`
+);
 
 export function generateStaticParams() {
   return CUENTAS_INTERNAS_IDS.map((id) => ({ id }));

@@ -2,14 +2,7 @@ import { SolicitudPendienteDetailView } from "@/modules/gestion-solicitudes/view
 
 export const dynamicParams = false;
 
-const STATIC_SOLICITUDES_IDS = [
-  ...Array.from({ length: 150 }, (_, i) => `SOL-ING-${String(i + 1).padStart(3, "0")}`),
-  "SOL-ING-008-B",
-  "SOL-ING-009-B",
-  "SOL-ING-010-B",
-  "CAM-00023",
-  ...Array.from({ length: 25 }, (_, i) => `SOL-NORM-${String(i + 201).padStart(3, "0")}`),
-];
+import { STATIC_SOLICITUDES_IDS } from "@/modules/gestion-solicitudes/data/static-solicitudes-ids";
 
 export function generateStaticParams() {
   return STATIC_SOLICITUDES_IDS.map((id) => ({ id }));

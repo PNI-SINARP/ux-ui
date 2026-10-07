@@ -135,12 +135,12 @@ const navItems: NavItem[] = [
   },
   {
     label: "Notificaciones",
-    href: "/notificaciones",
+    href: "/novedades",
     icon: Bell,
   },
   {
     label: "Acceso",
-    href: "/acceso",
+    href: "/login",
     icon: LogIn,
   },
 ];

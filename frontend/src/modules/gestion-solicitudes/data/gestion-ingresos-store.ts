@@ -318,7 +318,7 @@ export interface SolicitudIngreso {
   anexoC?: DatosAnexoC;
 }
 
-export const STORAGE_KEY_INGRESOS = "dinarp_solicitudes_ingreso_v18";
+export const STORAGE_KEY_INGRESOS = "dinarp_solicitudes_ingreso_v20";
 
 export const INITIAL_SOLICITUDES_INGRESO: SolicitudIngreso[] = [
   // CASO 1 (PRIORITARIO NORMATIVA): APROBADO POR GESTIÓN → PENDIENTE ASIGNACIÓN EN NORMATIVIDAD
@@ -1968,7 +1968,38 @@ export const INITIAL_SOLICITUDES_INGRESO: SolicitudIngreso[] = [
     correo: "lucia.navarrete@registrocivil.gob.ec",
     institucion: "Dirección General de Registro Civil, Identificación y Cedulación",
     fechaSolicitud: "23/09/2026 08:22",
-    estado: "Pendiente",
+    estado: "EN_REVISION_GESTION",
+    revisorGestion: "Lic. Ana Torres",
+    revisor: "Lic. Ana Torres",
+    fechaAsignacionGestion: "07/10/2026 09:15",
+    asignacionActual: {
+      id_asignacion: "ASIG-CAM-004",
+      id_asignador: "U-DIRGEST",
+      nombre_asignador: "Ing. Sofía Morales (Directora de Gestión)",
+      id_revisor: "U-EQGEST",
+      nombre_revisor: "Lic. Ana Torres",
+      instante_asignacion: "2026-10-07T09:15:00.000Z",
+      id_tramite_b: "SOL-ING-004",
+      vigente: true
+    },
+    historial: [
+      {
+        id: "hist-ing-004-1",
+        fechaHora: "23/09/2026 08:22",
+        accion: "Ingreso de trámite Anexo C",
+        realizadoPor: "Abg. Fernando Alarcón (Subdirector General Delegado)",
+        rol: "Máxima Autoridad Delegada",
+        detalles: "Formulario ARP-R03 firmado digitalmente y remitido al SINARP para sustitución de coordinador titular."
+      },
+      {
+        id: "hist-ing-004-2",
+        fechaHora: "07/10/2026 09:15",
+        accion: "Asignación de trámite a Revisor de Gestión",
+        realizadoPor: "Ing. Sofía Morales (Directora de Gestión)",
+        rol: "Dirección de Gestión y Registro",
+        detalles: "Expediente asignado a Lic. Ana Torres para análisis de viabilidad técnica y validación de firma electrónica."
+      }
+    ],
     documentos: [
       "ARP-R03_Cambio_Coordinador_RegistroCivil.pdf",
       "Accion_Personal_Delegacion_Firmante.pdf"
@@ -4106,14 +4137,49 @@ export function getStoredSolicitudesIngreso(): SolicitudIngreso[] {
       return INITIAL_SOLICITUDES_INGRESO;
     }
     const parsed: SolicitudIngreso[] = JSON.parse(raw);
-    const tieneCasosDirector = parsed.some((s) => s.id === "SOL-ING-DIR-001");
+    let modificado = false;
+    let items = [...parsed];
+
+    // Asegurar casos del Director (SOL-ING-DIR-*)
+    const tieneCasosDirector = items.some((s) => s.id === "SOL-ING-DIR-001");
     if (!tieneCasosDirector) {
       const casosNuevos = INITIAL_SOLICITUDES_INGRESO.filter((s) => s.id.startsWith("SOL-ING-DIR-"));
-      const combinados = [...casosNuevos, ...parsed];
-      localStorage.setItem(STORAGE_KEY_INGRESOS, JSON.stringify(combinados));
-      return combinados;
+      items = [...casosNuevos, ...items];
+      modificado = true;
     }
-    return parsed;
+
+    // Asegurar caso Anexo C para el Director (SOL-ING-DIR-005)
+    const tieneCasoDir005 = items.some((s) => s.id === "SOL-ING-DIR-005");
+    if (!tieneCasoDir005) {
+      const dir005 = INITIAL_SOLICITUDES_INGRESO.find((s) => s.id === "SOL-ING-DIR-005");
+      if (dir005) {
+        items.unshift(dir005);
+        modificado = true;
+      }
+    }
+
+    // Asegurar caso Anexo C para el Gestor (SOL-ING-004 asignado a Lic. Ana Torres)
+    const casoGestorIndex = items.findIndex((s) => s.id === "SOL-ING-004");
+    if (casoGestorIndex >= 0) {
+      if (!items[casoGestorIndex].revisorGestion) {
+        const initGestor = INITIAL_SOLICITUDES_INGRESO.find((s) => s.id === "SOL-ING-004");
+        if (initGestor) {
+          items[casoGestorIndex] = { ...items[casoGestorIndex], ...initGestor };
+          modificado = true;
+        }
+      }
+    } else {
+      const initGestor = INITIAL_SOLICITUDES_INGRESO.find((s) => s.id === "SOL-ING-004");
+      if (initGestor) {
+        items.unshift(initGestor);
+        modificado = true;
+      }
+    }
+
+    if (modificado) {
+      localStorage.setItem(STORAGE_KEY_INGRESOS, JSON.stringify(items));
+    }
+    return items;
   } catch {
     return INITIAL_SOLICITUDES_INGRESO;
   }

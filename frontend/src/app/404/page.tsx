@@ -30,7 +30,7 @@ export default function Page404() {
             asChild
             rightIcon={<ArrowRight className="size-4" />}
           >
-            <Link href="/wireframes/dashboard">
+            <Link href="/catalogo-interoperabilidad">
               Ir al Dashboard
             </Link>
           </Button>

@@ -7,18 +7,20 @@ export const metadata: Metadata = {
 };
 
 export function generateStaticParams() {
-  return [
-    { id: "DINARP_TI" },
-    { id: "DGR" },
-    { id: "DN" },
-    { id: "DTD" },
-    { id: "DPI" },
-    { id: "DINARP_DIR" },
-    { id: "DIR_FIN" },
-    { id: "DINARP_HIST_DIS" },
-    { id: "PLAN_EXP_01" },
-    { id: "AUDIT_INT_02" },
+  const codigos = [
+    "DINARP_TI",
+    "DGR",
+    "DN",
+    "DTD",
+    "DPI",
+    "DINARP_DIR",
+    "DIR_FIN",
+    "DINARP_HIST_DIS",
+    "PLAN_EXP_01",
+    "AUDIT_INT_02",
   ];
+  const areaIds = Array.from({ length: 20 }, (_, i) => `AREA-${String(i + 1).padStart(3, "0")}`);
+  return [...codigos, ...areaIds].map((id) => ({ id }));
 }
 
 interface PageProps {

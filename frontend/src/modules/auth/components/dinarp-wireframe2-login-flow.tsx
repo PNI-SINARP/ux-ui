@@ -186,7 +186,7 @@ export function DinarpWireframe2LoginFlow({
         toast.info("Contraseña temporal detectada", {
           description: "Debes cambiar tu contraseña temporal antes de ingresar al portal.",
         });
-        router.push("/cambiar-contrasena-temporal?cedula=1714443322");
+        router.push("/establecer-contrasena?cedula=1714443322");
         return;
       }
 

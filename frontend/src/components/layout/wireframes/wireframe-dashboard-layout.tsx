@@ -535,9 +535,9 @@ export function WireframeDashboardLayout({
                   <SidebarMenuButton
                     tooltip="Notificaciones"
                     asChild
-                    isActive={pathname?.startsWith("/notificaciones")}
+                    isActive={pathname?.startsWith("/novedades")}
                   >
-                    <SidebarNavigationItemLink href="/notificaciones" className="flex items-center gap-2.5 group-data-[collapsible=icon]:justify-center">
+                    <SidebarNavigationItemLink href="/novedades" className="flex items-center gap-2.5 group-data-[collapsible=icon]:justify-center">
                       <Bell className="size-4 shrink-0" />
                       <span className="truncate group-data-[collapsible=icon]:hidden">Notificaciones</span>
                     </SidebarNavigationItemLink>

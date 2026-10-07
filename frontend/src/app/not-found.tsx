@@ -27,7 +27,7 @@ export default function NotFound() {
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto">
-          <Link href="/wireframes/dashboard">
+          <Link href="/catalogo-interoperabilidad">
             <Button variant="primary" size="lg" className="rounded-full px-8 py-6 text-base font-semibold shadow-md hover:-translate-y-0.5 transition-transform">
               Ir al Dashboard <ArrowRight className="ml-2 size-5" />
             </Button>

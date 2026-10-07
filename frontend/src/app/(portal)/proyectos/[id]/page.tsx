@@ -1,19 +1,9 @@
 import { ProyectoDetailView } from "@/modules/proyectos/views/proyecto-detail-view";
 
-const PROYECTOS_PREGENERADOS = [
-  "PRJ-2026-001",
-  "PRJ-2026-002",
-  "PRJ-2026-003",
-  "PRJ-2026-004",
-  "PRJ-2026-005",
-  "PRJ-2026-006",
-  "PRJ-2026-007",
-  "PRJ-2026-008",
-  "PRJ-2026-009",
-  "PRJ-2026-010",
-  "PRJ-2026-011",
-  "PRJ-2026-012",
-];
+const PROYECTOS_PREGENERADOS = Array.from(
+  { length: 50 },
+  (_, i) => `PRJ-2026-${String(i + 1).padStart(3, "0")}`
+);
 
 export function generateStaticParams() {
   return PROYECTOS_PREGENERADOS.map((id) => ({ id }));

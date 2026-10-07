@@ -47,7 +47,7 @@ const INSTITUTIONAL_NOTIFICATIONS: NotificationItem[] = [
     icon: AlertCircle,
     tone: "warning",
     unread: true,
-    href: "/wireframes/solicitudes/detalle?id=PRJ-2026-001",
+    href: "/proyectos/PRJ-2026-001",
   },
   {
     id: 2,
@@ -57,7 +57,7 @@ const INSTITUTIONAL_NOTIFICATIONS: NotificationItem[] = [
     icon: CheckCircle2,
     tone: "success",
     unread: true,
-    href: "/wireframes/solicitudes/detalle",
+    href: "/proyectos",
   },
   {
     id: 3,
@@ -67,7 +67,7 @@ const INSTITUTIONAL_NOTIFICATIONS: NotificationItem[] = [
     icon: Server,
     tone: "info",
     unread: true,
-    href: "/wireframes/catalogo-fuentes",
+    href: "/catalogo-interoperabilidad",
   },
   {
     id: 4,
@@ -77,7 +77,7 @@ const INSTITUTIONAL_NOTIFICATIONS: NotificationItem[] = [
     icon: Database,
     tone: "primary",
     unread: false,
-    href: "/wireframes/intercambios-masivos",
+    href: "/catalogo-interoperabilidad",
   },
   {
     id: 5,
@@ -273,7 +273,7 @@ export function NotificationsMenu({ isEmpty = false }: { isEmpty?: boolean }) {
               className="w-full text-xs font-semibold gap-1.5 border-border"
               asChild
             >
-              <Link href="/wireframes/solicitudes">
+              <Link href="/proyectos">
                 Ir a Proyectos de interoperabilidad
                 <ChevronRight className="size-3.5" />
               </Link>
@@ -382,7 +382,7 @@ export function NotificationsMenu({ isEmpty = false }: { isEmpty?: boolean }) {
             className="w-full text-xs font-semibold text-foreground hover:bg-muted/50 justify-between h-8 px-2"
             asChild
           >
-            <Link href="/wireframes/solicitudes">
+            <Link href="/proyectos">
               <span>Ir a Proyectos de interoperabilidad</span>
               <ChevronRight className="size-3.5 text-muted-foreground" />
             </Link>
