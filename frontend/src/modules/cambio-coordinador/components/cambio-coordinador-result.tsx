@@ -4,13 +4,6 @@ import React from "react";
 import {
   CheckCircle2,
   FileCheck2,
-  Building2,
-  Calendar,
-  Send,
-  Eye,
-  Download,
-  RotateCcw,
-  ArrowRight,
   ShieldCheck,
   UserCheck
 } from "lucide-react";
@@ -22,7 +15,7 @@ import type { TramiteCambioCoordinador } from "../data/cambio-coordinador-store"
 
 interface CambioCoordinadorResultProps {
   tramite: TramiteCambioCoordinador;
-  onVerSeguimiento: () => void;
+  onVerSeguimiento?: () => void;
   onNuevoTramite: () => void;
 }
 
@@ -125,17 +118,6 @@ export function CambioCoordinadorResult({
           <Button
             type="button"
             variant="primary"
-            size="default"
-            className="w-full sm:w-auto text-xs font-semibold gap-1.5 shadow-xs sm:min-w-[170px]"
-            onClick={onVerSeguimiento}
-          >
-            <Eye className="size-4" />
-            <span>Ver seguimiento</span>
-          </Button>
-
-          <Button
-            type="button"
-            variant="outline"
             size="default"
             className="w-full sm:w-auto text-xs font-semibold shadow-xs sm:min-w-[150px]"
             onClick={onNuevoTramite}

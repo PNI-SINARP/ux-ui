@@ -200,10 +200,12 @@ export const MOCK_USERS_BY_ROLE: Record<UserRole, MockUser> = {
     id: "U-DIRGEST",
     name: "Director Gestión",
     role: "DIR_GESTION",
+    roleTitle: "Director Área de Gestión",
     email: "gestion.director@gmail.com",
     avatar: "DG",
     institution: "DINARP",
-    cedula: "1711223344"
+    cedula: "1711223344",
+    initials: "DG"
   },
   EQ_GESTION: {
     id: "U-EQGEST",
@@ -213,25 +215,30 @@ export const MOCK_USERS_BY_ROLE: Record<UserRole, MockUser> = {
     email: "gestion.revisor@gmail.com",
     avatar: "RG",
     institution: "DINARP",
-    cedula: "1111111111"
+    cedula: "1111111111",
+    initials: "AT"
   },
   DIR_NORMATIVA: {
     id: "U-DIRNORM",
     name: "Director de Normatividad",
     role: "DIR_NORMATIVA",
+    roleTitle: "Director de Normatividad",
     email: "normativa.director@gmail.com",
     avatar: "DN",
     institution: "DINARP",
-    cedula: "2222222222"
+    cedula: "2222222222",
+    initials: "DN"
   },
   EQ_NORMATIVA: {
     id: "U-EQNORM",
     name: "Personal facultado de Normatividad",
     role: "EQ_NORMATIVA",
+    roleTitle: "Revisor de Normatividad",
     email: "normativa.revisor@gmail.com",
     avatar: "PN",
     institution: "DINARP",
-    cedula: "3333333333"
+    cedula: "3333333333",
+    initials: "PN"
   },
   COORDINADOR_SINARP: {
     id: "1712345678",
@@ -245,6 +252,7 @@ export const MOCK_USERS_BY_ROLE: Record<UserRole, MockUser> = {
   },
   DGR: {
     id: "USR-002",
+    cedula: "1715489621",
     name: "María Torres",
     role: "DGR",
     roleTitle: "Dirección de Gestión y Registro (DGR)",
@@ -253,6 +261,7 @@ export const MOCK_USERS_BY_ROLE: Record<UserRole, MockUser> = {
   },
   DTD: {
     id: "USR-003",
+    cedula: "1712345602",
     name: "Carlos Mena",
     role: "DTD",
     roleTitle: "Dirección de Tecnologías de la Información (DTD)",
@@ -261,6 +270,7 @@ export const MOCK_USERS_BY_ROLE: Record<UserRole, MockUser> = {
   },
   DPI: {
     id: "USR-004",
+    cedula: "1724589632",
     name: "Daniela Ruiz",
     role: "DPI",
     roleTitle: "Dirección de Protección de la Información (DPI)",
@@ -269,6 +279,7 @@ export const MOCK_USERS_BY_ROLE: Record<UserRole, MockUser> = {
   },
   APROBADOR: {
     id: "USR-005",
+    cedula: "1719876543",
     name: "Dr. Roberto Méndez",
     role: "APROBADOR",
     roleTitle: "Aprobador Institucional",
@@ -277,6 +288,7 @@ export const MOCK_USERS_BY_ROLE: Record<UserRole, MockUser> = {
   },
   FACTURACION: {
     id: "USR-006",
+    cedula: "1718765432",
     name: "Lcda. Patricia Morales",
     role: "FACTURACION",
     roleTitle: "Analista de Facturación y Cobranzas",

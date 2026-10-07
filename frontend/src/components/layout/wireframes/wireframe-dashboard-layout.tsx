@@ -35,12 +35,14 @@ import {
   Bell,
   FolderCheck,
   UserCheck,
+  UserCog,
   FileSignature,
   KeyRound,
   History,
   Building2,
   Scale,
   Lock,
+  Cpu,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -51,7 +53,7 @@ import { GeoportalHeader } from "@/components/layout/geoportal-header";
 import { NotificationsMenu } from "@/components/shared/notifications-menu";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { applyTheme, getStoredTheme, type Theme } from "@/lib/theme";
-import { MOCK_USERS_BY_ROLE, type MockUser, type UserRole } from "@/modules/catalogo-interoperabilidad/data/catalogo-data";
+import { MOCK_USERS_BY_ROLE, ROLES_CONFIG, type MockUser, type UserRole } from "@/modules/catalogo-interoperabilidad/data/catalogo-data";
 import { WireframeBreadcrumbs, type BreadcrumbSegment } from "./wireframe-breadcrumbs";
 import { useAuthStore } from "@/modules/gestion-solicitudes/data/auth-store";
 import { WireframeRoleSelector } from "./wireframe-role-selector";
@@ -73,9 +75,19 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 
-interface WireframeDashboardLayoutProps {
+export type { MockUser, UserRole };
+
+export interface WireframeDashboardUser {
+  id?: string;
+  name?: string;
+  role?: string;
+  institution?: string;
+  avatarUrl?: string;
+}
+
+export interface WireframeDashboardLayoutProps {
   activeMenu?: string;
-  currentUser?: MockUser;
+  currentUser?: MockUser | WireframeDashboardUser;
   currentRole?: UserRole;
   allowedRoles?: string[];
   onRoleChange?: (role: UserRole) => void;
@@ -84,69 +96,64 @@ interface WireframeDashboardLayoutProps {
   children: React.ReactNode;
 }
 
-interface NavSubItem {
-  id: string;
-  label: string;
-  href: string;
-  exact?: boolean;
-}
-
 interface NavItem {
   id: string;
   label: string;
   icon: React.ElementType;
-  href?: string;
-  children?: NavSubItem[];
-  pathPrefix?: string;
+  href: string;
   allowedRoles?: UserRole[];
   providerOnly?: boolean;
 }
 
 const navItems: NavItem[] = [
+  // ── Coordinador SINARP, Aprobador y Representante Institucional ──
   {
-    id: "institucion-group",
-    label: "Institución",
-    icon: Building2,
-    pathPrefix: "/cambio-coordinador",
-    children: [
-      {
-        id: "cambio-coordinador",
-        label: "Cambio de coordinador",
-        href: "/cambio-coordinador",
-        exact: true
-      }
-    ],
-    allowedRoles: ["REPRESENTANTE_INSTITUCIONAL", "ADMIN"]
+    id: "cambio-coordinador",
+    label: "Cambio de coordinador",
+    icon: UserCog,
+    href: "/cambio-coordinador",
+    allowedRoles: ["COORDINADOR_SINARP", "REPRESENTANTE_INSTITUCIONAL", "ADMIN"],
   },
   {
-
-    id: "inicio",
-    label: "Inicio",
-    icon: Home,
-    href: "#",
-    allowedRoles: ["EQ_GESTION", "DIR_NORMATIVA", "EQ_NORMATIVA", "REPRESENTANTE_INSTITUCIONAL"]
+    id: "mi-suplencia",
+    label: "Mi suplencia",
+    icon: ArrowLeftRight,
+    href: "/mi-suplencia",
+    allowedRoles: ["COORDINADOR_SINARP", "APROBADOR", "REPRESENTANTE_INSTITUCIONAL"],
   },
   {
-    id: "catalogo-interoperabilidad-group",
-    label: "Catálogo de Interoperabilidad",
+    id: "catalogo-interoperabilidad",
+    label: "Catálogo de interoperabilidad",
     icon: Database,
-    pathPrefix: "/catalogo-interoperabilidad",
-    children: [
-      {
-        id: "catalogo-interoperabilidad",
-        label: "Consulta",
-        href: "/catalogo-interoperabilidad",
-        exact: true
-      }
+    href: "/catalogo-interoperabilidad",
+    allowedRoles: [
+      "COORDINADOR_SINARP",
+      "APROBADOR",
+      "REPRESENTANTE_INSTITUCIONAL",
+      "FACTURACION",
+      "DGR",
+      "DTD",
+      "DPI",
     ],
-    allowedRoles: ["COORDINADOR_SINARP", "APROBADOR"]
+  },
+  {
+    id: "acceso-interoperabilidad",
+    label: "Solicitudes de acceso",
+    icon: Network,
+    href: "/acceso-interoperabilidad/solicitudes",
+    allowedRoles: [
+      "COORDINADOR_SINARP",
+      "APROBADOR",
+      "REPRESENTANTE_INSTITUCIONAL",
+      "FACTURACION",
+    ],
   },
   {
     id: "proyectos",
     label: "Proyectos",
     icon: FolderKanban,
     href: "/proyectos",
-    allowedRoles: ["COORDINADOR_SINARP"]
+    allowedRoles: ["COORDINADOR_SINARP"],
   },
   {
     id: "fuentes",
@@ -154,163 +161,134 @@ const navItems: NavItem[] = [
     icon: Server,
     href: "/fuentes",
     allowedRoles: ["COORDINADOR_SINARP"],
-    providerOnly: true
+    providerOnly: true,
   },
-  {
-    id: "acceso-interoperabilidad-group",
-    label: "Acceso a Interoperabilidad",
-    icon: Network,
-    pathPrefix: "/acceso-interoperabilidad",
-    children: [
-      {
-        id: "acceso-interoperabilidad",
-        label: "Gestión de solicitudes",
-        href: "/acceso-interoperabilidad/solicitudes",
-        exact: false
-      }
-    ],
-    allowedRoles: ["COORDINADOR_SINARP", "APROBADOR"]
-  },
-  {
-    id: "acceso-seguridad-group",
-    label: "Acceso y seguridad",
-    icon: ShieldCheck,
-    pathPrefix: "/acceso-seguridad",
-    children: [
-      {
-        id: "gestion-ingresos",
-        label: "Gestión de ingresos",
-        href: "/asignacion-solicitudes",
-        exact: false
-      }
-    ],
-    allowedRoles: ["COORDINADOR_SINARP", "APROBADOR", "DGR"]
-  },
-  {
-    id: "asignacion-solicitudes",
-    label: "Asignación de solicitudes",
-    icon: UserCheck,
-    href: "/asignacion-solicitudes",
-    allowedRoles: ["DIR_GESTION"]
-  },
-  {
-    id: "asignacion-acceso",
-    label: "Asignación de acceso",
-    icon: Database,
-    href: "/acceso-interoperabilidad/asignacion",
-    allowedRoles: ["DIR_GESTION"]
-  },
-  {
-    id: "solicitudes-pendientes",
-    label: "Solicitudes pendientes",
-    icon: FileSignature,
-    href: "/solicitudes-pendientes",
-    allowedRoles: ["EQ_GESTION"]
-  },
-  {
-    id: "revision-gestion",
-    label: "Revisión de acceso",
-    icon: Network,
-    href: "/revision-gestion",
-    allowedRoles: ["EQ_GESTION"]
-  },
-  {
-    id: "revision-fuentes",
-    label: "Revisión de fuentes",
-    icon: FolderCheck,
-    href: "/revision-fuentes",
-    allowedRoles: ["EQ_GESTION", "DIR_GESTION"]
-  },
-  {
-    id: "asignacion-normativa",
-    label: "Asignación de solicitudes",
-    icon: UserCheck,
-    href: "/asignacion-solicitudes",
-    allowedRoles: ["DIR_NORMATIVA"]
-  },
-  {
-    id: "revision-normativa",
-    label: "Solicitudes pendientes",
-    icon: FileSignature,
-    href: "/revision-normativa",
-    allowedRoles: ["DIR_NORMATIVA", "EQ_NORMATIVA"]
-  },
-  {
-    id: "revision-normativa-fuentes",
-    label: "Fuentes confidenciales (BN-07)",
-    icon: Lock,
-    href: "/revision-normativa/fuentes",
-    allowedRoles: ["DIR_NORMATIVA", "EQ_NORMATIVA"]
-  },
-  {
-    id: "resoluciones",
-    label: "Resoluciones",
-    icon: FileText,
-    href: "#",
-    allowedRoles: ["EQ_NORMATIVA"]
-  },
+
+  // ── Administrador DINARP ──
   {
     id: "cuentas-internas",
     label: "Cuentas internas",
     icon: Users,
     href: "/cuentas-internas",
-    allowedRoles: ["ADMIN"]
+    allowedRoles: ["ADMIN"],
   },
   {
-    id: "areas",
-    label: "Áreas DINARP",
-    icon: Building2,
-    href: "/areas",
-    allowedRoles: ["ADMIN"]
-  },
-  {
-    id: "roles",
-    label: "Roles y permisos",
-    icon: ShieldCheck,
-    href: "/roles",
-    allowedRoles: ["ADMIN"]
+    id: "gestion-suplencias",
+    label: "Gestión de suplencias",
+    icon: ArrowLeftRight,
+    href: "/gestion-suplencias",
+    allowedRoles: ["ADMIN"],
   },
   {
     id: "coordinadores",
     label: "Coordinadores",
     icon: UserCheck,
     href: "/coordinadores",
-    allowedRoles: ["ADMIN"]
+    allowedRoles: ["ADMIN"],
   },
   {
-    id: "suplencias",
-    label: "Gestión de suplencias",
-    icon: ArrowLeftRight,
-    href: "/suplencias",
-    allowedRoles: ["COORDINADOR_SINARP", "ADMIN"]
+    id: "areas",
+    label: "Áreas DINARP",
+    icon: Building2,
+    href: "/areas",
+    allowedRoles: ["ADMIN"],
+  },
+  {
+    id: "roles",
+    label: "Roles y permisos",
+    icon: ShieldCheck,
+    href: "/roles",
+    allowedRoles: ["ADMIN"],
   },
   {
     id: "auditoria-cuentas",
     label: "Auditoría de cuentas",
     icon: History,
     href: "/auditoria-cuentas",
-    allowedRoles: ["ADMIN"]
+    allowedRoles: ["ADMIN"],
   },
   {
     id: "gestion-recuperaciones",
     label: "Gestión de recuperaciones",
     icon: KeyRound,
     href: "/gestion-recuperaciones",
-    allowedRoles: ["ADMIN"]
+    allowedRoles: ["ADMIN"],
+  },
+
+  // ── Dirección y Equipo de Gestión ──
+  {
+    id: "asignacion-solicitudes-gestion",
+    label: "Asignación de solicitudes",
+    icon: UserCheck,
+    href: "/asignacion-solicitudes",
+    allowedRoles: ["DIR_GESTION"],
   },
   {
-    id: "configuracion-acceso",
-    label: "Configuración",
-    icon: Settings,
-    href: "/configuracion/servicio-acceso",
-    allowedRoles: []
+    id: "asignacion-acceso-gestion",
+    label: "Asignación de acceso",
+    icon: Database,
+    href: "/acceso-interoperabilidad/asignacion",
+    allowedRoles: ["DIR_GESTION"],
   },
   {
-    id: "configuracion-identidad",
-    label: "Configuración de Identidad",
+    id: "solicitudes-pendientes",
+    label: "Solicitudes pendientes",
+    icon: FileSignature,
+    href: "/solicitudes-pendientes",
+    allowedRoles: ["EQ_GESTION"],
+  },
+  {
+    id: "revision-gestion",
+    label: "Revisión de acceso",
+    icon: Network,
+    href: "/revision-gestion",
+    allowedRoles: ["EQ_GESTION"],
+  },
+  {
+    id: "revision-fuentes",
+    label: "Revisión de fuentes",
+    icon: FolderCheck,
+    href: "/revision-fuentes",
+    allowedRoles: ["DIR_GESTION", "EQ_GESTION"],
+  },
+
+  // ── Dirección y Equipo de Normatividad ──
+  {
+    id: "asignacion-normativa",
+    label: "Asignación de solicitudes",
+    icon: UserCheck,
+    href: "/asignacion-solicitudes",
+    allowedRoles: ["DIR_NORMATIVA"],
+  },
+  {
+    id: "revision-normativa",
+    label: "Revisión normativa",
+    icon: Scale,
+    href: "/revision-normativa",
+    allowedRoles: ["DIR_NORMATIVA", "EQ_NORMATIVA"],
+  },
+  {
+    id: "revision-normativa-fuentes",
+    label: "Fuentes confidenciales (BN-07)",
+    icon: Lock,
+    href: "/revision-normativa/fuentes",
+    allowedRoles: ["DIR_NORMATIVA", "EQ_NORMATIVA"],
+  },
+
+  // ── Direcciones Técnicas / Registro / Protección (DGR, DTD, DPI) ──
+  {
+    id: "validacion-tecnica-registro",
+    label: "Gestión de ingresos",
     icon: ShieldCheck,
-    href: "/configuracion-identidad",
-    allowedRoles: []
+    href: "/asignacion-solicitudes",
+    allowedRoles: ["DGR", "DTD", "DPI"],
+  },
+  {
+    id: "homologacion-fuentes",
+    label: "Homologación técnica (FUE-12)",
+    icon: Cpu,
+    href: "/homologacion-fuentes",
+    allowedRoles: ["ADMIN", "DTD"],
   },
 ];
 
@@ -386,23 +364,36 @@ export function WireframeDashboardLayout({
   const [themeMode, setThemeMode] = useState<"claro" | "oscuro">("claro");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
-    "catalogo-interoperabilidad-group": true,
-    "acceso-interoperabilidad-group": true,
-    "acceso-seguridad-group": true,
-    "administracion-group": true,
-  });
 
   const router = useRouter();
-  const { activeUser, logout } = useAuthStore();
-  const resolvedUser: MockUser = currentUser || activeUser || MOCK_USERS_BY_ROLE.COORDINADOR_SINARP;
-  const activeUserRole = currentRole || resolvedUser?.role;
+  const { activeUser, logout, setRole } = useAuthStore();
+  const fallbackUser = activeUser || MOCK_USERS_BY_ROLE.COORDINADOR_SINARP;
+  const rawUser =
+    currentRole && MOCK_USERS_BY_ROLE[currentRole] && (!currentUser || currentUser.role !== currentRole)
+      ? MOCK_USERS_BY_ROLE[currentRole]
+      : currentUser || fallbackUser;
+
+  const resolvedUser: MockUser = {
+    id: rawUser.id || fallbackUser.id,
+    name: rawUser.name || fallbackUser.name,
+    role: (rawUser.role as UserRole) || fallbackUser.role,
+    institution: rawUser.institution || fallbackUser.institution,
+    avatar: ("avatar" in rawUser && rawUser.avatar) ? rawUser.avatar : fallbackUser.avatar,
+  };
+  const activeUserRole = currentRole || resolvedUser?.role || "COORDINADOR_SINARP";
   const isAprobador = activeUserRole === "APROBADOR";
   const isInternalDinarpRole =
     activeUserRole === "DIR_GESTION" ||
     activeUserRole === "DIR_NORMATIVA" ||
     activeUserRole === "EQ_GESTION" ||
     activeUserRole === "EQ_NORMATIVA";
+
+  const handleRoleChange = (role: UserRole) => {
+    setRole(role);
+    if (onRoleChange) {
+      onRoleChange(role);
+    }
+  };
 
   useEffect(() => {
     const stored = getStoredTheme();
@@ -435,23 +426,17 @@ export function WireframeDashboardLayout({
     applyTheme(mode === "oscuro" ? "dark" : "light");
   };
 
-  const isSubItemActive = (subItem: NavSubItem) => {
-    if (activeMenu && activeMenu === subItem.id) return true;
-    if (pathname) {
-      if (subItem.exact) {
-        return pathname === subItem.href;
-      }
-      return pathname.startsWith(subItem.href);
-    }
-    return false;
-  };
-
-  const isGroupActive = (item: NavItem) => {
-    if (item.children) {
-      return item.children.some(child => isSubItemActive(child));
+  const isItemActive = (item: NavItem) => {
+    if (activeMenu && (activeMenu === item.id || activeMenu === item.href.replace(/^\//, ""))) {
+      return true;
     }
     if (item.href && pathname) {
-      return pathname.startsWith(item.href);
+      const cleanPath = pathname.replace(/\/$/, "");
+      const cleanHref = item.href.replace(/\/$/, "");
+      if (cleanHref === "" || cleanHref === "/") {
+        return cleanPath === "" || cleanPath === "/";
+      }
+      return cleanPath === cleanHref || cleanPath.startsWith(cleanHref + "/");
     }
     return false;
   };
@@ -497,7 +482,7 @@ export function WireframeDashboardLayout({
         <SidebarContent className="flex-1 overflow-y-auto py-3 px-2 group-data-[collapsible=icon]:px-2 space-y-1">
           <div className="px-2 pb-1.5 group-data-[collapsible=icon]:hidden">
             <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70 dark:text-white/50 px-2">
-              {activeUserRole === "ADMIN" ? "Administración" : "Principal"}
+              {activeUserRole === "ADMIN" ? "Administración" : "Secciones"}
             </p>
           </div>
           <SidebarMenu>
@@ -514,59 +499,19 @@ export function WireframeDashboardLayout({
 
               return visibleNavItems.map((item) => {
                 const Icon = item.icon;
-                const hasChildren = item.children && item.children.length > 0;
-                const groupActive = isGroupActive(item);
-
-                if (hasChildren) {
-                  const isGroupOpen = openGroups[item.id] !== false;
-                  return (
-                    <SidebarMenuItem key={item.id}>
-                      <SidebarMenuButton
-                        onClick={() => setOpenGroups((prev) => ({ ...prev, [item.id]: !isGroupOpen }))}
-                        isActive={groupActive}
-                        tooltip={item.label}
-                      >
-                        <Icon className="size-4.5 shrink-0" />
-                        <span className="flex-1 text-left font-medium leading-snug group-data-[collapsible=icon]:hidden">{item.label}</span>
-                        {isGroupOpen ? (
-                          <ChevronDown className="size-3.5 text-muted-foreground shrink-0 group-data-[collapsible=icon]:hidden" />
-                        ) : (
-                          <ChevronRight className="size-3.5 text-muted-foreground shrink-0 group-data-[collapsible=icon]:hidden" />
-                        )}
-                      </SidebarMenuButton>
-
-                      {isGroupOpen && (
-                        <SidebarMenuSub>
-                          {item.children?.map((sub) => {
-                            const isSubActive = isSubItemActive(sub);
-                            const subLabel = (sub.id === "acceso-interoperabilidad" && isAprobador)
-                              ? "Gestión de solicitudes pendientes"
-                              : sub.label;
-
-                            return (
-                              <SidebarMenuSubItem key={sub.id}>
-                                <SidebarMenuSubButton asChild isActive={isSubActive}>
-                                  <SidebarNavigationItemLink href={sub.href}>
-                                    <span className="truncate">{subLabel}</span>
-                                  </SidebarNavigationItemLink>
-                                </SidebarMenuSubButton>
-                              </SidebarMenuSubItem>
-                            );
-                          })}
-                        </SidebarMenuSub>
-                      )}
-                    </SidebarMenuItem>
-                  );
-                }
-
-                const isDirectActive = (activeMenu && activeMenu === item.id) || (item.href && pathname ? (item.href === "/" ? pathname === item.href : pathname.startsWith(item.href)) : false);
+                const isDirectActive = isItemActive(item);
 
                 return (
                   <SidebarMenuItem key={item.id}>
                     <SidebarMenuButton asChild isActive={isDirectActive} tooltip={item.label}>
-                      <SidebarNavigationItemLink href={item.href || "#"} className="flex items-center gap-2.5 group-data-[collapsible=icon]:justify-center">
+                      <SidebarNavigationItemLink
+                        href={item.href}
+                        className="flex items-center gap-2.5 group-data-[collapsible=icon]:justify-center"
+                      >
                         <Icon className="size-4.5 shrink-0" />
-                        <span className="truncate group-data-[collapsible=icon]:hidden">{item.label}</span>
+                        <span className="truncate group-data-[collapsible=icon]:hidden font-medium">
+                          {item.label}
+                        </span>
                       </SidebarNavigationItemLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -708,12 +653,14 @@ export function WireframeDashboardLayout({
             userProps={resolvedUser ? {
               name: resolvedUser.name,
               role: resolvedUser.role,
-              roleTitle: resolvedUser.roleTitle || resolvedUser.role,
+              roleTitle: resolvedUser.roleTitle || ROLES_CONFIG[resolvedUser.role]?.name || resolvedUser.role,
               email: resolvedUser.email,
               institution: resolvedUser.institution || "DINARP",
               avatar: resolvedUser.avatar,
+              initials: resolvedUser.initials,
+              cedula: resolvedUser.cedula,
             } : undefined}
-            onRoleChange={onRoleChange}
+            onRoleChange={handleRoleChange}
             customConfig={{
               showLogo: false,
               showSearch: false,

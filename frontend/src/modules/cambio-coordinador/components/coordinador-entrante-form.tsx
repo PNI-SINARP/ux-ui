@@ -203,22 +203,26 @@ export function CoordinadorEntranteForm({
         {/* Coordinador Actual - Precargado (Subcontenedor rounded-2xl) */}
         <div className="lg:col-span-5 bg-surface border border-border rounded-2xl p-6 shadow-xs flex flex-col justify-between">
           <div className="space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-border">
-              <div className="flex items-center gap-2">
-                <div className="size-8 rounded-lg bg-muted flex items-center justify-center text-muted-foreground">
-                  <User className="size-4" />
+            {/* Subcontenido 1.1: Coordinador actual (Saliente) */}
+            <div className="bg-primary/5 dark:bg-primary-950/20 p-3.5 mb-5 flex items-start sm:items-center justify-between gap-3 rounded-xl">
+              <div className="flex items-start gap-2.5 min-w-0">
+                <User className="size-4 text-primary dark:text-primary-300 shrink-0 mt-0.5" />
+                <div className="min-w-0">
+                  <h2 className="text-sm font-bold font-heading text-primary dark:text-primary-300 leading-snug">
+                    1.1 Coordinador Actual (Saliente)
+                  </h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Información del funcionario registrado en funciones a ser desvinculado.
+                  </p>
                 </div>
-                <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Coordinador actual (Saliente)
-                </span>
               </div>
               <Badge
                 tone="neutral"
                 appearance="soft"
                 size="sm"
-                className="font-semibold text-[10px]"
+                className="shrink-0 self-start sm:self-auto font-bold uppercase tracking-wider"
               >
-                {caracter === "TITULAR" ? "Titular" : "Suplente"}
+                {caracter === "TITULAR" ? "TITULAR" : "SUPLENTE"}
               </Badge>
             </div>
 
@@ -266,22 +270,26 @@ export function CoordinadorEntranteForm({
 
         {/* Nuevo Coordinador - Formulario (Subcontenedor rounded-2xl) */}
         <div className="lg:col-span-7 bg-surface border border-border rounded-2xl p-6 shadow-xs space-y-5">
-          <div className="flex items-center justify-between pb-3 border-b border-border">
-            <div className="flex items-center gap-2">
-              <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-                <UserPlus className="size-4" />
+          {/* Subcontenido 1.2: Datos del nuevo coordinador (Entrante) */}
+          <div className="bg-primary/5 dark:bg-primary-950/20 p-3.5 mb-5 flex items-start sm:items-center justify-between gap-3 rounded-xl">
+            <div className="flex items-start gap-2.5 min-w-0">
+              <UserPlus className="size-4 text-primary dark:text-primary-300 shrink-0 mt-0.5" />
+              <div className="min-w-0">
+                <h2 className="text-sm font-bold font-heading text-primary dark:text-primary-300 leading-snug">
+                  1.2 Datos del Nuevo Coordinador (Entrante)
+                </h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Formulario de designación y registro del funcionario reemplazante.
+                </p>
               </div>
-              <h3 className="text-xs font-bold uppercase tracking-wider text-foreground">
-                Datos del Nuevo Coordinador (Entrante)
-              </h3>
             </div>
             <Badge
               tone="primary"
               appearance="soft"
               size="sm"
-              className="font-semibold text-[10px]"
+              className="shrink-0 self-start sm:self-auto font-bold uppercase tracking-wider"
             >
-              Reemplazo {caracter === "TITULAR" ? "Titular" : "Suplente"}
+              {caracter === "TITULAR" ? "REEMPLAZO TITULAR" : "REEMPLAZO SUPLENTE"}
             </Badge>
           </div>
 

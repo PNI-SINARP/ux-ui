@@ -1,6 +1,6 @@
 import { FuenteDetailView } from "@/modules/fuentes/views/fuente-detail-view";
 
-export const dynamicParams = false;
+export const dynamicParams = true;
 
 const FUENTES_IDS = [
   "FUE-RC-001",

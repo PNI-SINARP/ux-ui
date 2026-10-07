@@ -39,7 +39,6 @@ import {
   TramiteStatusBadge
 } from "./cambio-coordinador-status";
 import { CambioCoordinadorTimeline } from "./cambio-coordinador-timeline";
-import { AnexoCPreview } from "./anexo-c-preview";
 import type {
   TramiteCambioCoordinador,
   InstitucionConfig

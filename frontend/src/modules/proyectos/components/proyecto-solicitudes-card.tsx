@@ -155,25 +155,25 @@ export function ProyectoSolicitudesCard({ proyecto }: ProyectoSolicitudesCardPro
         </div>
       ) : (
         <div className="space-y-4">
-          <Table containerClassName="border border-border/70 rounded-xl overflow-hidden bg-background">
-            <TableHeader className="bg-muted/40">
-              <TableRow>
-                <TableHead className="font-semibold text-foreground text-xs py-3 px-4">
+          <Table containerClassName="overflow-x-auto w-full">
+            <TableHeader>
+              <TableRow className="border-0">
+                <TableHead className="font-semibold text-white text-xs py-3.5 px-4 pl-6">
                   Código Solicitud
                 </TableHead>
-                <TableHead className="font-semibold text-foreground text-xs py-3 px-4">
+                <TableHead className="font-semibold text-white text-xs py-3.5 px-4">
                   Fuente de Interoperabilidad
                 </TableHead>
-                <TableHead className="font-semibold text-foreground text-xs py-3 px-4">
+                <TableHead className="font-semibold text-white text-xs py-3.5 px-4">
                   Servicio / Finalidad
                 </TableHead>
-                <TableHead className="font-semibold text-foreground text-xs py-3 px-4">
+                <TableHead className="font-semibold text-white text-xs py-3.5 px-4">
                   Fecha Radicación
                 </TableHead>
-                <TableHead className="font-semibold text-foreground text-xs py-3 px-4">
+                <TableHead className="font-semibold text-white text-xs py-3.5 px-4">
                   Estado
                 </TableHead>
-                <TableHead className="font-semibold text-foreground text-xs py-3 px-4 text-right">
+                <TableHead className="font-semibold text-white text-xs py-3.5 px-4 text-right pr-6">
                   Acción
                 </TableHead>
               </TableRow>

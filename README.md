@@ -71,6 +71,13 @@ Formalización jurídica, validación técnica y emisión de resoluciones instit
 | **CAM-02** | Asignación, análisis y validación de expediente de sustitución | `/asignacion-solicitudes`, `/solicitudes-pendientes` | Área de Gestión |
 | **CAM-03** | Actualización en directorio oficial y revocación de accesos previos | `/coordinadores` | Área de Gestión / Sistema |
 
+#### Flujo BN-04 — Gestión de Suplencias Temporal y Administrativa (AUS-01 a AUS-03)
+| Código HU | Historia de Usuario / Flujo | Ruta / Vista | Actor Principal |
+|---|---|---|---|
+| **AUS-01** | Programación y confirmación de rango de inactividad del titular | `/suplencias` | Coordinador Titular |
+| **AUS-02** | Activación y desactivación administrativa de suplencia institucional | `/suplencias` | Administrador del Sistema |
+| **AUS-03** | Conmutación y restitución de permisos de suplencia sin alterar credenciales API | `/suplencias` | Portal DINARP / Sistema |
+
 ---
 
 ### 3. 🌐 Interoperabilidad y Consumo de Datos (SOL, CAT, PRJ, FAC/PAG)
@@ -133,6 +140,8 @@ Desde el botón **"Cuentas de Prueba"** en `/login`, se pueden alternar los sigu
 | **Director Área de Normativa** | Director Normativa | `2222222222` | Resolución Jurídica (INS-06, 07) |
 | **Revisor Área de Normativa** | Revisor Normativa | `3333333333` | Dictamen Legal (INS-06) |
 | **Coordinador Titular** | Roberto Dávila | `1715489621` | Anexo B - Enrolamiento Coordinador (ENR-01..04) |
+| **Coordinador Titular (Suplencias)** | Juan Pérez | `1712345678` | Gestión de Suplencias (AUS-01) |
+| **Coordinador Suplente** | Mariana Almeida | `1714443322` | Gestión de Suplencias (AUS-01..03) |
 | **Representante Institucional** | Carlos Andrade | `1716789019` | Anexo C - Sustitución de Coordinador (CAM-01..03) |
 | **Coordinador SINARP** | Andrea López | `1712345678` | Solicitudes y Catálogo API (SOL-01, 02) |
 | **Aprobador Institucional** | Dr. Roberto Méndez | `1719876543` | Aprobación de Interoperabilidad (SOL-07..10) |

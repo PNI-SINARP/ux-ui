@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
   FolderPlus,
@@ -51,14 +52,12 @@ export function CrearProyectoDialog({
   const [touched, setTouched] = useState({ nombre: false, proposito: false });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [simularErrorRed, setSimularErrorRed] = useState(false);
 
   const resetForm = () => {
     setNombre("");
     setProposito("");
     setTouched({ nombre: false, proposito: false });
     setErrorMessage(null);
-    setSimularErrorRed(false);
   };
 
   const handleClose = () => {
@@ -96,17 +95,8 @@ export function CrearProyectoDialog({
 
     setIsSubmitting(true);
 
-    // Simular validación de existencia y datos del Portal PNI-SINARP (BPMN: Validar existencia y datos -> Registrar proyecto)
+    // Simular validación de existencia y datos del Portal PNI-SINARP
     await new Promise((resolve) => setTimeout(resolve, 600));
-
-    if (simularErrorRed) {
-      setIsSubmitting(false);
-      setErrorMessage(
-        "Error de comunicación simulado: No se pudo verificar la existencia del proyecto en el registro central. Intente nuevamente."
-      );
-      toast.error("Error al validar el proyecto con el Portal PNI-SINARP.");
-      return;
-    }
 
     const resultado = crearProyecto({
       nombre: nombre.trim(),
@@ -137,21 +127,26 @@ export function CrearProyectoDialog({
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent size="lg" className="sm:max-w-xl">
         <DialogHeader>
-          <div className="flex items-center gap-2.5 mb-1">
-            <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
-              <FolderPlus className="size-4.5" />
+          <div className="flex items-start justify-between w-full gap-3 mb-1">
+            <div className="flex items-center gap-2.5">
+              <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                <FolderPlus className="size-4.5" />
+              </div>
+              <div>
+                <DialogTitle className="text-xl font-heading font-bold text-foreground">
+                  Crear proyecto institucional
+                </DialogTitle>
+                <p className="text-xs text-muted-foreground">
+                  Registro de nuevo proyecto para interoperabilidad
+                </p>
+              </div>
             </div>
-            <div>
-              <DialogTitle className="text-xl font-heading font-bold text-foreground">
-                Crear proyecto institucional
-              </DialogTitle>
-              <p className="text-xs text-muted-foreground">
-                Flujo BN-05 · Proceso PRJ-01
-              </p>
-            </div>
+            <Badge tone="primary" appearance="soft" size="sm" className="font-semibold text-xs shrink-0">
+              Nuevo
+            </Badge>
           </div>
           <DialogDescription className="text-xs sm:text-sm text-muted-foreground text-left">
-            Registra un nuevo proyecto para la institución. Podrás asociar solicitudes de interoperabilidad de fuentes de datos autorizadas por el SINARP.
+            Registra una nueva iniciativa para tu institución. Luego podrás vincular las solicitudes de datos necesarias para llevarla a cabo.
           </DialogDescription>
         </DialogHeader>
 
@@ -174,15 +169,24 @@ export function CrearProyectoDialog({
                 Solo lectura · Precargada
               </span>
             </div>
-            <div className="relative">
+            <div
+              className="relative cursor-not-allowed group"
+              onClick={() => {
+                toast.info("Esta información no se puede cambiar: la entidad se asigna automáticamente según tu usuario.");
+              }}
+              title="Este campo es de solo lectura y no se puede modificar"
+            >
               <Input
                 type="text"
                 value={institucionPrecargada}
                 readOnly
-                disabled
-                className="bg-muted/50 cursor-not-allowed border-border/80 text-foreground font-medium pl-9 text-xs sm:text-sm"
+                tabIndex={-1}
+                className="bg-muted/50 cursor-not-allowed border-border/80 text-foreground font-medium pl-9 text-xs sm:text-sm pointer-events-none select-none"
               />
               <Building2 className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">
+                <Lock className="size-3.5" />
+              </div>
             </div>
             <p className="text-[11px] text-muted-foreground leading-tight">
               La institución responsable es asignada automáticamente por el Portal según la entidad del Coordinador Institucional autenticado.
@@ -261,37 +265,25 @@ export function CrearProyectoDialog({
             )}
           </div>
 
-          {/* Nota de simulación técnica */}
+          {/* Nota institucional */}
           <div className="rounded-xl border border-info/30 bg-info/5 p-3 flex items-start gap-2.5">
             <Info className="size-4 text-info mt-0.5 shrink-0" />
             <div className="text-[11px] text-muted-foreground leading-relaxed flex-1">
               <span className="font-semibold text-foreground block">
-                Regla institucional BN-05:
+                Toma en cuenta:
               </span>
-              Una vez registrado, el ID del proyecto y la institución responsable quedan consolidados en el catálogo SINARP y no admiten cambios.
+              Una vez creado el proyecto, su código y la institución responsable no podrán modificarse.
             </div>
           </div>
 
-          {/* Switch de prueba para simular error */}
-          <div className="flex items-center justify-between pt-1 text-xs text-muted-foreground">
-            <label className="flex items-center gap-2 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={simularErrorRed}
-                onChange={(e) => setSimularErrorRed(e.target.checked)}
-                className="size-3.5 rounded border-border text-primary focus:ring-primary"
-              />
-              <span className="text-[11px]">Simular error de validación en red</span>
-            </label>
-          </div>
-
-          <DialogFooter className="pt-2 gap-2 sm:gap-0">
+          <DialogFooter className="pt-4 flex flex-col-reverse sm:flex-row sm:justify-end gap-3 sm:gap-3 w-full">
             <Button
               type="button"
-              variant="outline"
+              variant="neutral"
               size="sm"
               onClick={handleClose}
               disabled={isSubmitting}
+              className="cursor-pointer"
             >
               Cancelar
             </Button>
@@ -307,6 +299,7 @@ export function CrearProyectoDialog({
                   <CheckCircle2 className="size-4" />
                 )
               }
+              className="cursor-pointer"
             >
               {isSubmitting ? "Registrando proyecto..." : "Crear proyecto"}
             </Button>

@@ -1,6 +1,6 @@
 import { RevisionFuenteDetailView } from "@/modules/revision-fuentes/views/revision-fuente-detail-view";
 
-export const dynamicParams = false;
+export const dynamicParams = true;
 
 const REVISION_FUENTES_IDS = [
   "FUE-RC-001",

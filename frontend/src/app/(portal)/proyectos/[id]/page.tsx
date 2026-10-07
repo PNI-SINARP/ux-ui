@@ -9,6 +9,10 @@ const PROYECTOS_PREGENERADOS = [
   "PRJ-2026-006",
   "PRJ-2026-007",
   "PRJ-2026-008",
+  "PRJ-2026-009",
+  "PRJ-2026-010",
+  "PRJ-2026-011",
+  "PRJ-2026-012",
 ];
 
 export function generateStaticParams() {

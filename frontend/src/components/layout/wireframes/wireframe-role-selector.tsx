@@ -9,6 +9,7 @@ import {
   ComboboxItem,
 } from "@/components/ui/combobox";
 import { UserRole, ROLES_CONFIG } from "@/modules/catalogo-interoperabilidad/data/catalogo-data";
+import { useAuthStore } from "@/modules/gestion-solicitudes/data/auth-store";
 
 interface WireframeRoleSelectorProps {
   activeRole: UserRole;
@@ -16,6 +17,7 @@ interface WireframeRoleSelectorProps {
 }
 
 export function WireframeRoleSelector({ activeRole, onRoleChange }: WireframeRoleSelectorProps) {
+  const { setRole } = useAuthStore();
   const roles: UserRole[] = ["ADMIN", "DIR_GESTION", "EQ_GESTION", "DIR_NORMATIVA", "EQ_NORMATIVA", "COORDINADOR_SINARP", "REPRESENTANTE_INSTITUCIONAL", "APROBADOR", "FACTURACION", "DGR", "DTD", "DPI"];
   const roleItems = roles.map((r) => ({
     value: r,
@@ -32,7 +34,10 @@ export function WireframeRoleSelector({ activeRole, onRoleChange }: WireframeRol
         items={roleItems}
         value={currentItem}
         onValueChange={(item) => {
-          if (item) onRoleChange(item.value as UserRole);
+          if (item) {
+            setRole(item.value as UserRole);
+            onRoleChange(item.value as UserRole);
+          }
         }}
       >
         <ComboboxSelectTrigger className="h-7 text-xs font-medium px-2.5 max-w-[280px] truncate" />

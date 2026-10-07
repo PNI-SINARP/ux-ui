@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { useRouter } from "next/navigation";
 import {
   Copy,
   Check,
@@ -20,14 +19,16 @@ import {
   KeyRound,
   RefreshCw,
   UserCheck,
-  ExternalLink,
   Layers,
   Database,
+  Clock,
+  FolderKanban,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 export type FlowType =
@@ -37,7 +38,9 @@ export type FlowType =
   | "anexo-a"
   | "anexo-b"
   | "anexo-c"
+  | "suplencias"
   | "interoperabilidad"
+  | "proyectos"
   | "fuentes"
   | "todos";
 
@@ -66,12 +69,13 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     cedula: "1799999999",
     description: "Control total de identidades: crea, edita, suspende y da de baja cuentas internas. Configura áreas DINARP, catálogo de roles, audita eventos, gestiona coordinadores y atiende recuperación asistida de 2FA.",
     access: "Cuentas Internas (/cuentas-internas), Auditoría (/auditoria-cuentas), Coordinadores (/coordinadores), Catálogo de Áreas (/areas), Catálogo de Roles (/roles) y Gestión de Recuperaciones (/gestion-recuperaciones).",
-    storiesBadge: "ID-00 a 05, 08, 10, 11, 14, 15",
-    flows: ["id-admin"],
+    storiesBadge: "ID-00..15 · BN-04 (AUS-02)",
+    flows: ["id-admin", "suplencias"],
     actions: [
       { label: "Cuentas Internas", route: "/cuentas-internas", huBadge: "ID-01..04" },
       { label: "Auditoría de Cuentas", route: "/auditoria-cuentas", huBadge: "ID-05" },
       { label: "Gestión Coordinadores", route: "/coordinadores", huBadge: "ID-10, 11" },
+      { label: "Gestión de Suplencias", route: "/suplencias", huBadge: "AUS-02" },
       { label: "Catálogo de Áreas", route: "/areas", huBadge: "ID-15" },
       { label: "Catálogo de Roles", route: "/roles", huBadge: "ID-14" },
       { label: "Recuperación Asistida", route: "/gestion-recuperaciones", huBadge: "ID-08" },
@@ -108,14 +112,14 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     ]
   },
 
-  // ── FLUJO ANEXO A (REGISTRO INSTITUCIÓN Y RESOLUCIÓN - INS-01 A INS-07) ──
+  // ── FLUJO ANEXO A (REGISTRO INSTITUCIÓN Y RESOLUCIÓN - BN-01: INS-01 A INS-07) ──
   {
     roleName: "Representante Legal / Solicitante",
     userName: "Marcelo Albuja",
     cedula: "1710001112",
     description: "Máxima autoridad de entidad requirente. Registra la institución en DINARP, firma la solicitud de interoperabilidad y designa a los coordinadores institucionales.",
     access: "Formulario de Registro Institucional (Anexo A) y seguimiento de resolución jurídica.",
-    storiesBadge: "INS-01 a INS-03",
+    storiesBadge: "BN-01 · INS-01 a INS-03",
     flows: ["anexo-a"],
     actions: [
       { label: "Registro Institucional (Anexo A)", route: "/registro-institucion", huBadge: "INS-01..03" },
@@ -127,7 +131,7 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     cedula: "1711223344",
     description: "Recibe los trámites ingresados de instituciones, evalúa la pertinencia inicial y asigna expedientes a revisores técnicos de su equipo.",
     access: "Bandeja de Asignación de Trámites (/asignacion-solicitudes) y supervisión general.",
-    storiesBadge: "INS-04, ENR-03, CAM-02",
+    storiesBadge: "BN-01..03 · INS-04 · ENR-03 · CAM-02",
     flows: ["anexo-a", "anexo-b", "anexo-c"],
     actions: [
       { label: "Asignación de Trámites", route: "/asignacion-solicitudes", huBadge: "INS-04" },
@@ -139,7 +143,7 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     cedula: "1111111111",
     description: "Analiza la viabilidad técnica, valida campos requeridos y emite el informe de viabilidad técnica institucional.",
     access: "Bandeja de Solicitudes Pendientes (/solicitudes-pendientes) y expediente de revisión técnica.",
-    storiesBadge: "INS-05, ENR-03, CAM-02",
+    storiesBadge: "BN-01..03 · INS-05 · ENR-03 · CAM-02",
     flows: ["anexo-a", "anexo-b", "anexo-c"],
     actions: [
       { label: "Revisión de Solicitudes", route: "/solicitudes-pendientes", huBadge: "INS-05" },
@@ -151,7 +155,7 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     cedula: "2222222222",
     description: "Supervisa encuadre legal de los convenios de datos, valida dictámenes jurídicos y suscribe resoluciones institucionales de interoperabilidad.",
     access: "Bandeja de Revisión Normativa (/revision-normativa) y dictámenes jurídicos finales.",
-    storiesBadge: "INS-06, INS-07",
+    storiesBadge: "BN-01 · INS-06, INS-07",
     flows: ["anexo-a"],
     actions: [
       { label: "Revisión Normativa", route: "/revision-normativa", huBadge: "INS-06, 07" },
@@ -163,54 +167,80 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     cedula: "3333333333",
     description: "Efectúa el control de legalidad, examina competencias legales de la entidad requirente y redacta el borrador de dictamen jurídico.",
     access: "Bandeja de Expedientes Jurídicos (/revision-normativa) y análisis normativo.",
-    storiesBadge: "INS-06",
+    storiesBadge: "BN-01 · INS-06",
     flows: ["anexo-a"],
     actions: [
       { label: "Expedientes Normativos", route: "/revision-normativa", huBadge: "INS-06" },
     ]
   },
 
-  // ── FLUJO ANEXO B (ENROLAMIENTO COORDINADOR / ACUERDO - ENR-01 A ENR-04) ──
+  // ── FLUJO ANEXO B (ENROLAMIENTO COORDINADOR / ACUERDO - BN-02: ENR-01 A ENR-04) ──
   {
     roleName: "Coordinador Titular (Prerregistrado)",
     userName: "Roberto Dávila",
     cedula: "1715489621",
     description: "Coordinador notificado tras resolución aprobada. Ingresa para formalizar su designación mediante firma electrónica del Acuerdo de Confidencialidad (Anexo B).",
     access: "Flujo de Enrolamiento y firma electrónica de Acuerdo (/enrolamiento-coordinador).",
-    storiesBadge: "ENR-01, ENR-02",
+    storiesBadge: "BN-02 · ENR-01..04",
     flows: ["anexo-b"],
     actions: [
       { label: "Enrolamiento de Coordinador", route: "/enrolamiento-coordinador", huBadge: "ENR-01..04" },
     ]
   },
 
-  // ── FLUJO ANEXO C (CAMBIO DE COORDINADOR - CAM-01 A CAM-03) ──
+  // ── FLUJO ANEXO C (CAMBIO DE COORDINADOR - BN-03: CAM-01 A CAM-03) ──
   {
     roleName: "Representante Institucional",
     userName: "Carlos Andrade",
     cedula: "1716789019",
     description: "Autoridad que tramita el reemplazo motivado de un coordinador institucional (titular o suplente) por desvinculación o reestructuración (Anexo C).",
     access: "Formulario de Solicitud de Cambio de Coordinador (/cambio-coordinador).",
-    storiesBadge: "CAM-01",
+    storiesBadge: "BN-03 · CAM-01",
     flows: ["anexo-c"],
     actions: [
       { label: "Cambio de Coordinador", route: "/cambio-coordinador", huBadge: "CAM-01" },
     ]
   },
 
-  // ── FLUJO INTEROPERABILIDAD Y CONSUMO DE DATOS ──
+  // ── FLUJO GESTIÓN DE SUPLENCIAS (TEMPORAL Y ADMIN - BN-04: AUS-01 A AUS-03) ──
   {
-    roleName: "Coordinador SINARP",
+    roleName: "Coordinador Titular (Suplencias)",
+    userName: "Juan Pérez",
+    cedula: "1712345678",
+    description: "Coordinador titular que planifica y registra su inactividad temporal (AUS-01) en el calendario institucional para habilitar la delegación de permisos.",
+    access: "Gestión de Suplencias (/suplencias) y programación de ausencia temporal.",
+    storiesBadge: "BN-04 · AUS-01",
+    flows: ["suplencias"],
+    actions: [
+      { label: "Programar Inactividad", route: "/suplencias", huBadge: "AUS-01" },
+    ]
+  },
+  {
+    roleName: "Coordinador Suplente",
+    userName: "Mariana Almeida",
+    cedula: "1714443322",
+    description: "Coordinador suplente enrolado en estado Enrolado sin acceso. Se conmuta automáticamente durante la ausencia del titular o por activación administrativa (AUS-03).",
+    access: "Gestión de Suplencias (/suplencias) y verificación de conmutación de permisos institucionales.",
+    storiesBadge: "BN-04 · AUS-01..03",
+    flows: ["suplencias"],
+    actions: [
+      { label: "Ver Estado de Suplencia", route: "/suplencias", huBadge: "AUS-03" },
+    ]
+  },
+
+  // ── FLUJO INTEROPERABILIDAD Y CONSUMO DE DATOS (BN-05: PRJ-01, PRJ-02) ──
+  {
+    roleName: "Coordinador Institucional",
     userName: "Andrea López",
     cedula: "1712345678",
-    description: "Representante técnico de la entidad requirente. Solicita paquetes de datos para interoperabilidad, administra proyectos de consumo y consulta el catálogo de servicios API.",
-    access: "Solicitudes de Acceso (/acceso-interoperabilidad), Catálogo de Servicios (/catalogo-interoperabilidad) y Proyectos (/proyectos).",
-    storiesBadge: "SOL-01, 02 · CAT-01 · PRJ",
-    flows: ["interoperabilidad"],
+    description: "Coordinador institucional de la entidad requirente (Registro Civil). Crea y gestiona proyectos institucionales (BN-05: PRJ-01 y PRJ-02), agrupa solicitudes de interoperabilidad y consulta el catálogo API.",
+    access: "Proyectos (/proyectos), Solicitudes de Acceso (/acceso-interoperabilidad) y Catálogo de Servicios (/catalogo-interoperabilidad).",
+    storiesBadge: "BN-05 · PRJ-01, 02 · SOL-01",
+    flows: ["proyectos", "interoperabilidad"],
     actions: [
+      { label: "Bandeja de Proyectos", route: "/proyectos", huBadge: "BN-05" },
       { label: "Solicitudes de Acceso", route: "/acceso-interoperabilidad", huBadge: "SOL-01,02" },
       { label: "Catálogo de Servicios", route: "/catalogo-interoperabilidad", huBadge: "CAT-01" },
-      { label: "Proyectos de Consumo", route: "/proyectos", huBadge: "PRJ-01" },
     ]
   },
   {
@@ -238,43 +268,54 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     ]
   },
 
-  // ── FLUJO GESTIÓN DE FUENTES DE DATOS ──
+  // ── FLUJO INCORPORAR Y PUBLICAR FUENTE (BN-06: FUE-01 A FUE-05, FUE-10, FUE-12, CNX-01/02) ──
+  {
+    roleName: "Coordinador Proveedor (Entidad Emisora)",
+    userName: "Carlos Mendoza (Registro Civil)",
+    cedula: "1720304050",
+    description: "Representante técnico de la entidad proveedora de datos. Inicia el trámite abriendo el borrador de fuente (FUE-01), suministra credenciales y prueba conector por VPN (FUE-02), y define el esquema con normalización de campos (FUE-03).",
+    access: "Wizard de Nueva Fuente (/fuentes/nueva), Bandeja de Fuentes Propias (/fuentes) y seguimiento de publicación.",
+    storiesBadge: "BN-06 · FUE-01, 02, 03",
+    flows: ["fuentes"],
+    actions: [
+      { label: "Registrar Nueva Fuente", route: "/fuentes/nueva", huBadge: "BN-06 · FUE-01..03" },
+      { label: "Bandeja de Fuentes", route: "/fuentes", huBadge: "BN-06" },
+    ]
+  },
+  {
+    roleName: "Equipo de TI / Infraestructura (DTD)",
+    userName: "Carlos Mena",
+    cedula: "1716543210",
+    description: "Responsable de conectividad y despliegue. Evalúa conector reusable (CNX-01/02), homologa orígenes excepcionales (FUE-12), diagnostica fallas de conexión (FUE-10), y ejecuta despliegue y publicación oficial (FUE-05).",
+    access: "Administración de Fuentes (/fuentes), configuración técnica y homologación de motores.",
+    storiesBadge: "BN-06 · FUE-02, 05, 10, 12 · CNX",
+    flows: ["fuentes"],
+    actions: [
+      { label: "Administrar Fuentes", route: "/fuentes", huBadge: "BN-06 · FUE-05" },
+    ]
+  },
   {
     roleName: "Dirección de Gestión y Registro (DGR)",
     userName: "María Torres",
     cedula: "1717654321",
-    description: "Responsable funcional de incorporación de fuentes. Revisa documentación y campos candidatos según Res. 004, registra observaciones y valida integración en ambiente de pruebas.",
-    access: "Bandeja de Fuentes (/fuentes), Revisión Técnica (/revision-fuentes) y Revisión de Gestión (/revision-gestion).",
-    storiesBadge: "FUE-03, 07, 11",
+    description: "Responsable funcional de la gobernanza de fuentes. Supervisa la procedencia de la fuente, valida pertinencia de los campos y aprueba la integración hacia el catálogo (FUE-03, FUE-05, CAT-01).",
+    access: "Bandeja de Fuentes (/fuentes), Revisión de Gestión (/revision-fuentes) y Catálogo (/catalogo-interoperabilidad).",
+    storiesBadge: "BN-06 · FUE-03, 05 · CAT-01",
     flows: ["fuentes"],
     actions: [
-      { label: "Bandeja de Fuentes", route: "/fuentes", huBadge: "FUE-07" },
-      { label: "Revisión Técnica", route: "/revision-fuentes", huBadge: "FUE-03" },
-    ]
-  },
-  {
-    roleName: "Dirección de Tecnología y Desarrollo (DTD)",
-    userName: "Carlos Mena",
-    cedula: "1716543210",
-    description: "Responsable técnico de microservicios e infraestructura de fuentes. Valida factibilidad de conexión, desarrolla microservicios y ejecuta el paso a producción.",
-    access: "Registro de Nuevas Fuentes (/fuentes/nueva) y Administración de Fuentes (/fuentes).",
-    storiesBadge: "FUE-01, 02, 05 · CNX",
-    flows: ["fuentes"],
-    actions: [
-      { label: "Administrar Fuentes", route: "/fuentes", huBadge: "FUE-05" },
-      { label: "Registrar Nueva Fuente", route: "/fuentes/nueva", huBadge: "FUE-01,02" },
+      { label: "Revisión de Fuentes", route: "/revision-fuentes", huBadge: "BN-06 · FUE-03" },
     ]
   },
   {
     roleName: "Dirección de Protección de Información (DPI)",
     userName: "Daniela Ruiz",
     cedula: "1715432109",
-    description: "Clasifica la sensibilidad de cada campo de datos como Accesible o Confidencial según la LOPDP, emite y anexa el Informe Técnico de Clasificación previo a la publicación.",
-    access: "Clasificación de Fuentes y Atributos de Seguridad (/fuentes).",
-    storiesBadge: "FUE-04 (LOPDP)",
+    description: "Oficial de privacidad y protección de datos personales. Evalúa cada campo expuesto y clasifica su sensibilidad como Accesible o Confidencial según la LOPDP; habilita datos sintéticos para el entorno de pruebas (FUE-04).",
+    access: "Clasificación LOPDP (/revision-fuentes/[id]) y matriz de seguridad de datos.",
+    storiesBadge: "BN-06 · FUE-04 (LOPDP)",
     flows: ["fuentes"],
     actions: [
-      { label: "Clasificación de Fuentes", route: "/fuentes", huBadge: "FUE-04" },
+      { label: "Clasificación de Campos", route: "/revision-fuentes", huBadge: "BN-06 · FUE-04" },
     ]
   }
 ];
@@ -286,6 +327,7 @@ export interface FlowOption {
   description: string;
   section: "identidad" | "tramites" | "interoperabilidad" | "fuentes" | "general";
   sectionTitle?: string;
+  bnCode?: string;
   tag?: string;
   icon: React.ComponentType<{ className?: string }>;
 }
@@ -325,6 +367,7 @@ export const FLOW_OPTIONS: FlowOption[] = [
   {
     id: "anexo-a",
     title: "Flujo Anexo A",
+    bnCode: "BN-01",
     subtitle: "Registro de Institución y Resolución Jurídica",
     description: "Solicitante, Gestión y Normativa",
     section: "tramites",
@@ -335,6 +378,7 @@ export const FLOW_OPTIONS: FlowOption[] = [
   {
     id: "anexo-b",
     title: "Flujo Anexo B",
+    bnCode: "BN-02",
     subtitle: "Enrolamiento de Coordinador (Acuerdo)",
     description: "Coordinador Titular Prerregistrado y Gestión",
     section: "tramites",
@@ -344,34 +388,56 @@ export const FLOW_OPTIONS: FlowOption[] = [
   {
     id: "anexo-c",
     title: "Flujo Anexo C",
+    bnCode: "BN-03",
     subtitle: "Cambio de Coordinador (CAM-01)",
     description: "Representante Institucional y Gestión",
     section: "tramites",
     tag: "CAM-01 a CAM-03",
     icon: ArrowLeftRight,
   },
+  {
+    id: "suplencias",
+    title: "Gestión de Suplencias (Temporal y Admin)",
+    bnCode: "BN-04",
+    subtitle: "Inactividad programada y activación administrativa",
+    description: "Coordinador Titular (AUS-01), Administrador DINARP (AUS-02) y Conmutación de Permisos (AUS-03)",
+    section: "tramites",
+    tag: "AUS-01 a AUS-03",
+    icon: Clock,
+  },
 
   // ── FLUJO INTEROPERABILIDAD Y CONSUMO DE DATOS ──
   {
+    id: "proyectos",
+    title: "Proyectos Institucionales",
+    bnCode: "BN-05",
+    subtitle: "Crear y consultar proyectos (PRJ-01 y PRJ-02)",
+    description: "Coordinador Institucional: gestión, consulta y solicitudes de interoperabilidad",
+    section: "interoperabilidad",
+    sectionTitle: "Interoperabilidad y Proyectos (BN-05)",
+    tag: "PRJ-01, 02",
+    icon: FolderKanban,
+  },
+  {
     id: "interoperabilidad",
     title: "Interoperabilidad y Consumo",
-    subtitle: "Solicitudes de acceso, catálogo API y proyectos",
+    subtitle: "Solicitudes de acceso, catálogo API y convenios",
     description: "Coordinador requirente, Aprobador institucional y Facturación SIGEF",
     section: "interoperabilidad",
-    sectionTitle: "Interoperabilidad y Consumo de Datos",
     tag: "SOL-01..10 · CAT · FAC",
     icon: Layers,
   },
 
-  // ── FLUJO GESTIÓN DE FUENTES DE DATOS ──
+  // ── FLUJO INCORPORAR Y PUBLICAR FUENTE (BN-06: FUE-01 A FUE-05, FUE-10, FUE-12, CNX-01/02) ──
   {
     id: "fuentes",
-    title: "Gestión de Fuentes de Datos",
-    subtitle: "Incorporación, validación técnica y clasificación LOPDP",
-    description: "DGR (Funcional), DTD (Técnica) y DPI (Protección de Datos)",
+    title: "Incorporar y Publicar Fuente",
+    bnCode: "BN-06",
+    subtitle: "Alta, prueba técnica VPN, esquema y clasificación LOPDP",
+    description: "Coordinador Proveedor (FUE-01..03), TI / DTD (CNX-01/02, FUE-02, 05, 12), DGR (FUE-03) y DPI (FUE-04)",
     section: "fuentes",
-    sectionTitle: "Gestión de Fuentes de Datos",
-    tag: "FUE-01 a FUE-12",
+    sectionTitle: "Incorporación y Publicación de Fuentes (BN-06)",
+    tag: "FUE-01..05, 10, 12 · CNX",
     icon: Database,
   },
 
@@ -393,7 +459,6 @@ interface DinarpTestAccountsDrawerProps {
 }
 
 export function DinarpTestAccountsDrawer({ onSelectCedula }: DinarpTestAccountsDrawerProps) {
-  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [selectedFlow, setSelectedFlow] = useState<FlowType | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -556,11 +621,21 @@ export function DinarpTestAccountsDrawer({ onSelectCedula }: DinarpTestAccountsD
                                   <span className="text-xs font-bold font-heading text-foreground group-hover:text-primary transition-colors">
                                     {flow.title}
                                   </span>
+                                  {flow.bnCode && (
+                                    <Badge
+                                      tone="primary"
+                                      appearance="solid"
+                                      size="sm"
+                                      className="text-[9px] px-1.5 py-0 font-bold bg-primary text-primary-foreground shadow-xs"
+                                    >
+                                      {flow.bnCode}
+                                    </Badge>
+                                  )}
                                   <Badge tone="neutral" appearance="soft" size="sm" className="text-[9px] px-1.5 py-0">
                                     {count} {count === 1 ? "rol" : "roles"}
                                   </Badge>
                                   {flow.tag && (
-                                    <Badge tone="primary" appearance="soft" size="sm" className="text-[9px] px-1.5 py-0 font-mono">
+                                    <Badge tone="neutral" appearance="soft" size="sm" className="text-[9px] px-1.5 py-0 font-mono text-muted-foreground/90">
                                       {flow.tag}
                                     </Badge>
                                   )}
@@ -602,9 +677,21 @@ export function DinarpTestAccountsDrawer({ onSelectCedula }: DinarpTestAccountsD
                   <ArrowLeft className="size-3.5" />
                   <span>Volver a flujos</span>
                 </Button>
-                <Badge tone="neutral" appearance="soft" size="sm" className="text-[10px]">
-                  {currentFlowConfig?.title}
-                </Badge>
+                <div className="flex items-center gap-1.5">
+                  {currentFlowConfig?.bnCode && (
+                    <Badge
+                      tone="primary"
+                      appearance="solid"
+                      size="sm"
+                      className="text-[9px] px-1.5 py-0 font-bold bg-primary text-primary-foreground shadow-xs"
+                    >
+                      {currentFlowConfig.bnCode}
+                    </Badge>
+                  )}
+                  <Badge tone="neutral" appearance="soft" size="sm" className="text-[10px]">
+                    {currentFlowConfig?.title}
+                  </Badge>
+                </div>
               </div>
 
               {/* Buscador */}
@@ -647,10 +734,15 @@ export function DinarpTestAccountsDrawer({ onSelectCedula }: DinarpTestAccountsD
                             </p>
                             {acc.storiesBadge && (
                               <Badge
-                                tone="neutral"
+                                tone={acc.storiesBadge.includes("BN-") ? "primary" : "neutral"}
                                 appearance="soft"
                                 size="sm"
-                                className="text-[9px] px-1.5 py-0 font-mono text-muted-foreground/80"
+                                className={cn(
+                                  "text-[9px] px-1.5 py-0 font-mono",
+                                  acc.storiesBadge.includes("BN-")
+                                    ? "border-primary/40 text-primary bg-primary/10 font-semibold"
+                                    : "text-muted-foreground/80"
+                                )}
                               >
                                 {acc.storiesBadge}
                               </Badge>
@@ -712,50 +804,6 @@ export function DinarpTestAccountsDrawer({ onSelectCedula }: DinarpTestAccountsD
                           </span>
                         </div>
                       </div>
-
-                      {/* Botones de acción directa según las HUs */}
-                      {acc.actions && acc.actions.length > 0 && (
-                        <div className="pt-1 border-t border-border/40 space-y-1">
-                          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-                            <ExternalLink className="size-2.5 text-primary" />
-                            Probar flujo / pantalla de HU:
-                          </span>
-                          <div className="flex flex-wrap gap-1.5 pt-0.5">
-                            {acc.actions.map((act) => (
-                              <Button
-                                key={act.route + act.label}
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleCopy(acc.cedula);
-                                  if (act.route === "/login") {
-                                    if (onSelectCedula) onSelectCedula(acc.cedula);
-                                    toast.success("Cédula aplicada al login 2FA", {
-                                      description: `Cédula: ${acc.cedula} (${act.huBadge || "ID-06"})`,
-                                    });
-                                  } else {
-                                    toast.success("Abriendo pantalla del flujo", {
-                                      description: `${act.label} (${act.route})`,
-                                    });
-                                    router.push(act.route);
-                                  }
-                                }}
-                                className="text-[11px] h-6 px-2 py-0 gap-1 bg-surface hover:bg-primary/10 hover:border-primary/50 hover:text-primary transition-all font-medium"
-                              >
-                                <span>{act.label}</span>
-                                {act.huBadge && (
-                                  <span className="text-[9px] font-mono opacity-70 bg-muted px-1 rounded">
-                                    {act.huBadge}
-                                  </span>
-                                )}
-                                <ExternalLink className="size-2.5 opacity-60" />
-                              </Button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
                     </div>
                   );
                 })}

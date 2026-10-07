@@ -167,7 +167,7 @@ export function DateField({
         </PopoverTrigger>
 
         <PopoverContent
-          className="w-auto p-0 rounded-2xl border-none shadow-2xl"
+          className="w-auto p-0 rounded-2xl border border-border shadow-2xl z-[70] bg-popover"
           align={align}
           sideOffset={6}
         >

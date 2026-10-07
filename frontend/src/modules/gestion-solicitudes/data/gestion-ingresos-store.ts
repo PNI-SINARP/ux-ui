@@ -3876,6 +3876,224 @@ export const INITIAL_SOLICITUDES_INGRESO: SolicitudIngreso[] = [
         detalles: "Trámite reasignado a Revisor Gestión (U-EQGEST). ID Nueva Asignación: ASIG-B-1727697300000-5190. Asignación previa cerrada formalmente."
       }
     ]
+  },
+  {
+    id: "SOL-ING-DIR-001",
+    tipoTramite: "PROCESO_A_REGISTRO_INSTITUCION",
+    codigoDocumental: "ARP-R01",
+    tituloTramite: "Solicitud de Registro de Institución (Anexo A)",
+    cedula: "1718902345",
+    nombres: "David Fernando",
+    apellidos: "Salazar Morales",
+    nombreCompleto: "Dr. David Fernando Salazar Morales",
+    iniciales: "DS",
+    correo: "david.salazar@iess.gob.ec",
+    institucion: "Hospital General Docente de Calderón (IESS)",
+    fechaSolicitud: "06/10/2026 08:30",
+    estado: "PENDIENTE_ASIGNACION_GESTION",
+    documentos: [
+      "ARP-R01_Hospital_Calderon.pdf",
+      "Accion_Personal_Gerente_Calderon.pdf"
+    ],
+    anexoA: {
+      entidadTipo: "Publica",
+      nombreEntidad: "Hospital General Docente de Calderón (IESS)",
+      rucEntidad: "1768037890001",
+      direccionEntidad: "Av. Giovanni Calles y Geovanny Paz, Calderón, Quito",
+      objetoSocial: "Provisión de servicios integrales de salud hospitalaria y docencia médica.",
+      representanteLegalNombre: "Dr. Fernando Mora (Gerente General)",
+      representanteLegalCargo: "Gerente General",
+      representanteLegalEmail: "gerencia.calderon@iess.gob.ec",
+      esDelegado: false,
+      titularNombreCompleto: "Dr. David Fernando Salazar Morales",
+      titularCedula: "1718902345",
+      titularCargo: "Director de Estadística y Registro Clínico",
+      titularAreaUnidad: "Dirección Médica y Estadística",
+      titularEmail: "david.salazar@iess.gob.ec",
+      titularTelefonoFijo: "023952700 ext 110",
+      titularMovilInstitucional: "0998123456",
+      titularMovilPersonal: "0987123456",
+      suplenteNombreCompleto: "Dra. Cristina Alexandra Ponce Vega",
+      suplenteCedula: "1723456781",
+      suplenteCargo: "Subdirectora de Admisiones Hospitalarias",
+      suplenteAreaUnidad: "Dirección Médica",
+      suplenteEmail: "cristina.ponce@iess.gob.ec",
+      suplenteTelefonoFijo: "023952700 ext 115",
+      suplenteMovilInstitucional: "0998765431",
+      suplenteMovilPersonal: "0987654322",
+      serviciosHerramientas: ["Interoperabilidad SINARP", "Ficha Registral"],
+      areasUso: "Admisiones y Archivo Clínico",
+      procesosUso: "Verificación de identidad ciudadana de pacientes en admisiones de emergencia.",
+      declaracionesAceptadas: true,
+      ciudadFirma: "Quito D.M.",
+      fechaFirma: "06/10/2026",
+      firmadoDigitalmente: true,
+      archivoDocumentoFirmado: "ARP-R01_Hospital_Calderon.pdf"
+    }
+  },
+  {
+    id: "SOL-ING-DIR-002",
+    tipoTramite: "PROCESO_A_REGISTRO_INSTITUCION",
+    codigoDocumental: "ARP-R01",
+    tituloTramite: "Solicitud de Registro de Institución (Anexo A)",
+    cedula: "2300123456",
+    nombres: "Karina Elizabeth",
+    apellidos: "Mendoza Viteri",
+    nombreCompleto: "Ing. Karina Elizabeth Mendoza Viteri",
+    iniciales: "KM",
+    correo: "karina.mendoza@santodomingo.gob.ec",
+    institucion: "Gobierno Autónomo Descentralizado Municipal de Santo Domingo",
+    fechaSolicitud: "06/10/2026 09:45",
+    estado: "PENDIENTE_ASIGNACION_GESTION",
+    documentos: [
+      "ARP-R01_GAD_Santo_Domingo.pdf",
+      "Nombramiento_Alcalde_Santo_Domingo.pdf"
+    ],
+    anexoA: {
+      entidadTipo: "Publica",
+      nombreEntidad: "GAD Municipal de Santo Domingo",
+      rucEntidad: "2360000240001",
+      direccionEntidad: "Av. Quito y Tulcán, Santo Domingo",
+      objetoSocial: "Planificación, desarrollo y administración integral del cantón Santo Domingo.",
+      representanteLegalNombre: "Ing. Wilson Erazo Argoti (Alcalde)",
+      representanteLegalCargo: "Alcalde del Cantón Santo Domingo",
+      representanteLegalEmail: "alcaldia@santodomingo.gob.ec",
+      esDelegado: false,
+      titularNombreCompleto: "Ing. Karina Elizabeth Mendoza Viteri",
+      titularCedula: "2300123456",
+      titularCargo: "Directora de Tecnologías y Gobierno Electrónico",
+      titularAreaUnidad: "Dirección de TIC",
+      titularEmail: "karina.mendoza@santodomingo.gob.ec",
+      titularTelefonoFijo: "022750501 ext 201",
+      titularMovilInstitucional: "0991234567",
+      titularMovilPersonal: "0982345678",
+      suplenteNombreCompleto: "Ing. Carlos Vinicio Zambrano Solís",
+      suplenteCedula: "2300987654",
+      suplenteCargo: "Jefe de Infraestructura y Redes",
+      suplenteAreaUnidad: "Dirección de TIC",
+      suplenteEmail: "carlos.zambrano@santodomingo.gob.ec",
+      suplenteTelefonoFijo: "022750501 ext 205",
+      suplenteMovilInstitucional: "0992345678",
+      suplenteMovilPersonal: "0983456789",
+      serviciosHerramientas: ["Interoperabilidad SINARP", "Catastro Registral"],
+      areasUso: "Avalúos, Catastros y Rentas",
+      procesosUso: "Validación registral de bienes inmuebles para emisión de catastros cantonales.",
+      declaracionesAceptadas: true,
+      ciudadFirma: "Santo Domingo",
+      fechaFirma: "06/10/2026",
+      firmadoDigitalmente: true,
+      archivoDocumentoFirmado: "ARP-R01_GAD_Santo_Domingo.pdf"
+    }
+  },
+  {
+    id: "SOL-ING-DIR-003",
+    tipoTramite: "PROCESO_B_ENROLAMIENTO_COORDINADOR",
+    codigoDocumental: "ARP-R02",
+    tituloTramite: "Acuerdo de Confidencialidad — Enrolamiento de Coordinador (Anexo B)",
+    cedula: "0915678901",
+    nombres: "César Augusto",
+    apellidos: "Vargas Zambrano",
+    nombreCompleto: "Abg. César Augusto Vargas Zambrano",
+    iniciales: "CV",
+    correo: "cesar.vargas@rpguayaquil.gob.ec",
+    institucion: "Empresa Pública Municipal Registro de la Propiedad de Guayaquil",
+    fechaSolicitud: "06/10/2026 11:15",
+    estado: "PENDIENTE_ASIGNACION_GESTION",
+    documentos: [
+      "ARP-R02_RP_Guayaquil.pdf"
+    ],
+    anexoB: {
+      nombreEntidad: "Empresa Pública Municipal Registro de la Propiedad de Guayaquil",
+      domicilioEntidad: "Córdova 918 y Víctor Manuel Rendón, Guayaquil",
+      representanteLegalNombre: "Abg. Martha Castro (Registradora de la Propiedad)",
+      funcionarioNombre: "Abg. César Augusto Vargas Zambrano",
+      funcionarioCedula: "0915678901",
+      funcionarioCargo: "Jefe de Certificaciones e Interoperabilidad",
+      funcionarioEmail: "cesar.vargas@rpguayaquil.gob.ec",
+      rolAsignado: "COORDINADOR TITULAR",
+      misionVisionInstitucional: "Brindar seguridad jurídica inmobiliaria a los actos y contratos registrales del cantón Guayaquil.",
+      clausulasAceptadas: true,
+      ciudadFirma: "Guayaquil",
+      fechaFirma: "06/10/2026",
+      firmadoPorRepresentante: true,
+      firmadoPorFuncionario: true,
+      archivoAcuerdoFirmado: "ARP-R02_RP_Guayaquil.pdf"
+    }
+  },
+  {
+    id: "SOL-ING-DIR-004",
+    tipoTramite: "PROCESO_B_ENROLAMIENTO_COORDINADOR",
+    codigoDocumental: "ARP-R02",
+    tituloTramite: "Acuerdo de Confidencialidad — Enrolamiento de Coordinador (Anexo B)",
+    cedula: "1716543210",
+    nombres: "Elena Patricia",
+    apellidos: "Gutiérrez Romero",
+    nombreCompleto: "Ing. Elena Patricia Gutiérrez Romero",
+    iniciales: "EG",
+    correo: "elena.gutierrez@biess.fin.ec",
+    institucion: "Banco del Instituto Ecuatoriano de Seguridad Social (BIESS)",
+    fechaSolicitud: "07/10/2026 08:10",
+    estado: "PENDIENTE_ASIGNACION_GESTION",
+    documentos: [
+      "ARP-R02_BIESS_Enrolamiento.pdf"
+    ],
+    anexoB: {
+      nombreEntidad: "Banco del Instituto Ecuatoriano de Seguridad Social (BIESS)",
+      domicilioEntidad: "Av. Amazonas y Unión Nacional de Periodistas, Quito",
+      representanteLegalNombre: "Ec. Jorge Muñoz (Gerente General)",
+      funcionarioNombre: "Ing. Elena Patricia Gutiérrez Romero",
+      funcionarioCedula: "1716543210",
+      funcionarioCargo: "Especialista de Arquitectura Tecnológica e Integración",
+      funcionarioEmail: "elena.gutierrez@biess.fin.ec",
+      rolAsignado: "COORDINADOR TITULAR",
+      misionVisionInstitucional: "Generar soluciones financieras eficientes y sostenibles para los asegurados y jubilados del IESS.",
+      clausulasAceptadas: true,
+      ciudadFirma: "Quito D.M.",
+      fechaFirma: "07/10/2026",
+      firmadoPorRepresentante: true,
+      firmadoPorFuncionario: true,
+      archivoAcuerdoFirmado: "ARP-R02_BIESS_Enrolamiento.pdf"
+    }
+  },
+  {
+    id: "SOL-ING-DIR-005",
+    tipoTramite: "PROCESO_C_CAMBIO_COORDINADOR",
+    codigoDocumental: "ARP-R03",
+    tituloTramite: "Cambio de Coordinador Institucional (ARP-R03)",
+    cedula: "1720987654",
+    nombres: "Gonzalo Javier",
+    apellidos: "Paredes Carrera",
+    nombreCompleto: "Ing. Gonzalo Javier Paredes Carrera",
+    iniciales: "GP",
+    correo: "gonzalo.paredes@controlsanitario.gob.ec",
+    institucion: "Agencia Nacional de Regulación, Control y Vigilancia Sanitaria (ARCSA)",
+    fechaSolicitud: "07/10/2026 08:45",
+    estado: "PENDIENTE_ASIGNACION_GESTION",
+    documentos: [
+      "ARP-R03_ARCSA_Cambio_Coordinador.pdf",
+      "Accion_Personal_ARCSA_2026.pdf"
+    ],
+    anexoC: {
+      nombreEntidad: "Agencia Nacional de Regulación, Control y Vigilancia Sanitaria (ARCSA)",
+      representanteLegalNombre: "Dr. Daniel Sánchez (Director Ejecutivo)",
+      esDelegado: false,
+      aplicaCambioTitular: true,
+      nuevoTitularNombre: "Ing. Gonzalo Javier Paredes Carrera",
+      nuevoTitularCedula: "1720987654",
+      nuevoTitularCargo: "Director de Tecnologías y Sistemas de Información Sanitaria",
+      nuevoTitularMotivo: "Renuncia voluntaria del coordinador anterior y designación mediante Acción de Personal Nro. 2026-ARCSA-041.",
+      nuevoTitularEmail: "gonzalo.paredes@controlsanitario.gob.ec",
+      nuevoTitularArea: "Dirección de Tecnologías de la Información",
+      nuevoTitularTelefonoFijo: "023730000 ext 312",
+      nuevoTitularMovilInst: "0997654321",
+      nuevoTitularMovilPersonal: "0986543219",
+      aplicaCambioSuplente: false,
+      aplicaDesignacionInicialSuplente: false,
+      ciudadFirma: "Quito D.M.",
+      fechaFirma: "07/10/2026",
+      firmadoDigitalmente: true,
+      archivoDocumentoFirmado: "ARP-R03_ARCSA_Cambio_Coordinador.pdf"
+    }
   }
 ];
 
@@ -3888,10 +4106,10 @@ export function getStoredSolicitudesIngreso(): SolicitudIngreso[] {
       return INITIAL_SOLICITUDES_INGRESO;
     }
     const parsed: SolicitudIngreso[] = JSON.parse(raw);
-    const tieneCasosB = parsed.some((s) => s.id === "SOL-ING-008-B" || s.id === "SOL-ING-009-B");
-    if (!tieneCasosB) {
-      const casosB = INITIAL_SOLICITUDES_INGRESO.filter((s) => s.id.endsWith("-B"));
-      const combinados = [...casosB, ...parsed];
+    const tieneCasosDirector = parsed.some((s) => s.id === "SOL-ING-DIR-001");
+    if (!tieneCasosDirector) {
+      const casosNuevos = INITIAL_SOLICITUDES_INGRESO.filter((s) => s.id.startsWith("SOL-ING-DIR-"));
+      const combinados = [...casosNuevos, ...parsed];
       localStorage.setItem(STORAGE_KEY_INGRESOS, JSON.stringify(combinados));
       return combinados;
     }

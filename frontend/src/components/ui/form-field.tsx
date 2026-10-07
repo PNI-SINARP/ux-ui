@@ -7,6 +7,7 @@ export interface FormFieldProps extends React.HTMLAttributes<HTMLDivElement> {
   label?: string
   required?: boolean
   description?: React.ReactNode
+  hint?: React.ReactNode
   error?: string
   success?: string
   htmlFor?: string
@@ -14,7 +15,8 @@ export interface FormFieldProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 export const FormField = React.forwardRef<HTMLDivElement, FormFieldProps>(
-  ({ className, label, required, description, error, success, htmlFor, children, ...props }, ref) => {
+  ({ className, label, required, description, hint, error, success, htmlFor, children, ...props }, ref) => {
+    const helperText = description ?? hint;
     return (
       <div ref={ref} className={cn("space-y-3", className)} {...props}>
         {label && (
@@ -28,8 +30,8 @@ export const FormField = React.forwardRef<HTMLDivElement, FormFieldProps>(
 
         {children}
 
-        {description && !error && !success && (
-          <p className="text-[13px] text-muted-foreground">{description}</p>
+        {helperText && !error && !success && (
+          <p className="text-[13px] text-muted-foreground">{helperText}</p>
         )}
 
         {error && (

@@ -75,6 +75,8 @@ function validarCedula(cedula: string) {
       "1724589632",
       "1718956234",
       "1716789019",
+      "1719876543",
+      "1718765432",
       "0999999999",
       "1788888888",
       "1234567890",
@@ -240,11 +242,11 @@ export function DinarpWireframe2LoginFlow({
 
     setTimeout(() => {
       setIsSubmittingOtp(false);
-      toast.success("Autenticación exitosa", {
-        description: "Bienvenido al portal institucional del SINARP.",
-      });
       const loggedUser = login(cedula);
-      if (loggedUser?.role === "ADMIN") { router.push("/cuentas-internas"); } else if (loggedUser?.role === "DIR_GESTION" || loggedUser?.role === "DIR_NORMATIVA") { router.push("/asignacion-solicitudes"); } else if (loggedUser?.role === "EQ_GESTION") { router.push("/solicitudes-pendientes"); } else if (loggedUser?.role === "EQ_NORMATIVA") { router.push("/revision-normativa"); } else if (loggedUser?.role === "REPRESENTANTE_INSTITUCIONAL") { router.push("/cambio-coordinador"); } else { router.push("/catalogo-interoperabilidad"); }
+      toast.success(`Autenticación exitosa: ${loggedUser.name}`, {
+        description: `Sesión iniciada como: ${loggedUser.roleTitle || loggedUser.role}`,
+      });
+      if (loggedUser?.role === "ADMIN") { router.push("/cuentas-internas"); } else if (loggedUser?.role === "DIR_GESTION" || loggedUser?.role === "DIR_NORMATIVA") { router.push("/asignacion-solicitudes"); } else if (loggedUser?.role === "EQ_GESTION") { router.push("/solicitudes-pendientes"); } else if (loggedUser?.role === "EQ_NORMATIVA") { router.push("/revision-normativa"); } else if (loggedUser?.role === "REPRESENTANTE_INSTITUCIONAL") { router.push("/cambio-coordinador"); } else if (loggedUser?.role === "COORDINADOR_SINARP") { router.push("/proyectos"); } else { router.push("/catalogo-interoperabilidad"); }
     }, 600);
   };
 
@@ -288,6 +290,7 @@ export function DinarpWireframe2LoginFlow({
       <DinarpTestAccountsDrawer
         onSelectCedula={(c) => {
           setCedula(c);
+          setPassword("123456");
         }}
       />
 

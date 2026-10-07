@@ -1,10 +1,14 @@
 export type EstadoFuente =
   | "BORRADOR"
-  | "CONFIGURACION"
+  | "CONEXION_PENDIENTE"
+  | "PENDIENTE_HOMOLOGACION"
+  | "ESQUEMA_PENDIENTE_CORRECCION"
   | "EN_REVISION"
   | "DEVUELTA"
   | "APROBADA"
-  | "PUBLICADA";
+  | "PUBLICACION_PENDIENTE"
+  | "PUBLICADA"
+  | "CONFIGURACION";
 
 export type ModalidadSoportada = "API individual" | "API masiva" | "Ambas modalidades";
 
@@ -30,6 +34,30 @@ export type ReglaConversion =
   | "EnteroADecimal";
 
 export type ClasificacionCampo = "Accesible" | "Confidencial";
+
+export type EstadoHomologacion =
+  | "Registrado"
+  | "En homologación"
+  | "Homologado"
+  | "No homologado"
+  | "Cerrado sin homologar";
+
+export interface HomologacionCaso {
+  id_caso: string;
+  id_fuente?: string;
+  fuente_nombre: string;
+  institucion_nombre: string;
+  tecnologia_solicitada: string;
+  protocolo: string;
+  diagnostico: string;
+  responsable_ti?: string;
+  estado: EstadoHomologacion;
+  fecha_solicitud: string;
+  fecha_actualizacion: string;
+  evidencias_pruebas?: string[];
+  motivo_rechazo?: string;
+  tipo_conector_generado?: string;
+}
 
 export interface ParametroConsulta {
   id_parametro: string;
@@ -59,6 +87,8 @@ export interface CampoFuente {
   descripcion: string;
   es_identificador_persona: boolean;
   clasificacion?: ClasificacionCampo | null;
+  obligatorio?: boolean;
+  admite_consultas_directas?: boolean;
 }
 
 export interface EvidenciaPruebaConexion {
@@ -107,6 +137,23 @@ export interface DespliegueFuente {
   proxy_endpoint: string;
 }
 
+export interface FalloPublicacionInfo {
+  etapa_fallida: string;
+  codigo_referencia: string;
+  mensaje: string;
+  fecha: string;
+  etapa?: string;
+  codigo?: string;
+}
+
+export interface CasoHomologacionVinculado {
+  id_caso: string;
+  tecnologia: string;
+  fecha_solicitud: string;
+  estado: EstadoHomologacion;
+  responsable_ti?: string;
+}
+
 export interface FuenteDatos {
   id: string;
   nombre: string;
@@ -129,6 +176,8 @@ export interface FuenteDatos {
   conexion: ConfiguracionConexion;
   campos: CampoFuente[];
   despliegue?: DespliegueFuente;
+  fallo_publicacion?: FalloPublicacionInfo;
+  caso_homologacion?: CasoHomologacionVinculado;
   observaciones_gestion?: string;
   fecha_observacion?: string;
   revisor_gestion?: string;
@@ -889,4 +938,513 @@ export const FUENTES_INICIALES: FuenteDatos[] = [
     fecha_creacion: "2026-09-28T09:00:00Z",
     fecha_actualizacion: "2026-09-30T17:00:00Z",
   },
+  {
+    id: "FUE-IESS-005",
+    nombre: "Consulta de Aportes y Fondos de Reserva",
+    descripcion_fuente:
+      "Servicio institucional provisto por el Instituto Ecuatoriano de Seguridad Social para consulta de historial laboral y aportaciones acumuladas de afiliados.",
+    version_propuesta: "v1.0.0",
+    id_institucion_proveedora: "INST-IESS-05",
+    institucion_proveedora_nombre: "Instituto Ecuatoriano de Seguridad Social",
+    id_coordinador_registrador: "1708899221",
+    coordinador_nombre: "Esteban Morales",
+    estado: "PENDIENTE_HOMOLOGACION",
+    sla_fuente: {
+      disponibilidad_objetivo: 99.5,
+      tiempo_maximo_respuesta_ms: 400,
+    },
+    modalidades_soportadas: "API individual",
+    formato_respuesta: "application/json",
+    tipo_dato_pruebas: "Sintético",
+    parametros_consulta: [
+      {
+        id_parametro: "PAR-IESS-01",
+        nombre: "cedula_afiliado",
+        tipo: "Texto",
+        obligatorio: true,
+        es_identificador_persona: true,
+        operadores_permitidos: ["Igual"],
+        restriccion: { patron: "^[0-9]{10}$" },
+      },
+    ],
+    conexion: {
+      tipo_conector: "Oracle",
+      host: "10.200.5.50",
+      puerto: 50000,
+      base_datos: "DB2PROD",
+      esquema: "HLDAF",
+      usuario: "dinarp_batch",
+    },
+    caso_homologacion: {
+      id_caso: "HOM-2026-001",
+      tecnologia: "IBM DB2 Mainframe z/OS",
+      fecha_solicitud: "2026-10-04T10:15:00Z",
+      estado: "En homologación",
+      responsable_ti: "Ing. Gabriel Flores (Equipo TI DINARP)",
+    },
+    campos: [
+      {
+        id_campo: "CMP-IESS-01",
+        incluido: true,
+        ruta_origen: "afiliado.cedula",
+        nombre_publicado: "cedula",
+        tipo_origen: "CHAR(10)",
+        tipo_origen_canonico: "Texto",
+        tipo_normalizado: "Texto",
+        regla_conversion: "Identidad",
+        admite_nulo: false,
+        descripcion: "Cédula del afiliado.",
+        es_identificador_persona: true,
+        clasificacion: null,
+      },
+      {
+        id_campo: "CMP-IESS-02",
+        incluido: true,
+        ruta_origen: "afiliado.imposiciones_totales",
+        nombre_publicado: "numero_imposiciones",
+        tipo_origen: "INTEGER",
+        tipo_origen_canonico: "Entero",
+        tipo_normalizado: "Entero",
+        regla_conversion: "Identidad",
+        admite_nulo: false,
+        descripcion: "Total de aportes registrados.",
+        es_identificador_persona: false,
+        clasificacion: null,
+      },
+    ],
+    historial: [
+      {
+        id_evento: "EVT-501",
+        fecha: "2026-10-04T10:00:00Z",
+        actor: "Esteban Morales",
+        rol: "Coordinador SINARP",
+        accion: "Inicio de configuración (FUE-01)",
+        estado_resultante: "BORRADOR",
+      },
+      {
+        id_evento: "EVT-502",
+        fecha: "2026-10-04T10:15:00Z",
+        actor: "Esteban Morales",
+        rol: "Coordinador SINARP",
+        accion: "Solicitud de homologación técnica de origen no soportado (FUE-12)",
+        estado_resultante: "PENDIENTE_HOMOLOGACION",
+        observaciones: "Se solicitó homologación de IBM DB2 Mainframe z/OS. Caso HOM-2026-001 asignado a TI DINARP.",
+      },
+    ],
+    fecha_creacion: "2026-10-04T10:00:00Z",
+    fecha_actualizacion: "2026-10-04T10:15:00Z",
+  },
+  {
+    id: "FUE-MSP-006",
+    nombre: "Certificados de Vacunación y Dosis Aplicadas",
+    descripcion_fuente:
+      "Servicio del Ministerio de Salud Pública para consulta de historial vacunal oficial y certificados de bioseguridad.",
+    version_propuesta: "v1.0.0",
+    id_institucion_proveedora: "INST-MSP-06",
+    institucion_proveedora_nombre: "Ministerio de Salud Pública",
+    id_coordinador_registrador: "1715566778",
+    coordinador_nombre: "Valeria Benítez",
+    estado: "CONEXION_PENDIENTE",
+    sla_fuente: {
+      disponibilidad_objetivo: 99.6,
+      tiempo_maximo_respuesta_ms: 350,
+    },
+    modalidades_soportadas: "API individual",
+    formato_respuesta: "application/json",
+    tipo_dato_pruebas: "Sintético",
+    parametros_consulta: [
+      {
+        id_parametro: "PAR-MSP-01",
+        nombre: "identificacion_paciente",
+        tipo: "Texto",
+        obligatorio: true,
+        es_identificador_persona: true,
+        operadores_permitidos: ["Igual"],
+        restriccion: { patron: "^[0-9]{10}$" },
+      },
+    ],
+    conexion: {
+      tipo_conector: "REST",
+      url_endpoint: "https://salud.gob.ec/api/v1/vacunas",
+    },
+    campos: [
+      {
+        id_campo: "CMP-MSP-01",
+        incluido: true,
+        ruta_origen: "vacunacion.cedula",
+        nombre_publicado: "cedula",
+        tipo_origen: "STRING",
+        tipo_origen_canonico: "Texto",
+        tipo_normalizado: "Texto",
+        regla_conversion: "Identidad",
+        admite_nulo: false,
+        descripcion: "Cédula del paciente.",
+        es_identificador_persona: true,
+      },
+    ],
+    historial: [
+      {
+        id_evento: "EVT-601",
+        fecha: "2026-10-05T08:30:00Z",
+        actor: "Valeria Benítez",
+        rol: "Coordinador SINARP",
+        accion: "Registro de información de fuente (FUE-01)",
+        estado_resultante: "CONEXION_PENDIENTE",
+        observaciones: "Información general registrada. Pendiente realizar prueba técnica de conectividad.",
+      },
+    ],
+    fecha_creacion: "2026-10-05T08:30:00Z",
+    fecha_actualizacion: "2026-10-05T08:30:00Z",
+  },
+  {
+    id: "FUE-AGRO-007",
+    nombre: "Registro Nacional Agropecuario y Predios Rurales",
+    descripcion_fuente:
+      "Servicio de consulta de predios rurales, títulos de propiedad agrícola y certificados fitosanitarios expedidos.",
+    version_propuesta: "v1.0.0",
+    id_institucion_proveedora: "INST-AGRO-07",
+    institucion_proveedora_nombre: "Ministerio de Agricultura y Ganadería",
+    id_coordinador_registrador: "1713322110",
+    coordinador_nombre: "Jorge Cárdenas",
+    estado: "ESQUEMA_PENDIENTE_CORRECCION",
+    sla_fuente: {
+      disponibilidad_objetivo: 99.0,
+      tiempo_maximo_respuesta_ms: 500,
+    },
+    modalidades_soportadas: "API individual",
+    formato_respuesta: "application/json",
+    tipo_dato_pruebas: "Sintético",
+    parametros_consulta: [
+      {
+        id_parametro: "PAR-AGRO-01",
+        nombre: "codigo_predio",
+        tipo: "Texto",
+        obligatorio: true,
+        es_identificador_persona: false,
+        operadores_permitidos: ["Igual"],
+      },
+    ],
+    conexion: {
+      tipo_conector: "PostgreSQL",
+      host: "10.140.2.20",
+      puerto: 5432,
+      base_datos: "agro_catastro",
+      esquema: "public",
+      usuario: "dinarp_ro",
+      ultima_prueba: {
+        id_prueba: "PRB-2026-0812",
+        instante_prueba: "2026-10-05T11:00:00Z",
+        latencia_ms: 31,
+        resultado: "Satisfactoria",
+        huella_muestra: "9f83c12c4e12",
+        version_conector: "v4.2.1",
+        etapas: [
+          { etapa: "Túnel VPN", estado: "ok", detalle: "Activo" },
+          { etapa: "Autenticación", estado: "ok", detalle: "Exitosa" },
+        ],
+      },
+    },
+    campos: [
+      {
+        id_campo: "CMP-AGRO-01",
+        incluido: true,
+        ruta_origen: "predio.fecha_catastro",
+        nombre_publicado: "fecha_registro",
+        tipo_origen: "DATE",
+        tipo_origen_canonico: "Fecha",
+        tipo_normalizado: "Entero", // Incompatibilidad deliberada
+        regla_conversion: "TextoAEntero", // Incompatibilidad deliberada
+        admite_nulo: false,
+        descripcion: "Fecha catastral con regla incompatible.",
+        es_identificador_persona: false,
+      },
+    ],
+    historial: [
+      {
+        id_evento: "EVT-701",
+        fecha: "2026-10-05T11:00:00Z",
+        actor: "Jorge Cárdenas",
+        rol: "Coordinador SINARP",
+        accion: "Validación de esquema (FUE-03)",
+        estado_resultante: "ESQUEMA_PENDIENTE_CORRECCION",
+        observaciones: "Error de normalización detectado: la regla 'TextoAEntero' es incompatible con el tipo DATE.",
+      },
+    ],
+    fecha_creacion: "2026-10-05T10:45:00Z",
+    fecha_actualizacion: "2026-10-05T11:00:00Z",
+  },
+  {
+    id: "FUE-JUD-008",
+    nombre: "Consulta de Causas Judiciales y Autos de Trámite",
+    descripcion_fuente:
+      "Servicio oficial provisto por el Consejo de la Judicatura para verificación de procesos judiciales no reservados y actos procesales.",
+    version_propuesta: "v1.0.0",
+    id_institucion_proveedora: "INST-CJ-08",
+    institucion_proveedora_nombre: "Consejo de la Judicatura",
+    id_coordinador_registrador: "1719988776",
+    coordinador_nombre: "Paulina Villavicencio",
+    estado: "PUBLICACION_PENDIENTE",
+    sla_fuente: {
+      disponibilidad_objetivo: 99.8,
+      tiempo_maximo_respuesta_ms: 280,
+    },
+    modalidades_soportadas: "API individual",
+    formato_respuesta: "application/json",
+    tipo_dato_pruebas: "Sintético",
+    parametros_consulta: [
+      {
+        id_parametro: "PAR-CJ-01",
+        nombre: "numero_juicio",
+        tipo: "Texto",
+        obligatorio: true,
+        es_identificador_persona: false,
+        operadores_permitidos: ["Igual"],
+      },
+    ],
+    conexion: {
+      tipo_conector: "REST",
+      url_endpoint: "https://satje.funcionjudicial.gob.ec/api/v1/causas",
+      tls_activo: true,
+      ultima_prueba: {
+        id_prueba: "PRB-2026-0901",
+        instante_prueba: "2026-10-04T15:00:00Z",
+        latencia_ms: 22,
+        resultado: "Satisfactoria",
+        huella_muestra: "7c12f4b0",
+        version_conector: "v2.0.0",
+        etapas: [{ etapa: "TLS", estado: "ok", detalle: "Validado" }],
+      },
+    },
+    campos: [
+      {
+        id_campo: "CMP-CJ-01",
+        incluido: true,
+        ruta_origen: "causa.numero_proceso",
+        nombre_publicado: "numero_proceso",
+        tipo_origen: "STRING",
+        tipo_origen_canonico: "Texto",
+        tipo_normalizado: "Texto",
+        regla_conversion: "Identidad",
+        admite_nulo: false,
+        descripcion: "Número oficial de causa judicial.",
+        es_identificador_persona: false,
+        clasificacion: "Accesible",
+      },
+    ],
+    fallo_publicacion: {
+      etapa_fallida: "Despliegue de proxy en API Gateway Apigee",
+      codigo_referencia: "ERR_GW_DEPLOY_TIMEOUT_504",
+      mensaje: "Tiempo de espera agotado al aplicar políticas de cuota en el clúster Apigee. Se requiere reintentar el despliegue.",
+      fecha: "2026-10-05T14:30:00Z",
+    },
+    historial: [
+      {
+        id_evento: "EVT-801",
+        fecha: "2026-10-04T16:00:00Z",
+        actor: "Ana Torres",
+        rol: "Equipo de Gestión",
+        accion: "Aprobación de fuente (FUE-04)",
+        estado_resultante: "APROBADA",
+      },
+      {
+        id_evento: "EVT-802",
+        fecha: "2026-10-05T14:30:00Z",
+        actor: "Paulina Villavicencio",
+        rol: "Coordinador SINARP",
+        accion: "Intento de publicación en catálogo (FUE-05)",
+        estado_resultante: "PUBLICACION_PENDIENTE",
+        observaciones: "Fallo durante despliegue en Apigee Gateway (ERR_GW_DEPLOY_TIMEOUT_504). Reintento habilitado.",
+      },
+    ],
+    fecha_creacion: "2026-10-04T09:00:00Z",
+    fecha_actualizacion: "2026-10-05T14:30:00Z",
+  },
+  {
+    id: "FUE-DEF-009",
+    nombre: "Padrón de Patrocinio y Defensoría Pública",
+    descripcion_fuente:
+      "Servicio institucional de la Defensoría Pública del Ecuador para consulta de asignación de defensores públicos a ciudadanos procesados.",
+    version_propuesta: "v1.0.0",
+    id_institucion_proveedora: "INST-DP-09",
+    institucion_proveedora_nombre: "Defensoría Pública del Ecuador",
+    id_coordinador_registrador: "1710011223",
+    coordinador_nombre: "Santiago Vera",
+    estado: "BORRADOR",
+    sla_fuente: {
+      disponibilidad_objetivo: 99.5,
+      tiempo_maximo_respuesta_ms: 300,
+    },
+    modalidades_soportadas: "API individual",
+    formato_respuesta: "application/json",
+    tipo_dato_pruebas: "Sintético",
+    parametros_consulta: [
+      {
+        id_parametro: "PAR-DP-01",
+        nombre: "cedula_solicitante",
+        tipo: "Texto",
+        obligatorio: true,
+        es_identificador_persona: true,
+        operadores_permitidos: ["Igual"],
+      },
+    ],
+    conexion: {
+      tipo_conector: "PostgreSQL",
+    },
+    campos: [],
+    historial: [
+      {
+        id_evento: "EVT-901",
+        fecha: "2026-10-05T16:00:00Z",
+        actor: "Santiago Vera",
+        rol: "Coordinador SINARP",
+        accion: "Borrador inicial registrado",
+        estado_resultante: "BORRADOR",
+      },
+    ],
+    fecha_creacion: "2026-10-05T16:00:00Z",
+    fecha_actualizacion: "2026-10-05T16:00:00Z",
+  },
 ];
+
+export const CASOS_HOMOLOGACION_INICIALES: HomologacionCaso[] = [
+  {
+    id_caso: "HOM-2026-001",
+    id_fuente: "FUE-IESS-005",
+    fuente_nombre: "Consulta de Aportes y Fondos de Reserva",
+    institucion_nombre: "Instituto Ecuatoriano de Seguridad Social",
+    tecnologia_solicitada: "IBM DB2 Mainframe z/OS",
+    protocolo: "DRDA v5 / SSL EBCDIC",
+    diagnostico:
+      "Protocolo propietario no soportado en la pila estándar de conectores DINARP. Requiere túnel dedicado con emulación de página de códigos CP500 y conector JDBC tipo 4 certificado.",
+    responsable_ti: "Ing. Gabriel Flores (Equipo TI DINARP)",
+    estado: "En homologación",
+    fecha_solicitud: "2026-10-04T10:15:00Z",
+    fecha_actualizacion: "2026-10-05T14:20:00Z",
+    evidencias_pruebas: [
+      "Prueba de conectividad capa 3 sobre MPLS exitosa (RTT: 18ms).",
+      "Handshake TLS 1.3 con certificado CA raíz IESS validado.",
+      "Prueba de transcodificación EBCDIC a UTF-8 pendiente en ambiente laboratorio.",
+    ],
+  },
+  {
+    id_caso: "HOM-2026-002",
+    id_fuente: "FUE-CNT-010",
+    fuente_nombre: "Padrón de Facturación Telecomunicaciones",
+    institucion_nombre: "Corporación Nacional de Telecomunicaciones",
+    tecnologia_solicitada: "SAP RFC / BAPI NetWeaver",
+    protocolo: "SAP Gateway RFC 3300",
+    diagnostico:
+      "Conexión a SAP ECC 6.0 mediante protocolo binario RFC con SNC (Secure Network Communications). Requiere librerías sapjco3 homologadas en el clúster de microservicios.",
+    responsable_ti: "Ing. Diana Paredes (Equipo TI DINARP)",
+    estado: "Registrado",
+    fecha_solicitud: "2026-10-05T09:00:00Z",
+    fecha_actualizacion: "2026-10-05T09:00:00Z",
+    evidencias_pruebas: [
+      "Solicitud formal ingresada por Coordinador CNT.",
+      "Revisión preliminar de arquitectura de red DINARP concluida.",
+    ],
+  },
+  {
+    id_caso: "HOM-2026-003",
+    id_fuente: "FUE-BCE-012",
+    fuente_nombre: "Sistemas de Pagos Interbancarios SPI",
+    institucion_nombre: "Banco Central del Ecuador",
+    tecnologia_solicitada: "IBM MQ / JMS ISO 20022",
+    protocolo: "TCP 1414 - MQ Channel TLS",
+    diagnostico:
+      "Cola asíncrona de mensajes financieros bajo estándar ISO 20022 con firma electrónica PKI.",
+    responsable_ti: "Ing. Gabriel Flores (Equipo TI DINARP)",
+    estado: "Homologado",
+    fecha_solicitud: "2026-09-20T11:00:00Z",
+    fecha_actualizacion: "2026-10-01T16:30:00Z",
+    evidencias_pruebas: [
+      "Canal de mensajería seguro certificado con HSM del BCE.",
+      "Prueba de stress a 1,200 msg/seg sin pérdidas de paquetes.",
+      "Conector modular empaquetado bajo estándar CNX-01 para reuso nacional.",
+    ],
+    tipo_conector_generado: "IBM MQ Connector v1.1.0",
+  },
+];
+
+export function isReglaCompatible(
+  tipoOrigen: string,
+  regla: ReglaConversion,
+  tipoNormalizado: TipoDatoCanonico
+): { valida: boolean; error?: string } {
+  const origen = (tipoOrigen || "").toUpperCase();
+
+  if (regla === "Identidad") {
+    if (origen.includes("DATE") && tipoNormalizado !== "Fecha") {
+      return {
+        valida: false,
+        error: "Un campo origen de tipo DATE requiere tipo normalizado 'Fecha' si se usa 'Identidad'.",
+      };
+    }
+    return { valida: true };
+  }
+
+  if (regla === "TextoAEntero") {
+    if (origen.includes("DATE")) {
+      return {
+        valida: false,
+        error: "No es posible aplicar regla 'TextoAEntero' a un campo de tipo origen DATE.",
+      };
+    }
+    if (tipoNormalizado !== "Entero") {
+      return {
+        valida: false,
+        error: "La regla 'TextoAEntero' exige que el tipo normalizado sea 'Entero'.",
+      };
+    }
+  }
+
+  if (regla === "TextoADecimal") {
+    if (origen.includes("DATE")) {
+      return {
+        valida: false,
+        error: "No es posible aplicar regla 'TextoADecimal' a un campo de tipo origen DATE.",
+      };
+    }
+    if (tipoNormalizado !== "Decimal") {
+      return {
+        valida: false,
+        error: "La regla 'TextoADecimal' exige que el tipo normalizado sea 'Decimal'.",
+      };
+    }
+  }
+
+  if (regla === "TextoAFechaISO") {
+    if (tipoNormalizado !== "Fecha") {
+      return {
+        valida: false,
+        error: "La regla 'TextoAFechaISO' exige que el tipo normalizado sea 'Fecha'.",
+      };
+    }
+  }
+
+  if (regla === "TextoABooleano") {
+    if (tipoNormalizado !== "Booleano") {
+      return {
+        valida: false,
+        error: "La regla 'TextoABooleano' exige que el tipo normalizado sea 'Booleano'.",
+      };
+    }
+  }
+
+  if (regla === "EnteroADecimal") {
+    if (!origen.includes("INT") && !origen.includes("NUMBER")) {
+      return {
+        valida: false,
+        error: "La regla 'EnteroADecimal' solo aplica a campos numéricos de origen entero.",
+      };
+    }
+    if (tipoNormalizado !== "Decimal") {
+      return {
+        valida: false,
+        error: "La regla 'EnteroADecimal' exige tipo normalizado 'Decimal'.",
+      };
+    }
+  }
+
+  return { valida: true };
+}

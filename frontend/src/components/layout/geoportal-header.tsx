@@ -735,7 +735,9 @@ export function GeoportalHeader({
                           {showUser && headerConfig.showNotifications && headerConfig.showUserMenu && <div className="w-px h-8 bg-border" aria-hidden="true" />}
 
                           {/* User menu */}
-                          {showUser && headerConfig.showUserMenu && <UserMenu />}
+                          {showUser && headerConfig.showUserMenu && (
+                            <UserMenu user={userProps} onRoleChange={onRoleChange} />
+                          )}
                         </div>
                       </div>
                     </SheetContent>

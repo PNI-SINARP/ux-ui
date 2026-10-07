@@ -435,6 +435,153 @@ export function useFuentesStore() {
     []
   );
 
+  const fallarPublicacion = useCallback(
+    (
+      fuenteId: string,
+      actor: string,
+      etapa: string = "Despliegue de proxy en API Gateway Apigee",
+      codigo: string = "ERR_GW_DEPLOY_TIMEOUT_504",
+      mensaje: string = "Tiempo de espera agotado al aplicar políticas de cuota en el clúster Apigee. Se requiere reintentar el despliegue."
+    ) => {
+      const current = getStoredFuentes();
+      const fIndex = current.findIndex((f) => f.id.toLowerCase() === fuenteId.toLowerCase());
+      if (fIndex === -1) return { success: false, error: "Fuente no encontrada." };
+
+      const fuente = current[fIndex];
+      const now = new Date().toISOString();
+
+      const updatedHistorial: TrazabilidadEvento[] = [
+        ...fuente.historial,
+        {
+          id_evento: `EVT-${Date.now()}`,
+          fecha: now,
+          actor,
+          rol: "Coordinador SINARP",
+          accion: "Fallo durante publicación en catálogo (FUE-05)",
+          estado_resultante: "PUBLICACION_PENDIENTE",
+          observaciones: `Fallo en etapa: ${etapa}. Código: ${codigo}. ${mensaje}`,
+        },
+      ];
+
+      const updatedFuente: FuenteDatos = {
+        ...fuente,
+        estado: "PUBLICACION_PENDIENTE",
+        fallo_publicacion: {
+          etapa_fallida: etapa,
+          codigo_referencia: codigo,
+          mensaje,
+          fecha: now,
+        },
+        historial: updatedHistorial,
+        fecha_actualizacion: now,
+      };
+
+      const updatedList = [...current];
+      updatedList[fIndex] = updatedFuente;
+      saveStoredFuentes(updatedList);
+      setFuentes(updatedList);
+      return { success: true };
+    },
+    []
+  );
+
+  const solicitarHomologacion = useCallback(
+    (
+      fuenteId: string,
+      tecnologia: string,
+      casoId: string,
+      responsableTi: string = "Ing. Gabriel Flores (Equipo TI DINARP)"
+    ) => {
+      const current = getStoredFuentes();
+      const fIndex = current.findIndex((f) => f.id.toLowerCase() === fuenteId.toLowerCase());
+      if (fIndex === -1) return { success: false, error: "Fuente no encontrada." };
+
+      const fuente = current[fIndex];
+      const now = new Date().toISOString();
+
+      const updatedHistorial: TrazabilidadEvento[] = [
+        ...fuente.historial,
+        {
+          id_evento: `EVT-${Date.now()}`,
+          fecha: now,
+          actor: fuente.coordinador_nombre,
+          rol: "Coordinador SINARP",
+          accion: "Solicitud de homologación técnica (FUE-12)",
+          estado_resultante: "PENDIENTE_HOMOLOGACION",
+          observaciones: `Caso ${casoId} creado para homologar ${tecnologia}. Asignado a TI.`,
+        },
+      ];
+
+      const updatedFuente: FuenteDatos = {
+        ...fuente,
+        estado: "PENDIENTE_HOMOLOGACION",
+        caso_homologacion: {
+          id_caso: casoId,
+          tecnologia,
+          fecha_solicitud: now,
+          estado: "En homologación",
+          responsable_ti: responsableTi,
+        },
+        historial: updatedHistorial,
+        fecha_actualizacion: now,
+      };
+
+      const updatedList = [...current];
+      updatedList[fIndex] = updatedFuente;
+      saveStoredFuentes(updatedList);
+      setFuentes(updatedList);
+      return { success: true };
+    },
+    []
+  );
+
+  const corregirFuenteYReenviar = useCallback(
+    (
+      fuenteId: string,
+      updates: Partial<FuenteDatos>,
+      actor: string,
+      motivoCorreccion?: string
+    ) => {
+      const current = getStoredFuentes();
+      const fIndex = current.findIndex((f) => f.id.toLowerCase() === fuenteId.toLowerCase());
+      if (fIndex === -1) return { success: false, error: "Fuente no encontrada." };
+
+      const fuente = current[fIndex];
+      const now = new Date().toISOString();
+
+      const updatedHistorial: TrazabilidadEvento[] = [
+        ...fuente.historial,
+        {
+          id_evento: `EVT-${Date.now()}-CORR`,
+          fecha: now,
+          actor,
+          rol: "Coordinador SINARP",
+          accion: "Subsanación de observaciones de Gestión",
+          estado_resultante: "EN_REVISION",
+          observaciones:
+            motivoCorreccion ||
+            "Se actualizaron los parámetros, SLA o campos requeridos y se reenvía a revisión.",
+        },
+      ];
+
+      const updatedFuente: FuenteDatos = {
+        ...fuente,
+        ...updates,
+        estado: "EN_REVISION",
+        observaciones_gestion: undefined,
+        historial: updatedHistorial,
+        fecha_actualizacion: now,
+      };
+
+      const updatedList = [...current];
+      updatedList[fIndex] = updatedFuente;
+      saveStoredFuentes(updatedList);
+      setFuentes(updatedList);
+      return { success: true };
+    },
+    []
+  );
+
   const restablecerDatosDemo = useCallback(() => {
     saveStoredFuentes(FUENTES_INICIALES);
     setFuentes(FUENTES_INICIALES);
@@ -453,6 +600,9 @@ export function useFuentesStore() {
     aprobarFuente,
     devolverFuente,
     publicarFuente,
+    fallarPublicacion,
+    solicitarHomologacion,
+    corregirFuenteYReenviar,
     restablecerDatosDemo,
   };
 }

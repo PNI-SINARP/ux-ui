@@ -14,7 +14,7 @@ export type EstadoSuplencia =
 
 export type ModalidadSuplencia = "PROGRAMADA" | "ADMINISTRATIVA" | "NINGUNA";
 
-export type EstadoCoordinadorTitular = "ACTIVO" | "INACTIVO_TEMPORAL" | "SUSPENDIDO";
+export type EstadoCoordinadorTitular = "ACTIVO" | "TEMPORALMENTE_INACTIVO" | "INACTIVO_TEMPORAL" | "SUSPENDIDO";
 export type EstadoCoordinadorSuplente = "ENROLADO_SIN_ACCESO" | "ACTIVO" | "SUSPENDIDO";
 
 export interface EventoTrazabilidadSuplencia {
@@ -180,7 +180,7 @@ export const INITIAL_SUPLENCIAS_DATA: SuplenciaInstitucional[] = [
       cedula: "0912345678",
       correo: "jbohorquez@guayaquil.gob.ec",
       cargo: "Director de Tecnologías de la Información",
-      estado: "INACTIVO_TEMPORAL",
+      estado: "TEMPORALMENTE_INACTIVO",
     },
     suplente: {
       nombre: "Roberto Cedeño",
@@ -549,7 +549,7 @@ export function useSuplenciasStore() {
           evento: "Titular temporalmente inhabilitado",
           actor: "Sistema DINARP",
           modalidad: "Automática (Portal)",
-          motivo: "Llegada de la fecha inicial programada (AUS-03)",
+          motivo: "Llegada de la fecha inicial programada",
           estado: "Titular inactivo",
         };
 
@@ -569,7 +569,7 @@ export function useSuplenciasStore() {
           evento: "Suplencia activada",
           actor: "Sistema DINARP",
           modalidad: "Automática (Portal)",
-          motivo: "Activación automática por temporizador AUS-03",
+          motivo: "Activación automática por temporizador institucional",
           estado: "Activa",
         };
 
@@ -611,7 +611,7 @@ export function useSuplenciasStore() {
           ultimaActualizacion: fechaActualStr,
           titular: {
             ...item.titular,
-            estado: "INACTIVO_TEMPORAL",
+            estado: "TEMPORALMENTE_INACTIVO",
           },
           suplente: {
             ...item.suplente,
@@ -624,7 +624,7 @@ export function useSuplenciasStore() {
     );
 
     if (resultado) {
-      toast.success("Suplencia activada automáticamente (AUS-03)", {
+      toast.success("Suplencia activada automáticamente", {
         description: "Mariana Almeida asume funciones. Titular Juan Pérez temporalmente inhabilitado.",
       });
     }
@@ -656,7 +656,7 @@ export function useSuplenciasStore() {
           evento: "Suplencia finalizada",
           actor: "Sistema DINARP",
           modalidad: "Automática (Portal)",
-          motivo: "Conclusión de fecha final programada (AUS-03)",
+          motivo: "Conclusión de fecha final programada",
           estado: "Finalizada",
         };
 
@@ -835,7 +835,7 @@ export function useSuplenciasStore() {
             programacionPreviaDesplazada: programacionPrevia,
             titular: {
               ...item.titular,
-              estado: "INACTIVO_TEMPORAL",
+              estado: "TEMPORALMENTE_INACTIVO",
             },
             suplente: {
               ...item.suplente,
@@ -966,10 +966,18 @@ export function useSuplenciasStore() {
     toast.info("Simulación reiniciada al estado de fábrica.");
   }, []);
 
+  const getSuplenciaByInstitucion = useCallback(
+    (idInstitucion: string): SuplenciaInstitucional | undefined => {
+      return suplencias.find((s) => s.idInstitucion === idInstitucion);
+    },
+    [suplencias]
+  );
+
   return {
     suplencias,
     isLoaded,
     getSuplenciaMineduc,
+    getSuplenciaByInstitucion,
     programarInactividad,
     cancelarProgramacion,
     simularInicioSuplenciaProgramada,
@@ -979,3 +987,50 @@ export function useSuplenciasStore() {
     resetearSimulacion,
   };
 }
+
+export interface UsuarioSimulacionSuplencia {
+  id: string;
+  cedula: string;
+  nombre: string;
+  rol: "ADMIN" | "COORDINADOR_SINARP";
+  designacion?: "TITULAR" | "SUPLENTE";
+  rolTitulo: string;
+  institucion: string;
+  iniciales: string;
+  estadoBase: "ACTIVO" | "ENROLADO_SIN_ACCESO";
+}
+
+export const USUARIO_ADMIN: UsuarioSimulacionSuplencia = {
+  id: "1799999999",
+  cedula: "1799999999",
+  nombre: "Admin Portal",
+  rol: "ADMIN",
+  rolTitulo: "Administrador DINARP",
+  institucion: "Dirección Nacional de Registros Públicos",
+  iniciales: "AP",
+  estadoBase: "ACTIVO",
+};
+
+export const USUARIO_COORDINADOR_TITULAR: UsuarioSimulacionSuplencia = {
+  id: "1712345678",
+  cedula: "1712345678",
+  nombre: "Juan Pérez",
+  rol: "COORDINADOR_SINARP",
+  designacion: "TITULAR",
+  rolTitulo: "Coordinador Titular SINARP",
+  institucion: "Ministerio de Educación",
+  iniciales: "JP",
+  estadoBase: "ACTIVO",
+};
+
+export const USUARIO_COORDINADOR_SUPLENTE: UsuarioSimulacionSuplencia = {
+  id: "1714443322",
+  cedula: "1714443322",
+  nombre: "Mariana Almeida",
+  rol: "COORDINADOR_SINARP",
+  designacion: "SUPLENTE",
+  rolTitulo: "Coordinador Suplente SINARP",
+  institucion: "Ministerio de Educación",
+  iniciales: "MA",
+  estadoBase: "ENROLADO_SIN_ACCESO",
+};

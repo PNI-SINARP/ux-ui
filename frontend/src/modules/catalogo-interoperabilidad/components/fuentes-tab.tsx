@@ -11,7 +11,9 @@ import {
   Info,
   ChevronDown,
   Building2,
-  X
+  X,
+  Send,
+  Globe,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/shared/status-badge";
@@ -38,22 +40,78 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 import { INITIAL_INSTITUCIONES, type FuenteEstado } from "@/modules/catalogo-interoperabilidad/data/catalogo-data";
+import { useFuentesStore } from "@/modules/fuentes/data/fuentes-store";
 
 export function FuentesTab({ activeRole }: { activeRole?: string }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [estadoFilter, setEstadoFilter] = useState<string>("ALL");
   const [institucionFilter, setInstitucionFilter] = useState<string>("ALL");
 
+  const { fuentes: fuentesFromStore } = useFuentesStore();
+
   const allFuentes = useMemo(() => {
-    return INITIAL_INSTITUCIONES.flatMap(inst =>
+    // Fuentes base del catálogo
+    const baseFuentes = INITIAL_INSTITUCIONES.flatMap(inst =>
       inst.fuentes.map(f => ({
         ...f,
         institucionSigla: inst.sigla,
         institucionNombreCompleto: inst.nombre,
-        institucionSector: inst.sector
+        institucionSector: inst.sector,
+        modalidades: "API individual y masiva",
+        sla: "99.5% disp / 300ms",
       }))
     );
-  }, []);
+
+    // Fuentes publicadas dinámicamente desde el store de Fuentes (BN-06 / FUE-05)
+    const storePublicadas = fuentesFromStore
+      .filter((f) => f.estado === "PUBLICADA")
+      .map((f) => {
+        const sigla = f.institucion_proveedora_nombre.includes("Registro Civil")
+          ? "DIGERCIC"
+          : f.institucion_proveedora_nombre.includes("SRI")
+          ? "SRI"
+          : "INST";
+
+        return {
+          id: f.id,
+          nombre: f.nombre,
+          codigoServicio: f.version_api ? `${f.id} (${f.version_api})` : f.id,
+          estado: "PUBLICADO" as FuenteEstado,
+          campos: f.campos
+            .filter((c) => c.incluido)
+            .map((c) => ({
+              id: c.id_campo,
+              nombre: c.nombre_publicado,
+              tipo: c.tipo_normalizado,
+              descripcion: c.descripcion,
+              esSensible: c.clasificacion === "Confidencial",
+            })),
+          ultimaActualizacion: f.despliegue?.fecha_publicacion
+            ? new Date(f.despliegue.fecha_publicacion).toLocaleDateString("es-EC", {
+                year: "numeric",
+                month: "short",
+                day: "numeric",
+              })
+            : new Date(f.fecha_actualizacion).toLocaleDateString("es-EC", {
+                year: "numeric",
+                month: "short",
+                day: "numeric",
+              }),
+          institucionId: f.id_institucion_proveedora,
+          institucionSigla: sigla,
+          institucionNombreCompleto: f.institucion_proveedora_nombre,
+          institucionSector: "Público - Función Ejecutiva" as const,
+          modalidades: f.modalidades_soportadas,
+          sla: `${f.sla_fuente.disponibilidad_objetivo}% disp / ${f.sla_fuente.tiempo_maximo_respuesta_ms}ms`,
+        };
+      });
+
+    // Deduplicar: las del store tienen prioridad si coinciden en id
+    const storeIds = new Set(storePublicadas.map((s) => s.id));
+    const dedupedBase = baseFuentes.filter((b) => !storeIds.has(b.id));
+
+    return [...storePublicadas, ...dedupedBase];
+  }, [fuentesFromStore]);
 
 
   const fuentesRoleFiltradas = useMemo(() => {
@@ -290,16 +348,16 @@ export function FuentesTab({ activeRole }: { activeRole?: string }) {
           </span>
         </div>
 
-        <div className="overflow-x-auto border-y border-border bg-card mt-2">
-          <Table>
+        <div className="w-full">
+          <Table className="w-full" containerClassName="overflow-x-auto w-full">
             <TableHeader>
-              <TableRow>
-                <TableHead className="min-w-[220px]">Fuente</TableHead>
-                <TableHead className="min-w-[180px]">Institución</TableHead>
-                <TableHead className="min-w-[140px]" data-tour="tour-estado">Estado</TableHead>
-                <TableHead className="text-center min-w-[80px]">Campos</TableHead>
-                <TableHead className="min-w-[140px]">Última actualización</TableHead>
-                <TableHead className="w-24 text-center">Acciones</TableHead>
+              <TableRow className="border-0">
+                <TableHead className="min-w-[220px] text-white font-bold pl-6">Fuente</TableHead>
+                <TableHead className="min-w-[180px] text-white font-bold">Institución</TableHead>
+                <TableHead className="min-w-[140px] text-white font-bold" data-tour="tour-estado">Estado</TableHead>
+                <TableHead className="text-center min-w-[80px] text-white font-bold">Campos</TableHead>
+                <TableHead className="min-w-[140px] text-white font-bold">Última actualización</TableHead>
+                <TableHead className="w-32 text-center text-white font-bold pr-6">Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -312,7 +370,7 @@ export function FuentesTab({ activeRole }: { activeRole?: string }) {
               ) : (
                 fuentesFiltradas.map((fuente) => (
                   <TableRow key={fuente.id}>
-                    <TableCell>
+                    <TableCell className="pl-6">
                       <div className="flex flex-col gap-0.5 whitespace-normal">
                         <span className="font-semibold text-foreground text-sm leading-snug">
                           {fuente.nombre}
@@ -339,21 +397,40 @@ export function FuentesTab({ activeRole }: { activeRole?: string }) {
                     <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                       {fuente.ultimaActualizacion}
                     </TableCell>
-                    <TableCell className="text-center">
-                      <TooltipProvider delayDuration={0}>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button asChild variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-primary-300 hover:bg-primary-300/10">
-                              <Link href={`/catalogo-interoperabilidad/administracion/fuentes/${fuente.id}`}>
-                                <Eye className="size-4" />
-                              </Link>
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent side="top">
-                            <p className="text-xs">Ver detalle</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+                    <TableCell className="text-center pr-6">
+                      <div className="flex items-center justify-center gap-1.5">
+                        <TooltipProvider delayDuration={0}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button asChild variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-primary hover:bg-muted/40">
+                                <Link href={`/catalogo-interoperabilidad/administracion/fuentes/${fuente.id}`}>
+                                  <Eye className="size-4" />
+                                </Link>
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top">
+                              <p className="text-xs">Ver detalle en catálogo</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+
+                        {fuente.estado === "PUBLICADO" && (
+                          <TooltipProvider delayDuration={0}>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button asChild variant="outline" size="icon-sm" className="text-primary hover:text-primary hover:bg-primary/10">
+                                  <Link href={`/solicitudes/nueva?fuente=${fuente.id}`}>
+                                    <Send className="size-3.5" />
+                                  </Link>
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top">
+                                <p className="text-xs">Solicitar consumo (BN-01)</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
@@ -365,5 +442,3 @@ export function FuentesTab({ activeRole }: { activeRole?: string }) {
     </div>
   );
 }
-
-

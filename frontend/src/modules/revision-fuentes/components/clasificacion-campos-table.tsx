@@ -3,7 +3,6 @@
 import React from "react";
 import { CampoFuente, ClasificacionCampo } from "@/modules/fuentes/data/fuentes-data";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   Table,
   TableHeader,
@@ -18,8 +17,7 @@ import {
   Unlock,
   AlertTriangle,
   CheckCircle2,
-  HelpCircle,
-  Sparkles,
+  Info,
 } from "lucide-react";
 
 interface ClasificacionCamposTableProps {
@@ -42,39 +40,6 @@ export function ClasificacionCamposTable({
 
   const todosClasificados =
     camposIncluidos.length > 0 && camposClasificados === camposIncluidos.length;
-
-  // Acciones en lote para agilizar el flujo de revisión
-  const marcarRestantesAccesibles = () => {
-    if (!onClasificarLote) return;
-    const batch: Record<string, ClasificacionCampo> = {};
-    camposIncluidos.forEach((c) => {
-      if (!c.clasificacion) {
-        batch[c.id_campo] = "Accesible";
-      }
-    });
-    onClasificarLote(batch);
-  };
-
-  const clasificarSugeridoNormativo = () => {
-    if (!onClasificarLote) return;
-    const batch: Record<string, ClasificacionCampo> = {};
-    camposIncluidos.forEach((c) => {
-      // Regla de sugerencia: si es identificador de persona o contiene "sensible/huella/foto/firma" -> Confidencial; caso contrario Accesible
-      const lower = (c.nombre_publicado + " " + c.ruta_origen).toLowerCase();
-      if (
-        c.es_identificador_persona ||
-        lower.includes("huella") ||
-        lower.includes("foto") ||
-        lower.includes("firma") ||
-        lower.includes("biometric")
-      ) {
-        batch[c.id_campo] = "Confidencial";
-      } else {
-        batch[c.id_campo] = "Accesible";
-      }
-    });
-    onClasificarLote(batch);
-  };
 
   return (
     <div className="space-y-3">
@@ -100,8 +65,8 @@ export function ClasificacionCamposTable({
             </span>
             <span className="text-[11px] text-muted-foreground">
               {todosClasificados
-                ? "Todos los campos cuentan con clasificación normativa asignada."
-                : `Faltan ${camposIncluidos.length - camposClasificados} campo(s) por clasificar antes de poder aprobar.`}
+                ? "Todos los campos cuentan con clasificación normativa individual asignada."
+                : `Faltan ${camposIncluidos.length - camposClasificados} campo(s) por clasificar individualmente antes de poder aprobar.`}
             </span>
           </div>
         </div>
@@ -114,45 +79,32 @@ export function ClasificacionCamposTable({
           >
             {camposClasificados} de {camposIncluidos.length} clasificados
           </Badge>
-
-          {!readOnly && onClasificarLote && (
-            <>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={clasificarSugeridoNormativo}
-                className="gap-1 text-xs"
-              >
-                <Sparkles className="size-3 text-primary" />
-                Sugerir según LOPDP
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={marcarRestantesAccesibles}
-                className="text-xs text-muted-foreground"
-              >
-                Completar como Accesible
-              </Button>
-            </>
-          )}
         </div>
       </div>
 
-      {/* Tabla de Campos */}
-      <div className="rounded-xl border border-border overflow-hidden bg-surface shadow-xs">
-        <Table>
+      {/* Nota normativa sobre Confidencialidad */}
+      <div className="p-3 bg-muted/20 rounded-lg border border-border text-[11px] text-muted-foreground flex items-start gap-2">
+        <Info className="size-4 text-primary shrink-0 mt-0.5" />
+        <div>
+          <strong className="text-foreground">Criterio normativo:</strong> Clasificar un campo como{" "}
+          <strong className="text-warning">Confidencial</strong> no rechaza ni inhabilita la fuente;
+          únicamente determina que las solicitudes de consumo posteriores requerirán acreditación de
+          base legal específica o consentimiento expreso del titular según la LOPDP (flujos BN-01 y BN-02).
+        </div>
+      </div>
+
+      {/* Tabla de Campos con encabezados blancos y sin contenedor */}
+      <div className="w-full">
+        <Table className="w-full" containerClassName="overflow-x-auto w-full">
           <TableHeader>
-            <TableRow className="bg-muted/30">
-              <TableHead className="text-xs font-semibold">Campo publicado</TableHead>
-              <TableHead className="text-xs font-semibold">Ruta origen</TableHead>
-              <TableHead className="text-xs font-semibold">Tipo canónico</TableHead>
-              <TableHead className="text-xs font-semibold">Identificador</TableHead>
-              <TableHead className="text-xs font-semibold">Descripción (PAR-07)</TableHead>
-              <TableHead className="text-xs font-semibold text-center w-56">
-                Clasificación de Gestión <span className="text-danger">*</span>
+            <TableRow className="border-0">
+              <TableHead className="text-xs font-bold text-white pl-6">Campo publicado</TableHead>
+              <TableHead className="text-xs font-bold text-white">Ruta física origen</TableHead>
+              <TableHead className="text-xs font-bold text-white">Tipo canónico</TableHead>
+              <TableHead className="text-xs font-bold text-white">Identificador</TableHead>
+              <TableHead className="text-xs font-bold text-white">Descripción</TableHead>
+              <TableHead className="text-xs font-bold text-white text-center w-56 pr-6">
+                Clasificación Gestión <span className="text-danger">*</span>
               </TableHead>
             </TableRow>
           </TableHeader>
@@ -169,7 +121,7 @@ export function ClasificacionCamposTable({
                     isPendiente ? "bg-warning/5" : ""
                   }`}
                 >
-                  <TableCell>
+                  <TableCell className="pl-6">
                     <span className="font-mono font-bold text-primary">
                       {campo.nombre_publicado}
                     </span>
@@ -199,7 +151,7 @@ export function ClasificacionCamposTable({
                     <span className="line-clamp-2">{campo.descripcion || "-"}</span>
                   </TableCell>
 
-                  <TableCell className="text-center">
+                  <TableCell className="text-center pr-6">
                     {readOnly ? (
                       <div>
                         {isAccesible && (
@@ -225,26 +177,26 @@ export function ClasificacionCamposTable({
                         <button
                           type="button"
                           onClick={() => onClasificarCampo(campo.id_campo, "Accesible")}
-                          className={`px-3 py-1 rounded-md text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                          className={`px-3 py-1 rounded-md text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
                             isAccesible
                               ? "bg-success text-white shadow-xs"
                               : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
                           }`}
                         >
                           <Unlock className="size-3" />
-                          Accesible
+                          <span>Accesible</span>
                         </button>
                         <button
                           type="button"
                           onClick={() => onClasificarCampo(campo.id_campo, "Confidencial")}
-                          className={`px-3 py-1 rounded-md text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                          className={`px-3 py-1 rounded-md text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
                             isConfidencial
                               ? "bg-warning text-white shadow-xs"
                               : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
                           }`}
                         >
                           <Lock className="size-3" />
-                          Confidencial
+                          <span>Confidencial</span>
                         </button>
                       </div>
                     )}

@@ -18,6 +18,7 @@ export interface HistorialVersionProyecto {
   nombre: string;
   proposito: string;
   modificadoPor: string;
+  motivo?: string;
 }
 
 export interface ProyectoInstitucional {
@@ -33,7 +34,7 @@ export interface ProyectoInstitucional {
   historialVersiones: HistorialVersionProyecto[];
 }
 
-const STORAGE_KEY = "dinarp_proyectos_v1";
+const STORAGE_KEY = "dinarp_proyectos_v3";
 
 export const INITIAL_PROYECTOS: ProyectoInstitucional[] = [
   {
@@ -115,21 +116,607 @@ export const INITIAL_PROYECTOS: ProyectoInstitucional[] = [
   },
   {
     id: "PRJ-2026-004",
-    nombre: "Modernización de Identificación Digital Ciudadana",
-    proposito: "Proveer servicios interoperables de cotejo de identidad y verificación de defunciones a entidades públicas autorizadas del sector social y financiero.",
-    institucion: "Dirección General de Registro Civil",
-    fechaCreacion: "2026-09-10 08:45",
-    fechaActualizacion: "2026-09-10 08:45",
+    nombre: "Monitoreo y Asignación de Recursos y Plantilla Docente",
+    proposito: "Verificación y cotejo periódico de hojas de vida, inhabilidades legales y títulos universitarios con el Registro Civil, Consejo de la Judicatura y Senescyt para nombramientos docentes del magisterio fiscal.",
+    institucion: "Ministerio de Educación",
+    fechaCreacion: "2026-09-28 10:15",
+    fechaActualizacion: "2026-09-28 10:15",
     version: 1,
-    creadoPor: "Andrea López",
+    creadoPor: "Mariana Almeida",
+    solicitudes: [
+      {
+        id: "SOL-2026-002",
+        fuentePrincipal: "Registro Civil de Ciudadanos",
+        servicioPrincipal: "Consulta de Estado Civil y Defunciones",
+        estado: "Aprobada",
+        fecha: "2026-09-29 14:00",
+        camposCount: 4,
+        coordinador: "Mariana Almeida",
+      },
+      {
+        id: "SOL-2026-003",
+        fuentePrincipal: "Senescyt - Sistema Nacional de Información de la Educación Superior",
+        servicioPrincipal: "Consulta de Títulos de Educación Superior Registrados",
+        estado: "Acceso generado",
+        fecha: "2026-10-01 11:30",
+        camposCount: 6,
+        coordinador: "Mariana Almeida",
+      },
+    ],
+    historialVersiones: [
+      {
+        version: 1,
+        fecha: "2026-09-28 10:15",
+        nombre: "Monitoreo y Asignación de Recursos y Plantilla Docente",
+        proposito: "Verificación y cotejo periódico de hojas de vida, inhabilidades legales y títulos universitarios con el Registro Civil, Consejo de la Judicatura y Senescyt para nombramientos docentes del magisterio fiscal.",
+        modificadoPor: "Mariana Almeida",
+      },
+    ],
+  },
+  {
+    id: "PRJ-2026-005",
+    nombre: "Integración de Becas y Ayudas Económicas con Registro Social",
+    proposito: "Automatización de la calificación socioeconómica de postulantes a becas escolares mediante consumo seguro del índice de vulnerabilidad de la Unidad de Registro Social (URS).",
+    institucion: "Ministerio de Educación",
+    fechaCreacion: "2026-10-02 08:30",
+    fechaActualizacion: "2026-10-02 08:30",
+    version: 1,
+    creadoPor: "Mariana Almeida",
+    solicitudes: [
+      {
+        id: "SOL-2026-005",
+        fuentePrincipal: "Unidad de Registro Social (URS)",
+        servicioPrincipal: "Consulta de Decil Socioeconómico y Puntaje de Vulnerabilidad",
+        estado: "En revisión",
+        fecha: "2026-10-02 11:00",
+        camposCount: 3,
+        coordinador: "Mariana Almeida",
+      },
+    ],
+    historialVersiones: [
+      {
+        version: 1,
+        fecha: "2026-10-02 08:30",
+        nombre: "Integración de Becas y Ayudas Económicas con Registro Social",
+        proposito: "Automatización de la calificación socioeconómica de postulantes a becas escolares mediante consumo seguro del índice de vulnerabilidad de la Unidad de Registro Social (URS).",
+        modificadoPor: "Mariana Almeida",
+      },
+    ],
+  },
+  {
+    id: "PRJ-2026-006",
+    nombre: "Sistema de Auditoría de Trayectoria Educativa y Homologación",
+    proposito: "Consolidación de la hoja de vida académica del estudiante entre sostenimientos fiscal, fiscomisional, municipal y particular para facilitar traslados inmediatos sin pérdida de historial de calificaciones.",
+    institucion: "Ministerio de Educación",
+    fechaCreacion: "2026-10-03 14:10",
+    fechaActualizacion: "2026-10-03 14:10",
+    version: 1,
+    creadoPor: "Mariana Almeida",
     solicitudes: [],
     historialVersiones: [
       {
         version: 1,
-        fecha: "2026-09-10 08:45",
-        nombre: "Modernización de Identificación Digital Ciudadana",
-        proposito: "Proveer servicios interoperables de cotejo de identidad y verificación de defunciones a entidades públicas autorizadas del sector social y financiero.",
-        modificadoPor: "Andrea López",
+        fecha: "2026-10-03 14:10",
+        nombre: "Sistema de Auditoría de Trayectoria Educativa y Homologación",
+        proposito: "Consolidación de la hoja de vida académica del estudiante entre sostenimientos fiscal, fiscomisional, municipal y particular para facilitar traslados inmediatos sin pérdida de historial de calificaciones.",
+        modificadoPor: "Mariana Almeida",
+      },
+    ],
+  },
+  {
+    id: "PRJ-2026-007",
+    nombre: "Ventanilla Única Digital de Legalización de Estudios Internacionales",
+    proposito: "Interoperabilidad con el Ministerio de Relaciones Exteriores y Movilidad Humana para verificación transfronteriza y digital de apostillas y legalizaciones consulares de certificados de estudio.",
+    institucion: "Ministerio de Educación",
+    fechaCreacion: "2026-10-04 09:00",
+    fechaActualizacion: "2026-10-04 09:00",
+    version: 1,
+    creadoPor: "Mariana Almeida",
+    solicitudes: [
+      {
+        id: "SOL-2026-007",
+        fuentePrincipal: "Ministerio de Relaciones Exteriores y Movilidad Humana",
+        servicioPrincipal: "Validación de Apostillas Electrónicas Internacionales",
+        estado: "Aprobada",
+        fecha: "2026-10-04 16:20",
+        camposCount: 5,
+        coordinador: "Mariana Almeida",
+      },
+    ],
+    historialVersiones: [
+      {
+        version: 1,
+        fecha: "2026-10-04 09:00",
+        nombre: "Ventanilla Única Digital de Legalización de Estudios Internacionales",
+        proposito: "Interoperabilidad con el Ministerio de Relaciones Exteriores y Movilidad Humana para verificación transfronteriza y digital de apostillas y legalizaciones consulares de certificados de estudio.",
+        modificadoPor: "Mariana Almeida",
+      },
+    ],
+  },
+  {
+    id: "PRJ-2026-008",
+    nombre: "Portal de Transparencia de Infraestructura Escolar y Georreferenciación",
+    proposito: "Vinculación de predios escolares con el catastro nacional y registros de la Secretaría de Gestión de Riesgos para mapas de vulnerabilidad sísmica e hidrometeorológica de unidades educativas.",
+    institucion: "Ministerio de Educación",
+    fechaCreacion: "2026-10-05 10:40",
+    fechaActualizacion: "2026-10-05 10:40",
+    version: 1,
+    creadoPor: "Mariana Almeida",
+    solicitudes: [],
+    historialVersiones: [
+      {
+        version: 1,
+        fecha: "2026-10-05 10:40",
+        nombre: "Portal de Transparencia de Infraestructura Escolar y Georreferenciación",
+        proposito: "Vinculación de predios escolares con el catastro nacional y registros de la Secretaría de Gestión de Riesgos para mapas de vulnerabilidad sísmica e hidrometeorológica de unidades educativas.",
+        modificadoPor: "Mariana Almeida",
+      },
+    ],
+  },
+  {
+    id: "PRJ-2026-009",
+    nombre: "Intercambio de Credenciales Digitales y Formación Continua Docente",
+    proposito: "Validación de certificaciones de cursos de capacitación, maestrías y diplomados pedagógicos emitidos por universidades acreditadas para el escalafón docente nacional.",
+    institucion: "Ministerio de Educación",
+    fechaCreacion: "2026-10-05 16:30",
+    fechaActualizacion: "2026-10-06 11:15",
+    version: 2,
+    creadoPor: "Mariana Almeida",
+    solicitudes: [
+      {
+        id: "SOL-2026-009",
+        fuentePrincipal: "Senescyt",
+        servicioPrincipal: "Consulta de Registro de Posgrados y Maestrías",
+        estado: "Acceso generado",
+        fecha: "2026-10-06 14:00",
+        camposCount: 4,
+        coordinador: "Mariana Almeida",
+      },
+      {
+        id: "SOL-2026-010",
+        fuentePrincipal: "Instituto Nacional de Evaluación Educativa (INEVAL)",
+        servicioPrincipal: "Resultados de Evaluaciones y Méritos Pedagógicos",
+        estado: "Aprobada",
+        fecha: "2026-10-06 16:00",
+        camposCount: 5,
+        coordinador: "Mariana Almeida",
+      },
+    ],
+    historialVersiones: [
+      {
+        version: 1,
+        fecha: "2026-10-05 16:30",
+        nombre: "Intercambio de Credenciales Digitales",
+        proposito: "Validación de cursos de capacitación para el escalafón docente nacional.",
+        modificadoPor: "Mariana Almeida",
+      },
+      {
+        version: 2,
+        fecha: "2026-10-06 11:15",
+        nombre: "Intercambio de Credenciales Digitales y Formación Continua Docente",
+        proposito: "Validación de certificaciones de cursos de capacitación, maestrías y diplomados pedagógicos emitidos por universidades acreditadas para el escalafón docente nacional.",
+        modificadoPor: "Mariana Almeida",
+      },
+    ],
+  },
+  {
+    id: "PRJ-2026-010",
+    nombre: "Sistema Integrado de Alerta Temprana para Prevención de Deserción Escolar",
+    proposito: "Monitoreo en tiempo real de asistencia estudiantil e interoperabilidad con programas de protección integral de derechos de niñas, niños y adolescentes del MIES.",
+    institucion: "Ministerio de Educación",
+    fechaCreacion: "2026-10-06 09:00",
+    fechaActualizacion: "2026-10-06 09:00",
+    version: 1,
+    creadoPor: "Mariana Almeida",
+    solicitudes: [
+      {
+        id: "SOL-2026-011",
+        fuentePrincipal: "Ministerio de Inclusión Económica y Social (MIES)",
+        servicioPrincipal: "Verificación de Núcleos Familiares con Bono de Desarrollo Humano",
+        estado: "Aprobada",
+        fecha: "2026-10-06 10:30",
+        camposCount: 3,
+        coordinador: "Mariana Almeida",
+      },
+    ],
+    historialVersiones: [
+      {
+        version: 1,
+        fecha: "2026-10-06 09:00",
+        nombre: "Sistema Integrado de Alerta Temprana para Prevención de Deserción Escolar",
+        proposito: "Monitoreo en tiempo real de asistencia estudiantil e interoperabilidad con programas de protección integral de derechos de niñas, niños y adolescentes del MIES.",
+        modificadoPor: "Mariana Almeida",
+      },
+    ],
+  },
+  {
+    id: "PRJ-2026-011",
+    nombre: "Interoperabilidad de Competencias Laborales para Bachillerato Técnico",
+    proposito: "Integración de mallas curriculares y certificaciones técnicas de estudiantes graduados con el catálogo de perfiles profesionales del Ministerio del Trabajo y la Red Socio Empleo.",
+    institucion: "Ministerio de Educación",
+    fechaCreacion: "2026-10-06 15:45",
+    fechaActualizacion: "2026-10-06 15:45",
+    version: 1,
+    creadoPor: "Mariana Almeida",
+    solicitudes: [],
+    historialVersiones: [
+      {
+        version: 1,
+        fecha: "2026-10-06 15:45",
+        nombre: "Interoperabilidad de Competencias Laborales para Bachillerato Técnico",
+        proposito: "Integración de mallas curriculares y certificaciones técnicas de estudiantes graduados con el catálogo de perfiles profesionales del Ministerio del Trabajo y la Red Socio Empleo.",
+        modificadoPor: "Mariana Almeida",
+      },
+    ],
+  },
+  {
+    id: "PRJ-2026-012",
+    nombre: "Censo y Trazabilidad de Necesidades Educativas Especiales (NEE)",
+    proposito: "Intercambio de certificados de discapacidad con el Ministerio de Salud Pública y CONADIS para asignación prioritaria de docentes pedagogos de apoyo e inclusión en centros regulares.",
+    institucion: "Ministerio de Educación",
+    fechaCreacion: "2026-10-07 08:20",
+    fechaActualizacion: "2026-10-07 08:20",
+    version: 1,
+    creadoPor: "Mariana Almeida",
+    solicitudes: [],
+    historialVersiones: [
+      {
+        version: 1,
+        fecha: "2026-10-07 08:20",
+        nombre: "Censo y Trazabilidad de Necesidades Educativas Especiales (NEE)",
+        proposito: "Intercambio de certificados de discapacidad con el Ministerio de Salud Pública y CONADIS para asignación prioritaria de docentes pedagogos de apoyo e inclusión en centros regulares.",
+        modificadoPor: "Mariana Almeida",
+      },
+    ],
+  },
+  {
+    id: "PRJ-2026-013",
+    nombre: "Portal de Conectividad y Fibra Óptica para Escuelas Rurales",
+    proposito: "Intercambio de coordenadas geográficas y capacidades técnicas de planteles educativos con MINTEL y ARCOTEL para priorizar el despliegue de conectividad satelital y fibra óptica en zonas de frontera.",
+    institucion: "Ministerio de Educación",
+    fechaCreacion: "2026-10-07 09:10",
+    fechaActualizacion: "2026-10-07 09:10",
+    version: 1,
+    creadoPor: "Mariana Almeida",
+    solicitudes: [
+      {
+        id: "SOL-2026-015",
+        fuentePrincipal: "Agencia de Regulación y Control de las Telecomunicaciones (ARCOTEL)",
+        servicioPrincipal: "Catastro Georreferenciado de Cobertura de Telecomunicaciones",
+        estado: "En revisión",
+        fecha: "2026-10-07 09:30",
+        camposCount: 4,
+        coordinador: "Mariana Almeida",
+      },
+    ],
+    historialVersiones: [
+      {
+        version: 1,
+        fecha: "2026-10-07 09:10",
+        nombre: "Portal de Conectividad y Fibra Óptica para Escuelas Rurales",
+        proposito: "Intercambio de coordenadas geográficas y capacidades técnicas de planteles educativos con MINTEL y ARCOTEL para priorizar el despliegue de conectividad satelital y fibra óptica en zonas de frontera.",
+        modificadoPor: "Mariana Almeida",
+      },
+    ],
+  },
+  {
+    id: "PRJ-2026-014",
+    nombre: "Verificación de Pensiones Alimenticias en Selección Docente (SUPA)",
+    proposito: "Cotejo de registros de deudores de alimentos con el Consejo de la Judicatura para validar la idoneidad legal y cumplimiento de obligaciones familiares de aspirantes al magisterio nacional.",
+    institucion: "Ministerio de Educación",
+    fechaCreacion: "2026-10-07 09:40",
+    fechaActualizacion: "2026-10-07 10:15",
+    version: 2,
+    creadoPor: "Mariana Almeida",
+    solicitudes: [
+      {
+        id: "SOL-2026-016",
+        fuentePrincipal: "Consejo de la Judicatura",
+        servicioPrincipal: "Sistema Único de Pensiones Alimenticias (SUPA)",
+        estado: "Acceso generado",
+        fecha: "2026-10-07 10:00",
+        camposCount: 3,
+        coordinador: "Mariana Almeida",
+      },
+    ],
+    historialVersiones: [
+      {
+        version: 1,
+        fecha: "2026-10-07 09:40",
+        nombre: "Verificación de Pensiones Alimenticias en Selección Docente",
+        proposito: "Cotejo de registros de deudores de alimentos con el Consejo de la Judicatura.",
+        modificadoPor: "Mariana Almeida",
+      },
+      {
+        version: 2,
+        fecha: "2026-10-07 10:15",
+        nombre: "Verificación de Pensiones Alimenticias en Selección Docente (SUPA)",
+        proposito: "Cotejo de registros de deudores de alimentos con el Consejo de la Judicatura para validar la idoneidad legal y cumplimiento de obligaciones familiares de aspirantes al magisterio nacional.",
+        modificadoPor: "Mariana Almeida",
+      },
+    ],
+  },
+  {
+    id: "PRJ-2026-015",
+    nombre: "Validación de Registro Único de Contribuyentes para Proveedores de Uniformes",
+    proposito: "Consulta automatizada de estado tributario, facturación electrónica y cumplimiento de obligaciones con el Servicio de Rentas Internas para artesanos del programa de compras públicas 'Hilando el Desarrollo'.",
+    institucion: "Ministerio de Educación",
+    fechaCreacion: "2026-10-07 10:20",
+    fechaActualizacion: "2026-10-07 10:20",
+    version: 1,
+    creadoPor: "Mariana Almeida",
+    solicitudes: [
+      {
+        id: "SOL-2026-017",
+        fuentePrincipal: "Servicio de Rentas Internas (SRI)",
+        servicioPrincipal: "Consulta de RUC y Cumplimiento Tributario",
+        estado: "Aprobada",
+        fecha: "2026-10-07 10:35",
+        camposCount: 5,
+        coordinador: "Mariana Almeida",
+      },
+    ],
+    historialVersiones: [
+      {
+        version: 1,
+        fecha: "2026-10-07 10:20",
+        nombre: "Validación de Registro Único de Contribuyentes para Proveedores de Uniformes",
+        proposito: "Consulta automatizada de estado tributario, facturación electrónica y cumplimiento de obligaciones con el Servicio de Rentas Internas para artesanos del programa de compras públicas 'Hilando el Desarrollo'.",
+        modificadoPor: "Mariana Almeida",
+      },
+    ],
+  },
+  {
+    id: "PRJ-2026-016",
+    nombre: "Integración de Afiliación y Aportes IESS para Personal Administrativo",
+    proposito: "Interoperabilidad de planillas de aportaciones y tiempos de servicio con el Instituto Ecuatoriano de Seguridad Social para agilizar procesos de jubilación y liquidación patronal.",
+    institucion: "Ministerio de Educación",
+    fechaCreacion: "2026-10-07 10:45",
+    fechaActualizacion: "2026-10-07 10:45",
+    version: 1,
+    creadoPor: "Mariana Almeida",
+    solicitudes: [],
+    historialVersiones: [
+      {
+        version: 1,
+        fecha: "2026-10-07 10:45",
+        nombre: "Integración de Afiliación y Aportes IESS para Personal Administrativo",
+        proposito: "Interoperabilidad de planillas de aportaciones y tiempos de servicio con el Instituto Ecuatoriano de Seguridad Social para agilizar procesos de jubilación y liquidación patronal.",
+        modificadoPor: "Mariana Almeida",
+      },
+    ],
+  },
+  {
+    id: "PRJ-2026-017",
+    nombre: "Homologación y Convalidación de Estudios Internacionales para Refugiados",
+    proposito: "Conexión de expedientes consulares y estatus de protección internacional con el Ministerio de Relaciones Exteriores para garantizar la inserción escolar inmediata de niños y adolescentes migrantes.",
+    institucion: "Ministerio de Educación",
+    fechaCreacion: "2026-10-07 11:00",
+    fechaActualizacion: "2026-10-07 11:30",
+    version: 2,
+    creadoPor: "Mariana Almeida",
+    solicitudes: [
+      {
+        id: "SOL-2026-018",
+        fuentePrincipal: "Ministerio de Relaciones Exteriores y Movilidad Humana",
+        servicioPrincipal: "Registro de Estatus Migratorio y Protección Internacional",
+        estado: "Acceso generado",
+        fecha: "2026-10-07 11:15",
+        camposCount: 4,
+        coordinador: "Mariana Almeida",
+      },
+    ],
+    historialVersiones: [
+      {
+        version: 1,
+        fecha: "2026-10-07 11:00",
+        nombre: "Homologación de Estudios Internacionales",
+        proposito: "Conexión de expedientes consulares con Cancillería.",
+        modificadoPor: "Mariana Almeida",
+      },
+      {
+        version: 2,
+        fecha: "2026-10-07 11:30",
+        nombre: "Homologación y Convalidación de Estudios Internacionales para Refugiados",
+        proposito: "Conexión de expedientes consulares y estatus de protección internacional con el Ministerio de Relaciones Exteriores para garantizar la inserción escolar inmediata de niños y adolescentes migrantes.",
+        modificadoPor: "Mariana Almeida",
+      },
+    ],
+  },
+  {
+    id: "PRJ-2026-018",
+    nombre: "Monitoreo Epidemiológico Escolar y Esquema Nacional de Vacunación",
+    proposito: "Cruce de datos nominales de inmunización y salud preventiva con el Ministerio de Salud Pública para emitir alertas tempranas sobre brotes virales y coordinar brigadas de vacunación escolar.",
+    institucion: "Ministerio de Educación",
+    fechaCreacion: "2026-10-07 11:40",
+    fechaActualizacion: "2026-10-07 11:40",
+    version: 1,
+    creadoPor: "Mariana Almeida",
+    solicitudes: [
+      {
+        id: "SOL-2026-019",
+        fuentePrincipal: "Ministerio de Salud Pública (MSP)",
+        servicioPrincipal: "Registro Nominal de Vacunación e Historial Clínico Pediátrico",
+        estado: "En revisión",
+        fecha: "2026-10-07 11:50",
+        camposCount: 5,
+        coordinador: "Mariana Almeida",
+      },
+    ],
+    historialVersiones: [
+      {
+        version: 1,
+        fecha: "2026-10-07 11:40",
+        nombre: "Monitoreo Epidemiológico Escolar y Esquema Nacional de Vacunación",
+        proposito: "Cruce de datos nominales de inmunización y salud preventiva con el Ministerio de Salud Pública para emitir alertas tempranas sobre brotes virales y coordinar brigadas de vacunación escolar.",
+        modificadoPor: "Mariana Almeida",
+      },
+    ],
+  },
+  {
+    id: "PRJ-2026-019",
+    nombre: "Sistema de Alerta Temprana para Prevención del Abandono Escolar",
+    proposito: "Modelo analítico que cruza registros de vulnerabilidad social de la URS, cambios de domicilio civil y defunciones familiares para activar apoyos psicopedagógicos y becas de retención educativa.",
+    institucion: "Ministerio de Educación",
+    fechaCreacion: "2026-10-07 12:00",
+    fechaActualizacion: "2026-10-07 12:00",
+    version: 1,
+    creadoPor: "Mariana Almeida",
+    solicitudes: [
+      {
+        id: "SOL-2026-020",
+        fuentePrincipal: "Ministerio de Inclusión Económica y Social (MIES)",
+        servicioPrincipal: "Padrón de Beneficiarios de Bonos y Pensiones Sociales",
+        estado: "Aprobada",
+        fecha: "2026-10-07 12:15",
+        camposCount: 3,
+        coordinador: "Mariana Almeida",
+      },
+    ],
+    historialVersiones: [
+      {
+        version: 1,
+        fecha: "2026-10-07 12:00",
+        nombre: "Sistema de Alerta Temprana para Prevención del Abandono Escolar",
+        proposito: "Modelo analítico que cruza registros de vulnerabilidad social de la URS, cambios de domicilio civil y defunciones familiares para activar apoyos psicopedagógicos y becas de retención educativa.",
+        modificadoPor: "Mariana Almeida",
+      },
+    ],
+  },
+  {
+    id: "PRJ-2026-020",
+    nombre: "Registro y Auditoría de Concursos de Méritos para Directivos Escolares",
+    proposito: "Verificación de cauciones y responsabilidades administrativas con la Contraloría General del Estado para postulantes a cargos de rectores, vicerrectores e inspectores de planteles fiscales.",
+    institucion: "Ministerio de Educación",
+    fechaCreacion: "2026-10-07 12:20",
+    fechaActualizacion: "2026-10-07 12:20",
+    version: 1,
+    creadoPor: "Mariana Almeida",
+    solicitudes: [],
+    historialVersiones: [
+      {
+        version: 1,
+        fecha: "2026-10-07 12:20",
+        nombre: "Registro y Auditoría de Concursos de Méritos para Directivos Escolares",
+        proposito: "Verificación de cauciones y responsabilidades administrativas con la Contraloría General del Estado para postulantes a cargos de rectores, vicerrectores e inspectores de planteles fiscales.",
+        modificadoPor: "Mariana Almeida",
+      },
+    ],
+  },
+  {
+    id: "PRJ-2026-021",
+    nombre: "Trazabilidad Logística de Textos y Material Didáctico en Territorio",
+    proposito: "Integración de capas de cartografía oficial con el Instituto Geográfico Militar (IGM) para optimizar rutas de distribución y entrega auditada de kits pedagógicos en zonas de difícil acceso.",
+    institucion: "Ministerio de Educación",
+    fechaCreacion: "2026-10-07 12:35",
+    fechaActualizacion: "2026-10-07 12:35",
+    version: 1,
+    creadoPor: "Mariana Almeida",
+    solicitudes: [
+      {
+        id: "SOL-2026-021",
+        fuentePrincipal: "Instituto Geográfico Militar (IGM)",
+        servicioPrincipal: "Infraestructura Nacional de Datos Espaciales (Cartografía Base)",
+        estado: "Acceso generado",
+        fecha: "2026-10-07 12:45",
+        camposCount: 4,
+        coordinador: "Mariana Almeida",
+      },
+    ],
+    historialVersiones: [
+      {
+        version: 1,
+        fecha: "2026-10-07 12:35",
+        nombre: "Trazabilidad Logística de Textos y Material Didáctico en Territorio",
+        proposito: "Integración de capas de cartografía oficial con el Instituto Geográfico Militar (IGM) para optimizar rutas de distribución y entrega auditada de kits pedagógicos en zonas de difícil acceso.",
+        modificadoPor: "Mariana Almeida",
+      },
+    ],
+  },
+  {
+    id: "PRJ-2026-022",
+    nombre: "Censo Nacional de Infraestructura Educativa y Amenazas Sísmicas",
+    proposito: "Cotejo de mapas multiamenaza con la Secretaría Nacional de Gestión de Riesgos para formular planes de contingencia estructural, evacuación y habilitación de albergues en centros educativos.",
+    institucion: "Ministerio de Educación",
+    fechaCreacion: "2026-10-07 12:50",
+    fechaActualizacion: "2026-10-07 13:10",
+    version: 2,
+    creadoPor: "Mariana Almeida",
+    solicitudes: [
+      {
+        id: "SOL-2026-022",
+        fuentePrincipal: "Secretaría Nacional de Gestión de Riesgos (SNGR)",
+        servicioPrincipal: "Catálogo Nacional de Amenazas Geológicas e Hidrometeorológicas",
+        estado: "Por revisar",
+        fecha: "2026-10-07 13:00",
+        camposCount: 6,
+        coordinador: "Mariana Almeida",
+      },
+    ],
+    historialVersiones: [
+      {
+        version: 1,
+        fecha: "2026-10-07 12:50",
+        nombre: "Censo de Infraestructura Educativa y Riesgos",
+        proposito: "Cotejo de mapas con Gestión de Riesgos.",
+        modificadoPor: "Mariana Almeida",
+      },
+      {
+        version: 2,
+        fecha: "2026-10-07 13:10",
+        nombre: "Censo Nacional de Infraestructura Educativa y Amenazas Sísmicas",
+        proposito: "Cotejo de mapas multiamenaza con la Secretaría Nacional de Gestión de Riesgos para formular planes de contingencia estructural, evacuación y habilitación de albergues en centros educativos.",
+        modificadoPor: "Mariana Almeida",
+      },
+    ],
+  },
+  {
+    id: "PRJ-2026-023",
+    nombre: "Ecosistema de Formación Continua y Acreditación Pedagógica",
+    proposito: "Validación digital de certificaciones académicas y diplomados docentes con universidades acreditadas por el CACES y Senescyt para escalafón magisterial meritocrático.",
+    institucion: "Ministerio de Educación",
+    fechaCreacion: "2026-10-07 13:15",
+    fechaActualizacion: "2026-10-07 13:15",
+    version: 1,
+    creadoPor: "Mariana Almeida",
+    solicitudes: [],
+    historialVersiones: [
+      {
+        version: 1,
+        fecha: "2026-10-07 13:15",
+        nombre: "Ecosistema de Formación Continua y Acreditación Pedagógica",
+        proposito: "Validación digital de certificaciones académicas y diplomados docentes con universidades acreditadas por el CACES y Senescyt para escalafón magisterial meritocrático.",
+        modificadoPor: "Mariana Almeida",
+      },
+    ],
+  },
+  {
+    id: "PRJ-2026-024",
+    nombre: "Interoperabilidad de Datos para Deporte Escolar y Detección de Talentos",
+    proposito: "Cruce de métricas biométricas, marcas formativas y fichas médicas con el Ministerio del Deporte para identificación y asignación de becas de alto rendimiento a talentos juveniles.",
+    institucion: "Ministerio de Educación",
+    fechaCreacion: "2026-10-07 13:30",
+    fechaActualizacion: "2026-10-07 13:30",
+    version: 1,
+    creadoPor: "Mariana Almeida",
+    solicitudes: [
+      {
+        id: "SOL-2026-023",
+        fuentePrincipal: "Ministerio del Deporte",
+        servicioPrincipal: "Padrón Nacional de Atletas Formativos y Federados",
+        estado: "Aprobada",
+        fecha: "2026-10-07 13:40",
+        camposCount: 4,
+        coordinador: "Mariana Almeida",
+      },
+    ],
+    historialVersiones: [
+      {
+        version: 1,
+        fecha: "2026-10-07 13:30",
+        nombre: "Interoperabilidad de Datos para Deporte Escolar y Detección de Talentos",
+        proposito: "Cruce de métricas biométricas, marcas formativas y fichas médicas con el Ministerio del Deporte para identificación y asignación de becas de alto rendimiento a talentos juveniles.",
+        modificadoPor: "Mariana Almeida",
       },
     ],
   },
@@ -143,7 +730,15 @@ export function getStoredProyectos(): ProyectoInstitucional[] {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_PROYECTOS));
       return INITIAL_PROYECTOS;
     }
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      if (parsed.length < INITIAL_PROYECTOS.length) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_PROYECTOS));
+        return INITIAL_PROYECTOS;
+      }
+      return parsed;
+    }
+    return INITIAL_PROYECTOS;
   } catch (err) {
     console.error("Error reading proyectos from localStorage:", err);
     return INITIAL_PROYECTOS;
@@ -170,6 +765,7 @@ export interface ActualizarProyectoPayload {
   nombre: string;
   proposito: string;
   modificadoPor: string;
+  motivo?: string;
 }
 
 export interface StoreResponse<T> {
@@ -193,9 +789,10 @@ export function useProyectosStore() {
       if (!institucion || institucion === "ALL" || institucion === "DINARP") {
         return proyectos;
       }
-      return proyectos.filter(
+      const filtered = proyectos.filter(
         (p) => p.institucion.toLowerCase() === institucion.toLowerCase()
       );
+      return filtered.length > 0 ? filtered : proyectos;
     },
     [proyectos]
   );
@@ -362,6 +959,7 @@ export function useProyectosStore() {
         nombre: nombreTrim,
         proposito: propositoTrim,
         modificadoPor: payload.modificadoPor || "Coordinador Institucional",
+        motivo: payload.motivo?.trim() || "Actualización de metadatos descriptivos",
       };
 
       const actualizado: ProyectoInstitucional = {

@@ -30,6 +30,8 @@ import {
   useProyectosStore,
   type ProyectoInstitucional,
 } from "@/modules/proyectos/data/proyectos-store";
+import { EditarProyectoDialog } from "./editar-proyecto-dialog";
+import { TrazabilidadProyectoDialog } from "./trazabilidad-proyecto-dialog";
 
 interface ProyectoInfoCardProps {
   proyecto: ProyectoInstitucional;
@@ -44,6 +46,8 @@ export function ProyectoInfoCard({
 }: ProyectoInfoCardProps) {
   const { actualizarProyecto } = useProyectosStore();
 
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isTrazabilidadDialogOpen, setIsTrazabilidadDialogOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [nombreEdit, setNombreEdit] = useState(proyecto.nombre);
   const [propositoEdit, setPropositoEdit] = useState(proyecto.proposito);
@@ -156,51 +160,45 @@ export function ProyectoInfoCard({
             <h2 className="text-lg font-heading font-bold text-foreground">
               Información general del proyecto
             </h2>
-            <Badge tone="primary" appearance="soft" size="sm">
-              Versión actual: v{proyecto.version}
+            <Badge
+              tone={proyecto.version > 1 ? "secondary" : "neutral"}
+              appearance="soft"
+              size="sm"
+              className="font-semibold text-xs px-2.5 py-0.5 h-6"
+            >
+              Versión v{proyecto.version}.0
             </Badge>
-            <Badge tone="success" appearance="solid" size="sm">
-              Vigente
+            <Badge tone="success" appearance="soft" size="sm" className="font-bold gap-1.5 px-2.5 py-0.5 text-xs h-6">
+              <span className="size-1.5 rounded-full bg-success"></span>
+              ACTIVO
             </Badge>
           </div>
           <p className="text-xs text-muted-foreground">
-            Datos institucionales constitutivos según flujo oficial BN-05 (PRJ-02).
+            Datos institucionales constitutivos y vigencia del proyecto.
           </p>
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          {!isEditing ? (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleStartEditing}
-              leftIcon={<Edit3 className="size-3.5" />}
-            >
-              Editar nombre y propósito
-            </Button>
-          ) : (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={handleCancelEditing}
-              disabled={isSubmitting}
-              leftIcon={<X className="size-3.5" />}
-            >
-              Cancelar edición
-            </Button>
-          )}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setIsEditDialogOpen(true)}
+            leftIcon={<Edit3 className="size-3.5" />}
+            className="cursor-pointer"
+          >
+            Editar metadatos
+          </Button>
 
           <Button
             type="button"
             variant="ghost"
             size="sm"
-            onClick={() => setShowHistorial(!showHistorial)}
+            onClick={() => setIsTrazabilidadDialogOpen(true)}
             leftIcon={<History className="size-3.5" />}
-            className="text-xs"
+            className="text-xs cursor-pointer"
           >
-            {showHistorial ? "Ocultar historial" : "Historial"} ({proyecto.historialVersiones.length})
+            Trazabilidad ({proyecto.historialVersiones.length})
           </Button>
         </div>
       </div>
@@ -219,7 +217,13 @@ export function ProyectoInfoCard({
       {/* Metadatos en solo lectura: ID, Institución, Fecha */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 rounded-xl bg-background/60 border border-border/60">
         {/* ID del Proyecto (Solo Lectura) */}
-        <div className="space-y-1">
+        <div
+          className="space-y-1 p-2 rounded-lg transition-colors hover:bg-muted/40 cursor-not-allowed group"
+          onClick={() => {
+            toast.info("Esta información no se puede cambiar: el ID de proyecto es definitivo e inmutable.");
+          }}
+          title="Campo de solo lectura. No se puede modificar."
+        >
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
             <Hash className="size-3.5 text-primary" />
             <span>ID de proyecto</span>
@@ -231,9 +235,12 @@ export function ProyectoInfoCard({
             </code>
             <button
               type="button"
-              onClick={handleCopyId}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleCopyId();
+              }}
               title="Copiar código del proyecto"
-              className="text-muted-foreground hover:text-foreground transition-colors p-1"
+              className="text-muted-foreground hover:text-foreground transition-colors p-1 cursor-pointer"
             >
               {copiedId ? (
                 <Check className="size-3.5 text-success" />
@@ -246,7 +253,13 @@ export function ProyectoInfoCard({
         </div>
 
         {/* Institución Responsable (Solo Lectura) */}
-        <div className="space-y-1">
+        <div
+          className="space-y-1 p-2 rounded-lg transition-colors hover:bg-muted/40 cursor-not-allowed group"
+          onClick={() => {
+            toast.info("Esta información no se puede cambiar: la institución responsable es inmutable por normativa institucional.");
+          }}
+          title="Campo de solo lectura. No se puede modificar."
+        >
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
             <Building2 className="size-3.5 text-primary" />
             <span>Institución responsable</span>
@@ -261,7 +274,13 @@ export function ProyectoInfoCard({
         </div>
 
         {/* Fecha de Creación (Solo Lectura) */}
-        <div className="space-y-1">
+        <div
+          className="space-y-1 p-2 rounded-lg transition-colors hover:bg-muted/40 cursor-not-allowed group"
+          onClick={() => {
+            toast.info("Esta información no se puede cambiar: la fecha de registro es histórica y permanente.");
+          }}
+          title="Campo de solo lectura. No se puede modificar."
+        >
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
             <Calendar className="size-3.5 text-primary" />
             <span>Fecha de creación</span>
@@ -419,10 +438,11 @@ export function ProyectoInfoCard({
                   <div className="flex items-center gap-2">
                     <Badge
                       tone={v.version === proyecto.version ? "primary" : "neutral"}
-                      appearance="solid"
+                      appearance="soft"
                       size="sm"
+                      className="font-semibold text-xs px-2 py-0.5"
                     >
-                      v{v.version}
+                      v{v.version}.0
                     </Badge>
                     <span className="font-semibold text-foreground">
                       {v.nombre}
@@ -441,6 +461,23 @@ export function ProyectoInfoCard({
           </div>
         </div>
       )}
+
+      {/* Modales de Edición y Trazabilidad */}
+      <EditarProyectoDialog
+        proyecto={proyecto}
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        coordinadorNombre={coordinadorNombre}
+        onProyectoActualizado={(actualizado) => {
+          onProyectoActualizado?.(actualizado);
+        }}
+      />
+
+      <TrazabilidadProyectoDialog
+        proyecto={proyecto}
+        open={isTrazabilidadDialogOpen}
+        onOpenChange={setIsTrazabilidadDialogOpen}
+      />
     </Card>
   );
 }
