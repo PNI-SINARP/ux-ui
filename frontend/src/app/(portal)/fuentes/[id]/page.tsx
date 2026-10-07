@@ -1,12 +1,16 @@
 import { FuenteDetailView } from "@/modules/fuentes/views/fuente-detail-view";
 
-export const dynamicParams = true;
-
 const FUENTES_IDS = [
   "FUE-RC-001",
   "FUE-ANT-002",
   "FUE-SRI-003",
   "FUE-MED-004",
+  "FUE-IESS-005",
+  "FUE-MSP-006",
+  "FUE-BCE-007",
+  "FUE-CJ-008",
+  "FUE-CNT-010",
+  "FUE-BCE-012",
 ];
 
 export function generateStaticParams() {
