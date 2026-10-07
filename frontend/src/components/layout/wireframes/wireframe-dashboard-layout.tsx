@@ -475,12 +475,12 @@ export function WireframeDashboardLayout({
               <img
                 src={getAssetPath("/logo-horizontal.svg")}
                 alt="Logo DINARP GEOportal"
-                className="h-10 sm:h-10.5 w-auto max-w-[170px] sm:max-w-[200px] object-contain dark:hidden group-data-[collapsible=icon]:hidden"
+                className="h-10 sm:h-10.5 w-auto max-w-[195px] sm:max-w-[210px] object-contain dark:hidden group-data-[collapsible=icon]:hidden"
               />
               <img
                 src={getAssetPath("/logo-horizontal-blanco.svg")}
                 alt="Logo DINARP GEOportal"
-                className="h-10 sm:h-10.5 w-auto max-w-[170px] sm:max-w-[200px] object-contain hidden dark:block group-data-[collapsible=icon]:hidden"
+                className="h-10 sm:h-10.5 w-auto max-w-[195px] sm:max-w-[210px] object-contain hidden dark:block group-data-[collapsible=icon]:hidden"
               />
               {/* Collapsed Compact Escudo */}
               <img
@@ -694,12 +694,12 @@ export function WireframeDashboardLayout({
                     <img
                       src={getAssetPath("/logo-horizontal.svg")}
                       alt="Logo DINARP"
-                      className="dark:hidden h-7 w-auto max-w-[120px] object-contain"
+                      className="dark:hidden h-7 w-auto max-w-[140px] object-contain"
                     />
                     <img
                       src={getAssetPath("/logo-horizontal-blanco.svg")}
                       alt="Logo DINARP"
-                      className="hidden dark:block h-7 w-auto max-w-[120px] object-contain"
+                      className="hidden dark:block h-7 w-auto max-w-[140px] object-contain"
                     />
                   </Link>
                 )}

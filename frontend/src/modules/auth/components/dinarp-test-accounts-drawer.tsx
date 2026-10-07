@@ -205,12 +205,12 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     cedula: "1712345678",
     description: "Representante técnico de la entidad requirente. Solicita paquetes de datos para interoperabilidad, administra proyectos de consumo y consulta el catálogo de servicios API.",
     access: "Solicitudes de Acceso (/acceso-interoperabilidad), Catálogo de Servicios (/catalogo-interoperabilidad) y Proyectos (/proyectos).",
-    storiesBadge: "Consumo Interoperable",
+    storiesBadge: "SOL-01, 02 · CAT-01 · PRJ",
     flows: ["interoperabilidad"],
     actions: [
-      { label: "Solicitudes de Acceso", route: "/acceso-interoperabilidad" },
-      { label: "Catálogo de Servicios", route: "/catalogo-interoperabilidad" },
-      { label: "Proyectos de Consumo", route: "/proyectos" },
+      { label: "Solicitudes de Acceso", route: "/acceso-interoperabilidad", huBadge: "SOL-01,02" },
+      { label: "Catálogo de Servicios", route: "/catalogo-interoperabilidad", huBadge: "CAT-01" },
+      { label: "Proyectos de Consumo", route: "/proyectos", huBadge: "PRJ-01" },
     ]
   },
   {
@@ -219,10 +219,10 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     cedula: "1719876543",
     description: "Evalúa la pertinencia jurídica y finalidad de uso de las solicitudes de interoperabilidad. Carga informes de justificación, firma y emite resolución de aprobación o solicita ajustes.",
     access: "Bandeja de Aprobación de Solicitudes (/acceso-interoperabilidad) y dictamen jurídico.",
-    storiesBadge: "Aprobación Interop",
+    storiesBadge: "SOL-07, 08, 10",
     flows: ["interoperabilidad"],
     actions: [
-      { label: "Evaluar Solicitudes", route: "/acceso-interoperabilidad" },
+      { label: "Evaluar Solicitudes", route: "/acceso-interoperabilidad", huBadge: "SOL-08" },
     ]
   },
   {
@@ -231,10 +231,10 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     cedula: "1718765432",
     description: "Verifica comprobantes de pago registrados en plataforma externa SIGEF para entidades con solicitudes de interoperabilidad aranceladas y emite validación formal financiera.",
     access: "Módulo Financiero y Facturación de Solicitudes (/acceso-interoperabilidad).",
-    storiesBadge: "Facturación Interop",
+    storiesBadge: "FAC-01 · PAG-01..04",
     flows: ["interoperabilidad"],
     actions: [
-      { label: "Validación de Pagos", route: "/acceso-interoperabilidad" },
+      { label: "Validación de Pagos", route: "/acceso-interoperabilidad", huBadge: "PAG-02" },
     ]
   },
 
@@ -245,11 +245,11 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     cedula: "1717654321",
     description: "Responsable funcional de incorporación de fuentes. Revisa documentación y campos candidatos según Res. 004, registra observaciones y valida integración en ambiente de pruebas.",
     access: "Bandeja de Fuentes (/fuentes), Revisión Técnica (/revision-fuentes) y Revisión de Gestión (/revision-gestion).",
-    storiesBadge: "DGR - Funcional",
+    storiesBadge: "FUE-03, 07, 11",
     flows: ["fuentes"],
     actions: [
-      { label: "Bandeja de Fuentes", route: "/fuentes" },
-      { label: "Revisión Técnica", route: "/revision-fuentes" },
+      { label: "Bandeja de Fuentes", route: "/fuentes", huBadge: "FUE-07" },
+      { label: "Revisión Técnica", route: "/revision-fuentes", huBadge: "FUE-03" },
     ]
   },
   {
@@ -258,11 +258,11 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     cedula: "1716543210",
     description: "Responsable técnico de microservicios e infraestructura de fuentes. Valida factibilidad de conexión, desarrolla microservicios y ejecuta el paso a producción.",
     access: "Registro de Nuevas Fuentes (/fuentes/nueva) y Administración de Fuentes (/fuentes).",
-    storiesBadge: "DTD - Técnica",
+    storiesBadge: "FUE-01, 02, 05 · CNX",
     flows: ["fuentes"],
     actions: [
-      { label: "Administrar Fuentes", route: "/fuentes" },
-      { label: "Registrar Nueva Fuente", route: "/fuentes/nueva" },
+      { label: "Administrar Fuentes", route: "/fuentes", huBadge: "FUE-05" },
+      { label: "Registrar Nueva Fuente", route: "/fuentes/nueva", huBadge: "FUE-01,02" },
     ]
   },
   {
@@ -271,10 +271,10 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     cedula: "1715432109",
     description: "Clasifica la sensibilidad de cada campo de datos como Accesible o Confidencial según la LOPDP, emite y anexa el Informe Técnico de Clasificación previo a la publicación.",
     access: "Clasificación de Fuentes y Atributos de Seguridad (/fuentes).",
-    storiesBadge: "DPI - Protección LOPDP",
+    storiesBadge: "FUE-04 (LOPDP)",
     flows: ["fuentes"],
     actions: [
-      { label: "Clasificación de Fuentes", route: "/fuentes" },
+      { label: "Clasificación de Fuentes", route: "/fuentes", huBadge: "FUE-04" },
     ]
   }
 ];
@@ -359,7 +359,7 @@ export const FLOW_OPTIONS: FlowOption[] = [
     description: "Coordinador requirente, Aprobador institucional y Facturación SIGEF",
     section: "interoperabilidad",
     sectionTitle: "Interoperabilidad y Consumo de Datos",
-    tag: "APIs & Consumo",
+    tag: "SOL-01..10 · CAT · FAC",
     icon: Layers,
   },
 
@@ -371,7 +371,7 @@ export const FLOW_OPTIONS: FlowOption[] = [
     description: "DGR (Funcional), DTD (Técnica) y DPI (Protección de Datos)",
     section: "fuentes",
     sectionTitle: "Gestión de Fuentes de Datos",
-    tag: "Fuentes & Registro",
+    tag: "FUE-01 a FUE-12",
     icon: Database,
   },
 

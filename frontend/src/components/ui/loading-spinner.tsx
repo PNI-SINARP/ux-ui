@@ -51,16 +51,16 @@ const LoadingSpinner = React.forwardRef<HTMLDivElement, LoadingSpinnerProps>(
 
           <>
             <img
-              src={getAssetPath("/logo-horizontal.svg")}
+              src={getAssetPath("/escudo-light.svg")}
               alt=""
               aria-hidden="true"
-              className={cn("absolute inset-0 m-auto object-contain pointer-events-none", shieldClasses[size])}
+              className={cn("absolute inset-0 m-auto object-contain pointer-events-none dark:hidden", shieldClasses[size])}
             />
             <img
-              src={getAssetPath("/logo-horizontal-blanco.svg")}
+              src={getAssetPath("/escudo-dark.svg")}
               alt=""
               aria-hidden="true"
-              className={cn("absolute inset-0 m-auto object-contain pointer-events-none", shieldClasses[size])}
+              className={cn("absolute inset-0 m-auto object-contain pointer-events-none hidden dark:block", shieldClasses[size])}
             />
           </>
         </div>

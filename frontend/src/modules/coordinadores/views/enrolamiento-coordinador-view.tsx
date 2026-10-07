@@ -477,12 +477,12 @@ function EnrolamientoContent() {
               <img
                 src={getAssetPath("/logo-horizontal.svg")}
                 alt="Logo DINARP"
-                className="dark:hidden h-11 sm:h-12 w-auto object-contain dark:brightness-0 dark:invert"
+                className="dark:hidden h-11 sm:h-12 w-auto object-contain"
               />
               <img
                 src={getAssetPath("/logo-horizontal-blanco.svg")}
                 alt="Logo DINARP"
-                className="hidden dark:block h-11 sm:h-12 w-auto object-contain dark:brightness-0 dark:invert"
+                className="hidden dark:block h-11 sm:h-12 w-auto object-contain"
               />
             </Link>
           </div>

@@ -13,18 +13,10 @@ import messages from "../../messages/es.json";
   TIPOGRAFÍAS
   ------------------------------------------------------------
 
-  Montserrat:
-  Se utiliza como tipografía principal para textos, formularios,
-  tablas, botones, menús y navegación.
-
   Metropolis:
-  Se utiliza para títulos, subtítulos y encabezados institucionales.
-
-  Las variables creadas aquí se conectan con las variables
-  configuradas en globals.css:
-
-  --font-heading: var(--font-metropolis);
-  --font-sans: var(--font-montserrat);
+  Se utiliza como tipografía institucional unificada tanto para
+  títulos, subtítulos y encabezados (font-heading), como para
+  cuerpo de texto, formularios, tablas, botones y navegación (font-sans).
 */
 
 const montserrat = Montserrat({
@@ -72,6 +64,7 @@ export default async function RootLayout({
       suppressHydrationWarning
     >
       <head>
+        <link rel="preconnect" href="https://fonts.cdnfonts.com" crossOrigin="anonymous" />
         <link href="https://fonts.cdnfonts.com/css/metropolis-2" rel="stylesheet" />
       </head>
 

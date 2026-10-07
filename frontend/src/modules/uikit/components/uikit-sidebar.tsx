@@ -333,7 +333,7 @@ export function UIKitSidebar({ activeSection, onNavigate }: UIKitSidebarProps) {
             <Image
               src={getAssetPath("/logo-horizontal.svg")}
               alt="Logo DINARP"
-              width={150}
+              width={167}
               height={35}
               className="h-[35px] w-auto group-data-[state=collapsed]:hidden animate-in fade-in duration-300 object-contain dark:hidden"
             />
@@ -341,7 +341,7 @@ export function UIKitSidebar({ activeSection, onNavigate }: UIKitSidebarProps) {
             <Image
               src={getAssetPath("/logo-horizontal-blanco.svg")}
               alt="Logo DINARP"
-              width={150}
+              width={167}
               height={35}
               className="h-[35px] w-auto group-data-[state=collapsed]:hidden animate-in fade-in duration-300 object-contain hidden dark:block"
             />

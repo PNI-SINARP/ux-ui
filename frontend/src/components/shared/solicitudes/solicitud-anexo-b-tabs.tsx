@@ -30,7 +30,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Alert } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import { cn, getAssetPath } from "@/lib/utils";
 import { type SolicitudIngreso } from "@/modules/gestion-solicitudes/data/gestion-ingresos-store";
 
 interface SolicitudAnexoBDetailProps {
@@ -687,12 +687,12 @@ export function SolicitudAnexoBDetail({ solicitud }: SolicitudAnexoBDetailProps)
             <div className="flex items-center justify-between border-b border-border/80 pb-4 gap-4">
               <div className="flex items-center gap-3">
                 <img
-                  src="/logo-horizontal.svg"
+                  src={getAssetPath("/logo-horizontal.svg")}
                   alt="DINARP"
                   className="dark:hidden h-10 w-auto object-contain"
                 />
                 <img
-                  src="/logo-horizontal-blanco.svg"
+                  src={getAssetPath("/logo-horizontal-blanco.svg")}
                   alt="DINARP"
                   className="hidden dark:block h-10 w-auto object-contain"
                 />

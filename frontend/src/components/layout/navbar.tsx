@@ -124,16 +124,16 @@ export function Navbar() {
                 <Image
                   src={getAssetPath("/logo-horizontal.svg")}
                   alt="Logo DINARP"
-                  width={240}
-                  height={64}
+                  width={268}
+                  height={56}
                   className="relative z-10 h-14 w-auto object-contain dark:hidden"
                   priority
                 />
                 <Image
                   src={getAssetPath("/logo-horizontal-blanco.svg")}
                   alt="Logo DINARP"
-                  width={240}
-                  height={64}
+                  width={268}
+                  height={56}
                   className="relative z-10 h-14 w-auto object-contain hidden dark:block"
                   priority
                 />
@@ -198,7 +198,7 @@ export function Navbar() {
                       <Image
                         src={getAssetPath("/logo-horizontal.svg")}
                         alt="Logo DINARP"
-                        width={180}
+                        width={230}
                         height={48}
                         className="relative z-10 h-12 w-auto object-contain dark:hidden"
                         priority
@@ -206,7 +206,7 @@ export function Navbar() {
                       <Image
                         src={getAssetPath("/logo-horizontal-blanco.svg")}
                         alt="Logo DINARP"
-                        width={180}
+                        width={230}
                         height={48}
                         className="relative z-10 h-12 w-auto object-contain hidden dark:block"
                         priority

@@ -151,37 +151,37 @@ export function IntranetSidebar({ activeItem = "home" }: IntranetSidebarProps) {
         <div className="flex items-center justify-between gap-2 overflow-hidden">
           <div className="flex items-center shrink-0">
             <>
-<Image
-              src={getAssetPath("/logo-horizontal.svg")}
-              alt="Logo DINARP"
-              width={150}
-              height={35}
-              className="dark:hidden h-[35px] w-auto group-data-[state=collapsed]:hidden animate-in fade-in duration-300 object-contain"
-            />
-<Image
-              src={getAssetPath("/logo-horizontal-blanco.svg")}
-              alt="Logo DINARP"
-              width={150}
-              height={35}
-              className="hidden dark:block h-[35px] w-auto group-data-[state=collapsed]:hidden animate-in fade-in duration-300 object-contain"
-            />
-</>
+              <Image
+                src={getAssetPath("/logo-horizontal.svg")}
+                alt="Logo DINARP"
+                width={167}
+                height={35}
+                className="dark:hidden h-[35px] w-auto group-data-[state=collapsed]:hidden animate-in fade-in duration-300 object-contain"
+              />
+              <Image
+                src={getAssetPath("/logo-horizontal-blanco.svg")}
+                alt="Logo DINARP"
+                width={167}
+                height={35}
+                className="hidden dark:block h-[35px] w-auto group-data-[state=collapsed]:hidden animate-in fade-in duration-300 object-contain"
+              />
+            </>
             <>
-<Image
-              src={getAssetPath("/logo-horizontal.svg")}
-              alt="Logo DINARP"
-              width={27}
-              height={27}
-              className="dark:hidden h-[27px] w-auto group-data-[state=expanded]:hidden animate-in zoom-in-75 duration-300 object-contain"
-            />
-<Image
-              src={getAssetPath("/logo-horizontal-blanco.svg")}
-              alt="Logo DINARP"
-              width={27}
-              height={27}
-              className="hidden dark:block h-[27px] w-auto group-data-[state=expanded]:hidden animate-in zoom-in-75 duration-300 object-contain"
-            />
-</>
+              <Image
+                src={getAssetPath("/escudo-light.svg")}
+                alt="Escudo DINARP"
+                width={27}
+                height={27}
+                className="dark:hidden h-[27px] w-auto group-data-[state=expanded]:hidden animate-in zoom-in-75 duration-300 object-contain"
+              />
+              <Image
+                src={getAssetPath("/escudo-dark.svg")}
+                alt="Escudo DINARP"
+                width={27}
+                height={27}
+                className="hidden dark:block h-[27px] w-auto group-data-[state=expanded]:hidden animate-in zoom-in-75 duration-300 object-contain"
+              />
+            </>
           </div>
         </div>
       </SidebarHeader>

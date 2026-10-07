@@ -51,11 +51,11 @@
   --color-secondary: var(--secondary);
 
   /*
-    TIPOGRAFÃ AS
+    TIPOGRAFÍAS
     ------------------------------------------------------------
-    heading: Nunito para tÃ­tulos y encabezados.
-    sans: Montserrat para textos, formularios, tablas y navegaciÃ³n.
-    mono: cÃ³digo, coordenadas, identificadores o datos tÃ©cnicos.
+    heading: Metropolis para títulos y encabezados.
+    sans: Metropolis para textos, formularios, tablas y navegación.
+    mono: monospace para código, coordenadas, identificadores o datos técnicos.
 
     Uso:
     className="font-heading text-h1"
@@ -64,8 +64,8 @@
   */
 
   --font-heading: 'Metropolis', sans-serif;
-  --font-sans: var(--font-montserrat), sans-serif;
-  --font-mono: var(--font-montserrat), monospace;
+  --font-sans: 'Metropolis', sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 
   /*
   PESOS TIPOGRÃFICOS

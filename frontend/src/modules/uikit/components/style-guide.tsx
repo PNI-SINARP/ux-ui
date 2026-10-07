@@ -555,7 +555,7 @@ export function StyleGuide({
   const [simulatedFonts, setSimulatedFonts] = useState<{
     heading: string;
     body: string;
-  }>({ heading: "Poppins", body: "Montserrat" });
+  }>({ heading: "Metropolis", body: "Metropolis" });
   const [editingFontFamily, setEditingFontFamily] = useState<{
     id: "heading" | "body";
     title: string;
@@ -1895,12 +1895,12 @@ export function StyleGuide({
                     <ComboboxContent>
                       <ComboboxList>
                         {[
-                          "Poppins",
+                          "Metropolis",
                           "Montserrat",
+                          "Poppins",
                           "Roboto",
                           "Inter",
                           "Open Sans",
-                          "Poppins",
                           "Lato",
                           "Oswald",
                         ].map((font) => (
