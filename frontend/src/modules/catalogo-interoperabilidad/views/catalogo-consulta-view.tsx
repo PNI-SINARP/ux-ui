@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
+import Link from "next/link";
 import {
   Database,
   Building2,
@@ -15,6 +16,7 @@ import {
   Info,
   Eye,
   EyeOff,
+  Send,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -660,6 +662,17 @@ export function CatalogoConsultaView() {
                                         {isFuenteExpanded ? "Ocultar datos" : "Ver datos disponibles"}
                                       </TooltipContent>
                                     </Tooltip>
+                                    {/* Botón Solicitar acceso a la fuente */}
+                                    <Button
+                                      size="sm"
+                                      asChild
+                                      className="gap-1.5 shrink-0 text-xs shadow-xs"
+                                    >
+                                      <Link href={`/acceso-interoperabilidad/solicitudes/nueva?fuente=${fuente.id}`}>
+                                        <Send className="size-3.5" />
+                                        <span>Solicitar acceso</span>
+                                      </Link>
+                                    </Button>
                                   </div>
                                 </div>
 

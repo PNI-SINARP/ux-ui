@@ -43,6 +43,7 @@ import {
   Scale,
   Lock,
   Cpu,
+  FileCheck2,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -106,7 +107,35 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  // ── Coordinador SINARP, Aprobador y Representante Institucional ──
+  // ── Coordinador SINARP ──
+  {
+    id: "catalogo-interoperabilidad",
+    label: "Catálogo de interoperabilidad",
+    icon: Database,
+    href: "/catalogo-interoperabilidad",
+    allowedRoles: ["COORDINADOR_SINARP", "ADMIN"],
+  },
+  {
+    id: "mis-solicitudes",
+    label: "Mis solicitudes",
+    icon: Network,
+    href: "/acceso-interoperabilidad/solicitudes",
+    allowedRoles: ["COORDINADOR_SINARP", "ADMIN"],
+  },
+  {
+    id: "mis-accesos",
+    label: "Mis accesos",
+    icon: KeyRound,
+    href: "/acceso-interoperabilidad/solicitudes?tab=habilitadas",
+    allowedRoles: ["COORDINADOR_SINARP", "ADMIN"],
+  },
+  {
+    id: "proyectos",
+    label: "Proyectos",
+    icon: FolderKanban,
+    href: "/proyectos",
+    allowedRoles: ["COORDINADOR_SINARP", "ADMIN"],
+  },
   {
     id: "cambio-coordinador",
     label: "Cambio de coordinador",
@@ -121,47 +150,57 @@ const navItems: NavItem[] = [
     href: "/mi-suplencia",
     allowedRoles: ["COORDINADOR_SINARP", "APROBADOR", "REPRESENTANTE_INSTITUCIONAL"],
   },
+
+  // ── Director de Gestión ──
   {
-    id: "catalogo-interoperabilidad",
-    label: "Catálogo de interoperabilidad",
-    icon: Database,
-    href: "/catalogo-interoperabilidad",
-    allowedRoles: [
-      "COORDINADOR_SINARP",
-      "APROBADOR",
-      "REPRESENTANTE_INSTITUCIONAL",
-      "FACTURACION",
-      "DGR",
-      "DTD",
-      "DPI",
-    ],
+    id: "asignacion-solicitudes-gestion",
+    label: "Asignación de solicitudes",
+    icon: UserCheck,
+    href: "/asignacion-solicitudes",
+    allowedRoles: ["DIR_GESTION", "ADMIN"],
   },
   {
-    id: "acceso-interoperabilidad",
-    label: "Solicitudes de acceso",
+    id: "formalizacion-gestion",
+    label: "Formalización y aprobación final",
+    icon: FileCheck2,
+    href: "/formalizacion",
+    allowedRoles: ["DIR_GESTION", "ADMIN"],
+  },
+
+  // ── Revisor de Gestión ──
+  {
+    id: "revision-gestion",
+    label: "Revisión de solicitudes",
     icon: Network,
-    href: "/acceso-interoperabilidad/solicitudes",
-    allowedRoles: [
-      "COORDINADOR_SINARP",
-      "APROBADOR",
-      "REPRESENTANTE_INSTITUCIONAL",
-      "FACTURACION",
-    ],
+    href: "/revision-gestion",
+    allowedRoles: ["EQ_GESTION", "ADMIN"],
   },
+
+  // ── Dirección y Equipo de Normatividad ──
   {
-    id: "proyectos",
-    label: "Proyectos",
-    icon: FolderKanban,
-    href: "/proyectos",
-    allowedRoles: ["COORDINADOR_SINARP"],
+    id: "revision-normativa",
+    label: "Revisión normativa",
+    icon: Scale,
+    href: "/revision-normativa",
+    allowedRoles: ["DIR_NORMATIVA", "EQ_NORMATIVA", "ADMIN"],
   },
+
+  // ── Jurídica ──
   {
-    id: "fuentes",
-    label: "Fuentes",
-    icon: Server,
-    href: "/fuentes",
-    allowedRoles: ["COORDINADOR_SINARP"],
-    providerOnly: true,
+    id: "formalizacion-contratos",
+    label: "Contratos de interoperabilidad",
+    icon: FileText,
+    href: "/formalizacion/contratos",
+    allowedRoles: ["JURIDICA", "ADMIN"],
+  },
+
+  // ── Equipo TI ──
+  {
+    id: "acceso-consumo-ti",
+    label: "Aprovisionamiento y acceso",
+    icon: Cpu,
+    href: "/acceso-consumo",
+    allowedRoles: ["TI", "ADMIN"],
   },
 
   // ── Administrador DINARP ──
@@ -213,82 +252,6 @@ const navItems: NavItem[] = [
     icon: KeyRound,
     href: "/gestion-recuperaciones",
     allowedRoles: ["ADMIN"],
-  },
-
-  // ── Dirección y Equipo de Gestión ──
-  {
-    id: "asignacion-solicitudes-gestion",
-    label: "Asignación de solicitudes",
-    icon: UserCheck,
-    href: "/asignacion-solicitudes",
-    allowedRoles: ["DIR_GESTION"],
-  },
-  {
-    id: "asignacion-acceso-gestion",
-    label: "Asignación de acceso",
-    icon: Database,
-    href: "/acceso-interoperabilidad/asignacion",
-    allowedRoles: ["DIR_GESTION"],
-  },
-  {
-    id: "solicitudes-pendientes",
-    label: "Solicitudes pendientes",
-    icon: FileSignature,
-    href: "/solicitudes-pendientes",
-    allowedRoles: ["EQ_GESTION"],
-  },
-  {
-    id: "revision-gestion",
-    label: "Revisión de acceso",
-    icon: Network,
-    href: "/revision-gestion",
-    allowedRoles: ["EQ_GESTION"],
-  },
-  {
-    id: "revision-fuentes",
-    label: "Revisión de fuentes",
-    icon: FolderCheck,
-    href: "/revision-fuentes",
-    allowedRoles: ["DIR_GESTION", "EQ_GESTION"],
-  },
-
-  // ── Dirección y Equipo de Normatividad ──
-  {
-    id: "asignacion-normativa",
-    label: "Asignación de solicitudes",
-    icon: UserCheck,
-    href: "/asignacion-solicitudes",
-    allowedRoles: ["DIR_NORMATIVA"],
-  },
-  {
-    id: "revision-normativa",
-    label: "Revisión normativa",
-    icon: Scale,
-    href: "/revision-normativa",
-    allowedRoles: ["DIR_NORMATIVA", "EQ_NORMATIVA"],
-  },
-  {
-    id: "revision-normativa-fuentes",
-    label: "Fuentes confidenciales (BN-07)",
-    icon: Lock,
-    href: "/revision-normativa/fuentes",
-    allowedRoles: ["DIR_NORMATIVA", "EQ_NORMATIVA"],
-  },
-
-  // ── Direcciones Técnicas / Registro / Protección (DGR, DTD, DPI) ──
-  {
-    id: "validacion-tecnica-registro",
-    label: "Gestión de ingresos",
-    icon: ShieldCheck,
-    href: "/asignacion-solicitudes",
-    allowedRoles: ["DGR", "DTD", "DPI"],
-  },
-  {
-    id: "homologacion-fuentes",
-    label: "Homologación técnica (FUE-12)",
-    icon: Cpu,
-    href: "/homologacion-fuentes",
-    allowedRoles: ["ADMIN", "DTD"],
   },
 ];
 

@@ -22,6 +22,7 @@ import {
   AlertCircle,
   MailCheck,
 } from "lucide-react";
+import { toast } from "sonner";
 
 export function RecuperarContrasenaView() {
   const router = useRouter();
@@ -94,7 +95,10 @@ export function RecuperarContrasenaView() {
               <Label htmlFor="recuperar-cedula" className="text-xs font-semibold text-foreground">
                 Cédula de identidad
               </Label>
-              <InputGroup className="bg-background border-border hover:border-primary/50 focus-within:border-primary h-11">
+              <InputGroup
+                state={error ? "error" : "default"}
+                className="bg-background border-border hover:border-primary/50 focus-within:border-primary h-11"
+              >
                 <InputGroupAddon className="pl-3 text-muted-foreground">
                   <Fingerprint className="size-4" />
                 </InputGroupAddon>
@@ -104,12 +108,67 @@ export function RecuperarContrasenaView() {
                   inputMode="numeric"
                   placeholder="Ingresa tu cédula de 10 dígitos"
                   value={cedula}
+                  onKeyDown={(e) => {
+                    if (
+                      e.key === "Backspace" ||
+                      e.key === "Delete" ||
+                      e.key === "Tab" ||
+                      e.key === "Enter" ||
+                      e.key === "Escape" ||
+                      e.key === "ArrowLeft" ||
+                      e.key === "ArrowRight" ||
+                      e.key === "ArrowUp" ||
+                      e.key === "ArrowDown" ||
+                      e.ctrlKey ||
+                      e.metaKey ||
+                      e.altKey
+                    ) {
+                      if (error && (e.key === "Backspace" || e.key === "Delete")) {
+                        setError("");
+                      }
+                      return;
+                    }
+
+                    if (e.key.length === 1 && !/\d/.test(e.key)) {
+                      e.preventDefault();
+                      setError("Solo se permiten dígitos numéricos. No se permiten letras ni caracteres especiales.");
+                      toast.error("Carácter no permitido", {
+                        description: "La cédula de identidad únicamente admite números (dígitos del 0 al 9).",
+                        id: "recuperar-cedula-invalid",
+                      });
+                      return;
+                    }
+
+                    if (/\d/.test(e.key) && error) {
+                      setError("");
+                    }
+                  }}
                   onChange={(e) => {
-                    setCedula(e.target.value.replace(/\D/g, ""));
-                    if (error) setError("");
+                    const raw = e.target.value;
+                    if (/[^\d]/.test(raw)) {
+                      setError("Solo se permiten dígitos numéricos. No se permiten letras ni caracteres especiales.");
+                      toast.error("Carácter no permitido", {
+                        description: "La cédula de identidad únicamente admite números (dígitos del 0 al 9).",
+                        id: "recuperar-cedula-invalid",
+                      });
+                    } else if (error) {
+                      setError("");
+                    }
+                    setCedula(raw.replace(/\D/g, ""));
+                  }}
+                  onPaste={(e) => {
+                    const paste = e.clipboardData.getData("text");
+                    if (/[^\d]/.test(paste)) {
+                      setError("Solo se permiten dígitos numéricos. No se permiten letras ni caracteres especiales.");
+                      toast.error("Carácter no permitido", {
+                        description: "El contenido pegado contenía letras o símbolos no permitidos.",
+                        id: "recuperar-cedula-invalid",
+                      });
+                    }
                   }}
                   maxLength={10}
                   className="text-xs font-mono px-2"
+                  aria-invalid={!!error}
                   required
                 />
               </InputGroup>

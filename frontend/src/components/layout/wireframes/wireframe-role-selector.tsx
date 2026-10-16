@@ -18,7 +18,18 @@ interface WireframeRoleSelectorProps {
 
 export function WireframeRoleSelector({ activeRole, onRoleChange }: WireframeRoleSelectorProps) {
   const { setRole } = useAuthStore();
-  const roles: UserRole[] = ["ADMIN", "DIR_GESTION", "EQ_GESTION", "DIR_NORMATIVA", "EQ_NORMATIVA", "COORDINADOR_SINARP", "REPRESENTANTE_INSTITUCIONAL", "APROBADOR", "FACTURACION", "DGR", "DTD", "DPI"];
+  const roles: UserRole[] = [
+    "COORDINADOR_SINARP",
+    "DIR_GESTION",
+    "EQ_GESTION",
+    "DIR_NORMATIVA",
+    "EQ_NORMATIVA",
+    "JURIDICA",
+    "TI",
+    "ADMIN",
+    "FACTURACION",
+    "REPRESENTANTE_INSTITUCIONAL"
+  ];
   const roleItems = roles.map((r) => ({
     value: r,
     label: ROLES_CONFIG[r]?.name || r,

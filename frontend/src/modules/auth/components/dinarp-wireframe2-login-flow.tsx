@@ -133,6 +133,7 @@ export function DinarpWireframe2LoginFlow({
 
   // Estado del Login
   const [cedula, setCedula] = useState("");
+  const [cedulaInputError, setCedulaInputError] = useState<string | null>(null);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmittingLogin, setIsSubmittingLogin] = useState(false);
@@ -147,6 +148,7 @@ export function DinarpWireframe2LoginFlow({
 
   // Estado Verificación Enrolamiento (Proceso B)
   const [cedulaEnrolar, setCedulaEnrolar] = useState("");
+  const [cedulaEnrolarError, setCedulaEnrolarError] = useState<string | null>(null);
   const [isSearchingPreregistro, setIsSearchingPreregistro] = useState(false);
   const [preregistroResultado, setPreregistroResultado] = useState<{
     buscado: boolean;
@@ -154,6 +156,149 @@ export function DinarpWireframe2LoginFlow({
     datos?: ReturnType<typeof buscarPreregistroPorCedula>;
     mensaje?: string;
   }>({ buscado: false, valido: false });
+
+  const handleCedulaKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    // Permitir teclas de navegación y control
+    if (
+      e.key === "Backspace" ||
+      e.key === "Delete" ||
+      e.key === "Tab" ||
+      e.key === "Enter" ||
+      e.key === "Escape" ||
+      e.key === "ArrowLeft" ||
+      e.key === "ArrowRight" ||
+      e.key === "ArrowUp" ||
+      e.key === "ArrowDown" ||
+      e.key === "Home" ||
+      e.key === "End" ||
+      e.ctrlKey ||
+      e.metaKey ||
+      e.altKey
+    ) {
+      if (cedulaInputError && (e.key === "Backspace" || e.key === "Delete")) {
+        setCedulaInputError(null);
+      }
+      return;
+    }
+
+    // Bloquear si es letra o carácter especial
+    if (e.key.length === 1 && !/\d/.test(e.key)) {
+      e.preventDefault();
+      const errorMsg = "Solo se permiten dígitos numéricos. No se permiten letras ni caracteres especiales.";
+      setCedulaInputError(errorMsg);
+      toast.error("Carácter no permitido", {
+        description: "La cédula de identidad únicamente admite números (dígitos del 0 al 9).",
+        id: "cedula-invalid-letter",
+      });
+      return;
+    }
+
+    if (/\d/.test(e.key) && cedulaInputError) {
+      setCedulaInputError(null);
+    }
+  };
+
+  const handleCedulaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawValue = e.target.value;
+
+    if (/[^\d]/.test(rawValue)) {
+      const errorMsg = "Solo se permiten dígitos numéricos. No se permiten letras ni caracteres especiales.";
+      setCedulaInputError(errorMsg);
+      toast.error("Carácter no permitido", {
+        description: "La cédula de identidad únicamente admite números (dígitos del 0 al 9).",
+        id: "cedula-invalid-letter",
+      });
+    } else if (cedulaInputError) {
+      setCedulaInputError(null);
+    }
+
+    const digitsOnly = rawValue.replace(/\D/g, "");
+    setCedula(digitsOnly);
+    if (loginError) setLoginError("");
+  };
+
+  const handleCedulaPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    const pastedText = e.clipboardData.getData("text");
+    if (/[^\d]/.test(pastedText)) {
+      const errorMsg = "Solo se permiten dígitos numéricos. No se permiten letras ni caracteres especiales.";
+      setCedulaInputError(errorMsg);
+      toast.error("Carácter no permitido", {
+        description: "El contenido pegado contenía letras o símbolos no permitidos. Solo se admiten números.",
+        id: "cedula-invalid-letter",
+      });
+    }
+  };
+
+  const handleCedulaEnrolarKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (
+      e.key === "Backspace" ||
+      e.key === "Delete" ||
+      e.key === "Tab" ||
+      e.key === "Enter" ||
+      e.key === "Escape" ||
+      e.key === "ArrowLeft" ||
+      e.key === "ArrowRight" ||
+      e.key === "ArrowUp" ||
+      e.key === "ArrowDown" ||
+      e.key === "Home" ||
+      e.key === "End" ||
+      e.ctrlKey ||
+      e.metaKey ||
+      e.altKey
+    ) {
+      if (cedulaEnrolarError && (e.key === "Backspace" || e.key === "Delete")) {
+        setCedulaEnrolarError(null);
+      }
+      return;
+    }
+
+    if (e.key.length === 1 && !/\d/.test(e.key)) {
+      e.preventDefault();
+      const errorMsg = "Solo se permiten dígitos numéricos. No se permiten letras ni caracteres especiales.";
+      setCedulaEnrolarError(errorMsg);
+      toast.error("Carácter no permitido", {
+        description: "La cédula de identidad únicamente admite números (dígitos del 0 al 9).",
+        id: "cedula-enrolar-invalid-letter",
+      });
+      return;
+    }
+
+    if (/\d/.test(e.key) && cedulaEnrolarError) {
+      setCedulaEnrolarError(null);
+    }
+  };
+
+  const handleCedulaEnrolarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawValue = e.target.value;
+    if (/[^\d]/.test(rawValue)) {
+      const errorMsg = "Solo se permiten dígitos numéricos. No se permiten letras ni caracteres especiales.";
+      setCedulaEnrolarError(errorMsg);
+      toast.error("Carácter no permitido", {
+        description: "La cédula de identidad únicamente admite números (dígitos del 0 al 9).",
+        id: "cedula-enrolar-invalid-letter",
+      });
+    } else if (cedulaEnrolarError) {
+      setCedulaEnrolarError(null);
+    }
+
+    const digitsOnly = rawValue.replace(/\D/g, "");
+    setCedulaEnrolar(digitsOnly);
+    if (preregistroResultado.buscado) {
+      setPreregistroResultado({ buscado: false, valido: false });
+    }
+  };
+
+  const handleCedulaEnrolarPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    const pastedText = e.clipboardData.getData("text");
+    if (/[^\d]/.test(pastedText)) {
+      const errorMsg = "Solo se permiten dígitos numéricos. No se permiten letras ni caracteres especiales.";
+      setCedulaEnrolarError(errorMsg);
+      toast.error("Carácter no permitido", {
+        description: "El contenido pegado contenía letras o símbolos no permitidos. Solo se admiten números.",
+        id: "cedula-enrolar-invalid-letter",
+      });
+    }
+  };
 
   // Manejo de Login
   const handleLoginSubmit = (e: React.FormEvent) => {
@@ -163,11 +308,21 @@ export function DinarpWireframe2LoginFlow({
     const cleanCedula = cedula.trim();
 
     if (!cleanCedula) {
-      setLoginError("Ingresa tu número de cédula.");
+      const msg = "Ingresa tu número de cédula.";
+      setLoginError(msg);
+      setCedulaInputError(msg);
+      return;
+    }
+    if (cleanCedula.length < 10) {
+      const msg = "La cédula debe contener exactamente 10 dígitos numéricos.";
+      setLoginError(msg);
+      setCedulaInputError(msg);
       return;
     }
     if (!validarCedula(cleanCedula)) {
-      setLoginError("La cédula no es válida o no está registrada en el sistema.");
+      const msg = "La cédula no es válida o no está registrada en el sistema.";
+      setLoginError(msg);
+      setCedulaInputError("El número de cédula ingresado no es válido.");
       return;
     }
     if (password.length < 4) {
@@ -311,25 +466,45 @@ export function DinarpWireframe2LoginFlow({
           )}
 
           {/* Cédula */}
-          <FormField
-            label="Cédula de Identidad"
-            htmlFor="login-cedula"
-            error={getCedulaErrorMessage(cedula) || undefined}
-            className="space-y-2"
-          >
-            <InputGroup leftIcon={<Fingerprint className="size-4 text-muted-foreground" />}>
-              <InputGroupInput
-                id="login-cedula"
-                type="text"
-                maxLength={10}
-                placeholder="Ingresa tu cédula de 10 dígitos"
-                value={cedula}
-                onChange={(e) => setCedula(e.target.value.replace(/\D/g, ""))}
-                className="text-xs font-mono"
-                required
-              />
-            </InputGroup>
-          </FormField>
+          {(() => {
+            const activeCedulaError =
+              cedulaInputError || (cedula.length === 10 ? getCedulaErrorMessage(cedula) : null);
+            return (
+              <FormField
+                label="Cédula de Identidad"
+                htmlFor="login-cedula"
+                error={activeCedulaError || undefined}
+                className="space-y-2"
+              >
+                <InputGroup
+                  state={activeCedulaError ? "error" : "default"}
+                  leftIcon={
+                    <Fingerprint
+                      className={cn(
+                        "size-4 transition-colors",
+                        activeCedulaError ? "text-danger" : "text-muted-foreground"
+                      )}
+                    />
+                  }
+                >
+                  <InputGroupInput
+                    id="login-cedula"
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={10}
+                    placeholder="Ingresa tu cédula de 10 dígitos"
+                    value={cedula}
+                    onKeyDown={handleCedulaKeyDown}
+                    onChange={handleCedulaChange}
+                    onPaste={handleCedulaPaste}
+                    className="text-xs font-mono"
+                    aria-invalid={!!activeCedulaError}
+                    required
+                  />
+                </InputGroup>
+              </FormField>
+            );
+          })()}
 
           {/* Contraseña */}
           <FormField
@@ -526,46 +701,52 @@ export function DinarpWireframe2LoginFlow({
           </div>
 
           <form onSubmit={handleBuscarPreregistro} className="space-y-4">
-            <FormField
-              label="Cédula del Coordinador Designado"
-              htmlFor="enrolar-cedula"
-              error={getCedulaErrorMessage(cedulaEnrolar) || undefined}
-              className="space-y-2"
-            >
-              <div className="flex gap-2">
-                <Input
-                  id="enrolar-cedula"
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={10}
-                  placeholder="Cédula de 10 dígitos"
-                  value={cedulaEnrolar}
-                  onChange={(e) => {
-                    setCedulaEnrolar(e.target.value);
-                    if (preregistroResultado.buscado) {
-                      setPreregistroResultado({ buscado: false, valido: false });
-                    }
-                  }}
-                  className="text-xs font-mono h-11"
-                  aria-invalid={!!getCedulaErrorMessage(cedulaEnrolar)}
-                  required
-                />
-                <Button
-                  type="submit"
-                  variant="primary"
-                  size="default"
-                  disabled={isSearchingPreregistro}
-                  className="shrink-0 text-xs font-semibold gap-1.5 h-11"
+            {(() => {
+              const activeCedulaEnrolarError =
+                cedulaEnrolarError || (cedulaEnrolar.length === 10 ? getCedulaErrorMessage(cedulaEnrolar) : null);
+              return (
+                <FormField
+                  label="Cédula del Coordinador Designado"
+                  htmlFor="enrolar-cedula"
+                  error={activeCedulaEnrolarError || undefined}
+                  className="space-y-2"
                 >
-                  {isSearchingPreregistro ? (
-                    <Loader2 className="size-3.5 animate-spin" />
-                  ) : (
-                    <Search className="size-3.5" />
-                  )}
-                  <span>Consultar</span>
-                </Button>
-              </div>
-            </FormField>
+                  <div className="flex gap-2">
+                    <Input
+                      id="enrolar-cedula"
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={10}
+                      placeholder="Cédula de 10 dígitos"
+                      value={cedulaEnrolar}
+                      onKeyDown={handleCedulaEnrolarKeyDown}
+                      onChange={handleCedulaEnrolarChange}
+                      onPaste={handleCedulaEnrolarPaste}
+                      className={cn(
+                        "text-xs font-mono h-11",
+                        activeCedulaEnrolarError && "border-danger text-danger focus-visible:ring-danger/20"
+                      )}
+                      aria-invalid={!!activeCedulaEnrolarError}
+                      required
+                    />
+                    <Button
+                      type="submit"
+                      variant="primary"
+                      size="default"
+                      disabled={isSearchingPreregistro}
+                      className="shrink-0 text-xs font-semibold gap-1.5 h-11"
+                    >
+                      {isSearchingPreregistro ? (
+                        <Loader2 className="size-3.5 animate-spin" />
+                      ) : (
+                        <Search className="size-3.5" />
+                      )}
+                      <span>Consultar</span>
+                    </Button>
+                  </div>
+                </FormField>
+              );
+            })()}
             <p className="text-[11px] text-muted-foreground mt-1">
               Cédulas de prueba precargadas: <code className="font-mono text-foreground font-semibold">1715489621</code> (Suplente MSP), <code className="font-mono text-foreground font-semibold">1712345602</code> (Titular DINARP).
             </p>

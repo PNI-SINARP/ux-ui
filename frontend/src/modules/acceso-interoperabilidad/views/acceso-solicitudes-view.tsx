@@ -29,7 +29,9 @@ import {
   Copy,
   EyeOff,
   Lock,
-  Server
+  Server,
+  Scale,
+  FileSignature
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -63,6 +65,7 @@ import { WireframeDashboardLayout } from "@/components/layout/wireframes/wirefra
 import { MOCK_USERS_BY_ROLE, type UserRole } from "@/modules/catalogo-interoperabilidad/data/catalogo-data";
 import { useSolicitudesStore, SolicitudAcceso } from "@/modules/acceso-interoperabilidad/data/solicitudes-store";
 import { WireframeTour, TourStep } from "@/components/layout/wireframes/wireframe-tour";
+import { CredencialTecnicaModal } from "@/modules/acceso-interoperabilidad/components/credencial-tecnica-modal";
 import {
   Combobox,
   ComboboxSelectTrigger,
@@ -84,6 +87,8 @@ export function AccesoSolicitudesView() {
   const [searchTerm, setSearchTerm] = useState("");
   const [institucionFilter, setInstitucionFilter] = useState("ALL");
   const [estadoFilter, setEstadoFilter] = useState("ALL");
+  const [proyectoFilter, setProyectoFilter] = useState("ALL");
+  const [fuenteFilter, setFuenteFilter] = useState("ALL");
   const [responsableFilter, setResponsableFilter] = useState("ALL");
   const [fechaFilter, setFechaFilter] = useState("ALL");
 
@@ -171,10 +176,28 @@ export function AccesoSolicitudesView() {
     return Array.from(new Set(visibleSolicitudes.map((s) => s.responsable))).filter(Boolean);
   }, [visibleSolicitudes]);
 
+  const proyectosList = useMemo(() => {
+    return Array.from(new Set(visibleSolicitudes.map((s) => s.proyectoNombre).filter(Boolean))) as string[];
+  }, [visibleSolicitudes]);
+
+  const fuentesList = useMemo(() => {
+    return Array.from(new Set(visibleSolicitudes.map((s) => s.fuentePrincipal || s.fuentes?.[0]?.nombre).filter(Boolean))) as string[];
+  }, [visibleSolicitudes]);
+
   const institucionOptions = useMemo(() => [
     { value: "ALL", label: "Todas las instituciones" },
     ...institucionesList.map((inst) => ({ value: inst, label: inst }))
   ], [institucionesList]);
+
+  const proyectoOptions = useMemo(() => [
+    { value: "ALL", label: "Todos los proyectos" },
+    ...proyectosList.map((p) => ({ value: p, label: p }))
+  ], [proyectosList]);
+
+  const fuenteOptions = useMemo(() => [
+    { value: "ALL", label: "Todas las fuentes" },
+    ...fuentesList.map((f) => ({ value: f, label: f }))
+  ], [fuentesList]);
 
   const estadoOptions = useMemo(() => [
     { value: "ALL", label: "Todos los estados" },
@@ -199,12 +222,19 @@ export function AccesoSolicitudesView() {
         s.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
         s.institucion.toLowerCase().includes(searchTerm.toLowerCase()) ||
         s.estado.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        s.responsable.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (s.proyectoNombre && s.proyectoNombre.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (s.servicioPrincipal && s.servicioPrincipal.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (s.fuentePrincipal && s.fuentePrincipal.toLowerCase().includes(searchTerm.toLowerCase()));
 
       const matchInstitucion =
         institucionFilter === "ALL" || s.institucion === institucionFilter;
+
+      const matchProyecto =
+        proyectoFilter === "ALL" || s.proyectoNombre === proyectoFilter;
+
+      const fuenteNombre = s.fuentePrincipal || s.fuentes?.[0]?.nombre || "";
+      const matchFuente =
+        fuenteFilter === "ALL" || fuenteNombre === fuenteFilter;
 
       let matchEstado = true;
       if (estadoFilter !== "ALL") {
@@ -214,13 +244,13 @@ export function AccesoSolicitudesView() {
         } else if (estadoFilter === "Reenviada") {
           matchEstado = est === "Reenviada" || est === "Reenviada para aprobación";
         } else if (estadoFilter === "Rechazada") {
-          matchEstado = est === "Rechazada" || est === "Con observaciones";
+          matchEstado = est === "Rechazada" || est === "Con observaciones" || est === "Requiere corrección" || est === "Observada";
         } else if (estadoFilter === "Pendiente de validación de pago") {
           matchEstado = est === "Pendiente de validación de pago" || est === "Pago en validación";
         } else if (estadoFilter === "Pago validado") {
           matchEstado = est === "Pago validado" || est === "Pago verificado";
-        } else if (estadoFilter === "Acceso generado") {
-          matchEstado = est === "Acceso generado";
+        } else if (estadoFilter === "Acceso generado" || estadoFilter === "Acceso habilitado") {
+          matchEstado = est === "Acceso generado" || est === "Acceso habilitado";
         } else {
           matchEstado = est === estadoFilter;
         }
@@ -242,13 +272,15 @@ export function AccesoSolicitudesView() {
         matchFecha = diffDays <= 30 && diffDays >= 0;
       }
 
-      return matchSearch && matchInstitucion && matchEstado && matchResponsable && matchFecha;
+      return matchSearch && matchInstitucion && matchProyecto && matchFuente && matchEstado && matchResponsable && matchFecha;
     });
-  }, [visibleSolicitudes, searchTerm, institucionFilter, estadoFilter, responsableFilter, fechaFilter]);
+  }, [visibleSolicitudes, searchTerm, institucionFilter, proyectoFilter, fuenteFilter, estadoFilter, responsableFilter, fechaFilter]);
 
   const hasActiveFilters =
     searchTerm.trim() !== "" ||
     institucionFilter !== "ALL" ||
+    proyectoFilter !== "ALL" ||
+    fuenteFilter !== "ALL" ||
     estadoFilter !== "ALL" ||
     responsableFilter !== "ALL" ||
     fechaFilter !== "ALL";
@@ -256,6 +288,8 @@ export function AccesoSolicitudesView() {
   const clearAllFilters = () => {
     setSearchTerm("");
     setInstitucionFilter("ALL");
+    setProyectoFilter("ALL");
+    setFuenteFilter("ALL");
     setEstadoFilter("ALL");
     setResponsableFilter("ALL");
     setFechaFilter("ALL");
@@ -263,11 +297,12 @@ export function AccesoSolicitudesView() {
 
   const getEstadoBadge = (estado: string) => {
     switch (estado) {
+      case "Acceso habilitado":
       case "Acceso generado":
         return (
           <Badge tone="success" appearance="soft" size="sm" className="gap-1 font-semibold">
             <ShieldCheck className="size-3" />
-            <span>Acceso generado</span>
+            <span>Acceso habilitado</span>
           </Badge>
         );
       case "Aprobada":
@@ -277,6 +312,41 @@ export function AccesoSolicitudesView() {
           <Badge tone="success" appearance="soft" size="sm" className="gap-1 font-semibold">
             <CheckCircle2 className="size-3" />
             <span>{estado}</span>
+          </Badge>
+        );
+      case "Habilitación técnica":
+        return (
+          <Badge tone="primary" appearance="soft" size="sm" className="gap-1 font-semibold">
+            <Clock className="size-3" />
+            <span>Habilitación técnica</span>
+          </Badge>
+        );
+      case "Aprobación final":
+        return (
+          <Badge tone="primary" appearance="soft" size="sm" className="gap-1 font-semibold">
+            <CheckCircle2 className="size-3" />
+            <span>Aprobación final</span>
+          </Badge>
+        );
+      case "Pendiente de firma":
+        return (
+          <Badge tone="warning" appearance="soft" size="sm" className="gap-1 font-semibold">
+            <Clock className="size-3" />
+            <span>Pendiente de firma</span>
+          </Badge>
+        );
+      case "En formalización":
+        return (
+          <Badge tone="primary" appearance="soft" size="sm" className="gap-1 font-semibold">
+            <Clock className="size-3" />
+            <span>En formalización</span>
+          </Badge>
+        );
+      case "En revisión jurídica":
+        return (
+          <Badge tone="warning" appearance="soft" size="sm" className="gap-1 font-semibold">
+            <Scale className="size-3" />
+            <span>En revisión jurídica</span>
           </Badge>
         );
       case "Por revisar":
@@ -300,12 +370,21 @@ export function AccesoSolicitudesView() {
             <span>{estado}</span>
           </Badge>
         );
+      case "Requiere corrección":
+      case "Observada":
       case "Rechazada":
       case "Con observaciones":
         return (
           <Badge tone="danger" appearance="soft" size="sm" className="gap-1 font-semibold">
-            <X className="size-3" />
-            <span>{estado}</span>
+            <AlertTriangle className="size-3" />
+            <span>Requiere corrección</span>
+          </Badge>
+        );
+      case "Cerrada por vencimiento":
+      case "Cerrada":
+        return (
+          <Badge tone="neutral" appearance="soft" size="sm">
+            <span>Cerrada</span>
           </Badge>
         );
       default:
@@ -587,28 +666,59 @@ export function AccesoSolicitudesView() {
                   </ComboboxContent>
                 </Combobox>
 
-                {/* Filtro: Responsable (solo visible para Coordinador) */}
+                {/* Filtro: Proyecto (para Coordinador) */}
                 {role === "COORDINADOR_SINARP" && (
                   <Combobox
-                    items={responsableOptions}
-                    value={responsableOptions.find((o) => o.value === responsableFilter) || responsableOptions[0]}
+                    items={proyectoOptions}
+                    value={proyectoOptions.find((o) => o.value === proyectoFilter) || proyectoOptions[0]}
                     onValueChange={(val) => {
-                      if (val) setResponsableFilter(val.value);
+                      if (val) setProyectoFilter(val.value);
                     }}
                   >
                     <ComboboxSelectTrigger
                       className={cn(
                         "h-11 rounded-full px-4 text-xs sm:text-sm font-medium bg-background border-border/80 hover:bg-muted/40 transition-colors gap-1.5 shadow-none",
-                        responsableFilter !== "ALL" && "border-primary text-primary font-semibold bg-primary/5"
+                        proyectoFilter !== "ALL" && "border-primary text-primary font-semibold bg-primary/5"
                       )}
                     >
                       <span className="truncate max-w-[150px]">
-                        {responsableFilter === "ALL" ? "Responsable: Todos" : responsableFilter}
+                        {proyectoFilter === "ALL" ? "Proyecto: Todos" : proyectoFilter}
                       </span>
                     </ComboboxSelectTrigger>
-                    <ComboboxContent align="start" className="w-56 max-h-72 overflow-y-auto">
+                    <ComboboxContent align="start" className="w-64 max-h-72 overflow-y-auto">
                       <ComboboxList>
-                        {responsableOptions.map((opt) => (
+                        {proyectoOptions.map((opt) => (
+                          <ComboboxItem key={opt.value} value={opt} className="text-xs">
+                            {opt.label}
+                          </ComboboxItem>
+                        ))}
+                      </ComboboxList>
+                    </ComboboxContent>
+                  </Combobox>
+                )}
+
+                {/* Filtro: Fuente */}
+                {role === "COORDINADOR_SINARP" && (
+                  <Combobox
+                    items={fuenteOptions}
+                    value={fuenteOptions.find((o) => o.value === fuenteFilter) || fuenteOptions[0]}
+                    onValueChange={(val) => {
+                      if (val) setFuenteFilter(val.value);
+                    }}
+                  >
+                    <ComboboxSelectTrigger
+                      className={cn(
+                        "h-11 rounded-full px-4 text-xs sm:text-sm font-medium bg-background border-border/80 hover:bg-muted/40 transition-colors gap-1.5 shadow-none",
+                        fuenteFilter !== "ALL" && "border-primary text-primary font-semibold bg-primary/5"
+                      )}
+                    >
+                      <span className="truncate max-w-[150px]">
+                        {fuenteFilter === "ALL" ? "Fuente: Todas" : fuenteFilter}
+                      </span>
+                    </ComboboxSelectTrigger>
+                    <ComboboxContent align="start" className="w-64 max-h-72 overflow-y-auto">
+                      <ComboboxList>
+                        {fuenteOptions.map((opt) => (
                           <ComboboxItem key={opt.value} value={opt} className="text-xs">
                             {opt.label}
                           </ComboboxItem>
@@ -672,13 +782,14 @@ export function AccesoSolicitudesView() {
               <TableHeader>
                 {role === "COORDINADOR_SINARP" && (
                   <TableRow>
-                    <TableHead>N.º de solicitud</TableHead>
-                    <TableHead>Institución</TableHead>
-                    <TableHead>Fuente</TableHead>
-                    <TableHead>Fecha de envío</TableHead>
-                    <TableHead>Campos</TableHead>
+                    <TableHead>Número de solicitud</TableHead>
+                    <TableHead>Proyecto</TableHead>
+                    <TableHead>Institución / Fuente</TableHead>
+                    <TableHead>Cantidad de campos</TableHead>
+                    <TableHead>Tipo de datos</TableHead>
+                    <TableHead>Fecha</TableHead>
                     <TableHead>Estado</TableHead>
-                    <TableHead className="w-24 text-center">Acciones</TableHead>
+                    <TableHead className="w-36 text-center">Próxima acción</TableHead>
                   </TableRow>
                 )}
 
@@ -715,84 +826,96 @@ export function AccesoSolicitudesView() {
                   const valorFactura = s.factura?.valor || "$ 150.00";
 
                   if (role === "COORDINADOR_SINARP") {
-                    const isEnRevision = s.estado === "Por revisar" || s.estado === "En revisión";
-                    const isRechazada = s.estado === "Rechazada" || s.estado === "Con observaciones";
+                    const fuenteNombre = s.fuentePrincipal || s.fuentes?.[0]?.nombre || "Dirección General de Registro Civil";
+                    const proyectoNombre = s.proyectoNombre || "Proyecto General";
+                    const totalCampos = s.camposCount ?? s.fuentes?.reduce((acc, f) => acc + (f.campos?.length || 0), 0) ?? 2;
+                    const tieneConfidenciales = s.fuentes?.some((f) => f.campos?.some((c) => c.clasificacion === "Confidencial")) ?? false;
+                    const isObservada = s.estado === "Requiere corrección" || s.estado === "Observada" || s.estado === "Rechazada" || s.estado === "Con observaciones";
+                    const isFirma = s.estado === "Pendiente de firma";
+                    const isPago = s.estado === "Pendiente de pago" || s.estado === "Pago pendiente";
+                    const isHabilitada = s.estado === "Acceso habilitado" || s.estado === "Acceso generado";
 
                     return (
-                      <TableRow key={s.id} className={cn(isEnRevision && "bg-primary/[0.02]")}>
+                      <TableRow key={s.id}>
                         <TableCell className="font-semibold text-foreground">
-                          <div className="flex items-center gap-1.5">
-                            {isEnRevision && <span className="size-2 rounded-full bg-primary animate-pulse" />}
-                            <span>{s.id}</span>
+                          <Link href={`/acceso-interoperabilidad/solicitudes/${s.id}`} className="hover:underline text-primary font-mono text-xs">
+                            {s.id}
+                          </Link>
+                        </TableCell>
+                        <TableCell className="text-foreground max-w-[170px] truncate" title={proyectoNombre}>
+                          <span className="text-xs font-medium">{proyectoNombre}</span>
+                        </TableCell>
+                        <TableCell className="max-w-[210px]">
+                          <div className="flex flex-col text-xs">
+                            <span className="font-medium text-foreground truncate" title={s.institucion}>{s.institucion}</span>
+                            <span className="text-muted-foreground truncate text-[11px]" title={fuenteNombre}>{fuenteNombre}</span>
                           </div>
                         </TableCell>
-                        <TableCell className="text-foreground max-w-[200px] truncate" title={fuenteNombre}>
-                          {fuenteNombre}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground max-w-[200px] truncate" title={servicioNombre}>
-                          {servicioNombre}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground font-mono text-xs">{s.fecha.substring(0, 10)}</TableCell>
                         <TableCell>
-                          <span className="font-medium text-foreground">{s.camposCount ?? s.fuentes?.reduce((acc, f) => acc + (f.campos?.length || 0), 0) ?? 2}</span>
+                          <span className="font-mono text-xs font-semibold text-foreground">{totalCampos} campos</span>
                         </TableCell>
-                        <TableCell>{getEstadoBadge(s.estado)}</TableCell>
+                        <TableCell>
+                          {tieneConfidenciales ? (
+                            <Badge tone="warning" appearance="soft" size="sm" className="text-[11px] font-semibold gap-1">
+                              <AlertTriangle className="size-3" />
+                              Confidencial
+                            </Badge>
+                          ) : (
+                            <Badge tone="neutral" appearance="soft" size="sm" className="text-[11px] font-semibold">
+                              Accesible
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground font-mono text-xs">
+                          {s.fecha.substring(0, 10)}
+                        </TableCell>
+                        <TableCell>
+                          {getEstadoBadge(s.estado)}
+                        </TableCell>
                         <TableCell className="text-center">
-                          <div className="flex items-center justify-center gap-3">
-                            <TooltipProvider delayDuration={0}>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button asChild variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-primary-300 hover:bg-primary-300/10">
-                                    <Link href={`/acceso-interoperabilidad/solicitudes/${s.id}`}>
-                                      <Eye className="size-4" />
-                                    </Link>
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent side="top">
-                                  <p className="text-xs">
-                                    {isEnRevision ? "Ver detalle y trazabilidad (solo lectura)" : "Ver detalle"}
-                                  </p>
-                                </TooltipContent>
-                              </Tooltip>
-
-                              {s.estado === "Acceso generado" && (
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button onClick={() => setModalCredenciales(s)} variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-primary-300 hover:bg-primary-300/10">
-                                      <KeyRound className="size-4" />
-                                      
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="top">
-                                    <p className="text-xs">Ver credenciales de acceso</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              )}
-
-                              {isRechazada && (
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button asChild variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-primary-300 hover:bg-primary-300/10">
-                                      <Link
-                                        href={`/acceso-interoperabilidad/solicitudes/${s.id}?edit=true&step=${
-                                          (`${s.motivoRechazo ||""} ${s.observaciones ||""}`.toLowerCase().includes("eliminar campo") ||
-                                          `${s.motivoRechazo ||""} ${s.observaciones ||""}`.toLowerCase().includes("quitar campo") ||
-                                          `${s.motivoRechazo ||""} ${s.observaciones ||""}`.toLowerCase().includes("cambiar fuente") ||
-                                          `${s.motivoRechazo ||""} ${s.observaciones ||""}`.toLowerCase().includes("campo no autorizado"))
-                                            ? 1
-                                            : 2
-                                        }`}
-                                      >
-                                        <Edit className="size-4" />
-                                      </Link>
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="top">
-                                    <p className="text-xs">Editar solicitud</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              )}
-                            </TooltipProvider>
+                          <div className="flex items-center justify-center gap-1.5">
+                            {isObservada && (
+                              <Button asChild size="sm" className="h-7 text-xs gap-1 bg-amber-600 hover:bg-amber-700 text-white font-semibold">
+                                <Link href={`/acceso-interoperabilidad/solicitudes/${s.id}?edit=true`}>
+                                  <Edit className="size-3.5" />
+                                  Corregir
+                                </Link>
+                              </Button>
+                            )}
+                            {isFirma && (
+                              <Button asChild size="sm" className="h-7 text-xs gap-1 bg-primary text-primary-foreground font-semibold">
+                                <Link href={`/acceso-interoperabilidad/solicitudes/${s.id}`}>
+                                  <FileSignature className="size-3.5" />
+                                  Firmar
+                                </Link>
+                              </Button>
+                            )}
+                            {isPago && (
+                              <Button asChild size="sm" className="h-7 text-xs gap-1 bg-primary text-primary-foreground font-semibold">
+                                <Link href={`/acceso-interoperabilidad/solicitudes/${s.id}/facturacion`}>
+                                  <CreditCard className="size-3.5" />
+                                  Pagar
+                                </Link>
+                              </Button>
+                            )}
+                            {isHabilitada && (
+                              <Button
+                                size="sm"
+                                onClick={() => setModalCredenciales(s)}
+                                className="h-7 text-xs gap-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+                              >
+                                <KeyRound className="size-3.5" />
+                                Credencial
+                              </Button>
+                            )}
+                            {!isObservada && !isFirma && !isPago && !isHabilitada && (
+                              <Button asChild variant="outline" size="sm" className="h-7 text-xs gap-1 border-border">
+                                <Link href={`/acceso-interoperabilidad/solicitudes/${s.id}`}>
+                                  <Eye className="size-3.5" />
+                                  Ver detalle
+                                </Link>
+                              </Button>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -1321,278 +1444,12 @@ export function AccesoSolicitudesView() {
         </DialogContent>
       </Dialog>
 
-      {/* â”€â”€â”€ MODAL: CREDENCIALES â”€â”€â”€ */}
-      <Dialog open={Boolean(modalCredenciales)} onOpenChange={(open) => !open && setModalCredenciales(null)}>
-        <DialogContent size="lg" className="max-w-2xl">
-          {modalCredenciales && (() => {
-            const creds = modalCredenciales.credenciales || {
-              usuario: `ws_${modalCredenciales.institucion.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 10)}_${modalCredenciales.id.toLowerCase().replace(/[^a-z0-9]/g, "")}`,
-              contrasena: `Dinarp$ec2026_${modalCredenciales.id.replace(/[^0-9]/g, "")}*K9`,
-              endpoint: `https://interoperabilidad.dinarp.gob.ec/api/v2/servicios/${modalCredenciales.id.toLowerCase()}`,
-              tipoAutenticacion: "OAuth 2.0 (Bearer Token)",
-              ambiente: "Producción (Ambiente Seguro DINARP)",
-              fechaGeneracion: modalCredenciales.ultimaActualizacion || "2026-08-25",
-              fechaExpiracion: "2027-08-25 23:59 (Activa)",
-              camposAutorizados: modalCredenciales.fuentes?.flatMap((f) => f.campos?.map((c) => c.nombre) || []) || ["cedulaCiudadania", "nombresCompletos"]
-            };
-
-            const camposDetalle = modalCredenciales.fuentes?.flatMap((f) => f.campos || []) || [];
-
-            const handleCopy = (text: string, label: string) => {
-              navigator.clipboard.writeText(text);
-              setCopiedField(label);
-              toast.success(`${label} copiado al portapapeles`);
-              setTimeout(() => setCopiedField(null), 2000);
-            };
-
-            const handleCopyAll = () => {
-              const listadoCampos = camposDetalle.length > 0
-                ? camposDetalle.map((c) => `  - ${c.nombre} (${c.clasificacion}): ${c.finalidad || c.descripcion || ""}`).join("\n")
-                : (creds.camposAutorizados || []).map((c) => `  - ${c}`).join("\n");
-
-              const fullText = [
-                `=== CREDENCIALES DE ACCESO A INTEROPERABILIDAD ===`,
-                `Solicitud: ${modalCredenciales.id}`,
-                `Institución: ${modalCredenciales.institucion}`,
-                `Servicio: ${modalCredenciales.servicioPrincipal || modalCredenciales.fuentePrincipal || "Consulta de Interoperabilidad"}`,
-                `Ambiente: ${creds.ambiente || "Producción"}`,
-                `Tipo de Autenticación: ${creds.tipoAutenticacion || "OAuth 2.0"}`,
-                `Endpoint: ${creds.endpoint}`,
-                `Usuario: ${creds.usuario}`,
-                `Contraseña: ${creds.contrasena}`,
-                `Vigencia: ${creds.fechaExpiracion || "1 año"}`,
-                `\nCampos autorizados:\n${listadoCampos}`,
-                `\nDINARP - Dirección Nacional de Registros Públicos`
-              ].join("\n");
-
-              navigator.clipboard.writeText(fullText);
-              toast.success("Credenciales completas copiadas al portapapeles");
-            };
-
-            return (
-              <>
-                <DialogHeader>
-                  <div className="flex items-center justify-between pr-6">
-                    <DialogTitle className="text-lg font-bold text-foreground flex items-center gap-2">
-                      <div className="size-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                        <KeyRound className="size-4" />
-                      </div>
-                      <span>Credenciales</span>
-                    </DialogTitle>
-                    <Badge tone="success" appearance="soft" size="sm" className="border border-emerald-500/30 text-emerald-700 dark:text-emerald-300">
-                      <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse mr-1" />
-                      Acceso activo
-                    </Badge>
-                  </div>
-                  <DialogDescription className="text-xs text-muted-foreground mt-1">
-                    Credenciales técnicas y catálogo de campos autorizados para el consumo del servicio de interoperabilidad.
-                  </DialogDescription>
-                </DialogHeader>
-
-                <div className="space-y-4 my-2 max-h-[70vh] overflow-y-auto pr-1">
-                  {/* Resumen de servicio e institución */}
-                  <div className="p-3.5 rounded-xl bg-muted/40 border border-border/80 text-xs grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <span className="text-muted-foreground block text-[11px]">Solicitud:</span>
-                      <strong className="text-foreground font-mono">{modalCredenciales.id}</strong>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground block text-[11px]">Institución:</span>
-                      <strong className="text-foreground truncate block">{modalCredenciales.institucion}</strong>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground block text-[11px]">Servicio de Interoperabilidad:</span>
-                      <strong className="text-foreground truncate block">{modalCredenciales.servicioPrincipal || modalCredenciales.fuentePrincipal || "Consulta de Datos"}</strong>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground block text-[11px]">Ambiente y Autenticación:</span>
-                      <span className="text-foreground font-medium">{creds.tipoAutenticacion || "OAuth 2.0"} · {creds.ambiente?.split(" ")[0] || "Producción"}</span>
-                    </div>
-                  </div>
-
-                  {/* Parámetros de conexión: Usuario y Contraseña */}
-                  <div className="space-y-3">
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-foreground flex items-center justify-between">
-                        <span>Usuario</span>
-                        <span className="text-[10px] text-muted-foreground">Identificador de cliente (Client ID / API User)</span>
-                      </label>
-                      <div className="relative flex items-center">
-                        <input
-                          type="text"
-                          readOnly
-                          value={creds.usuario}
-                          className="w-full px-3 py-2 pr-10 text-xs font-mono rounded-lg border border-border bg-muted/20 text-foreground select-all focus:outline-none"
-                        />
-                        <Button
-                          variant="ghost"
-                          size="icon-xs"
-                          type="button"
-                          onClick={() => handleCopy(creds.usuario, "Usuario")}
-                          className="absolute right-1 text-muted-foreground hover:text-foreground"
-                          title="Copiar usuario"
-                        >
-                          {copiedField === "Usuario" ? <Check className="size-3.5 text-emerald-600" /> : <Copy className="size-3.5" />}
-                        </Button>
-                      </div>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-foreground flex items-center justify-between">
-                        <span>Contraseña</span>
-                        <span className="text-[10px] text-muted-foreground">Secreto de autenticación (Client Secret / Token)</span>
-                      </label>
-                      <div className="relative flex items-center">
-                        <input
-                          type={showPassword ? "text" : "password"}
-                          readOnly
-                          value={creds.contrasena}
-                          className="w-full px-3 py-2 pr-20 text-xs font-mono rounded-lg border border-border bg-muted/20 text-foreground select-all focus:outline-none"
-                        />
-                        <div className="absolute right-1 flex items-center gap-0.5">
-                          <Button
-                            variant="ghost"
-                            size="icon-xs"
-                            type="button"
-                            onClick={() => setShowPassword(!showPassword)}
-                            
-                            title={showPassword ? "Ocultar contraseña" : "Ver contraseña"}
-                          >
-                            {showPassword ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon-xs"
-                            type="button"
-                            onClick={() => handleCopy(creds.contrasena, "Contraseña")}
-                            
-                            title="Copiar contraseña"
-                          >
-                            {copiedField === "Contraseña" ? <Check className="size-3.5 text-emerald-600" /> : <Copy className="size-3.5" />}
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-foreground flex items-center justify-between">
-                        <span>Endpoint</span>
-                        <span className="text-[10px] text-muted-foreground">URL base para el consumo seguro</span>
-                      </label>
-                      <div className="relative flex items-center">
-                        <input
-                          type="text"
-                          readOnly
-                          value={creds.endpoint}
-                          className="w-full px-3 py-2 pr-10 text-xs font-mono rounded-lg border border-border bg-muted/20 text-foreground select-all focus:outline-none"
-                        />
-                        <Button
-                          variant="ghost"
-                          size="icon-xs"
-                          type="button"
-                          onClick={() => handleCopy(creds.endpoint, "Endpoint")}
-                          className="absolute right-1 text-muted-foreground hover:text-foreground"
-                          title="Copiar endpoint"
-                        >
-                          {copiedField === "Endpoint" ? <Check className="size-3.5 text-emerald-600" /> : <Copy className="size-3.5" />}
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Campos autorizados */}
-                  <div className="space-y-2 pt-2 border-t border-border/60">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <label className="text-xs font-semibold text-foreground">Campos autorizados</label>
-                        <Badge tone="neutral" appearance="outline" size="sm" className="text-[10px] px-1.5 py-0">
-                          {camposDetalle.length || creds.camposAutorizados?.length || 0} campos
-                        </Badge>
-                      </div>
-                      <span className="text-[11px] text-muted-foreground">Habilitados en la credencial</span>
-                    </div>
-
-                    <div className="rounded-xl border border-border/80 overflow-hidden divide-y divide-border/60 bg-surface">
-                      {camposDetalle.length > 0 ? (
-                        camposDetalle.map((campo) => (
-                          <div key={campo.id || campo.nombre} className="p-3 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-muted/20 transition-colors">
-                            <div className="space-y-0.5">
-                              <div className="flex items-center gap-2">
-                                <span className="font-mono font-semibold text-foreground bg-muted/60 px-1.5 py-0.5 rounded text-[11px]">{campo.nombre}</span>
-                                <Badge
-                                  tone={campo.clasificacion === "Confidencial" ? "warning" : "neutral"}
-                                  appearance="outline"
-                                  size="sm"
-                                  className="text-[10px] px-1.5 py-0"
-                                >
-                                  {campo.clasificacion}
-                                </Badge>
-                              </div>
-                              <p className="text-[11px] text-muted-foreground line-clamp-1">{campo.finalidad || campo.descripcion}</p>
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleCopy(campo.nombre, `Campo ${campo.nombre}`)}
-                              className="self-end sm:self-center text-[10px] text-muted-foreground hover:text-foreground gap-1 h-6 px-2"
-                            >
-                              <Copy className="size-3" />
-                              <span>Copiar campo</span>
-                            </Button>
-                          </div>
-                        ))
-                      ) : (
-                        (creds.camposAutorizados || []).map((nombreCampo) => (
-                          <div key={nombreCampo} className="p-2.5 text-xs flex items-center justify-between hover:bg-muted/20">
-                            <span className="font-mono font-semibold text-foreground bg-muted/60 px-1.5 py-0.5 rounded text-[11px]">{nombreCampo}</span>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleCopy(nombreCampo, `Campo ${nombreCampo}`)}
-                              className="text-[10px] text-muted-foreground hover:text-foreground gap-1 h-6 px-2"
-                            >
-                              <Copy className="size-3" />
-                              <span>Copiar</span>
-                            </Button>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Advertencia de confidencialidad */}
-                  <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs flex items-start gap-2.5">
-                    <AlertTriangle className="size-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-                    <p className="text-[11px] text-amber-800 dark:text-amber-200 leading-relaxed">
-                      <strong>Uso confidencial:</strong> Las credenciales son intransferibles y deben almacenarse de forma segura en los servidores de la institución solicitante. No deben incluirse en código fuente público ni exponerse en clientes frontend.
-                    </p>
-                  </div>
-                </div>
-
-                <DialogFooter className="pt-3 border-t border-border/60 flex flex-col sm:flex-row gap-2 justify-between items-center">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleCopyAll}
-                    className="w-full sm:w-auto text-xs font-semibold gap-1.5 border-border"
-                  >
-                    <Copy className="size-3.5" />
-                    <span>Copiar credenciales</span>
-                  </Button>
-
-                  <Button
-                    size="sm"
-                    onClick={() => setModalCredenciales(null)}
-                    className="w-full sm:w-auto bg-primary text-primary-foreground font-semibold"
-                  >
-                    Cerrar
-                  </Button>
-                </DialogFooter>
-              </>
-            );
-          })()}
-        </DialogContent>
-      </Dialog>
+      {/* ─── MODAL ACC-03: CREDENCIALES TÉCNICAS (CON RETO DE CONTRASEÑA Y SECRETO) ─── */}
+      <CredencialTecnicaModal
+        solicitud={modalCredenciales}
+        isOpen={Boolean(modalCredenciales)}
+        onClose={() => setModalCredenciales(null)}
+      />
     </WireframeDashboardLayout>
   );
 }

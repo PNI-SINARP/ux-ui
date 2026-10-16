@@ -37,30 +37,46 @@ export interface TrazabilidadEvento {
 }
 
 export type SolicitudEstado =
+  | "Borrador"
+  | "Enviada"
   | "Pendiente de asignación en Gestión"
   | "Asignada a revisión de Gestión"
   | "En revisión de Gestión"
+  | "En revisión"
   | "Observada"
+  | "Requiere corrección"
   | "Pendiente de nueva asignación"
-  | "Cerrada"
   | "Aprobada por Gestión"
   | "Pendiente de asignación en Normatividad"
   | "En revisión normativa"
+  | "En revisión jurídica"
   | "Aprobada por Normatividad"
+  | "En formalización"
+  | "Pendiente de firma"
+  | "Pendiente de firma de contrato"
+  | "Contrato firmado"
+  | "Pendiente de pago"
+  | "Pago pendiente"
+  | "Pago en validación"
+  | "Pago en verificación"
+  | "Pago validado"
+  | "Pago verificado"
+  | "Aprobación final"
+  | "Listo para aprobación final"
+  | "Solicitud aprobada — habilitación técnica pendiente"
+  | "Habilitación técnica"
+  | "Acceso habilitado"
+  | "Acceso generado"
+  | "Cerrada"
+  | "Cerrada por vencimiento"
   | "Por asignar"
   | "Por revisar"
-  | "En revisión"
   | "Reenviada"
   | "Aprobada"
   | "Rechazada"
-  | "Pago pendiente"
   | "Con observaciones"
   | "Pendiente de validación de pago"
-  | "Pago en validación"
-  | "Pago validado"
-  | "Pago verificado"
-  | "Creación de paquetes"
-  | "Acceso generado";
+  | "Creación de paquetes";
 
 export type ModalidadAcceso = "API individual" | "API masiva" | "Ambas";
 
@@ -96,17 +112,26 @@ export interface AsignacionRegistro {
 }
 
 export interface InformeNormativa {
-  numero: string;
-  titulo: string;
+  numero?: string;
+  titulo?: string;
   fechaEmision: string;
-  dictamen: "FAVORABLE" | "OBSERVADO";
-  fundamento: string;
-  revisorNombre: string;
-  firmadoRevisor: boolean;
+  dictamen?: "FAVORABLE" | "OBSERVADO";
+  fundamento?: string;
+  revisorNombre?: string;
+  firmadoRevisor?: boolean;
   fechaFirmaRevisor?: string;
-  directorNombre: string;
-  firmadoDirector: boolean;
+  directorNombre?: string;
+  firmadoDirector?: boolean;
   fechaFirmaDirector?: string;
+  archivoInforme?: string;
+  cumple?: boolean;
+  articulosAplicables?: string;
+  observaciones?: string;
+  emitidoPor?: string;
+  firmaRevisor?: boolean;
+  firmadoPorRevisorNombre?: string;
+  firmaDirector?: boolean;
+  firmadoPorDirectorNombre?: string;
 }
 
 export interface CredencialesAcceso {
@@ -118,6 +143,39 @@ export interface CredencialesAcceso {
   fechaGeneracion?: string;
   fechaExpiracion?: string;
   camposAutorizados?: string[];
+}
+
+export interface ContratoInteroperabilidad {
+  id: string;
+  numero: string;
+  version: number;
+  estado: "Borrador" | "Corrección pendiente" | "Pendiente de firmas" | "Firmado";
+  fechaGeneracion: string;
+  fechaEnvioFirmas?: string;
+  firmadoCoordinador: boolean;
+  fechaFirmaCoordinador?: string;
+  coordinadorNombre: string;
+  firmadoMaximaAutoridad: boolean;
+  fechaFirmaMaximaAutoridad?: string;
+  maximaAutoridadNombre: string;
+  cantidadContratada: number;
+  clausulas?: string;
+  archivoPdf?: string;
+  historialVersiones?: {
+    version: number;
+    fecha: string;
+    autor: string;
+    cambios: string;
+  }[];
+}
+
+export interface AprovisionamientoTecnico {
+  estado: "PENDIENTE" | "ERROR" | "EXITOSO";
+  ultimoIntento?: string;
+  reintentosCount: number;
+  mensajeResultado?: string;
+  referenciaTecnica?: string;
+  fechaHabilitacion?: string;
 }
 
 export interface SolicitudAcceso {
@@ -153,9 +211,12 @@ export interface SolicitudAcceso {
   fechaLimiteSubsanacion?: string;
   diasRestantesSubsanacion?: number;
   detalleSubsanacion?: string;
+  subsanable?: boolean;
   informeNormativa?: InformeNormativa;
   instrumento?: "Convenio" | "Contrato";
   contrato?: string;
+  contratoDetalle?: ContratoInteroperabilidad;
+  aprovisionamiento?: AprovisionamientoTecnico;
   motivoRechazo?: string;
   observaciones?: string;
   fuentes: FuenteDetalle[];
@@ -183,7 +244,7 @@ export interface SolicitudAcceso {
   historial: TrazabilidadEvento[];
 }
 
-const STORAGE_KEY = "dinarp_solicitudes_v7";
+const STORAGE_KEY = "dinarp_solicitudes_v8";
 
 export const INITIAL_SOLICITUDES: SolicitudAcceso[] = [
   {
@@ -194,8 +255,14 @@ export const INITIAL_SOLICITUDES: SolicitudAcceso[] = [
     fecha: "2026-09-20 09:00",
     fechaAprobacion: "2026-09-22",
     ultimaActualizacion: "2026-09-23 10:30",
-    estado: "Acceso generado",
+    estado: "Acceso habilitado",
     responsable: "Coordinador SINARP",
+    aprovisionamiento: {
+      estado: "EXITOSO",
+      reintentosCount: 0,
+      fechaHabilitacion: "2026-09-23 10:30",
+      mensajeResultado: "Aprovisionamiento automático exitoso en API Gateway DINARP."
+    },
     fuentesCount: 1,
     camposCount: 3,
     fuentePrincipal: "Registro Civil de Ciudadanos",
@@ -505,7 +572,7 @@ export const INITIAL_SOLICITUDES: SolicitudAcceso[] = [
     proyectoNombre: "Sistema Único de Registro y Matrícula Estudiantil",
     fecha: "2026-09-23 08:00",
     ultimaActualizacion: "2026-09-24 14:00",
-    estado: "Observada",
+    estado: "Requiere corrección",
     responsable: "Coordinador SINARP",
     versionExpediente: 1,
     modalidad: "API masiva",
@@ -587,8 +654,8 @@ export const INITIAL_SOLICITUDES: SolicitudAcceso[] = [
     proyectoNombre: "Sistema Único de Registro y Matrícula Estudiantil",
     fecha: "2026-08-10 09:00",
     ultimaActualizacion: "2026-08-25 18:00",
-    estado: "Cerrada",
-    responsable: "Archivo Histórico",
+    estado: "Cerrada por vencimiento",
+    responsable: "Coordinador SINARP",
     versionExpediente: 1,
     modalidad: "API individual",
     cupo: 15000,
@@ -926,14 +993,38 @@ export const INITIAL_SOLICITUDES: SolicitudAcceso[] = [
     fecha: "2026-09-19 14:00",
     fechaAprobacion: "2026-09-21",
     ultimaActualizacion: "2026-09-22 08:30",
-    estado: "Pago pendiente",
-    responsable: "Facturación",
+    estado: "Pendiente de pago",
+    responsable: "Coordinador SINARP",
     fuentesCount: 2,
     camposCount: 2,
     fuentePrincipal: "Servicio de Rentas Internas / Buró",
     servicioPrincipal: "Validación Tributaria y Score Financiero",
     instrumento: "Contrato",
     contrato: "CONTR-2026-0019",
+    contratoDetalle: {
+      id: "CONTR-2026-0019",
+      numero: "CONTR-2026-0019",
+      version: 1,
+      estado: "Firmado",
+      fechaGeneracion: "2026-09-20 10:00",
+      fechaEnvioFirmas: "2026-09-20 11:30",
+      firmadoCoordinador: true,
+      fechaFirmaCoordinador: "2026-09-21 09:15",
+      coordinadorNombre: "Andrea López (Coordinadora SINARP)",
+      firmadoMaximaAutoridad: true,
+      fechaFirmaMaximaAutoridad: "2026-09-21 16:40",
+      maximaAutoridadNombre: "Dra. Cristina Álvarez (Directora Ejecutiva DINARP)",
+      cantidadContratada: 50000,
+      clausulas: "Cláusula Primera: Objeto del Intercambio de Información Tributaria y Validación Financiera. Cláusula Segunda: Tarifas aprobadas y recaudación según ordenanza institucional.",
+      historialVersiones: [
+        {
+          version: 1,
+          fecha: "2026-09-20 10:00",
+          autor: "Abg. Santiago Valdivieso (Jurídica)",
+          cambios: "Generación de contrato formal para entidad financiera privada"
+        }
+      ]
+    },
     factura: {
       numero: "FAC-0028",
       fechaEmision: "2026-09-22",
@@ -1229,6 +1320,145 @@ export const INITIAL_SOLICITUDES: SolicitudAcceso[] = [
       { fecha: "2026-08-14 15:00", evento: "Aprobada", actor: "Aprobador" },
       { fecha: "2026-08-16 11:20", evento: "Pago validado y CUR anexado", actor: "Facturación" },
       { fecha: "2026-08-18 16:45", evento: "Acceso generado", actor: "Administrador DINARP", detalle: "Credenciales de consumo emitidas formalmente para ambiente bancario." }
+    ]
+  },
+  {
+    id: "SOL-2026-020",
+    institucion: "Aseguradora del Sur C.A.",
+    tipoInstitucion: "Privada",
+    coordinador: "Andrea López",
+    proyectoId: "PRJ-2026-015",
+    proyectoNombre: "Validación de Siniestros y Coberturas Familiares",
+    fecha: "2026-09-22 10:00",
+    ultimaActualizacion: "2026-09-24 16:30",
+    estado: "En formalización",
+    responsable: "Abg. Santiago Valdivieso (Jurídica)",
+    fuentesCount: 1,
+    camposCount: 2,
+    fuentePrincipal: "Registro Civil de Ciudadanos",
+    servicioPrincipal: "Filiación y Datos Conyugales",
+    instrumento: "Contrato",
+    modalidad: "API individual",
+    cupo: 45000,
+    fuentes: [
+      {
+        id: "FNT-001",
+        nombre: "Registro Civil de Ciudadanos",
+        institucion: "Dirección General de Registro Civil",
+        campos: [
+          {
+            id: "cmp-01",
+            nombre: "cedulaCiudadania",
+            descripcion: "Número oficial de cédula de ciudadanía.",
+            clasificacion: "Accesible",
+            finalidad: "Identificación unívoca del asegurado titular."
+          },
+          {
+            id: "cmp-02",
+            nombre: "estadoCivil",
+            descripcion: "Condición civil registrada formalmente ante el Estado.",
+            clasificacion: "Confidencial",
+            finalidad: "Verificación de beneficiarios legales en pólizas de vida y asistencia conyugal.",
+            fundamento: "Código Orgánico Monetario y Financiero Art. 42 y LOPDP Art. 12."
+          }
+        ]
+      }
+    ],
+    documentos: [
+      {
+        id: "doc-seguros-1",
+        nombre: "Peticion_Aseguradora_Sur_2026.pdf",
+        tipo: "PDF",
+        tamano: "2.4 MB",
+        fechaCarga: "2026-09-22 10:00",
+        categoria: "Oficio Formal"
+      }
+    ],
+    informeNormativa: {
+      cumple: true,
+      articulosAplicables: "Art. 12 LOPDP, Art. 42 Código Monetario y Financiero",
+      observaciones: "Se verifica legitimidad jurídica para consulta de datos conyugales para cobertura de siniestros.",
+      emitidoPor: "Carlos Mora (Revisor Normativo)",
+      fechaEmision: "2026-09-24",
+      firmaRevisor: true,
+      fechaFirmaRevisor: "2026-09-24 11:00",
+      firmadoPorRevisorNombre: "Carlos Mora (Revisor Normativo)",
+      firmaDirector: true,
+      fechaFirmaDirector: "2026-09-24 15:30",
+      firmadoPorDirectorNombre: "Dra. Valentina Paz (Directora de Normatividad)",
+      archivoInforme: "Informe_Juridico_Favorable_SOL-2026-020.pdf"
+    },
+    historial: [
+      { fecha: "2026-09-22 10:00", evento: "Solicitud creada y enviada", actor: "Coordinador SINARP" },
+      { fecha: "2026-09-22 11:30", evento: "Revisor de Gestión asignado", actor: "Director de Gestión" },
+      { fecha: "2026-09-23 09:15", evento: "Revisión técnica de Gestión aprobada", actor: "Ana Torres (Revisor)" },
+      { fecha: "2026-09-23 10:00", evento: "Expediente remitido a Normatividad", actor: "Gestión", detalle: "Derivada por contener campo confidencial (estadoCivil)." },
+      { fecha: "2026-09-24 15:30", evento: "Informe Jurídico Favorable suscrito", actor: "Directora de Normatividad", detalle: "Doble firma confirmada (Revisor y Directora). Derivada a Jurídica para formalización de contrato privado." }
+    ]
+  },
+  {
+    id: "SOL-2026-030",
+    institucion: "Agencia de Regulación y Control de las Telecomunicaciones (ARCOTEL)",
+    tipoInstitucion: "Pública",
+    coordinador: "Andrea López",
+    proyectoId: "PRJ-2026-022",
+    proyectoNombre: "Catastro y Fiscalización del Espectro Radioeléctrico",
+    fecha: "2026-09-21 09:00",
+    ultimaActualizacion: "2026-09-24 11:15",
+    estado: "Habilitación técnica",
+    responsable: "Equipo TI",
+    fuentesCount: 1,
+    camposCount: 2,
+    fuentePrincipal: "Registro de Títulos Habilitantes",
+    servicioPrincipal: "Consulta de Operadores y Frecuencias",
+    instrumento: "Convenio",
+    modalidad: "API individual",
+    cupo: 80000,
+    aprovisionamiento: {
+      estado: "ERROR",
+      reintentosCount: 1,
+      ultimoIntento: "2026-09-24 11:15",
+      mensajeResultado: "Error de conexión con API Gateway DINARP: Gateway Timeout (HTTP 504) al propagar políticas de cuota.",
+      referenciaTecnica: "ERR_GATEWAY_TIMEOUT_PROV_030"
+    },
+    fuentes: [
+      {
+        id: "FNT-008",
+        nombre: "Registro de Títulos Habilitantes",
+        institucion: "ARCOTEL",
+        campos: [
+          {
+            id: "cmp-arc-1",
+            nombre: "codigoOperador",
+            descripcion: "Identificador asignado al operador de telecomunicaciones.",
+            clasificacion: "Accesible",
+            finalidad: "Validación de títulos habilitantes en tiempo real."
+          },
+          {
+            id: "cmp-arc-2",
+            nombre: "estadoFrecuencia",
+            descripcion: "Vigencia y estado técnico de la frecuencia concesionada.",
+            clasificacion: "Accesible",
+            finalidad: "Fiscalización técnica del espectro electromagnético nacional."
+          }
+        ]
+      }
+    ],
+    documentos: [
+      {
+        id: "doc-arcotel-1",
+        nombre: "Convenio_Interoperabilidad_ARCOTEL_DINARP.pdf",
+        tipo: "PDF",
+        tamano: "3.1 MB",
+        fechaCarga: "2026-09-21 09:00",
+        categoria: "Convenio Marco"
+      }
+    ],
+    historial: [
+      { fecha: "2026-09-21 09:00", evento: "Solicitud creada y enviada", actor: "Coordinador SINARP" },
+      { fecha: "2026-09-22 14:00", evento: "Revisión técnica y funcional aprobada", actor: "Revisión Gestión" },
+      { fecha: "2026-09-23 16:00", evento: "Aprobación final otorgada", actor: "Director de Gestión", detalle: "Expediente completo. Orden de habilitación técnica remitida a API Gateway." },
+      { fecha: "2026-09-24 11:15", evento: "Error en aprovisionamiento técnico", actor: "Plataforma de Interoperabilidad DINARP", detalle: "Fallo de respuesta HTTP 504 en Gateway al registrar política de cuota. Requiere reintento del Equipo TI." }
     ]
   }
 ];
@@ -2139,6 +2369,407 @@ export function useSolicitudesStore() {
     setSolicitudes(updated);
   }, []);
 
+  // DOC-01: Generar contrato para institución privada (Jurídica)
+  const generarContrato = useCallback((id: string, params?: { cantidadContratada?: number; clausulas?: string; autor?: string }) => {
+    const current = getStoredSolicitudes();
+    const now = new Date().toISOString().replace("T", " ").substring(0, 16);
+    const dateOnly = now.substring(0, 10);
+
+    const updated = current.map(s => {
+      if (s.id === id) {
+        const contrato: ContratoInteroperabilidad = {
+          id: `CONTR-${s.id.replace("SOL-", "")}`,
+          numero: `CONTR-2026-${s.id.slice(-4)}`,
+          version: 1,
+          estado: "Borrador",
+          fechaGeneracion: now,
+          firmadoCoordinador: false,
+          coordinadorNombre: s.coordinador || "Coordinador Institucional",
+          firmadoMaximaAutoridad: false,
+          maximaAutoridadNombre: "Dra. Cristina Álvarez (Directora Ejecutiva DINARP)",
+          cantidadContratada: params?.cantidadContratada || s.cupo || 100000,
+          clausulas: params?.clausulas || "Cláusula Primera: Objeto del Intercambio de Información. La entidad solicitante se compromete a consumir los datos exclusivamente para las finalidades autorizadas por DINARP, bajo estricto cumplimiento de la Ley Orgánica de Protección de Datos Personales (LOPDP). Cláusula Segunda: Tarifas y Vigencia. Rige por el plazo de un año prorrogable.",
+          historialVersiones: [
+            {
+              version: 1,
+              fecha: now,
+              autor: "Abg. Santiago Valdivieso (Jurídica)",
+              cambios: "Generación inicial de borrador de contrato de interoperabilidad"
+            }
+          ]
+        };
+
+        const nuevosEventos: TrazabilidadEvento[] = [
+          ...s.historial,
+          {
+            fecha: now,
+            evento: "Borrador de contrato generado",
+            actor: "Abg. Santiago Valdivieso (Jurídica)",
+            detalle: `Generado borrador inicial ${contrato.numero} v1 para revisión y circuito de firmas.`
+          }
+        ];
+
+        return {
+          ...s,
+          estado: "En formalización" as const,
+          contratoDetalle: contrato,
+          instrumento: "Contrato" as const,
+          ultimaActualizacion: dateOnly,
+          historial: nuevosEventos
+        };
+      }
+      return s;
+    });
+
+    saveStoredSolicitudes(updated);
+    setSolicitudes(updated);
+  }, []);
+
+  // DOC-03: Editar borrador de contrato (si ya estaba en firmas, requiere nuevas firmas)
+  const editarBorradorContrato = useCallback((id: string, params: { clausulas: string; cantidadContratada?: number; notaCambio?: string; cambios?: string; autor?: string }) => {
+    const current = getStoredSolicitudes();
+    const now = new Date().toISOString().replace("T", " ").substring(0, 16);
+    const dateOnly = now.substring(0, 10);
+
+    const updated = current.map(s => {
+      if (s.id === id && s.contratoDetalle) {
+        const prevVersion = s.contratoDetalle.version;
+        const newVersion = prevVersion + 1;
+        const resetFirmas = s.contratoDetalle.estado === "Pendiente de firmas";
+
+        const historialVersiones = [
+          ...(s.contratoDetalle.historialVersiones || []),
+          {
+            version: newVersion,
+            fecha: now,
+            autor: params.autor || "Abg. Santiago Valdivieso (Jurídica)",
+            cambios: params.cambios || params.notaCambio || `Modificación de cláusulas. ${resetFirmas ? "Se reinicia el circuito de firmas." : ""}`
+          }
+        ];
+
+        const updatedContrato: ContratoInteroperabilidad = {
+          ...s.contratoDetalle,
+          version: newVersion,
+          clausulas: params.clausulas,
+          cantidadContratada: params.cantidadContratada ?? s.contratoDetalle.cantidadContratada,
+          estado: resetFirmas ? "Corrección pendiente" : "Borrador",
+          firmadoCoordinador: false,
+          fechaFirmaCoordinador: undefined,
+          firmadoMaximaAutoridad: false,
+          fechaFirmaMaximaAutoridad: undefined,
+          historialVersiones
+        };
+
+        const nuevosEventos: TrazabilidadEvento[] = [
+          ...s.historial,
+          {
+            fecha: now,
+            evento: `Contrato modificado a v${newVersion}`,
+            actor: params.autor || "Jurídica",
+            detalle: `Se actualizaron las cláusulas del contrato. ${resetFirmas ? "Las firmas previas fueron invalidadas y se requiere un nuevo circuito de firma." : ""}`
+          }
+        ];
+
+        return {
+          ...s,
+          contratoDetalle: updatedContrato,
+          estado: (resetFirmas ? "En formalización" : s.estado) as SolicitudEstado,
+          ultimaActualizacion: dateOnly,
+          historial: nuevosEventos
+        };
+      }
+      return s;
+    });
+
+    saveStoredSolicitudes(updated);
+    setSolicitudes(updated);
+  }, []);
+
+  // DOC-02: Enviar contrato a circuito de firmas
+  const enviarContratoAFirmas = useCallback((id: string, autor?: string) => {
+    const current = getStoredSolicitudes();
+    const now = new Date().toISOString().replace("T", " ").substring(0, 16);
+    const dateOnly = now.substring(0, 10);
+
+    const updated = current.map(s => {
+      if (s.id === id && s.contratoDetalle) {
+        const updatedContrato: ContratoInteroperabilidad = {
+          ...s.contratoDetalle,
+          estado: "Pendiente de firmas",
+          fechaEnvioFirmas: now
+        };
+
+        const nuevosEventos: TrazabilidadEvento[] = [
+          ...s.historial,
+          {
+            fecha: now,
+            evento: "Contrato enviado a firmas",
+            actor: autor || "Abg. Santiago Valdivieso (Jurídica)",
+            detalle: `El contrato ${s.contratoDetalle.numero} v${s.contratoDetalle.version} fue remitido para firma del Coordinador y Máxima Autoridad.`
+          }
+        ];
+
+        return {
+          ...s,
+          estado: "Pendiente de firma" as const,
+          contratoDetalle: updatedContrato,
+          responsable: "Coordinador SINARP / Máxima Autoridad",
+          ultimaActualizacion: dateOnly,
+          historial: nuevosEventos
+        };
+      }
+      return s;
+    });
+
+    saveStoredSolicitudes(updated);
+    setSolicitudes(updated);
+  }, []);
+
+  // DOC-02: Firmar contrato digitalmente
+  const firmarContrato = useCallback((id: string, rolFirmante: "COORDINADOR" | "MAXIMA_AUTORIDAD" | "COORDINADOR_SINARP", firmanteNombre: string) => {
+    const current = getStoredSolicitudes();
+    const now = new Date().toISOString().replace("T", " ").substring(0, 16);
+    const dateOnly = now.substring(0, 10);
+    const isCoordinador = rolFirmante === "COORDINADOR" || rolFirmante === "COORDINADOR_SINARP";
+
+    const updated = current.map(s => {
+      if (s.id === id && s.contratoDetalle) {
+        const c = s.contratoDetalle;
+        const coordSigned = isCoordinador ? true : c.firmadoCoordinador;
+        const maxSigned = rolFirmante === "MAXIMA_AUTORIDAD" ? true : c.firmadoMaximaAutoridad;
+        const bothSigned = coordSigned && maxSigned;
+
+        const updatedContrato: ContratoInteroperabilidad = {
+          ...c,
+          firmadoCoordinador: coordSigned,
+          fechaFirmaCoordinador: isCoordinador ? now : c.fechaFirmaCoordinador,
+          coordinadorNombre: isCoordinador ? firmanteNombre : c.coordinadorNombre,
+          firmadoMaximaAutoridad: maxSigned,
+          fechaFirmaMaximaAutoridad: rolFirmante === "MAXIMA_AUTORIDAD" ? now : c.fechaFirmaMaximaAutoridad,
+          maximaAutoridadNombre: rolFirmante === "MAXIMA_AUTORIDAD" ? firmanteNombre : c.maximaAutoridadNombre,
+          estado: bothSigned ? "Firmado" : "Pendiente de firmas"
+        };
+
+        const nuevosEventos: TrazabilidadEvento[] = [
+          ...s.historial,
+          {
+            fecha: now,
+            evento: `Firma de contrato registrada (${isCoordinador ? "Coordinador" : "Máxima Autoridad"})`,
+            actor: firmanteNombre,
+            detalle: bothSigned
+              ? `Ambas firmas confirmadas para el contrato ${c.numero}. Instrumento legal formalizado.`
+              : `Firma digital estampada por ${firmanteNombre}. Pendiente firma complementaria.`
+          }
+        ];
+
+        let nuevoEstado: SolicitudEstado = s.estado;
+        let nuevoResponsable = s.responsable;
+        let nuevaFactura = s.factura;
+
+        if (bothSigned) {
+          if (s.tipoInstitucion === "Privada") {
+            nuevoEstado = "Pendiente de pago";
+            nuevoResponsable = "Coordinador SINARP";
+            if (!nuevaFactura) {
+              nuevaFactura = {
+                numero: `FAC-2026-${s.id.slice(-4)}`,
+                fechaEmision: dateOnly,
+                valor: "$ 150.00",
+                detalleServicios: [
+                  { servicio: "Tasa de habilitación de interoperabilidad", valor: "$ 100.00" },
+                  { servicio: "Consumo base de consultas", valor: "$ 50.00" }
+                ]
+              };
+            }
+          } else {
+            nuevoEstado = "Aprobación final";
+            nuevoResponsable = "Director de Gestión";
+          }
+        }
+
+        return {
+          ...s,
+          contratoDetalle: updatedContrato,
+          estado: nuevoEstado,
+          responsable: nuevoResponsable,
+          factura: nuevaFactura,
+          ultimaActualizacion: dateOnly,
+          historial: nuevosEventos
+        };
+      }
+      return s;
+    });
+
+    saveStoredSolicitudes(updated);
+    setSolicitudes(updated);
+  }, []);
+
+  // FAC-01 + PAG-01: Pagar factura electrónica simulada
+  const pagarFacturaElectronica = useCallback((id: string, params?: { metodo?: string; referencia?: string }) => {
+    const current = getStoredSolicitudes();
+    const now = new Date().toISOString().replace("T", " ").substring(0, 16);
+    const dateOnly = now.substring(0, 10);
+    const refTrans = params?.referencia || `TX-PAG-${Math.floor(100000 + Math.random() * 900000)}`;
+
+    const updated = current.map(s => {
+      if (s.id === id) {
+        const nuevosEventos: TrazabilidadEvento[] = [
+          ...s.historial,
+          {
+            fecha: now,
+            evento: "Pago electrónico confirmado",
+            actor: "Pasarela Electrónica Institucional",
+            detalle: `Pago procesado y verificado exitosamente mediante ${params?.metodo || "Tarjeta / Débito Bancario"}. Ref: ${refTrans}. Listo para aprobación final.`
+          }
+        ];
+
+        return {
+          ...s,
+          estado: "Pago verificado" as const,
+          responsable: "Director de Gestión",
+          ultimaActualizacion: dateOnly,
+          historial: nuevosEventos
+        };
+      }
+      return s;
+    });
+
+    saveStoredSolicitudes(updated);
+    setSolicitudes(updated);
+  }, []);
+
+  // SOL-10: Aprobación final por Director de Gestión
+  const aprobarFinalGestion = useCallback((id: string, params: { director?: string; directorNombre?: string; resolucionNumero?: string; notas?: string }) => {
+    const current = getStoredSolicitudes();
+    const now = new Date().toISOString().replace("T", " ").substring(0, 16);
+    const dateOnly = now.substring(0, 10);
+    const directorStr = params.director || params.directorNombre || "Dr. Roberto Andrade (Director de Gestión de la Información)";
+
+    const updated = current.map(s => {
+      if (s.id === id) {
+        const defaultCampos = s.fuentes?.flatMap(f => f.campos?.map(c => c.nombre) || []) || [];
+        const cleanName = s.institucion.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 10);
+        const creds: CredencialesAcceso = s.credenciales || {
+          usuario: `ws_${cleanName}_${s.id.toLowerCase().replace(/[^a-z0-9]/g, "")}`,
+          contrasena: `Dinarp$sec_${Math.random().toString(36).slice(-6)}*2026`,
+          endpoint: `https://interoperabilidad.dinarp.gob.ec/api/v2/servicios/${s.id.toLowerCase()}`,
+          tipoAutenticacion: "OAuth 2.0 (Bearer Token)",
+          ambiente: "Producción (Ambiente Seguro DINARP)",
+          fechaGeneracion: now,
+          fechaExpiracion: "2027-09-30 23:59 (Activa)",
+          camposAutorizados: defaultCampos.length > 0 ? defaultCampos : ["cedulaCiudadania", "nombresCompletos"]
+        };
+
+        const nuevosEventos: TrazabilidadEvento[] = [
+          ...s.historial,
+          {
+            fecha: now,
+            evento: "Aprobación final otorgada",
+            actor: directorStr,
+            detalle: params.resolucionNumero
+              ? `Expediente aprobado mediante ${params.resolucionNumero}. Orden de aprovisionamiento técnico emitida.`
+              : `Expediente de interoperabilidad aprobado formalmente. Orden de aprovisionamiento técnico emitida.`
+          },
+          {
+            fecha: now,
+            evento: "Acceso técnico habilitado",
+            actor: "Plataforma de Interoperabilidad DINARP",
+            detalle: `Aprovisionamiento completado con éxito. Credencial técnica institucional generada y lista para su consumo.`
+          }
+        ];
+
+        return {
+          ...s,
+          estado: "Acceso habilitado" as const,
+          fechaAprobacion: dateOnly,
+          responsable: "Coordinador SINARP",
+          credenciales: creds,
+          aprovisionamiento: {
+            estado: "EXITOSO" as const,
+            reintentosCount: 0,
+            fechaHabilitacion: now,
+            mensajeResultado: "Aprovisionamiento de credenciales completado con éxito en API Gateway."
+          },
+          ultimaActualizacion: dateOnly,
+          historial: nuevosEventos
+        };
+      }
+      return s;
+    });
+
+    saveStoredSolicitudes(updated);
+    setSolicitudes(updated);
+  }, []);
+
+  // ACC-02: Reintentar aprovisionamiento técnico (Equipo TI)
+  const reintentarAprovisionamiento = useCallback((id: string, params?: { usuarioTI?: string }) => {
+    const current = getStoredSolicitudes();
+    const now = new Date().toISOString().replace("T", " ").substring(0, 16);
+    const dateOnly = now.substring(0, 10);
+
+    const updated = current.map(s => {
+      if (s.id === id) {
+        const defaultCampos = s.fuentes?.flatMap(f => f.campos?.map(c => c.nombre) || []) || [];
+        const cleanName = s.institucion.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 10);
+        const creds: CredencialesAcceso = s.credenciales || {
+          usuario: `ws_${cleanName}_${s.id.toLowerCase().replace(/[^a-z0-9]/g, "")}`,
+          contrasena: `Dinarp$sec_${Math.random().toString(36).slice(-6)}*2026`,
+          endpoint: `https://interoperabilidad.dinarp.gob.ec/api/v2/servicios/${s.id.toLowerCase()}`,
+          tipoAutenticacion: "OAuth 2.0 (Bearer Token)",
+          ambiente: "Producción (Ambiente Seguro DINARP)",
+          fechaGeneracion: now,
+          fechaExpiracion: "2027-09-30 23:59 (Activa)",
+          camposAutorizados: defaultCampos.length > 0 ? defaultCampos : ["codigoOperador", "estadoFrecuencia"]
+        };
+
+        const reintentos = (s.aprovisionamiento?.reintentosCount || 0) + 1;
+
+        const nuevosEventos: TrazabilidadEvento[] = [
+          ...s.historial,
+          {
+            fecha: now,
+            evento: "Reintento de aprovisionamiento exitoso",
+            actor: params?.usuarioTI || "Ing. Carlos Mena (Equipo TI)",
+            detalle: `Reintento #${reintentos} ejecutado. Sincronización de cuotas y políticas de seguridad completada satisfactoriamente en API Gateway.`
+          },
+          {
+            fecha: now,
+            evento: "Acceso técnico habilitado",
+            actor: "Plataforma de Interoperabilidad DINARP",
+            detalle: `Credenciales de consumo emitidas y activadas para la institución.`
+          }
+        ];
+
+        return {
+          ...s,
+          estado: "Acceso habilitado" as const,
+          responsable: "Coordinador SINARP",
+          credenciales: creds,
+          aprovisionamiento: {
+            estado: "EXITOSO" as const,
+            reintentosCount: reintentos,
+            fechaHabilitacion: now,
+            mensajeResultado: "Aprovisionamiento forzado y validado con éxito tras resolución de contingencia de red."
+          },
+          ultimaActualizacion: dateOnly,
+          historial: nuevosEventos
+        };
+      }
+      return s;
+    });
+
+    saveStoredSolicitudes(updated);
+    setSolicitudes(updated);
+  }, []);
+
+  // Reset para demostración
+  const resetSimulacion = useCallback(() => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(STORAGE_KEY);
+      window.location.reload();
+    }
+  }, []);
+
   return {
     solicitudes,
     getSolicitudById,
@@ -2158,6 +2789,14 @@ export function useSolicitudesStore() {
     observarNormativa,
     simularPagoRealizado,
     validarPagoConCur,
-    generarAcceso
+    generarAcceso,
+    generarContrato,
+    editarBorradorContrato,
+    enviarContratoAFirmas,
+    firmarContrato,
+    pagarFacturaElectronica,
+    aprobarFinalGestion,
+    reintentarAprovisionamiento,
+    resetSimulacion
   };
 }

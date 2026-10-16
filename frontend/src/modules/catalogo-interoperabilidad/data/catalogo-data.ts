@@ -10,7 +10,9 @@ export type UserRole =
   | "EQ_GESTION"
   | "DIR_NORMATIVA"
   | "EQ_NORMATIVA"
-  | "REPRESENTANTE_INSTITUCIONAL";
+  | "REPRESENTANTE_INSTITUCIONAL"
+  | "JURIDICA"
+  | "TI";
 
 export interface RoleInfo {
   id: UserRole;
@@ -160,6 +162,31 @@ export const ROLES_CONFIG: Record<UserRole, RoleInfo> = {
       "Dar seguimiento al trámite institucional"
     ]
   },
+  JURIDICA: {
+    id: "JURIDICA",
+    name: "Dirección de Asesoría Jurídica",
+    shortName: "Jurídica",
+    badgeTone: "neutral",
+    description: "Gestiona la formalización privada mediante convenios y contratos de interoperabilidad, control de versiones y firmas.",
+    responsibilities: [
+      "Generar contrato de interoperabilidad para entidades privadas",
+      "Editar borradores de cláusulas legales y condiciones técnicas",
+      "Enviar y monitorear circuito de firmas digitales",
+      "Validar instrumentos formalizados para aprobación final"
+    ]
+  },
+  TI: {
+    id: "TI",
+    name: "Equipo de Tecnologías de la Información",
+    shortName: "Equipo TI",
+    badgeTone: "neutral",
+    description: "Responsable del aprovisionamiento técnico, habilitación de servicios en pasarela y resolución de contingencias de acceso.",
+    responsibilities: [
+      "Monitorear aprovisionamiento técnico tras aprobación final",
+      "Gestionar y reintentar excepciones técnicas de habilitación",
+      "Garantizar la disponibilidad de credenciales técnicas institucionales"
+    ]
+  }
 };
 
 export interface MockUser {
@@ -294,6 +321,26 @@ export const MOCK_USERS_BY_ROLE: Record<UserRole, MockUser> = {
     roleTitle: "Analista de Facturación y Cobranzas",
     institution: "DINARP - Dirección Financiera",
     initials: "PM"
+  },
+  JURIDICA: {
+    id: "USR-007",
+    cedula: "1719876540",
+    name: "Abg. Santiago Valdivieso",
+    role: "JURIDICA",
+    roleTitle: "Especialista de Asesoría Jurídica",
+    email: "santiago.valdivieso@dinarp.gob.ec",
+    institution: "DINARP - Asesoría Jurídica",
+    initials: "SV"
+  },
+  TI: {
+    id: "USR-008",
+    cedula: "1711223344",
+    name: "Ing. Carlos Mena",
+    role: "TI",
+    roleTitle: "Ingeniero de Aprovisionamiento e Infraestructura",
+    email: "carlos.mena@dinarp.gob.ec",
+    institution: "DINARP - Dirección de TI",
+    initials: "CM"
   }
 };
 
