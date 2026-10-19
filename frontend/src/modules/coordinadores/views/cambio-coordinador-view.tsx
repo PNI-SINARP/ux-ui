@@ -168,6 +168,7 @@ export function CambioCoordinadorView() {
   // Modales
   const [assignModalSol, setAssignModalSol] = useState<SolicitudIngreso | null>(null);
   const [selectedRevisor, setSelectedRevisor] = useState<string>(REVISORES_GESTION[0].nombre);
+  const [motivoAsignacion, setMotivoAsignacion] = useState("");
 
   const [detailModalSol, setDetailModalSol] = useState<SolicitudIngreso | null>(null);
 
@@ -307,9 +308,18 @@ export function CambioCoordinadorView() {
   // Asignar Revisor (Director)
   const handleConfirmAsignarRevisor = () => {
     if (!assignModalSol) return;
-    asignarRevisorGestion(assignModalSol.id, selectedRevisor, "Director Área de Gestión");
-    toast.success(`Solicitud ${assignModalSol.id} asignada a ${selectedRevisor}`);
+    const esReasig = Boolean(assignModalSol.revisorGestion || (assignModalSol.revisor && assignModalSol.revisor !== "Por asignar"));
+    if (esReasig && !motivoAsignacion.trim()) {
+      toast.error("Debe especificar el motivo de la reasignación.");
+      return;
+    }
+    asignarRevisorGestion(assignModalSol.id, selectedRevisor, "Director Área de Gestión", motivoAsignacion);
+    const fechaHoy = new Date().toLocaleDateString("es-EC", { day: "2-digit", month: "2-digit", year: "numeric" });
+    toast.success("Revisor asignado", {
+      description: `${selectedRevisor} · ${fechaHoy} · ID: ${assignModalSol.id}`
+    });
     setAssignModalSol(null);
+    setMotivoAsignacion("");
   };
 
   // Aprobar Solicitud (Equipo de Gestión)
@@ -1031,7 +1041,7 @@ export function CambioCoordinadorView() {
                     <TableHead className="text-xs font-bold">Solicitante / Coordinador</TableHead>
                     <TableHead className="text-xs font-bold">Fecha</TableHead>
                     <TableHead className="text-xs font-bold">Estado</TableHead>
-                    <TableHead className="text-xs font-bold">Responsable / Revisor</TableHead>
+                    <TableHead className="text-xs font-bold">Asignado a</TableHead>
                     <TableHead className="w-24 text-center">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -1072,10 +1082,12 @@ export function CambioCoordinadorView() {
                           <TableCell className="text-xs text-center">
                             <Button onClick={() => {
                                 setAssignModalSol(sol);
-                                setSelectedRevisor(REVISORES_GESTION[0].nombre);
+                                const revActual = sol.revisorGestion || (sol.revisor !== "Por asignar" ? sol.revisor : "");
+                                const primerOtro = REVISORES_GESTION.find(r => r.nombre !== revActual)?.nombre || REVISORES_GESTION[0].nombre;
+                                setSelectedRevisor(revActual ? primerOtro : REVISORES_GESTION[0].nombre);
+                                setMotivoAsignacion("");
                               }} variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-primary-300 hover:bg-primary-300/10">
                               <UserPlus className="size-4" />
-                              
                             </Button>
                           </TableCell>
                         </TableRow>
@@ -1188,50 +1200,87 @@ export function CambioCoordinadorView() {
       {/* ==================================================================== */}
       {/* MODAL 1: ASIGNAR REVISOR (DIRECTOR DE GESTIÓN)                      */}
       {/* ==================================================================== */}
-      <Dialog open={Boolean(assignModalSol)} onOpenChange={(open) => !open && setAssignModalSol(null)}>
-        <DialogContent className="max-w-md bg-surface border border-border">
-          <DialogHeader>
-            <DialogTitle className="text-base font-bold font-heading text-foreground flex items-center gap-2">
-              <UserPlus className="size-4 text-foreground" />
-              Asignar revisor
-            </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground">
-              Seleccione un funcionario del Equipo de Gestión para evaluar la solicitud {assignModalSol?.id}.
-            </DialogDescription>
-          </DialogHeader>
+      {(() => {
+        const revisorActual = assignModalSol?.revisorGestion || (assignModalSol?.revisor && assignModalSol.revisor !== "Por asignar" ? assignModalSol.revisor : null);
+        const esReasig = Boolean(revisorActual);
+        return (
+          <Dialog open={Boolean(assignModalSol)} onOpenChange={(open) => !open && setAssignModalSol(null)}>
+            <DialogContent className="max-w-md bg-surface border border-border">
+              <DialogHeader>
+                <DialogTitle className="text-base font-bold font-heading text-foreground flex items-center gap-2">
+                  <UserPlus className="size-4 text-foreground" />
+                  {esReasig ? "Reasignar revisor" : "Asignar revisor"}
+                </DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground">
+                  {esReasig
+                    ? `Reasigne un funcionario del Equipo de Gestión para evaluar la solicitud ${assignModalSol?.id}.`
+                    : `Seleccione un funcionario activo del Equipo de Gestión para evaluar la solicitud ${assignModalSol?.id}.`}
+                </DialogDescription>
+              </DialogHeader>
 
-          <div className="space-y-4 py-2 text-xs">
-            <div className="p-3 bg-muted/40 rounded-xl border border-border space-y-1">
-              <span className="text-[11px] text-muted-foreground block">Institución Solicitante:</span>
-              <span className="font-semibold text-foreground">{assignModalSol?.institucion}</span>
-            </div>
+              <div className="space-y-4 py-2 text-xs">
+                {esReasig && (
+                  <div className="rounded-md border border-border/70 bg-surface-muted/50 p-2.5 text-xs text-muted-foreground">
+                    <span className="font-semibold text-foreground">Revisor actual: </span>
+                    {revisorActual}
+                    <p className="text-[11px] mt-0.5">Seleccione un nuevo revisor y especifique el motivo del cambio.</p>
+                  </div>
+                )}
 
-            <div className="space-y-2">
-              <Label className="text-xs font-semibold text-foreground">Revisor de Gestión *</Label>
-              <select
-                className="w-full h-9 px-3 text-xs bg-background border border-border rounded-lg text-foreground focus:ring-2 focus:ring-ring outline-none"
-                value={selectedRevisor}
-                onChange={(e) => setSelectedRevisor(e.target.value)}
-              >
-                {REVISORES_GESTION.map((rev) => (
-                  <option key={rev.id} value={rev.nombre}>
-                    {rev.nombre} — {rev.cargo} ({rev.basePendientes} pendientes)
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
+                <div className="p-3 bg-muted/40 rounded-xl border border-border space-y-1">
+                  <span className="text-[11px] text-muted-foreground block">Institución Solicitante:</span>
+                  <span className="font-semibold text-foreground">{assignModalSol?.institucion}</span>
+                </div>
 
-          <DialogFooter className="gap-2 sm:gap-2 sm:justify-end">
-            <Button variant="neutral" size="sm" onClick={() => setAssignModalSol(null)} className="text-xs">
-              Cancelar
-            </Button>
-            <Button variant="primary" size="sm" onClick={handleConfirmAsignarRevisor} className="text-xs font-semibold">
-              Asignar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+                <div className="space-y-2">
+                  <Label className="text-xs font-semibold text-foreground">Revisor de Gestión *</Label>
+                  <select
+                    className="w-full h-9 px-3 text-xs bg-background border border-border rounded-lg text-foreground focus:ring-2 focus:ring-ring outline-none"
+                    value={selectedRevisor}
+                    onChange={(e) => setSelectedRevisor(e.target.value)}
+                  >
+                    {REVISORES_GESTION.map((rev) => (
+                      <option key={rev.id} value={rev.nombre}>
+                        {rev.nombre} — {rev.cargo}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {esReasig && (
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-foreground">
+                      Motivo de reasignación <span className="text-danger">*</span>
+                    </Label>
+                    <Textarea
+                      value={motivoAsignacion}
+                      onChange={(e) => setMotivoAsignacion(e.target.value)}
+                      placeholder="Detalle la justificación técnica u operativa del cambio..."
+                      rows={2}
+                      className="resize-none text-xs"
+                    />
+                  </div>
+                )}
+              </div>
+
+              <DialogFooter className="gap-2 sm:gap-2 sm:justify-end">
+                <Button variant="neutral" size="sm" onClick={() => setAssignModalSol(null)} className="text-xs">
+                  Cancelar
+                </Button>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={handleConfirmAsignarRevisor}
+                  disabled={esReasig && (!motivoAsignacion.trim() || selectedRevisor === revisorActual)}
+                  className="text-xs font-semibold"
+                >
+                  {esReasig ? "Confirmar reasignación" : "Confirmar asignación"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        );
+      })()}
 
       {/* ==================================================================== */}
       {/* MODAL 2: DETALLE DE SOLICITUD (EQUIPO DE GESTIÓN)                   */}

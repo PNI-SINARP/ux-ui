@@ -4653,8 +4653,9 @@ export function useSolicitudesIngresoStore() {
     setSolicitudes((prev) => {
       const updated = prev.map((item) => {
         if (item.id === solicitudId) {
-          const esAnexoB = item.tipoTramite === "PROCESO_B_ENROLAMIENTO_COORDINADOR";
-          const esReasignacion = Boolean(item.revisorGestion || item.revisor);
+          const esAnexoB = item.tipoTramite === "PROCESO_B_ENROLAMIENTO_COORDINADOR" || item.codigoDocumental === "ARP-R02" || Boolean(item.anexoB);
+          const revisorAnterior = item.revisorGestion || (item.revisor !== "Por asignar" ? item.revisor : null);
+          const esReasignacion = Boolean(revisorAnterior);
           const nuevoHistorial = [...(item.historial || [])];
           
           const idAsignacion = `ASIG-B-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -4685,8 +4686,8 @@ export function useSolicitudesIngresoStore() {
             : (esReasignacion ? "Reasignación de trámite" : "Asignación de trámite");
 
           const detalles = esAnexoB
-            ? `Revisor asignado: ${revisorNombre} (${idRevisor}). ID Asignación: ${idAsignacion}. Instante UTC: ${instanteUtc}.${observaciones ? ` Observaciones: ${observaciones}` : ""}`.trim()
-            : `Trámite ${esReasignacion ? 'reasignado' : 'asignado'} a ${revisorNombre}. ${observaciones ? `Observaciones: ${observaciones}` : ''}`.trim();
+            ? `Revisor asignado: ${revisorNombre} (${idRevisor}).${esReasignacion && revisorAnterior ? ` Revisor anterior: ${revisorAnterior}.` : ""} ID Asignación: ${idAsignacion}. Instante UTC: ${instanteUtc}.${observaciones ? ` ${esReasignacion ? "Motivo" : "Observaciones"}: ${observaciones}` : ""}`.trim()
+            : `Trámite ${esReasignacion ? 'reasignado' : 'asignado'} a ${revisorNombre}.${esReasignacion && revisorAnterior ? ` Revisor anterior: ${revisorAnterior}.` : ""} ${observaciones ? `${esReasignacion ? "Motivo" : "Observaciones"}: ${observaciones}` : ''}`.trim();
 
           nuevoHistorial.push({
             id: `hist-${Date.now()}`,
@@ -4738,13 +4739,16 @@ export function useSolicitudesIngresoStore() {
             item.estado === "EN_GENERACION_RESOLUCION" ||
             item.estado === "EN_REVISION_NORMATIVIDAD" ||
             observacionesOrRol === "DIR_NORMATIVA";
-          const esReasignacion = esNormatividad ? Boolean(item.revisorNormatividad) : Boolean(item.revisorGestion || item.revisor);
+          const revisorAnterior = esNormatividad ? item.revisorNormatividad : (item.revisorGestion || (item.revisor !== "Por asignar" ? item.revisor : null));
+          const esReasignacion = Boolean(revisorAnterior);
           const nuevoHistorial = [...(item.historial || [])];
           
           const accion = esNormatividad
             ? (esReasignacion ? "Reasignación de responsable en Normatividad" : "Responsable de Normatividad asignado")
             : (esReasignacion ? "Reasignación de trámite" : "Asignación de trámite");
-          const detalles = `Responsable: ${revisorNombre}. Asignado por: ${asignadoPor || (esNormatividad ? "Director de Normatividad" : "Director de Gestión")}.${observaciones ? ` Observaciones: ${observaciones}` : ""}`.trim();
+          const detalles = esReasignacion
+            ? `Revisor anterior: ${revisorAnterior || "No asignado"}. Nuevo revisor: ${revisorNombre}. Asignado por: ${asignadoPor || (esNormatividad ? "Director de Normatividad" : "Director de Gestión")}.${observaciones ? ` Motivo: ${observaciones}` : ""}`.trim()
+            : `Responsable: ${revisorNombre}. Asignado por: ${asignadoPor || (esNormatividad ? "Director de Normatividad" : "Director de Gestión")}.${observaciones ? ` Observaciones: ${observaciones}` : ""}`.trim();
 
           nuevoHistorial.push({
             id: `hist-${Date.now()}-${item.id}`,
@@ -4912,11 +4916,14 @@ export function useSolicitudesIngresoStore() {
     setSolicitudes((prev) => {
       const updated = prev.map((item) => {
         if (item.id === solicitudId) {
-          const esReasignacion = Boolean(item.revisorNormatividad);
+          const revisorAnterior = item.revisorNormatividad || (item.revisor !== "Por asignar" ? item.revisor : null);
+          const esReasignacion = Boolean(revisorAnterior);
           const nuevoHistorial = [...(item.historial || [])];
           
           const accion = esReasignacion ? "Reasignación de responsable en Normatividad" : "Responsable de Normatividad asignado";
-          const detalles = `Responsable: ${revisorNombre}. Asignado por: ${asignadoPor || "Director de Normatividad"}.${observaciones ? ` Observaciones: ${observaciones}` : ""}`.trim();
+          const detalles = esReasignacion
+            ? `Responsable anterior: ${revisorAnterior || "No asignado"}. Nuevo responsable: ${revisorNombre}. Asignado por: ${asignadoPor || "Director de Normatividad"}.${observaciones ? ` Motivo: ${observaciones}` : ""}`.trim()
+            : `Responsable: ${revisorNombre}. Asignado por: ${asignadoPor || "Director de Normatividad"}.${observaciones ? ` Observaciones: ${observaciones}` : ""}`.trim();
           
           nuevoHistorial.push({
             id: `hist-${Date.now()}`,

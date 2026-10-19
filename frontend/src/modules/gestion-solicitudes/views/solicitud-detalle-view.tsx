@@ -236,19 +236,10 @@ export function SolicitudDetalleView({ id, basePath = "/asignacion-solicitudes",
       });
     }
 
-    if (isAnexoC) {
-      toast.success(`Revisor del Anexo C asignado: ${revisorNombre} (${solicitudId})`, {
-        description: "Trámite asignado formalmente en el Equipo de Gestión para revisión de cambio de coordinador.",
-      });
-    } else if (esAnexoB) {
-      toast.success(`Revisor del Anexo B asignado: ${revisorNombre} (${solicitudId})`, {
-        description: "Trámite asignado formalmente en el Equipo de Gestión.",
-      });
-    } else {
-      toast.success("Revisor asignado exitosamente", {
-        description: `El trámite ${solicitudId} fue asignado a ${revisorNombre}.`,
-      });
-    }
+    const fechaHoy = new Date().toLocaleDateString("es-EC", { day: "2-digit", month: "2-digit", year: "numeric" });
+    toast.success("Revisor asignado", {
+      description: `${revisorNombre} · ${fechaHoy} · ID: ${solicitudId}`,
+    });
   };
 
   const renderEstadoBadge = (estado: any, revisionIniciada?: boolean) => {

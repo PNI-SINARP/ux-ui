@@ -314,7 +314,10 @@ export function RevisionNormativaView() {
     } else if (currentUser.role === "DIR_NORMATIVA") {
       store.asignarRevisorNormatividad(solicitudId, revisorNombre, dir, observaciones);
     }
-    toast.success("Revisor asignado exitosamente");
+    const fechaHoy = new Date().toLocaleDateString("es-EC", { day: "2-digit", month: "2-digit", year: "numeric" });
+    toast.success("Revisor asignado", {
+      description: `${revisorNombre} · ${fechaHoy} · ID: ${solicitudId}`,
+    });
     setSelectedSolicitud(null);
   };
 

@@ -1760,13 +1760,17 @@ export function useSolicitudesStore() {
 
         const historialAsignaciones = [nuevaAsignacion, ...(s.historialAsignaciones || [])];
 
+        const esReasig = Boolean(s.revisorAsignado);
+        const revisorAnterior = s.revisorAsignado;
         const nuevosEventos: TrazabilidadEvento[] = [
           ...s.historial,
           {
             fecha: now,
-            evento: "Revisor de Gestión asignado",
+            evento: esReasig ? "Reasignación de revisor de Gestión" : "Revisor de Gestión asignado",
             actor: directorNombre,
-            detalle: `Asignado a ${revisorNombre} para revisión funcional y de interoperabilidad del expediente (versión ${version}).`
+            detalle: esReasig
+              ? `Revisor anterior: ${revisorAnterior}. Reasignado a ${revisorNombre}.${observacion ? ` Motivo: ${observacion}` : ""}`
+              : `Asignado a ${revisorNombre} para revisión funcional y de interoperabilidad del expediente (versión ${version}).${observacion ? ` Observación: ${observacion}` : ""}`
           }
         ];
 

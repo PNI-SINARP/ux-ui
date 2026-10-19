@@ -328,14 +328,10 @@ export function AsignacionSolicitudesView() {
     } else {
       store.asignarRevisorGestion(solicitudId, revisorNombre, dir, observaciones);
     }
-    const esAnexoB = sol?.codigoDocumental === "ARP-R02" || sol?.tipoTramite === "PROCESO_B_ENROLAMIENTO_COORDINADOR";
-    if (esAnexoB) {
-      toast.success(`Revisor del Anexo B asignado: ${revisorNombre} (${solicitudId})`, {
-        description: "Trámite asignado formalmente en el Equipo de Gestión.",
-      });
-    } else {
-      toast.success("Revisor asignado exitosamente");
-    }
+    const fechaHoy = new Date().toLocaleDateString("es-EC", { day: "2-digit", month: "2-digit", year: "numeric" });
+    toast.success("Revisor asignado", {
+      description: `${revisorNombre} · ${fechaHoy} · ID: ${solicitudId}`,
+    });
     setSelectedSolicitud(null);
   };
 
@@ -2632,7 +2628,7 @@ export function AsignacionSolicitudesView() {
                           ESTADO
                         </TableHead>
                         <TableHead className="w-[150px] px-2 py-2.5 whitespace-nowrap">
-                          ASIGNADO
+                          ASIGNADO A
                         </TableHead>
                         <TableHead className="w-24 text-right pr-4">Acciones</TableHead>
                       </TableRow>

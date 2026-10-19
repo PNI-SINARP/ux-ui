@@ -417,13 +417,17 @@ export function useCambioCoordinadorStore() {
     setTramites((prev) => {
       const updated = prev.map((t) => {
         if (t.id === tramiteId || t.numeroTramite === tramiteId) {
+          const esReasignacion = Boolean(t.revisorAsignado?.nombre);
+          const revisorAnterior = t.revisorAsignado?.nombre;
           const newTz: TrazabilidadEventoAnexoC = {
             id: `tz-${Date.now()}`,
             fecha: fechaStr,
-            accion: "Asignación de revisor",
+            accion: esReasignacion ? "Reasignación de revisor" : "Asignación de revisor",
             actor: "Director Gestión",
             rol: "Director Área de Gestión",
-            detalle: `Trámite asignado a ${revisor.nombre} (${revisor.cargo}) para revisión del Anexo C.`
+            detalle: esReasignacion
+              ? `Revisor anterior: ${revisorAnterior}. Reasignado a ${revisor.nombre} (${revisor.cargo}) para revisión del Anexo C.${revisor.observaciones ? ` Motivo: ${revisor.observaciones}` : ""}`
+              : `Trámite asignado a ${revisor.nombre} (${revisor.cargo}) para revisión del Anexo C.${revisor.observaciones ? ` Observaciones: ${revisor.observaciones}` : ""}`
           };
           const updatedTramite: TramiteCambioCoordinador = {
             ...t,
@@ -597,13 +601,17 @@ export function asignarRevisorStandalone(
   const list = getStoredTramites();
   const updated = list.map((t) => {
     if (t.id === tramiteId || t.numeroTramite === tramiteId) {
+      const esReasignacion = Boolean(t.revisorAsignado?.nombre);
+      const revisorAnterior = t.revisorAsignado?.nombre;
       const newTz: TrazabilidadEventoAnexoC = {
         id: `tz-${Date.now()}`,
         fecha: fechaStr,
-        accion: "Asignación de revisor",
+        accion: esReasignacion ? "Reasignación de revisor" : "Asignación de revisor",
         actor: "Director Gestión",
         rol: "Director Área de Gestión",
-        detalle: `Trámite asignado a ${revisor.nombre} (${revisor.cargo}) para revisión del Anexo C.`
+        detalle: esReasignacion
+          ? `Revisor anterior: ${revisorAnterior}. Reasignado a ${revisor.nombre} (${revisor.cargo}) para revisión del Anexo C.${revisor.observaciones ? ` Motivo: ${revisor.observaciones}` : ""}`
+          : `Trámite asignado a ${revisor.nombre} (${revisor.cargo}) para revisión del Anexo C.${revisor.observaciones ? ` Observaciones: ${revisor.observaciones}` : ""}`
       };
       const updatedTramite: TramiteCambioCoordinador = {
         ...t,

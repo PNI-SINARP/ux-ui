@@ -188,68 +188,9 @@ export function AsignarRevisorPanel({
       ? REVISORES_GESTION
       : REVISORES_NORMATIVIDAD;
 
-  // Calcular métricas dinámicas
-  const revisoresConCarga = useMemo(() => {
-    return baseRevisores.map((rev) => {
-      const solicitudesDelRevisor = allSolicitudes.filter((s) => {
-        if (tipoArea === "GESTION") {
-          return (
-            s.revisorGestion === rev.nombre ||
-            (rev.nombre === "Revisor Gestión" && s.revisorGestion === "Juan (Revisor Gestión)")
-          );
-        } else {
-          return (
-            s.revisorNormatividad === rev.nombre ||
-            (rev.nombre === "Revisor Normatividad" && s.revisorNormatividad === "María (Revisor Normatividad)")
-          );
-        }
-      });
-
-      const pendientesCount = solicitudesDelRevisor.filter((s) =>
-        tipoArea === "GESTION"
-          ? s.estado === "PENDIENTE_ASIGNACION_GESTION" || s.estado === "Pendiente"
-          : s.estado === "PENDIENTE_ASIGNACION_NORMATIVIDAD" || s.estado === "PENDIENTE_GENERAR_RESOLUCION"
-      ).length;
-
-      return {
-        ...rev,
-        pendientes: rev.basePendientes + pendientesCount,
-      };
-    });
-  }, [baseRevisores, allSolicitudes, tipoArea]);
-
-  // Helper para visualización de carga de trabajo en columna Pendientes
-  const getCargaPendientesBadgeProps = (pendientes: number) => {
-    if (pendientes <= 2) {
-      // 0–2 Neutral / carga baja
-      return {
-        tone: "neutral" as const,
-        className: "bg-neutral-800 dark:bg-neutral-700 !text-white border-transparent font-mono text-xs shadow-2xs font-bold",
-      };
-    }
-    if (pendientes <= 5) {
-      // 3–5 Warning amarillo / carga media
-      return {
-        tone: "warning" as const,
-        className: "bg-warning-500 dark:bg-warning-600 !text-white border-transparent font-mono text-xs shadow-2xs font-bold",
-      };
-    }
-    if (pendientes <= 10) {
-      // 6–10 Warning naranja / carga alta
-      return {
-        tone: "warning" as const,
-        className: "bg-[#CC8229] dark:bg-warning-600 !text-white border-transparent font-mono text-xs shadow-2xs font-bold",
-      };
-    }
-    // 11+ Error rojo / carga crítica
-    return {
-      tone: "danger" as const,
-      className: "bg-danger-500 dark:bg-danger-600 !text-white border-transparent font-mono text-xs shadow-2xs font-bold",
-    };
-  };
-
+  // UX: Solo revisores activos ordenados alfabéticamente (sin métricas de carga para Director)
   const filteredRevisores = useMemo(() => {
-    let list = [...revisoresConCarga];
+    let list = [...baseRevisores];
 
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
@@ -258,9 +199,8 @@ export function AsignarRevisorPanel({
       );
     }
 
-    // UX: Ordenar por menor cantidad de pendientes por defecto para facilitar asignación
-    return list.sort((a, b) => a.pendientes - b.pendientes);
-  }, [revisoresConCarga, searchQuery]);
+    return list.sort((a, b) => a.nombre.localeCompare(b.nombre));
+  }, [baseRevisores, searchQuery]);
 
   const revisorActual = solicitud
     ? tipoArea === "GESTION"
@@ -347,6 +287,17 @@ export function AsignarRevisorPanel({
       return;
     }
     if (!selectedRevisor || yaEmpezoRevision || esTramiteAprobado || !permitidaAsignacionOReasignacion) return;
+
+    if (puedeReasignar) {
+      if (selectedRevisor.nombre === revisorActual) {
+        toast.error("El revisor seleccionado ya está asignado a este trámite.");
+        return;
+      }
+      if (!observaciones.trim()) {
+        toast.error("Debe ingresar el motivo de la reasignación.");
+        return;
+      }
+    }
 
     if (isMasiva && onConfirmAsignacionMasiva) {
       const ids = solicitudesMasivas.map((s) => s.id);
@@ -479,11 +430,12 @@ export function AsignarRevisorPanel({
         <div className="p-3.5 bg-info-100/30 dark:bg-info-900/20 border border-info/40 rounded-xl flex items-start gap-3 text-xs text-foreground">
           <RotateCcw className="size-4 text-info shrink-0 mt-0.5" />
           <div className="space-y-1">
-            <strong className="font-semibold block text-info font-heading">Reasignación disponible</strong>
+            <strong className="font-semibold block text-info font-heading">Reasignación de trámite</strong>
             <p className="text-muted-foreground text-[11px] leading-relaxed">
+              Revisor actual: <strong className="text-foreground">{revisorActual}</strong>.{" "}
               {tipoArea === "NORMATIVIDAD"
-                ? `El funcionario asignado ${revisorActual} aún no ha iniciado la formulación de resolución. Puedes reasignar este expediente a otro funcionario.`
-                : `El revisor actual ${revisorActual} aún no ha iniciado la revisión técnica. Puedes reasignar este expediente a otro funcionario.`}
+                ? "El funcionario aún no ha iniciado la formulación de resolución. Selecciona un nuevo responsable y registra el motivo de la reasignación."
+                : "El revisor aún no ha iniciado la revisión técnica. Selecciona un nuevo revisor y registra el motivo de la reasignación."}
             </p>
           </div>
         </div>
@@ -598,7 +550,7 @@ export function AsignarRevisorPanel({
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-2.5">
-              {revisoresConCarga.map((rev) => {
+              {filteredRevisores.map((rev) => {
               const isSelected = selectedRevisor?.id === rev.id;
               const isCurrent = rev.nombre === revisorActual;
               const inicial = rev.nombre.charAt(0).toUpperCase();
@@ -651,24 +603,9 @@ export function AsignarRevisorPanel({
                   </div>
 
                   <div className="flex items-center justify-between pt-1.5 border-t border-border/60 dark:border-neutral-800 text-[11px]">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[10px] font-bold text-muted-foreground dark:text-neutral-400 uppercase tracking-wider">
-                        Carga:
-                      </span>
-                      {(() => {
-                        const badgeConfig = getCargaPendientesBadgeProps(rev.pendientes);
-                        return (
-                          <Badge
-                            tone={badgeConfig.tone}
-                            appearance="solid"
-                            size="sm"
-                            className={cn(badgeConfig.className, "h-4.5 px-2 text-[10px] !text-white")}
-                          >
-                            {rev.pendientes} {rev.pendientes === 1 ? "pendiente" : "pendientes"}
-                          </Badge>
-                        );
-                      })()}
-                    </div>
+                    <Badge tone="success" appearance="soft" size="sm" className="h-4.5 px-2 text-[10px] font-medium">
+                      Activo
+                    </Badge>
                     {isSelected && (
                       <CheckCircle2 className="size-3.5 text-primary shrink-0" />
                     )}
@@ -695,7 +632,7 @@ export function AsignarRevisorPanel({
           )}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              Distribución de trámites por revisor
+              Revisores disponibles
             </span>
 
             <div className="relative w-full sm:w-64">
@@ -716,14 +653,11 @@ export function AsignarRevisorPanel({
                   <TableHead className="py-3 px-4 text-xs font-bold">
                     Revisor / Funcionario
                   </TableHead>
-                  <TableHead className="py-3 px-4 text-xs font-bold text-center w-28">
-                    Asignadas
+                  <TableHead className="py-3 px-4 text-xs font-bold">
+                    Cargo
                   </TableHead>
                   <TableHead className="py-3 px-4 text-xs font-bold text-center w-28">
-                    Pendientes
-                  </TableHead>
-                  <TableHead className="py-3 px-4 text-xs font-bold text-center w-28">
-                    En revisión
+                    Estado
                   </TableHead>
                   <TableHead className="py-3 px-4 text-xs font-bold text-center w-24">
                     Acción
@@ -733,7 +667,7 @@ export function AsignarRevisorPanel({
               <TableBody>
                 {filteredRevisores.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="py-6 text-center text-xs text-muted-foreground">
+                    <TableCell colSpan={4} className="py-6 text-center text-xs text-muted-foreground">
                       {sinRevisoresActivosEnGestion
                         ? "No existen revisores activos en el Equipo de Gestión disponibles para asignación (ENR-03 R2)."
                         : "No se encontraron revisores con el término ingresado."}
@@ -787,38 +721,20 @@ export function AsignarRevisorPanel({
                                   </Badge>
                                 )}
                               </div>
-                              <p className="text-[11px] text-muted-foreground truncate">
-                                {rev.cargo}
-                              </p>
                             </div>
                           </div>
                         </TableCell>
 
-                        {/* Asignadas */}
-                        <TableCell className="py-2.5 px-4 h-auto text-center font-bold text-xs text-foreground tabular-nums">
-                          {rev.baseAsignadas}
+                        {/* Cargo */}
+                        <TableCell className="py-2.5 px-4 h-auto text-xs text-muted-foreground">
+                          {rev.cargo}
                         </TableCell>
 
-                        {/* Pendientes */}
-                        <TableCell className="py-2.5 px-4 h-auto text-center font-bold text-xs tabular-nums">
-                          {(() => {
-                            const badgeConfig = getCargaPendientesBadgeProps(rev.pendientes);
-                            return (
-                              <Badge
-                                tone={badgeConfig.tone}
-                                appearance="outline"
-                                size="sm"
-                                className={badgeConfig.className}
-                              >
-                                {rev.pendientes}
-                              </Badge>
-                            );
-                          })()}
-                        </TableCell>
-
-                        {/* En revisión */}
-                        <TableCell className="py-2.5 px-4 h-auto text-center font-bold text-xs text-foreground tabular-nums">
-                          {rev.baseEnRevision}
+                        {/* Estado */}
+                        <TableCell className="py-2.5 px-4 h-auto text-center">
+                          <Badge tone="success" appearance="soft" size="sm" className="h-5 px-2 text-[10px] font-medium">
+                            Activo
+                          </Badge>
                         </TableCell>
 
                         {/* Acción con Tooltip del UI Kit */}
@@ -829,7 +745,7 @@ export function AsignarRevisorPanel({
                                 <TooltipTrigger asChild>
                                   <Button type="button" disabled={yaEmpezoRevision} onClick={() => setSelectedRevisor(rev)} aria-label={`Seleccionar a ${rev.nombre}`} variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-primary-300 hover:bg-primary-300/10">
                                     {isSelected ? (
-                                      <Check className="size-4" />
+                                      <Check className="size-4 text-primary" />
                                     ) : (
                                       <UserPlus className="size-4" />
                                     )}
@@ -853,38 +769,37 @@ export function AsignarRevisorPanel({
               </TableBody>
             </Table>
           </div>
-
-          {/* Leyenda discreta de carga de trabajo */}
-          <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-[11px] text-muted-foreground select-none">
-            <span className="font-semibold text-foreground/80">Carga de trabajo:</span>
-            <div className="flex flex-wrap items-center gap-3">
-              <span className="inline-flex items-center gap-1.5">
-                <span className="size-2 rounded-full bg-neutral-400 dark:bg-neutral-500 border border-neutral-300 dark:border-neutral-600" />
-                Baja 0–2
-              </span>
-              <span className="text-muted-foreground/40">·</span>
-              <span className="inline-flex items-center gap-1.5">
-                <span className="size-2 rounded-full bg-[#EAB308] border border-[#CA8A04]" />
-                Media 3–5
-              </span>
-              <span className="text-muted-foreground/40">·</span>
-              <span className="inline-flex items-center gap-1.5">
-                <span className="size-2 rounded-full bg-[#EA580C] border border-[#C2410C]" />
-                Alta 6–10
-              </span>
-              <span className="text-muted-foreground/40">·</span>
-              <span className="inline-flex items-center gap-1.5">
-                <span className="size-2 rounded-full bg-danger border border-danger-700" />
-                Crítica 11+
-              </span>
-            </div>
-          </div>
         </div>
       )}
 
+      {/* ── 4. CAMPO DE OBSERVACIONES / MOTIVO DE REASIGNACIÓN ── */}
+      {!esTramiteAprobado && (
+        <div className="space-y-1.5 pt-2">
+          <Label htmlFor="motivo-asignacion" className="text-xs font-semibold text-foreground flex items-center justify-between">
+            <span>
+              {puedeReasignar ? "Motivo de la reasignación" : "Observaciones de asignación"}
+              {puedeReasignar && <span className="text-danger ml-1">*</span>}
+            </span>
+            <span className="text-[10px] text-muted-foreground font-normal">
+              {puedeReasignar ? "Obligatorio" : "Opcional"}
+            </span>
+          </Label>
+          <Textarea
+            id="motivo-asignacion"
+            rows={2}
+            value={observaciones}
+            onChange={(e) => setObservaciones(e.target.value)}
+            placeholder={
+              puedeReasignar
+                ? "Describe la razón por la cual se reasigna el expediente..."
+                : "Instrucciones u observaciones adicionales para el revisor (opcional)..."
+            }
+            className="text-xs bg-surface border-border rounded-xl resize-none"
+          />
+        </div>
+      )}
 
-
-      {/* â”€â”€ 5. FOOTER CON LÍNEA SUPERIOR DIVISORIA Y ACCIONES â”€â”€ */}
+      {/* ── 5. FOOTER CON LÍNEA SUPERIOR DIVISORIA Y ACCIONES ── */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-border">
         <div className="text-xs text-muted-foreground w-full sm:w-auto text-left">
           {esTramiteAprobado ? (
@@ -913,7 +828,13 @@ export function AsignarRevisorPanel({
               type="button"
               variant={yaEmpezoRevision ? "secondary" : "primary"}
               size="sm"
-              disabled={!selectedRevisor || yaEmpezoRevision || !permitidaAsignacionOReasignacion || sinRevisoresActivosEnGestion}
+              disabled={
+                !selectedRevisor ||
+                yaEmpezoRevision ||
+                !permitidaAsignacionOReasignacion ||
+                sinRevisoresActivosEnGestion ||
+                (puedeReasignar && (!observaciones.trim() || selectedRevisor.nombre === revisorActual))
+              }
               onClick={handleExecuteAsignacion}
               className={cn(
                 "w-full sm:w-auto text-xs font-semibold h-10 px-6 gap-2 rounded-full shadow-xs",

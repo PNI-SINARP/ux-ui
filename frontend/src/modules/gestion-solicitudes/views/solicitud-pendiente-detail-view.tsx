@@ -247,8 +247,9 @@ export function SolicitudPendienteDetailView({ id }: SolicitudPendienteDetailVie
     } else {
       store.asignarRevisorGestion(solicitudId, revisorNombre, asignadoPor, observaciones);
     }
-    toast.success("Revisor asignado exitosamente", {
-      description: `El trámite ${solicitudId} fue asignado a ${revisorNombre}.`,
+    const fechaHoy = new Date().toLocaleDateString("es-EC", { day: "2-digit", month: "2-digit", year: "numeric" });
+    toast.success("Revisor asignado", {
+      description: `${revisorNombre} · ${fechaHoy} · ID: ${solicitudId}`,
     });
   };
 

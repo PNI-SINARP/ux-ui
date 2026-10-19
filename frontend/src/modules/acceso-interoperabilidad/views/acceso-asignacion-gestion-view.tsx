@@ -174,6 +174,11 @@ export function AccesoAsignacionGestionView() {
 
     const revisor = REVISORES_GESTION.find((r) => r.id === selectedRevisorId) || REVISORES_GESTION[0];
     const directorNombre = "Director Área de Gestión";
+    const esReasig = Boolean(solicitudToAssign.revisorAsignado);
+    if (esReasig && !observacionAsignacion.trim()) {
+      toast.error("Debe especificar el motivo de la reasignación.");
+      return;
+    }
 
     asignarRevisorGestion(
       solicitudToAssign.id,
@@ -183,8 +188,9 @@ export function AccesoAsignacionGestionView() {
       observacionAsignacion.trim() || undefined
     );
 
-    toast.success("Revisor de Gestión asignado exitosamente", {
-      description: `La solicitud ${solicitudToAssign.id} (v${solicitudToAssign.versionExpediente || 1}) fue asignada a ${revisor.nombre}.`,
+    const fechaHoy = new Date().toLocaleDateString("es-EC", { day: "2-digit", month: "2-digit", year: "numeric" });
+    toast.success("Revisor asignado", {
+      description: `${revisor.nombre} · ${fechaHoy} · ID: ${solicitudToAssign.id}`,
     });
 
     setSolicitudToAssign(null);
@@ -372,7 +378,7 @@ export function AccesoAsignacionGestionView() {
                   <TableHead className="font-bold text-xs text-foreground text-center">Campos / Tipo</TableHead>
                   <TableHead className="font-bold text-xs text-foreground">Fecha Recepción</TableHead>
                   <TableHead className="font-bold text-xs text-foreground">Estado</TableHead>
-                  <TableHead className="font-bold text-xs text-foreground">Revisor Asignado</TableHead>
+                  <TableHead className="font-bold text-xs text-foreground">Asignado a</TableHead>
                   <TableHead className="font-bold text-xs text-foreground text-right pr-6">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
@@ -641,16 +647,34 @@ export function AccesoAsignacionGestionView() {
                   </div>
                 </div>
 
+                {solicitudToAssign.revisorAsignado && (
+                  <div className="rounded-xl border border-border/80 bg-surface-muted/50 p-3 text-xs text-muted-foreground">
+                    <span className="font-semibold text-foreground">Revisor actual: </span>
+                    {solicitudToAssign.revisorAsignado}
+                    <p className="text-[11px] mt-0.5">Seleccione un nuevo revisor y especifique el motivo del cambio.</p>
+                  </div>
+                )}
+
                 {/* Observaciones o instrucciones */}
                 <div className="space-y-1.5 pt-1">
                   <label className="font-semibold text-foreground block">
-                    Instrucciones u observaciones de asignación (Opcional):
+                    {solicitudToAssign.revisorAsignado ? (
+                      <>
+                        Motivo de reasignación <span className="text-destructive">*</span>
+                      </>
+                    ) : (
+                      "Instrucciones u observaciones de asignación (Opcional):"
+                    )}
                   </label>
                   <Textarea
                     rows={2}
                     value={observacionAsignacion}
                     onChange={(e) => setObservacionAsignacion(e.target.value)}
-                    placeholder="Indique prioridades, plazos sugeridos o notas para el revisor..."
+                    placeholder={
+                      solicitudToAssign.revisorAsignado
+                        ? "Detalle la justificación técnica u operativa del cambio..."
+                        : "Indique prioridades, plazos sugeridos o notas para el revisor..."
+                    }
                     className="text-xs bg-background border-border"
                   />
                 </div>
@@ -665,10 +689,18 @@ export function AccesoAsignacionGestionView() {
                 variant="primary"
                 size="sm"
                 onClick={handleConfirmarAsignacion}
+                disabled={
+                  Boolean(solicitudToAssign?.revisorAsignado) &&
+                  (!observacionAsignacion.trim() ||
+                    REVISORES_GESTION.find((r) => r.id === selectedRevisorId)?.nombre ===
+                      solicitudToAssign?.revisorAsignado)
+                }
                 className="gap-1.5 font-semibold shadow-xs"
               >
                 <UserCheck className="size-4" />
-                <span>Confirmar asignación</span>
+                <span>
+                  {solicitudToAssign?.revisorAsignado ? "Confirmar reasignación" : "Confirmar asignación"}
+                </span>
               </Button>
             </DialogFooter>
           </DialogContent>
