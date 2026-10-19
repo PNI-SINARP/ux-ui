@@ -45,12 +45,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import {
-  Card,
-  CardTitle,
-  CardDescription,
-  CardDecorativeIcon,
-} from "@/components/ui/card";
+import { CapacityCard } from "@/components/ui/capacity-card";
 import { useSolicitudesIngresoStore } from "@/modules/gestion-solicitudes/data/gestion-ingresos-store";
 import { useAuthStore } from "@/modules/gestion-solicitudes/data/auth-store";
 import { MOCK_USERS_BY_ROLE } from "@/modules/catalogo-interoperabilidad/data/catalogo-data";
@@ -579,89 +574,55 @@ export function DinarpWireframe2LoginFlow({
           <div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {/* Card 1: Enrolamiento Coordinador */}
-              <div className="group relative flex flex-col overflow-hidden rounded-2xl bg-secondary/5 border border-secondary/20 transition-all duration-500 hover:-translate-y-1 hover:border-transparent !shadow-sm hover:!shadow-lg hover:shadow-secondary/20">
-                {/* Border Spin */}
-                <div className="absolute top-1/2 left-1/2 w-[200%] h-[200%] -translate-x-1/2 -translate-y-1/2 bg-[conic-gradient(from_0deg,var(--color-secondary)_0%,var(--color-secondary)_85%,white_100%)] opacity-0 group-hover:opacity-100 group-hover:animate-[spin_6s_linear_infinite] z-0 pointer-events-none blur-[1px] transition-opacity duration-500" />
-
-                {/* Background Mask (Solid to hide the inner part of the spinning border) */}
-                <div className="absolute inset-[1px] bg-background rounded-[calc(1rem-1px)] z-[1] pointer-events-none" />
-
-                {/* Hover Tint */}
-                <div className="absolute inset-[1px] bg-secondary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-[calc(1rem-1px)] z-[2] pointer-events-none" />
-
-                {/* Internal Diffused Glow that follows the border */}
-                <div className="absolute top-1/2 left-1/2 w-[200%] h-[200%] -translate-x-1/2 -translate-y-1/2 bg-[conic-gradient(from_0deg,transparent_0%,transparent_85%,var(--color-secondary)_100%)] opacity-0 group-hover:opacity-30 group-hover:animate-[spin_6s_linear_infinite] z-[3] pointer-events-none blur-[80px] transition-opacity duration-500" />
-
-                <div className="relative z-10 p-4 gap-3 h-full flex flex-col justify-between">
-                  <div className="flex items-start gap-2 w-full relative z-20">
-                    <div className="bg-secondary/10 text-secondary p-2.5 rounded-xl shrink-0 shadow-xs border border-secondary/10 group-hover:bg-secondary group-hover:text-white transition-colors duration-300">
-                      <Users className="size-5" />
-                    </div>
-                    <div className="space-y-1">
-                      <CardTitle className="text-xs sm:text-sm font-bold text-secondary leading-tight">
-                        ¿Fuiste designado como Coordinador SINARP?
-                      </CardTitle>
-                      <CardDescription className="text-[11px] text-muted-foreground leading-snug font-normal">
-                        Completa tu prerregistro mediante el Anexo B si recibiste una invitación.
-                      </CardDescription>
-                    </div>
-                  </div>
-                  <Link href="/enrolamiento-coordinador" className="w-full mt-1">
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      className="w-full text-xs h-9 px-3 relative z-20 shadow-xs justify-center"
-                    >
-                      <span className="font-semibold">Completar prerregistro</span>
-                      <ArrowRight className="size-4 ml-2 opacity-80" />
-                    </Button>
-                  </Link>
-                  <Users className="absolute -bottom-4 -right-3 size-24 text-secondary/5 opacity-50 group-hover:opacity-100 group-hover:scale-110 transition-all duration-500 -z-10 pointer-events-none" />
-                </div>
-              </div>
+              <CapacityCard
+                color="secondary"
+                icon={Users}
+                watermark
+                className="bg-secondary/5 border-secondary/20 hover:shadow-secondary/20"
+                title={<span className="text-secondary">¿Fuiste designado como Coordinador SINARP?</span>}
+                description="Completa tu prerregistro mediante el Anexo B si recibiste una invitación."
+              >
+                <Link href="/enrolamiento-coordinador" className="w-full mt-1">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="w-full text-xs h-9 px-3 relative z-20 shadow-xs justify-center"
+                  >
+                    <span className="font-semibold">Completar prerregistro</span>
+                    <ArrowRight className="size-4 ml-2 opacity-80" />
+                  </Button>
+                </Link>
+              </CapacityCard>
 
               {/* Card 2: Registro Institucional */}
-              <div className="group relative flex flex-col overflow-hidden rounded-2xl bg-neutral-500/5 border border-neutral-500/20 transition-all duration-500 hover:-translate-y-1 hover:border-transparent !shadow-sm hover:!shadow-lg hover:shadow-neutral-500/20">
-                {/* Border Spin */}
-                <div className="absolute top-1/2 left-1/2 w-[200%] h-[200%] -translate-x-1/2 -translate-y-1/2 bg-[conic-gradient(from_0deg,#888_0%,#888_85%,white_100%)] opacity-0 group-hover:opacity-100 group-hover:animate-[spin_6s_linear_infinite] z-0 pointer-events-none blur-[1px] transition-opacity duration-500" />
-
-                {/* Background Mask (Solid to hide the inner part of the spinning border) */}
-                <div className="absolute inset-[1px] bg-background rounded-[calc(1rem-1px)] z-[1] pointer-events-none" />
-
-                {/* Hover Tint */}
-                <div className="absolute inset-[1px] bg-neutral-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-[calc(1rem-1px)] z-[2] pointer-events-none" />
-
-                {/* Internal Diffused Glow that follows the border */}
-                <div className="absolute top-1/2 left-1/2 w-[200%] h-[200%] -translate-x-1/2 -translate-y-1/2 bg-[conic-gradient(from_0deg,transparent_0%,transparent_85%,#888_100%)] opacity-0 group-hover:opacity-30 group-hover:animate-[spin_6s_linear_infinite] z-[3] pointer-events-none blur-[80px] transition-opacity duration-500" />
-
-                <div className="relative z-10 p-4 gap-3 h-full flex flex-col justify-between">
-                  <div className="flex items-start gap-2 w-full relative z-20">
-                    <div className="bg-neutral-500/10 text-neutral-500 p-2.5 rounded-xl shrink-0 shadow-xs border border-neutral-500/10 group-hover:bg-neutral-500 group-hover:text-white transition-colors duration-300">
-                      <Landmark className="size-5" />
-                    </div>
-                    <div className="space-y-1">
-                      <CardTitle className="text-xs sm:text-sm font-bold text-neutral-600 leading-tight">
-                        Enrolamiento de Institución <br className="hidden sm:inline" /> al SINARP
-                      </CardTitle>
-                      <CardDescription className="text-[11px] text-muted-foreground leading-snug font-normal">
-                        Solicita el registro para <br />
-                        incorporar tu entidad al SINARP.
-                      </CardDescription>
-                    </div>
-                  </div>
-                  <Link href="/registro-institucion" className="w-full mt-1">
-                    <Button
-                      type="button"
-                      variant="neutral"
-                      className="w-full text-xs h-9 px-3 relative z-20 shadow-xs justify-center"
-                    >
-                      <span className="font-semibold text-[11px] text-white">Solicitar enrolamiento</span>
-                      <ArrowRight className="size-4 ml-1 opacity-80 text-white" />
-                    </Button>
-                  </Link>
-                  <Landmark className="absolute -bottom-4 -right-3 size-24 text-neutral-500/5 opacity-50 group-hover:opacity-100 group-hover:scale-110 transition-all duration-500 -z-10 pointer-events-none" />
-                </div>
-              </div>
+              <CapacityCard
+                color="neutral"
+                icon={Landmark}
+                watermark
+                className="bg-neutral-500/5 border-neutral-500/20 hover:shadow-neutral-500/20"
+                title={
+                  <span className="text-neutral-700 dark:text-neutral-200">
+                    Enrolamiento de Institución <br className="hidden sm:inline" /> al SINARP
+                  </span>
+                }
+                description={
+                  <>
+                    Solicita el registro para <br />
+                    incorporar tu entidad al SINARP.
+                  </>
+                }
+              >
+                <Link href="/registro-institucion" className="w-full mt-1">
+                  <Button
+                    type="button"
+                    variant="neutral"
+                    className="w-full text-xs h-9 px-3 relative z-20 shadow-xs justify-center"
+                  >
+                    <span className="font-semibold text-[11px] text-white">Solicitar enrolamiento</span>
+                    <ArrowRight className="size-4 ml-1 opacity-80 text-white" />
+                  </Button>
+                </Link>
+              </CapacityCard>
             </div>
 
             {/* Accesos Directos Internos (Ocultos visualmente) */}

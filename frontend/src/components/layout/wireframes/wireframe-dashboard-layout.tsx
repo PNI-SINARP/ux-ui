@@ -160,6 +160,13 @@ const navItems: NavItem[] = [
     allowedRoles: ["DIR_GESTION", "ADMIN"],
   },
   {
+    id: "acceso-interoperabilidad-asignacion",
+    label: "Asignación de interoperabilidad",
+    icon: Database,
+    href: "/acceso-interoperabilidad/asignacion",
+    allowedRoles: ["DIR_GESTION", "ADMIN"],
+  },
+  {
     id: "formalizacion-gestion",
     label: "Formalización y aprobación final",
     icon: FileCheck2,
@@ -169,8 +176,15 @@ const navItems: NavItem[] = [
 
   // ── Revisor de Gestión ──
   {
+    id: "solicitudes-pendientes",
+    label: "Solicitudes pendientes",
+    icon: FileSignature,
+    href: "/solicitudes-pendientes",
+    allowedRoles: ["EQ_GESTION", "ADMIN"],
+  },
+  {
     id: "revision-gestion",
-    label: "Revisión de solicitudes",
+    label: "Revisión de interoperabilidad",
     icon: Network,
     href: "/revision-gestion",
     allowedRoles: ["EQ_GESTION", "ADMIN"],
@@ -182,6 +196,13 @@ const navItems: NavItem[] = [
     label: "Revisión normativa",
     icon: Scale,
     href: "/revision-normativa",
+    allowedRoles: ["DIR_NORMATIVA", "EQ_NORMATIVA", "ADMIN"],
+  },
+  {
+    id: "revision-normativa-fuentes",
+    label: "Revisión de fuentes confidenciales",
+    icon: Lock,
+    href: "/revision-normativa/fuentes",
     allowedRoles: ["DIR_NORMATIVA", "EQ_NORMATIVA", "ADMIN"],
   },
 

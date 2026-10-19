@@ -801,6 +801,7 @@ export function SolicitudesPendientesView() {
 
   return (
     <WireframeDashboardLayout
+      activeMenu="solicitudes-pendientes"
       breadcrumbs={
         selectedSolicitud
           ? [

@@ -232,9 +232,9 @@ export function RevisionNormativaInteroperabilidadView() {
 
   return (
     <WireframeDashboardLayout
-      activeMenu="revision-normativa"
+      activeMenu="revision-normativa-fuentes"
       breadcrumbs={[
-        { label: "Área de Normatividad", href: "/revision-normativa" },
+        { label: "Área de Normatividad", href: "/revision-normativa/fuentes" },
         { label: "Evaluación Jurídica de Datos Confidenciales (BN-07)" },
       ]}
       headerSlot={
