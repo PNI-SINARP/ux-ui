@@ -104,17 +104,27 @@ export function PrepararNuevaVersionDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent size="xl" className="max-w-2xl max-h-[90vh] flex flex-col p-6 overflow-hidden">
         <DialogHeader className="space-y-1 shrink-0">
-          <div className="flex items-center gap-2">
-            <div className="size-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
-              <GitFork className="size-5" />
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-2">
+              <div className="size-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+                <GitFork className="size-5" />
+              </div>
+              <div>
+                <DialogTitle className="font-heading font-bold text-lg text-foreground">
+                  FUE-06 / FUE-07 — Preparar nueva versión de fuente
+                </DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground">
+                  Declaración de cambios semánticos y configuración de contrato de interoperabilidad.
+                </DialogDescription>
+              </div>
             </div>
-            <div>
-              <DialogTitle className="font-heading font-bold text-lg text-foreground">
-                Preparar nueva versión de fuente
-              </DialogTitle>
-              <DialogDescription className="text-xs text-muted-foreground">
-                Declaración de cambios semánticos y configuración de contrato de interoperabilidad.
-              </DialogDescription>
+            <div className="flex items-center gap-2">
+              <Badge tone="primary" appearance="soft" size="sm" className="font-mono text-[10px] font-bold">
+                HU: FUE-06/07
+              </Badge>
+              <Badge tone="neutral" appearance="outline" size="sm" className="text-[10px]">
+                BPM: Versionado Semántico
+              </Badge>
             </div>
           </div>
         </DialogHeader>

@@ -158,7 +158,7 @@ export function RevisionGestionView() {
         </div>
       }
     >
-      <div className="w-full max-w-7xl 2xl:max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
+      <div className="layout-container py-6 sm:py-8 space-y-6">
         {/* Encabezado */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
@@ -193,7 +193,7 @@ export function RevisionGestionView() {
           </Card>
 
           <Card className="p-4 bg-surface border-border shadow-xs rounded-2xl flex items-center gap-3.5">
-            <div className="size-11 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+            <div className="size-11 rounded-xl bg-warning/10 text-warning flex items-center justify-center shrink-0">
               <Clock className="size-5" />
             </div>
             <div>
@@ -203,7 +203,7 @@ export function RevisionGestionView() {
           </Card>
 
           <Card className="p-4 bg-surface border-border shadow-xs rounded-2xl flex items-center gap-3.5">
-            <div className="size-11 rounded-xl bg-destructive/10 text-destructive flex items-center justify-center shrink-0">
+            <div className="size-11 rounded-xl bg-danger/10 text-danger flex items-center justify-center shrink-0">
               <AlertTriangle className="size-5" />
             </div>
             <div>
@@ -213,7 +213,7 @@ export function RevisionGestionView() {
           </Card>
 
           <Card className="p-4 bg-surface border-border shadow-xs rounded-2xl flex items-center gap-3.5">
-            <div className="size-11 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+            <div className="size-11 rounded-xl bg-success/10 text-success flex items-center justify-center shrink-0">
               <CheckCircle2 className="size-5" />
             </div>
             <div>

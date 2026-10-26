@@ -60,17 +60,17 @@ interface FuenteFormDialogProps {
 }
 
 const PASOS_MODAL = [
-  { id: 0, label: "1. Datos básicos", sub: "Nombre y SLA", icon: Building2 },
-  { id: 1, label: "2. Conexión", sub: "Base de datos", icon: Server },
-  { id: 2, label: "3. Campos", sub: "Atributos a compartir", icon: Layers },
-  { id: 3, label: "4. Resumen", sub: "Guardar o enviar", icon: CheckCircle2 },
+  { id: 0, label: "FUE-01: Metadatos", sub: "Identificación y SLA", icon: Building2 },
+  { id: 1, label: "FUE-02: Conexión", sub: "Conector y prueba técnica", icon: Server },
+  { id: 2, label: "FUE-03: Esquema", sub: "Atributos y normalización", icon: Layers },
+  { id: 3, label: "FUE-04: Declaración", sub: "Revisión y envío", icon: CheckCircle2 },
 ];
 
 const PASOS_MODAL_STEPS: StepperStep[] = [
-  { id: "paso-1", title: "Datos básicos", description: "Nombre y SLA", icon: Building2 },
-  { id: "paso-2", title: "Conexión", description: "Base de datos", icon: Server },
-  { id: "paso-3", title: "Campos", description: "Atributos a compartir", icon: Layers },
-  { id: "paso-4", title: "Resumen", description: "Guardar o enviar", icon: CheckCircle2 },
+  { id: "paso-1", title: "FUE-01: Metadatos", description: "Identificación y SLA", icon: Building2 },
+  { id: "paso-2", title: "FUE-02: Conexión", description: "Conector y prueba técnica", icon: Server },
+  { id: "paso-3", title: "FUE-03: Esquema", description: "Atributos y normalización", icon: Layers },
+  { id: "paso-4", title: "FUE-04: Declaración", description: "Revisión y envío", icon: CheckCircle2 },
 ];
 
 export function FuenteFormDialog({
@@ -546,11 +546,18 @@ export function FuenteFormDialog({
               <div className="flex items-center gap-2 flex-wrap">
                 <DialogTitle className="font-heading font-extrabold text-base sm:text-lg text-foreground">
                   {isEditing
-                    ? `Editar fuente: ${fuenteAEditar.nombre}`
+                    ? `FUE-01 — Editar fuente: ${fuenteAEditar.nombre}`
                     : savedId
-                    ? `Borrador en curso: ${infoData.nombre || "Nueva fuente"}`
-                    : "Incorporar nueva fuente de información"}
+                    ? `FUE-01 — Borrador en curso: ${infoData.nombre || "Nueva fuente"}`
+                    : "FUE-01 — Incorporar y registrar borrador de fuente"}
                 </DialogTitle>
+
+                <Badge tone="primary" appearance="soft" size="sm" className="font-mono text-[10px] font-bold">
+                  HU: FUE-01
+                </Badge>
+                <Badge tone="neutral" appearance="outline" size="sm" className="text-[10px]">
+                  BPM: Incorporación de Fuente
+                </Badge>
 
                 {/* Badge Dinámico de Borrador (FUE-01) */}
                 {borradorEstado === "borrador" ? (

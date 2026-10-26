@@ -89,17 +89,27 @@ export function SolicitarBajaDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent size="lg" className="max-w-xl max-h-[90vh] flex flex-col p-6 overflow-hidden">
         <DialogHeader className="space-y-1 shrink-0">
-          <div className="flex items-center gap-2">
-            <div className="size-9 rounded-xl bg-danger/10 border border-danger/20 flex items-center justify-center text-danger">
-              <AlertOctagon className="size-5" />
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-2">
+              <div className="size-9 rounded-xl bg-danger/10 border border-danger/20 flex items-center justify-center text-danger">
+                <AlertOctagon className="size-5" />
+              </div>
+              <div>
+                <DialogTitle className="font-heading font-bold text-lg text-foreground">
+                  FUE-08 — Solicitar baja de fuente de datos
+                </DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground">
+                  Trámite formal del responsable institucional ante la Dirección de Gestión para el cese del servicio.
+                </DialogDescription>
+              </div>
             </div>
-            <div>
-              <DialogTitle className="font-heading font-bold text-lg text-foreground">
-                Solicitar baja de fuente
-              </DialogTitle>
-              <DialogDescription className="text-xs text-muted-foreground">
-                Trámite exclusivo del responsable autorizado ante la Dirección de Gestión y Registro.
-              </DialogDescription>
+            <div className="flex items-center gap-2">
+              <Badge tone="danger" appearance="soft" size="sm" className="font-mono text-[10px] font-bold">
+                HU: FUE-08
+              </Badge>
+              <Badge tone="neutral" appearance="outline" size="sm" className="text-[10px]">
+                BPM: Cese y Retiro de Fuentes
+              </Badge>
             </div>
           </div>
         </DialogHeader>

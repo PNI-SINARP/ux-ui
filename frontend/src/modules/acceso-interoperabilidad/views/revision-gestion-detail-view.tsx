@@ -91,8 +91,8 @@ export function RevisionGestionDetailView({ id }: RevisionGestionDetailViewProps
           { label: id },
         ]}
       >
-        <div className="w-full max-w-4xl mx-auto px-4 py-16 text-center space-y-4">
-          <AlertTriangle className="size-12 text-amber-500 mx-auto" />
+        <div className="layout-container py-16 text-center space-y-4">
+          <AlertTriangle className="size-12 text-warning mx-auto" />
           <h2 className="text-xl font-bold text-foreground">Solicitud no encontrada</h2>
           <p className="text-sm text-muted-foreground">
             No se encontró el expediente con identificador <strong>{id}</strong>.
@@ -141,7 +141,7 @@ export function RevisionGestionDetailView({ id }: RevisionGestionDetailViewProps
       etapa: "Gestión",
     },
   ]);
-  const [plazoSubsanacionDias, setPlazoSubsanacionDias] = useState<number>(10);
+  const [plazoSubsanacionDias, setPlazoSubsanacionDias] = useState<number>(3);
 
   // Helper para agregar una nueva observación en el modal
   const handleAddObservacionItem = () => {
@@ -225,7 +225,7 @@ export function RevisionGestionDetailView({ id }: RevisionGestionDetailViewProps
 
     setIsModalObservarOpen(false);
     toast.warning("Solicitud observada formalmente", {
-      description: `El Coordinador tiene ${plazoSubsanacionDias} días para subsanar los ${validas.length} hallazgo(s).`,
+      description: `El Coordinador tiene ${plazoSubsanacionDias} días hábiles para subsanar los ${validas.length} hallazgo(s).`,
     });
 
     router.push("/revision-gestion");
@@ -234,6 +234,16 @@ export function RevisionGestionDetailView({ id }: RevisionGestionDetailViewProps
   const isEvaluable =
     solicitud.estado === "Asignada a revisión de Gestión" ||
     solicitud.estado === "En revisión de Gestión";
+
+  const tipoOptions = [
+    { value: "campo", label: "Campo específico" },
+    { value: "finalidad", label: "Finalidad de uso" },
+    { value: "justificacion", label: "Justificación jurídica" },
+    { value: "modalidad", label: "Modalidad" },
+    { value: "cupo", label: "Cupo de registros" },
+    { value: "documento", label: "Documento de soporte" },
+    { value: "general", label: "Observación general" },
+  ];
 
   return (
     <WireframeDashboardLayout
@@ -244,7 +254,7 @@ export function RevisionGestionDetailView({ id }: RevisionGestionDetailViewProps
         { label: `${solicitud.id} (v${solicitud.versionExpediente || 1})` },
       ]}
     >
-      <div className="w-full max-w-7xl 2xl:max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
+      <div className="layout-container py-6 sm:py-8 space-y-6">
         {/* Navegación y Cabecera */}
         <div className="flex items-center justify-between">
           <Link
@@ -311,9 +321,9 @@ export function RevisionGestionDetailView({ id }: RevisionGestionDetailViewProps
                   variant="outline"
                   size="sm"
                   onClick={() => setIsModalObservarOpen(true)}
-                  className="border-amber-500/40 text-amber-700 dark:text-amber-300 hover:bg-amber-500/10 font-semibold gap-1.5"
+                  className="border-warning/40 text-warning hover:bg-warning/10 font-semibold gap-1.5"
                 >
-                  <AlertTriangle className="size-4 text-amber-600" />
+                  <AlertTriangle className="size-4 text-warning" />
                   <span>Observar solicitud</span>
                 </Button>
 
@@ -321,7 +331,7 @@ export function RevisionGestionDetailView({ id }: RevisionGestionDetailViewProps
                   variant="primary"
                   size="sm"
                   onClick={() => setIsModalAprobarOpen(true)}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold gap-1.5 shadow-xs"
+                  className="bg-success hover:bg-success/90 text-success-foreground font-semibold gap-1.5 shadow-xs"
                 >
                   <CheckCircle2 className="size-4" />
                   <span>Aprobar funcionalmente</span>
@@ -396,7 +406,7 @@ export function RevisionGestionDetailView({ id }: RevisionGestionDetailViewProps
 
               <div className="p-3.5 rounded-xl border border-border bg-background space-y-1">
                 <span className="text-muted-foreground text-[11px] block">Estado en Catálogo Nacional:</span>
-                <div className="flex items-center gap-1.5 text-emerald-600 font-semibold">
+                <div className="flex items-center gap-1.5 text-success font-semibold">
                   <CheckCircle2 className="size-4" />
                   <span>Publicada, vigente y homologada</span>
                 </div>
@@ -468,9 +478,9 @@ export function RevisionGestionDetailView({ id }: RevisionGestionDetailViewProps
                           variant="ghost"
                           size="sm"
                           onClick={() => handleObservarCampoDirecto(campo.nombre, "finalidad")}
-                          className="h-7 text-xs text-amber-700 dark:text-amber-300 hover:bg-amber-500/10 gap-1"
+                          className="h-7 text-xs text-warning hover:bg-warning/10 gap-1"
                         >
-                          <AlertTriangle className="size-3 text-amber-600" />
+                          <AlertTriangle className="size-3 text-warning" />
                           <span>Observar finalidad</span>
                         </Button>
                       </div>
@@ -493,9 +503,9 @@ export function RevisionGestionDetailView({ id }: RevisionGestionDetailViewProps
 
                   {/* Bloque 4: Justificación Jurídica (Solo confidenciales) */}
                   {campo.clasificacion === "Confidencial" ? (
-                    <div className="p-3 rounded-lg bg-amber-500/5 border border-amber-500/30 space-y-1.5">
+                    <div className="p-3 rounded-lg bg-warning/5 border border-warning/30 space-y-1.5">
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-bold text-amber-800 dark:text-amber-300 uppercase tracking-wider block">
+                        <span className="text-[10px] font-bold text-warning uppercase tracking-wider block">
                           4. Justificación jurídica presentada (Confidencial):
                         </span>
                         <Badge tone="info" appearance="soft" size="sm" className="text-[9px] px-1 py-0">
@@ -547,23 +557,27 @@ export function RevisionGestionDetailView({ id }: RevisionGestionDetailViewProps
                     <span className="text-[11px] font-semibold text-muted-foreground block">
                       Seleccione modalidad técnica autorizada para esta fuente:
                     </span>
-                    <div className="grid grid-cols-3 gap-2">
+                    <RadioGroup
+                      value={modalidadAutorizada}
+                      onValueChange={(v) => setModalidadAutorizada(v as "API individual" | "API masiva" | "Ambas")}
+                      className="grid grid-cols-3 gap-2"
+                    >
                       {(["API individual", "API masiva", "Ambas"] as const).map((m) => (
-                        <button
-                          type="button"
+                        <label
                           key={m}
-                          onClick={() => setModalidadAutorizada(m)}
+                          htmlFor={`mod-aut-${m}`}
                           className={cn(
-                            "py-2 px-3 rounded-xl border text-xs font-semibold transition-all cursor-pointer text-center",
+                            "py-2 px-3 rounded-xl border text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5",
                             modalidadAutorizada === m
                               ? "border-primary bg-primary/10 text-primary ring-1 ring-primary/40 shadow-xs"
                               : "border-border bg-background hover:bg-muted/40 text-muted-foreground"
                           )}
                         >
-                          {m}
-                        </button>
+                          <RadioGroupItem value={m} id={`mod-aut-${m}`} className="sr-only" />
+                          <span>{m}</span>
+                        </label>
                       ))}
-                    </div>
+                    </RadioGroup>
                   </div>
                 ) : (
                   <div className="p-3 rounded-xl bg-background border border-border space-y-1">
@@ -588,7 +602,7 @@ export function RevisionGestionDetailView({ id }: RevisionGestionDetailViewProps
                   </span>
                 </div>
 
-                <div className="p-3 rounded-xl bg-amber-500/5 border border-amber-500/20 text-[11px] text-muted-foreground leading-relaxed">
+                <div className="p-3 rounded-xl bg-warning/5 border border-warning/20 text-[11px] text-muted-foreground leading-relaxed">
                   <p className="font-semibold text-foreground mb-0.5">Regla de modificación de cupo:</p>
                   El Revisor no debe editar el cupo unilateralmente. Si el volumen solicitado excede la capacidad técnica de la fuente proveedora, <strong>debe observar la solicitud</strong> para que el Coordinador lo ajuste formalmente.
                 </div>
@@ -614,7 +628,7 @@ export function RevisionGestionDetailView({ id }: RevisionGestionDetailViewProps
 
             <div className="space-y-2">
               {(solicitud.documentos || [
-                { id: "doc-1", tipo: "Oficio técnico de requerimiento", nombre: "Oficio_Solicitud_Interoperabilidad_Firmado.pdf", fecha: "2026-09-24", estado: "Recibido" }
+                { id: "doc-1", tipo: "Oficio técnico de requerimiento", nombre: "Oficio_Solicitud_Interoperabilidad_Firmado.pdf", fechaCarga: "2026-09-24", categoria: "Requerimiento" }
               ]).map((doc) => (
                 <div
                   key={doc.id}
@@ -627,7 +641,7 @@ export function RevisionGestionDetailView({ id }: RevisionGestionDetailViewProps
                     <div>
                       <p className="font-semibold text-foreground">{doc.nombre}</p>
                       <p className="text-[11px] text-muted-foreground">
-                        Tipo: {doc.tipo} · Fecha carga: {doc.fechaCarga} · Categoría: <span className="text-emerald-600 font-medium">{doc.categoria}</span>
+                        Tipo: {doc.tipo} · Fecha carga: {doc.fechaCarga} · Categoría: <span className="text-success font-medium">{doc.categoria}</span>
                       </p>
                     </div>
                   </div>
@@ -651,7 +665,7 @@ export function RevisionGestionDetailView({ id }: RevisionGestionDetailViewProps
                         variant="ghost"
                         size="sm"
                         onClick={() => handleObservarCampoDirecto(doc.nombre, "documento")}
-                        className="h-8 text-xs text-amber-700 dark:text-amber-300 hover:bg-amber-500/10"
+                        className="h-8 text-xs text-warning hover:bg-warning/10"
                       >
                         Observar
                       </Button>
@@ -710,7 +724,7 @@ export function RevisionGestionDetailView({ id }: RevisionGestionDetailViewProps
               ))}
 
               {solicitud.detalleSubsanacion && (
-                <div className="p-3 rounded-xl border border-blue-500/30 bg-blue-500/10 space-y-1">
+                <div className="p-3 rounded-xl border border-info/30 bg-info/10 space-y-1">
                   <div className="flex justify-between items-center">
                     <span className="font-semibold text-foreground">Subsanación y reenvío por Coordinador</span>
                     <span className="text-[10px] font-mono text-muted-foreground">{solicitud.fecha}</span>
@@ -722,7 +736,7 @@ export function RevisionGestionDetailView({ id }: RevisionGestionDetailViewProps
               )}
 
               {solicitud.observacionesEstructuradas && solicitud.observacionesEstructuradas.length > 0 && (
-                <div className="p-3 rounded-xl border border-amber-500/30 bg-amber-500/10 space-y-2">
+                <div className="p-3 rounded-xl border border-warning/30 bg-warning/10 space-y-2">
                   <span className="font-semibold text-foreground block">
                     Observaciones registradas en este expediente:
                   </span>
@@ -750,7 +764,7 @@ export function RevisionGestionDetailView({ id }: RevisionGestionDetailViewProps
           <DialogContent size="lg">
             <DialogHeader>
               <DialogTitle className="text-lg font-bold text-foreground flex items-center gap-2">
-                <AlertTriangle className="size-5 text-amber-600" />
+                <AlertTriangle className="size-5 text-warning" />
                 Observar Solicitud de Acceso
               </DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground mt-1">
@@ -801,19 +815,24 @@ export function RevisionGestionDetailView({ id }: RevisionGestionDetailViewProps
                         <label className="text-[10px] font-semibold text-muted-foreground uppercase">
                           Elemento afectado:
                         </label>
-                        <select
-                          value={obs.tipo}
-                          onChange={(e) => handleUpdateObservacionItem(obs.id, { tipo: e.target.value as any })}
-                          className="w-full h-8 text-xs bg-muted/30 border border-border rounded-lg px-2"
+                        <Combobox
+                          items={tipoOptions}
+                          value={tipoOptions.find((t) => t.value === obs.tipo) || tipoOptions[0]}
+                          onValueChange={(val: any) => {
+                            if (val) handleUpdateObservacionItem(obs.id, { tipo: (typeof val === "string" ? val : val.value) as TipoElementoObservado });
+                          }}
                         >
-                          <option value="campo">Campo específico</option>
-                          <option value="finalidad">Finalidad de uso</option>
-                          <option value="justificacion">Justificación jurídica</option>
-                          <option value="modalidad">Modalidad</option>
-                          <option value="cupo">Cupo de registros</option>
-                          <option value="documento">Documento de soporte</option>
-                          <option value="general">Observación general</option>
-                        </select>
+                          <ComboboxSelectTrigger className="w-full h-8 justify-between text-xs bg-muted/30 border-border rounded-lg px-2.5 shadow-none" />
+                          <ComboboxContent align="start" className="w-56">
+                            <ComboboxList>
+                              {tipoOptions.map((opt) => (
+                                <ComboboxItem key={opt.value} value={opt} className="text-xs">
+                                  {opt.label}
+                                </ComboboxItem>
+                              ))}
+                            </ComboboxList>
+                          </ComboboxContent>
+                        </Combobox>
                       </div>
 
                       <div className="space-y-1">
@@ -875,7 +894,7 @@ export function RevisionGestionDetailView({ id }: RevisionGestionDetailViewProps
                 variant="primary"
                 size="sm"
                 onClick={handleConfirmarObservacion}
-                className="bg-amber-600 hover:bg-amber-700 text-white font-semibold gap-1.5"
+                className="bg-warning hover:bg-warning/90 text-warning-foreground font-semibold gap-1.5"
               >
                 <AlertTriangle className="size-4" />
                 <span>Confirmar y notificar observación</span>
@@ -889,7 +908,7 @@ export function RevisionGestionDetailView({ id }: RevisionGestionDetailViewProps
           <DialogContent size="default">
             <DialogHeader>
               <DialogTitle className="text-lg font-bold text-foreground flex items-center gap-2">
-                <CheckCircle2 className="size-5 text-emerald-600" />
+                <CheckCircle2 className="size-5 text-success" />
                 Aprobar Solicitud Funcionalmente
               </DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground mt-1">
@@ -923,9 +942,9 @@ export function RevisionGestionDetailView({ id }: RevisionGestionDetailViewProps
 
               {/* Bifurcación explicada */}
               {tieneConfidenciales ? (
-                <div className="p-3 rounded-xl border border-amber-500/30 bg-amber-500/10 space-y-1">
+                <div className="p-3 rounded-xl border border-warning/30 bg-warning/10 space-y-1">
                   <div className="flex items-center gap-1.5 font-bold text-foreground">
-                    <Lock className="size-4 text-amber-600" />
+                    <Lock className="size-4 text-warning" />
                     <span>Contiene campos confidenciales</span>
                   </div>
                   <p className="text-[11px] text-muted-foreground leading-relaxed">
@@ -933,9 +952,9 @@ export function RevisionGestionDetailView({ id }: RevisionGestionDetailViewProps
                   </p>
                 </div>
               ) : (
-                <div className="p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 space-y-1">
+                <div className="p-3 rounded-xl border border-success/30 bg-success/10 space-y-1">
                   <div className="flex items-center gap-1.5 font-bold text-foreground">
-                    <CheckCircle2 className="size-4 text-emerald-600" />
+                    <CheckCircle2 className="size-4 text-success" />
                     <span>Solo contiene campos accesibles</span>
                   </div>
                   <p className="text-[11px] text-muted-foreground leading-relaxed">
@@ -953,7 +972,7 @@ export function RevisionGestionDetailView({ id }: RevisionGestionDetailViewProps
                 variant="primary"
                 size="sm"
                 onClick={handleConfirmarAprobacion}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold gap-1.5 shadow-xs"
+                className="bg-success hover:bg-success/90 text-success-foreground font-semibold gap-1.5 shadow-xs"
               >
                 <CheckCircle2 className="size-4" />
                 <span>Confirmar aprobación funcional</span>

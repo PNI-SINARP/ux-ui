@@ -64,7 +64,8 @@ export function FormalizacionContratosView() {
     generarContrato,
     editarBorradorContrato,
     enviarContratoAFirmas,
-    firmarContrato
+    firmarContrato,
+    simularPendientePlantillaContrato,
   } = useSolicitudesStore();
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -327,19 +328,69 @@ export function FormalizacionContratosView() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
-                          {/* Si no existe contrato */}
-                          {!contrato && !s.contrato && (
+                          {/* Si está en Pendiente de plantilla (DOC-01 Crit. 3) */}
+                          {s.estado === "Pendiente de plantilla" && (
                             <Button
                               size="sm"
+                              variant="primary"
                               onClick={() => {
-                                setModalGenerar(s);
-                                setCantidadContratada(s.cupo || 50000);
+                                simularPendientePlantillaContrato(
+                                  s.id,
+                                  true,
+                                  "Abg. Santiago Valdivieso (Jurídica)"
+                                );
+                                toast.success(
+                                  "Plantilla contractual activada (DOC-01 Crit. 3)",
+                                  {
+                                    description:
+                                      "Ya puede generar el borrador del contrato para esta solicitud.",
+                                  }
+                                );
                               }}
-                              className="gap-1.5 text-xs bg-primary text-primary-foreground font-semibold"
+                              className="gap-1.5 text-xs"
                             >
-                              <Plus className="size-3.5" />
-                              Generar contrato
+                              <CheckCircle2 className="size-3.5" />
+                              Activar plantilla y desbloquear (DOC-01)
                             </Button>
+                          )}
+
+                          {/* Si no existe contrato */}
+                          {!contrato && !s.contrato && s.estado !== "Pendiente de plantilla" && (
+                            <div className="flex items-center gap-1.5">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  simularPendientePlantillaContrato(
+                                    s.id,
+                                    false,
+                                    "Abg. Santiago Valdivieso (Jurídica)"
+                                  );
+                                  toast.warning(
+                                    "Ausencia de plantilla simulada (DOC-01 Crit. 3)",
+                                    {
+                                      description:
+                                        "La solicitud quedó en 'Pendiente de plantilla'.",
+                                    }
+                                  );
+                                }}
+                                className="gap-1 text-xs"
+                              >
+                                <AlertTriangle className="size-3.5 text-warning" />
+                                Simular Sin Plantilla (DOC-01)
+                              </Button>
+                              <Button
+                                size="sm"
+                                onClick={() => {
+                                  setModalGenerar(s);
+                                  setCantidadContratada(s.cupo || 50000);
+                                }}
+                                className="gap-1.5 text-xs bg-primary text-primary-foreground font-semibold"
+                              >
+                                <Plus className="size-3.5" />
+                                Generar contrato
+                              </Button>
+                            </div>
                           )}
 
                           {/* Si está en Borrador */}

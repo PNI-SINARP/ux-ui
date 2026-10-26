@@ -5,7 +5,6 @@ import Link from "next/link";
 import {
   Database,
   Building2,
-  Search,
   Lock,
   Unlock,
   ChevronDown,
@@ -17,18 +16,34 @@ import {
   Eye,
   EyeOff,
   Send,
+  X,
+  Search as SearchIcon,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Card } from "@/components/ui/card";
+import { Search } from "@/components/ui/search";
 import {
   Combobox,
-  ComboboxSelectTrigger,
+  ComboboxInput,
   ComboboxContent,
   ComboboxList,
   ComboboxItem,
+  ComboboxEmpty,
+  ComboboxGroup,
+  ComboboxLabel,
 } from "@/components/ui/combobox";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+  PaginationFirst,
+  PaginationLast,
+  PaginationEllipsis,
+} from "@/components/ui/pagination";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { WireframeDashboardLayout } from "@/components/layout/wireframes/wireframe-dashboard-layout";
 import { cn } from "@/lib/utils";
@@ -37,7 +52,13 @@ import { INITIAL_INSTITUCIONES, MOCK_USERS_BY_ROLE } from "@/modules/catalogo-in
 export function CatalogoConsultaView() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedInstitucion, setSelectedInstitucion] = useState<string>("ALL");
+  const [institucionSearch, setInstitucionSearch] = useState("");
   const [selectedClasificacion, setSelectedClasificacion] = useState<string>("ALL");
+  const [clasificacionSearch, setClasificacionSearch] = useState("");
+
+  // Paginación UI Kit
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(2);
 
   const institucionOptions = useMemo(() => [
     { value: "ALL", label: "Todas las Instituciones" },
@@ -52,6 +73,56 @@ export function CatalogoConsultaView() {
     { value: "Accesible", label: "Accesibles (solo finalidad de uso)" },
     { value: "Confidencial", label: "Confidenciales (finalidad y justificación jurídica)" },
   ], []);
+
+  const filteredInstitucionOptions = useMemo(() => {
+    if (!institucionSearch.trim()) return institucionOptions;
+    return institucionOptions.filter((opt) =>
+      opt.label.toLowerCase().includes(institucionSearch.toLowerCase())
+    );
+  }, [institucionOptions, institucionSearch]);
+
+  const filteredClasificacionOptions = useMemo(() => {
+    if (!clasificacionSearch.trim()) return clasificacionOptions;
+    return clasificacionOptions.filter((opt) =>
+      opt.label.toLowerCase().includes(clasificacionSearch.toLowerCase())
+    );
+  }, [clasificacionOptions, clasificacionSearch]);
+
+  const handleSelectInstitucion = (val: string | null) => {
+    const newVal = val || "ALL";
+    setSelectedInstitucion(newVal);
+    if (newVal === "ALL") {
+      setInstitucionSearch("");
+    } else {
+      const opt = institucionOptions.find((o) => o.value === newVal);
+      if (opt) setInstitucionSearch(opt.label);
+    }
+    setCurrentPage(1);
+  };
+
+  const handleSelectClasificacion = (val: string | null) => {
+    const newVal = val || "ALL";
+    setSelectedClasificacion(newVal);
+    if (newVal === "ALL") {
+      setClasificacionSearch("");
+    } else {
+      const opt = clasificacionOptions.find((o) => o.value === newVal);
+      if (opt) setClasificacionSearch(opt.label);
+    }
+    setCurrentPage(1);
+  };
+
+  const handleClearAllFilters = () => {
+    setSearchTerm("");
+    setSelectedInstitucion("ALL");
+    setInstitucionSearch("");
+    setSelectedClasificacion("ALL");
+    setClasificacionSearch("");
+    setCurrentPage(1);
+  };
+
+  const hasActiveFilters =
+    searchTerm.trim() !== "" || selectedInstitucion !== "ALL" || selectedClasificacion !== "ALL";
 
   const [expandedInstituciones, setExpandedInstituciones] = useState<Record<string, boolean>>({
     "INST-001": true,
@@ -103,6 +174,15 @@ export function CatalogoConsultaView() {
       return matchInst && inst.fuentes.length > 0;
     });
   }, [searchTerm, selectedInstitucion, selectedClasificacion]);
+
+  // Cálculos de Paginación UI Kit
+  const totalPages = Math.max(1, Math.ceil(institucionesFiltradas.length / pageSize));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+
+  const paginatedInstituciones = useMemo(() => {
+    const start = (safeCurrentPage - 1) * pageSize;
+    return institucionesFiltradas.slice(start, start + pageSize);
+  }, [institucionesFiltradas, safeCurrentPage, pageSize]);
 
   const totalFuentesPublicadas = useMemo(() => {
     return INITIAL_INSTITUCIONES.flatMap((i) => i.fuentes).filter((f) => f.estado === "PUBLICADO").length;
@@ -404,7 +484,7 @@ export function CatalogoConsultaView() {
                         <p className="text-2xl sm:text-3xl font-extrabold font-heading text-foreground leading-none tracking-tight">
                           {totalCamposConfidenciales}
                         </p>
-                        <p className="text-[11px] text-warning-700 dark:text-warning-300 font-medium">
+                        <p className="text-[11px] text-warning font-medium">
                           Requieren finalidad y base jurídica
                         </p>
                       </div>
@@ -417,82 +497,205 @@ export function CatalogoConsultaView() {
               </Tooltip>
             </div>
 
-            {/* Barra de Filtros y Búsqueda */}
-            <Card size="sm" className="bg-card border-border shadow-2xs w-full" innerClassName="p-4 w-full">
-              <div className="flex flex-col md:flex-row gap-3 md:gap-4 w-full items-stretch md:items-center">
-                <div className="relative flex-1 min-w-0">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                  <Input
+            {/* Barra de Filtros y Búsqueda (Suelto, sin Card contenedora) */}
+            <div className="flex flex-col gap-3 w-full">
+              <div className="flex flex-col md:flex-row gap-3 w-full items-stretch md:items-center">
+                <div className="flex-1 min-w-0">
+                  <Search
+                    size="sm"
                     placeholder="Buscar por institución, fuente o dato..."
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-9 bg-background w-full"
+                    onChange={(e) => {
+                      setSearchTerm(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    onClear={() => {
+                      setSearchTerm("");
+                      setCurrentPage(1);
+                    }}
+                    className="w-full"
                   />
                 </div>
 
-                <div className="flex flex-wrap md:flex-nowrap items-center gap-3 shrink-0">
-                  <Combobox
-                    items={institucionOptions}
-                    value={institucionOptions.find((o) => o.value === selectedInstitucion) || institucionOptions[0]}
-                    onValueChange={(val) => {
-                      if (val) setSelectedInstitucion(val.value);
-                    }}
-                  >
-                    <ComboboxSelectTrigger className="h-9 text-xs min-w-[220px] bg-background border-border" />
-                    <ComboboxContent align="start" className="w-72 max-h-72 overflow-y-auto">
-                      <ComboboxList>
-                        {institucionOptions.map((opt) => (
-                          <ComboboxItem key={opt.value} value={opt} className="text-xs">
-                            {opt.label}
-                          </ComboboxItem>
-                        ))}
-                      </ComboboxList>
-                    </ComboboxContent>
-                  </Combobox>
+                <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 shrink-0">
+                  {/* Combobox Instituciones */}
+                  <div className="w-full sm:w-[260px] min-w-0">
+                    <Combobox
+                      value={selectedInstitucion === "ALL" ? null : selectedInstitucion}
+                      onValueChange={handleSelectInstitucion}
+                      inputValue={institucionSearch}
+                      onInputValueChange={(newSearch) => {
+                        const opt = institucionOptions.find(
+                          (o) =>
+                            o.value.toLowerCase() === newSearch.toLowerCase() ||
+                            o.label.toLowerCase() === newSearch.toLowerCase()
+                        );
+                        if (opt) setInstitucionSearch(opt.label);
+                        else if (newSearch === "ALL") setInstitucionSearch("");
+                        else setInstitucionSearch(newSearch);
+                      }}
+                    >
+                      <ComboboxInput
+                        size="sm"
+                        placeholder="Todas las instituciones"
+                        showClear={selectedInstitucion !== "ALL"}
+                        showTrigger={true}
+                        className="w-full"
+                      />
+                      <ComboboxContent className="min-w-[280px] max-w-[340px] z-[80]">
+                        <ComboboxList>
+                          <ComboboxGroup>
+                            <ComboboxLabel>Instituciones</ComboboxLabel>
+                            {filteredInstitucionOptions.map((opt) => (
+                              <ComboboxItem
+                                key={opt.value}
+                                value={opt.value}
+                                className="text-xs py-1.5 cursor-pointer"
+                              >
+                                {opt.label}
+                              </ComboboxItem>
+                            ))}
+                          </ComboboxGroup>
+                          {filteredInstitucionOptions.length === 0 && (
+                            <ComboboxEmpty>No se encontraron instituciones.</ComboboxEmpty>
+                          )}
+                        </ComboboxList>
+                      </ComboboxContent>
+                    </Combobox>
+                  </div>
 
-                  <Combobox
-                    items={clasificacionOptions}
-                    value={clasificacionOptions.find((o) => o.value === selectedClasificacion) || clasificacionOptions[0]}
-                    onValueChange={(val) => {
-                      if (val) setSelectedClasificacion(val.value);
-                    }}
-                  >
-                    <ComboboxSelectTrigger className="h-9 text-xs min-w-[240px] bg-background border-border" />
-                    <ComboboxContent align="start" className="w-80">
-                      <ComboboxList>
-                        {clasificacionOptions.map((opt) => (
-                          <ComboboxItem key={opt.value} value={opt} className="text-xs">
-                            {opt.label}
-                          </ComboboxItem>
-                        ))}
-                      </ComboboxList>
-                    </ComboboxContent>
-                  </Combobox>
+                  {/* Combobox Clasificación / Requisitos */}
+                  <div className="w-full sm:w-[280px] min-w-0">
+                    <Combobox
+                      value={selectedClasificacion === "ALL" ? null : selectedClasificacion}
+                      onValueChange={handleSelectClasificacion}
+                      inputValue={clasificacionSearch}
+                      onInputValueChange={(newSearch) => {
+                        const opt = clasificacionOptions.find(
+                          (o) =>
+                            o.value.toLowerCase() === newSearch.toLowerCase() ||
+                            o.label.toLowerCase() === newSearch.toLowerCase()
+                        );
+                        if (opt) setClasificacionSearch(opt.label);
+                        else if (newSearch === "ALL") setClasificacionSearch("");
+                        else setClasificacionSearch(newSearch);
+                      }}
+                    >
+                      <ComboboxInput
+                        size="sm"
+                        placeholder="Todos los requisitos"
+                        showClear={selectedClasificacion !== "ALL"}
+                        showTrigger={true}
+                        className="w-full"
+                      />
+                      <ComboboxContent className="min-w-[280px] z-[80]">
+                        <ComboboxList>
+                          <ComboboxGroup>
+                            <ComboboxLabel>Requisitos de acceso</ComboboxLabel>
+                            {filteredClasificacionOptions.map((opt) => (
+                              <ComboboxItem
+                                key={opt.value}
+                                value={opt.value}
+                                className="text-xs py-1.5 cursor-pointer"
+                              >
+                                {opt.label}
+                              </ComboboxItem>
+                            ))}
+                          </ComboboxGroup>
+                          {filteredClasificacionOptions.length === 0 && (
+                            <ComboboxEmpty>No se encontraron opciones.</ComboboxEmpty>
+                          )}
+                        </ComboboxList>
+                      </ComboboxContent>
+                    </Combobox>
+                  </div>
 
-                  {(searchTerm || selectedInstitucion !== "ALL" || selectedClasificacion !== "ALL") && (
+                  {hasActiveFilters && (
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => {
-                        setSearchTerm("");
-                        setSelectedInstitucion("ALL");
-                        setSelectedClasificacion("ALL");
-                      }}
-                      className="text-xs text-muted-foreground hover:text-foreground shrink-0"
+                      onClick={handleClearAllFilters}
+                      className="text-xs text-muted-foreground hover:text-foreground shrink-0 h-9 px-2.5"
                     >
                       Limpiar
                     </Button>
                   )}
                 </div>
               </div>
-            </Card>
+
+              {/* Píldoras de Filtros Activos (UI Kit) */}
+              {hasActiveFilters && (
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  <span className="text-[11px] text-muted-foreground font-medium">Filtros aplicados:</span>
+                  {searchTerm && (
+                    <Badge tone="neutral" appearance="soft" size="sm" className="gap-1 text-[11px]">
+                      <span>Búsqueda: &quot;{searchTerm}&quot;</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSearchTerm("");
+                          setCurrentPage(1);
+                        }}
+                        className="hover:opacity-75 focus:outline-none"
+                        aria-label="Quitar filtro de búsqueda"
+                      >
+                        <X className="size-3" />
+                      </button>
+                    </Badge>
+                  )}
+                  {selectedInstitucion !== "ALL" && (
+                    <Badge tone="primary" appearance="soft" size="sm" className="gap-1 text-[11px]">
+                      <span>
+                        {institucionOptions.find((o) => o.value === selectedInstitucion)?.label || selectedInstitucion}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleSelectInstitucion("ALL")}
+                        className="hover:opacity-75 focus:outline-none"
+                        aria-label="Quitar filtro de institución"
+                      >
+                        <X className="size-3" />
+                      </button>
+                    </Badge>
+                  )}
+                  {selectedClasificacion !== "ALL" && (
+                    <Badge
+                      tone={selectedClasificacion === "Accesible" ? "success" : "warning"}
+                      appearance="soft"
+                      size="sm"
+                      className="gap-1 text-[11px]"
+                    >
+                      <span>
+                        {clasificacionOptions.find((o) => o.value === selectedClasificacion)?.label || selectedClasificacion}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleSelectClasificacion("ALL")}
+                        className="hover:opacity-75 focus:outline-none"
+                        aria-label="Quitar filtro de requisito"
+                      >
+                        <X className="size-3" />
+                      </button>
+                    </Badge>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleClearAllFilters}
+                    className="text-xs text-primary p-1 h-auto hover:bg-transparent hover:underline"
+                  >
+                    Restablecer todo
+                  </Button>
+                </div>
+              )}
+            </div>
 
             {/* Listado de Fuentes por Institución */}
             <div className="flex flex-col gap-6 w-full">
               {institucionesFiltradas.length === 0 ? (
                 <Card className="border-dashed border-border p-12 text-center flex flex-col items-center justify-center gap-3 bg-muted/20 w-full">
                   <div className="size-12 rounded-full bg-muted flex items-center justify-center text-muted-foreground">
-                    <Search className="size-6" />
+                    <SearchIcon className="size-6" />
                   </div>
                   <h3 className="text-base font-semibold text-foreground">No se encontraron fuentes</h3>
                   <p className="text-xs text-muted-foreground max-w-sm">
@@ -500,7 +703,7 @@ export function CatalogoConsultaView() {
                   </p>
                 </Card>
               ) : (
-                institucionesFiltradas.map((institucion) => {
+                paginatedInstituciones.map((institucion) => {
                   const isInstExpanded = expandedInstituciones[institucion.id] ?? true;
 
                   return (
@@ -519,15 +722,15 @@ export function CatalogoConsultaView() {
                             toggleInstitucion(institucion.id);
                           }
                         }}
-                        className="bg-primary/5 dark:bg-primary-950/20 hover:bg-primary/10 dark:hover:bg-primary-950/30 transition-colors cursor-pointer border-b border-border p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 select-none w-full"
+                        className="bg-primary/5 hover:bg-primary/10 transition-colors cursor-pointer border-b border-border p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 select-none w-full"
                       >
                         <div className="flex items-center gap-3.5 min-w-0 flex-1">
                           <div className="size-11 rounded-xl bg-primary/15 text-primary flex items-center justify-center shrink-0 shadow-2xs">
-                            <Building2 className="size-5 text-primary dark:text-primary-300" />
+                            <Building2 className="size-5 text-primary" />
                           </div>
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <h2 className="font-heading text-base sm:text-lg font-bold text-primary dark:text-primary-300 leading-snug">
+                              <h2 className="font-heading text-base sm:text-lg font-bold text-primary leading-snug">
                                 {institucion.nombre}
                               </h2>
                               <Badge
@@ -728,7 +931,7 @@ export function CatalogoConsultaView() {
                                                         <Lock className="size-3" />
                                                         Confidencial
                                                       </Badge>
-                                                      <span className="text-[11px] text-warning-700 dark:text-warning-400 font-medium">
+                                                      <span className="text-[11px] text-warning font-medium">
                                                         Finalidad y justificación jurídica
                                                       </span>
                                                     </div>
@@ -752,6 +955,113 @@ export function CatalogoConsultaView() {
                 })
               )}
             </div>
+
+            {/* Paginación UI Kit */}
+            {institucionesFiltradas.length > 0 && (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-border mt-2 w-full">
+                <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-6 text-xs text-muted-foreground order-2 sm:order-1">
+                  <p>
+                    Mostrando{" "}
+                    <span className="font-semibold text-foreground">
+                      {(safeCurrentPage - 1) * pageSize + 1}
+                    </span>{" "}
+                    a{" "}
+                    <span className="font-semibold text-foreground">
+                      {Math.min(safeCurrentPage * pageSize, institucionesFiltradas.length)}
+                    </span>{" "}
+                    de <span className="font-semibold text-foreground">{institucionesFiltradas.length}</span> instituciones
+                  </p>
+
+                  <div className="flex items-center gap-2">
+                    <span>Instituciones por página:</span>
+                    <div className="inline-flex rounded-full border border-border p-0.5 bg-surface shadow-2xs">
+                      {[1, 2, 5].map((size) => (
+                        <button
+                          key={size}
+                          type="button"
+                          onClick={() => {
+                            setPageSize(size);
+                            setCurrentPage(1);
+                          }}
+                          className={cn(
+                            "px-2.5 py-0.5 text-xs font-semibold rounded-full transition-all cursor-pointer",
+                            pageSize === size
+                              ? "bg-surface text-primary shadow-2xs font-bold border border-border"
+                              : "text-muted-foreground hover:text-foreground"
+                          )}
+                        >
+                          {size}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="order-1 sm:order-2">
+                  <Pagination>
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationFirst
+                          onClick={() => setCurrentPage(1)}
+                          className={cn(safeCurrentPage <= 1 && "pointer-events-none opacity-50 cursor-not-allowed")}
+                        />
+                      </PaginationItem>
+                      <PaginationItem>
+                        <PaginationPrevious
+                          onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                          className={cn(safeCurrentPage <= 1 && "pointer-events-none opacity-50 cursor-not-allowed")}
+                        />
+                      </PaginationItem>
+
+                      {Array.from({ length: totalPages }).map((_, i) => {
+                        const page = i + 1;
+                        if (
+                          page === 1 ||
+                          page === totalPages ||
+                          (page >= safeCurrentPage - 1 && page <= safeCurrentPage + 1)
+                        ) {
+                          return (
+                            <PaginationItem key={page}>
+                              <PaginationLink
+                                isActive={page === safeCurrentPage}
+                                onClick={() => setCurrentPage(page)}
+                                className="cursor-pointer"
+                              >
+                                {page}
+                              </PaginationLink>
+                            </PaginationItem>
+                          );
+                        }
+                        if (
+                          (page === safeCurrentPage - 2 && page > 1) ||
+                          (page === safeCurrentPage + 2 && page < totalPages)
+                        ) {
+                          return (
+                            <PaginationItem key={page}>
+                              <PaginationEllipsis />
+                            </PaginationItem>
+                          );
+                        }
+                        return null;
+                      })}
+
+                      <PaginationItem>
+                        <PaginationNext
+                          onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                          className={cn(safeCurrentPage >= totalPages && "pointer-events-none opacity-50 cursor-not-allowed")}
+                        />
+                      </PaginationItem>
+                      <PaginationItem>
+                        <PaginationLast
+                          onClick={() => setCurrentPage(totalPages)}
+                          className={cn(safeCurrentPage >= totalPages && "pointer-events-none opacity-50 cursor-not-allowed")}
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                </div>
+              </div>
+            )}
           </Card>
         </main>
       </WireframeDashboardLayout>

@@ -1,34 +1,18 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import Link from "next/link";
 import {
-  ShieldCheck,
-  Search as SearchIcon,
-  Filter,
   Eye,
   Clock,
-  Building2,
-  Briefcase,
-  Database,
   Lock,
-  Unlock,
-  Calendar,
   FileText,
   AlertTriangle,
   RotateCcw,
   CheckCircle2,
-  FileSignature,
-  UserCheck,
-  Send,
   Scale,
-  Sparkles,
-  ExternalLink,
-  ChevronRight,
   Check,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -69,119 +53,114 @@ import {
   SolicitudAcceso,
 } from "@/modules/acceso-interoperabilidad/data/solicitudes-store";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
 
-// Revisores jurídicos de Normatividad
 const REVISORES_NORMATIVA = [
-  { id: "U-EQNORM", nombre: "Carlos Mora", cargo: "Especialista Jurídico de Datos", especialidad: "LOPDP y Protección de Datos" },
-  { id: "U-EQNORM2", nombre: "Lucía Morales", cargo: "Abogada Especialista", especialidad: "Derecho Administrativo e Interoperabilidad" },
+  {
+    id: "U-EQNORM",
+    nombre: "Carlos Mora",
+    cargo: "Especialista Jurídico de Datos",
+  },
+  {
+    id: "U-EQNORM2",
+    nombre: "Lucía Morales",
+    cargo: "Abogada Especialista",
+  },
+];
+
+const estadoOptions = [
+  { value: "ALL", label: "Todas mis asignaciones en Normatividad" },
+  {
+    value: "En revisión normativa",
+    label: "En revisión (Pendientes de dictamen)",
+  },
+  {
+    value: "Aprobada por Normatividad",
+    label: "Aprobadas por Normatividad",
+  },
 ];
 
 export function RevisionNormativaInteroperabilidadView() {
-  const {
-    solicitudes,
-    asignarRevisorNormativa,
-    aprobarNormativa,
-    firmarInformeNormativa,
-    observarNormativa,
-  } = useSolicitudesStore();
+  const { solicitudes, aprobarNormativa, observarNormativa } =
+    useSolicitudesStore();
 
-  // Rol activo dentro de la vista jurídica (Director o Revisor)
-  const [activeRole, setActiveRole] = useState<"DIR_NORMATIVA" | "EQ_NORMATIVA">("DIR_NORMATIVA");
+  const [activeRevisorId, setActiveRevisorId] = useState<string>("U-EQNORM");
+  const activeRevisor =
+    REVISORES_NORMATIVA.find((r) => r.id === activeRevisorId) ||
+    REVISORES_NORMATIVA[0];
 
-  // Filtros
   const [searchTerm, setSearchTerm] = useState("");
   const [estadoFilter, setEstadoFilter] = useState("ALL");
 
-  // Modales
-  const [solicitudToAssign, setSolicitudToAssign] = useState<SolicitudAcceso | null>(null);
-  const [selectedRevisorNormId, setSelectedRevisorNormId] = useState<string>("U-EQNORM");
-  const [observacionAsigNorm, setObservacionAsigNorm] = useState("");
-
-  const [solicitudReviewing, setSolicitudReviewing] = useState<SolicitudAcceso | null>(null);
+  const [solicitudReviewing, setSolicitudReviewing] =
+    useState<SolicitudAcceso | null>(null);
   const [isAprobarModalOpen, setIsAprobarModalOpen] = useState(false);
   const [isObservarModalOpen, setIsObservarModalOpen] = useState(false);
   const [textoObservacionJuridica, setTextoObservacionJuridica] = useState("");
   const [conclusionesInforme, setConclusionesInforme] = useState("");
 
-  // Filtrar exclusivamente expedientes que llegan a Normatividad:
-  // - Solicitudes aprobadas previamente por Gestión
-  // - Que contengan al menos un campo confidencial
-  const solicitudesNormativas = useMemo(() => {
+  // Filtrar expedientes asignados al Equipo de Normatividad
+  const misSolicitudesNormativas = useMemo(() => {
     return solicitudes.filter((s) => {
-      // Debe contener al menos un campo confidencial
       const tieneConfidencial = s.fuentes?.some((f) =>
         f.campos?.some((c) => c.clasificacion === "Confidencial")
       );
       if (!tieneConfidencial) return false;
 
-      // Debe estar en flujo normativo o ya haber pasado por Gestión
-      const enFlujoNormativo =
-        s.estado === "Pendiente de asignación en Normatividad" ||
+      const enFlujoRevisor =
         s.estado === "En revisión normativa" ||
         s.estado === "Aprobada por Normatividad" ||
-        (s.estado.includes("Aprobada") && s.informeNormativa);
+        (s.estado.includes("Aprobada") && Boolean(s.informeNormativa));
 
-      if (!enFlujoNormativo) return false;
+      if (!enFlujoRevisor) return false;
 
-      // Búsqueda libre
       if (searchTerm) {
         const term = searchTerm.toLowerCase();
         const matchesId = s.id.toLowerCase().includes(term);
         const matchesInst = s.institucion.toLowerCase().includes(term);
-        const matchesFuente = (s.fuentePrincipal || "").toLowerCase().includes(term);
-        const matchesRevisor = (s.revisorNormativoAsignado || "").toLowerCase().includes(term);
-        if (!matchesId && !matchesInst && !matchesFuente && !matchesRevisor) return false;
+        const matchesFuente = (s.fuentePrincipal || "")
+          .toLowerCase()
+          .includes(term);
+        if (!matchesId && !matchesInst && !matchesFuente) return false;
       }
 
-      // Filtro de estado
       if (estadoFilter !== "ALL" && s.estado !== estadoFilter) return false;
 
       return true;
     });
   }, [solicitudes, searchTerm, estadoFilter]);
 
-  // Contadores
   const metricas = useMemo(() => {
-    const total = solicitudesNormativas.length;
-    const pendientesAsig = solicitudesNormativas.filter(
-      (s) => s.estado === "Pendiente de asignación en Normatividad"
+    const total = misSolicitudesNormativas.length;
+    const pendientesDictamen = misSolicitudesNormativas.filter(
+      (s) => s.estado === "En revisión normativa" && !s.informeNormativa
     ).length;
-    const enRevision = solicitudesNormativas.filter(
-      (s) => s.estado === "En revisión normativa"
+    const pendientesFirmaDirector = misSolicitudesNormativas.filter(
+      (s) =>
+        Boolean(s.informeNormativa?.firmadoRevisor) &&
+        !s.informeNormativa?.firmadoDirector
     ).length;
-    const aprobadas = solicitudesNormativas.filter(
+    const aprobadas = misSolicitudesNormativas.filter(
       (s) => s.estado === "Aprobada por Normatividad"
     ).length;
-    return { total, pendientesAsig, enRevision, aprobadas };
-  }, [solicitudesNormativas]);
+    return { total, pendientesDictamen, pendientesFirmaDirector, aprobadas };
+  }, [misSolicitudesNormativas]);
 
-  // Asignar revisor normativo (Director de Normatividad)
-  const handleConfirmarAsignacionNormativa = () => {
-    if (!solicitudToAssign) return;
-    const revisor = REVISORES_NORMATIVA.find((r) => r.id === selectedRevisorNormId) || REVISORES_NORMATIVA[0];
-    const director = "Director Área de Normatividad";
-
-    asignarRevisorNormativa(solicitudToAssign.id, revisor.id, revisor.nombre, director);
-    toast.success("Revisor de Normatividad asignado", {
-      description: `Expediente ${solicitudToAssign.id} asignado a ${revisor.nombre}.`,
-    });
-    setSolicitudToAssign(null);
-  };
-
-  // Aprobar jurídicamente y emitir informe (Revisor de Normatividad)
+  // Aprobar confidenciales + emitir y firmar informe como Revisor (Carril 5 BPMN BN-07)
   const handleConfirmarAprobacionJuridica = () => {
     if (!solicitudReviewing) return;
-    const revisorNombre = solicitudReviewing.revisorNormativoAsignado || "Carlos Mora";
+    const revisorNombre =
+      solicitudReviewing.revisorNormativoAsignado || activeRevisor.nombre;
 
     aprobarNormativa(solicitudReviewing.id, {
       revisor: revisorNombre,
       director: "Director Área de Normatividad",
-      fundamento: conclusionesInforme.trim() || "Se determina que el tratamiento de los datos confidenciales solicitados se encuentra plenamente justificado en base a las competencias constitucionales y legales de la entidad requirente, cumpliendo las garantías de la LOPDP.",
+      fundamento:
+        conclusionesInforme.trim() ||
+        "Se determina que el tratamiento de los datos confidenciales solicitados se encuentra plenamente justificado en base a las competencias constitucionales y legales de la entidad requirente, cumpliendo las garantías de la LOPDP.",
     });
 
-    toast.success("Informe de Aprobación de Normatividad emitido", {
-      description: `Firmado digitalmente por el revisor ${revisorNombre}. Pendiente firma del Director de Normatividad.`,
+    toast.success("Informe de Normatividad emitido y firmado por el Revisor", {
+      description: `1.ª firma registrada (${revisorNombre}). Enviado al Director de Normatividad para su segunda firma.`,
     });
 
     setIsAprobarModalOpen(false);
@@ -189,25 +168,21 @@ export function RevisionNormativaInteroperabilidadView() {
     setConclusionesInforme("");
   };
 
-  // Firmar como Director de Normatividad
-  const handleFirmarDirector = (solicitudId: string) => {
-    firmarInformeNormativa(solicitudId, "DIRECTOR", "Director Área de Normatividad");
-    toast.success("Firma del Director de Normatividad registrada con éxito", {
-      description: "Ambas firmas han sido validadas. La solicitud ha sido 'Aprobada por Normatividad' y continúa a formalización.",
-    });
-  };
-
-  // Observar jurídicamente (Revisor de Normatividad)
+  // Observar confidenciales (otorga 3 días hábiles y regresa al Coordinador → luego Director de Gestión)
   const handleConfirmarObservacionJuridica = () => {
     if (!solicitudReviewing || !textoObservacionJuridica.trim()) {
-      toast.error("Debe ingresar la fundamentación jurídica de la observación");
+      toast.error(
+        "Debe ingresar la fundamentación jurídica de la observación."
+      );
       return;
     }
 
-    const revisorNombre = solicitudReviewing.revisorNormativoAsignado || "Carlos Mora";
+    const revisorNombre =
+      solicitudReviewing.revisorNormativoAsignado || activeRevisor.nombre;
 
     observarNormativa(solicitudReviewing.id, {
       revisor: revisorNombre,
+      diasPlazo: 3,
       observaciones: [
         {
           id: `obs-norm-${Date.now()}`,
@@ -216,13 +191,14 @@ export function RevisionNormativaInteroperabilidadView() {
           descripcion: textoObservacionJuridica,
           fecha: new Date().toISOString().substring(0, 10),
           revisor: revisorNombre,
-          etapa: "Normatividad"
-        }
+          etapa: "Normatividad",
+        },
       ],
     });
 
-    toast.warning("Solicitud observada jurídicamente", {
-      description: "El Coordinador subsanará el expediente, el cual pasará previamente por Gestión antes de regresar a Normatividad.",
+    toast.warning("Observación jurídica notificada (Plazo: 3 días hábiles)", {
+      description:
+        "El Coordinador SINARP tiene 3 días hábiles para subsanar. Al corregir, el expediente volverá al Director de Gestión para nueva asignación.",
     });
 
     setIsObservarModalOpen(false);
@@ -235,239 +211,362 @@ export function RevisionNormativaInteroperabilidadView() {
       activeMenu="revision-normativa-fuentes"
       headerSlot={
         <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground hidden sm:inline">Perfil Normatividad:</span>
-          <div className="flex items-center rounded-xl bg-background border border-border p-0.5">
-            <button
-              type="button"
-              onClick={() => setActiveRole("DIR_NORMATIVA")}
-              className={cn(
-                "px-2.5 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer",
-                activeRole === "DIR_NORMATIVA"
-                  ? "bg-primary text-primary-foreground shadow-xs"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              Director
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveRole("EQ_NORMATIVA")}
-              className={cn(
-                "px-2.5 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer",
-                activeRole === "EQ_NORMATIVA"
-                  ? "bg-primary text-primary-foreground shadow-xs"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              Revisor Jurídico
-            </button>
-          </div>
+          <span className="text-caption text-muted-foreground hidden sm:inline">
+            Revisor jurídico activo:
+          </span>
+          <Combobox
+            items={REVISORES_NORMATIVA.map((r) => ({
+              value: r.id,
+              label: `${r.nombre} (${r.cargo})`,
+            }))}
+            value={{
+              value: activeRevisor.id,
+              label: `${activeRevisor.nombre} (${activeRevisor.cargo})`,
+            }}
+            onValueChange={(val: any) => {
+              if (val)
+                setActiveRevisorId(typeof val === "string" ? val : val.value);
+            }}
+          >
+            <ComboboxSelectTrigger className="h-8 text-caption min-w-56 bg-background border-border" />
+            <ComboboxContent align="end" className="w-72">
+              <ComboboxList>
+                {REVISORES_NORMATIVA.map((r) => (
+                  <ComboboxItem
+                    key={r.id}
+                    value={{ value: r.id, label: `${r.nombre} (${r.cargo})` }}
+                    className="text-caption"
+                  >
+                    <div>
+                      <p className="font-semibold text-foreground">{r.nombre}</p>
+                      <p className="text-caption text-muted-foreground">
+                        {r.cargo}
+                      </p>
+                    </div>
+                  </ComboboxItem>
+                ))}
+              </ComboboxList>
+            </ComboboxContent>
+          </Combobox>
         </div>
       }
     >
-      <div className="w-full max-w-7xl 2xl:max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
+      <div className="layout-container py-6 sm:py-8 space-y-6">
         {/* Cabecera */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2.5">
-              <div className="size-9 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
-                <Scale className="size-5" />
+              <div className="size-9 rounded-xl bg-warning/10 text-warning flex items-center justify-center">
+                <Lock className="size-5" />
               </div>
-              <h1 className="text-2xl sm:text-3xl font-bold font-heading text-foreground tracking-tight">
-                Revisión Jurídica de Datos Confidenciales (Normatividad)
+              <h1 className="text-h2 font-bold font-heading text-foreground tracking-tight">
+                Revisión de Campos Confidenciales (Equipo de Normatividad)
               </h1>
             </div>
-            <p className="text-sm text-muted-foreground mt-1">
-              Flujo BN-07 especializado: Únicamente llegan solicitudes <strong>aprobadas previamente por Gestión</strong> que contienen campos confidenciales. Emisión de informe técnico-jurídico con doble firma digital.
+            <p className="text-body-sm text-muted-foreground mt-1">
+              Bandeja exclusiva del <strong>Equipo de Normatividad</strong> (Carril 5 BPMN BN-07). Evalúe la justificación y base legal de los campos confidenciales: apruebe firmando el informe técnico-jurídico u observe otorgando <strong>3 días hábiles</strong> de subsanación.
             </p>
           </div>
 
-          <Badge tone="warning" appearance="soft" size="md" className="font-semibold px-3 py-1.5 text-xs self-start md:self-center gap-1.5">
-            <Lock className="size-3.5" />
-            <span>Perfil: {activeRole === "DIR_NORMATIVA" ? "Director de Normatividad" : "Revisor Jurídico"}</span>
+          <Badge
+            tone="warning"
+            appearance="soft"
+            size="md"
+            className="font-semibold px-3 py-1.5 text-caption self-start md:self-center"
+          >
+            Rol: Equipo de Normatividad
           </Badge>
         </div>
 
-        {/* Tarjetas Métricas */}
+        {/* Tarjetas métricas */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="p-4 bg-surface border-border shadow-xs rounded-2xl flex items-center gap-3.5">
+          <Card className="p-4 bg-surface border-border shadow-xs rounded-xl flex items-center gap-3.5">
             <div className="size-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
               <Scale className="size-5" />
             </div>
             <div>
-              <span className="text-2xl font-bold text-foreground font-heading">{metricas.total}</span>
-              <p className="text-xs text-muted-foreground font-medium">Expedientes confidenciales</p>
+              <span className="text-h2 font-bold text-foreground font-heading">
+                {metricas.total}
+              </span>
+              <p className="text-caption text-muted-foreground font-medium">
+                Asignados al equipo
+              </p>
             </div>
           </Card>
 
-          <Card className="p-4 bg-surface border-border shadow-xs rounded-2xl flex items-center gap-3.5">
-            <div className="size-11 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+          <Card className="p-4 bg-surface border-border shadow-xs rounded-xl flex items-center gap-3.5">
+            <div className="size-11 rounded-xl bg-warning/10 text-warning flex items-center justify-center shrink-0">
               <Clock className="size-5" />
             </div>
             <div>
-              <span className="text-2xl font-bold text-foreground font-heading">{metricas.pendientesAsig}</span>
-              <p className="text-xs text-muted-foreground font-medium">Pendientes de asignación</p>
+              <span className="text-h2 font-bold text-foreground font-heading">
+                {metricas.pendientesDictamen}
+              </span>
+              <p className="text-caption text-muted-foreground font-medium">
+                Pendientes de dictamen
+              </p>
             </div>
           </Card>
 
-          <Card className="p-4 bg-surface border-border shadow-xs rounded-2xl flex items-center gap-3.5">
-            <div className="size-11 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
-              <FileSignature className="size-5" />
+          <Card className="p-4 bg-surface border-border shadow-xs rounded-xl flex items-center gap-3.5">
+            <div className="size-11 rounded-xl bg-info/10 text-info flex items-center justify-center shrink-0">
+              <FileText className="size-5" />
             </div>
             <div>
-              <span className="text-2xl font-bold text-foreground font-heading">{metricas.enRevision}</span>
-              <p className="text-xs text-muted-foreground font-medium">En evaluación jurídica</p>
+              <span className="text-h2 font-bold text-foreground font-heading">
+                {metricas.pendientesFirmaDirector}
+              </span>
+              <p className="text-caption text-muted-foreground font-medium">
+                En firma del Director
+              </p>
             </div>
           </Card>
 
-          <Card className="p-4 bg-surface border-border shadow-xs rounded-2xl flex items-center gap-3.5">
-            <div className="size-11 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+          <Card className="p-4 bg-surface border-border shadow-xs rounded-xl flex items-center gap-3.5">
+            <div className="size-11 rounded-xl bg-success/10 text-success flex items-center justify-center shrink-0">
               <CheckCircle2 className="size-5" />
             </div>
             <div>
-              <span className="text-2xl font-bold text-foreground font-heading">{metricas.aprobadas}</span>
-              <p className="text-xs text-muted-foreground font-medium">Aprobadas con doble firma</p>
+              <span className="text-h2 font-bold text-foreground font-heading">
+                {metricas.aprobadas}
+              </span>
+              <p className="text-caption text-muted-foreground font-medium">
+                Aprobadas por Normatividad
+              </p>
             </div>
           </Card>
         </div>
 
-        {/* Tabla de Expedientes en Normatividad */}
-        <Card className="bg-surface border-border shadow-xs rounded-2xl overflow-hidden">
-          <div className="p-4 border-b border-border flex items-center justify-between gap-4">
-            <div className="w-full max-w-sm">
+        {/* Filtros */}
+        <Card className="p-4 bg-surface border-border shadow-xs rounded-xl space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+            <div className="sm:col-span-7 space-y-1.5">
+              <label className="text-caption font-semibold text-muted-foreground">
+                Búsqueda rápida
+              </label>
               <Search
-                placeholder="Buscar expediente en Normatividad..."
+                placeholder="Buscar por ID, institución o fuente con campos confidenciales..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 onClear={() => setSearchTerm("")}
-                className="h-9 text-xs bg-background"
+                className="w-full h-10 bg-background rounded-lg border-border"
               />
             </div>
 
-            <div className="text-xs text-muted-foreground font-medium">
-              {solicitudesNormativas.length} expediente(s) con datos confidenciales
+            <div className="sm:col-span-5 space-y-1.5">
+              <label className="text-caption font-semibold text-muted-foreground">
+                Estado del dictamen
+              </label>
+              <Combobox
+                items={estadoOptions}
+                value={
+                  estadoOptions.find((o) => o.value === estadoFilter) ||
+                  estadoOptions[0]
+                }
+                onValueChange={(val: any) => {
+                  if (val)
+                    setEstadoFilter(typeof val === "string" ? val : val.value);
+                }}
+              >
+                <ComboboxSelectTrigger className="w-full h-10 justify-between text-body-sm font-normal bg-background rounded-lg border-border px-3.5 shadow-none">
+                  <span className="truncate">
+                    {estadoOptions.find((o) => o.value === estadoFilter)
+                      ?.label || "Todas mis asignaciones"}
+                  </span>
+                </ComboboxSelectTrigger>
+                <ComboboxContent align="end" className="w-80">
+                  <ComboboxList>
+                    {estadoOptions.map((opt) => (
+                      <ComboboxItem
+                        key={opt.value}
+                        value={opt}
+                        className="text-caption"
+                      >
+                        {opt.label}
+                      </ComboboxItem>
+                    ))}
+                  </ComboboxList>
+                </ComboboxContent>
+              </Combobox>
             </div>
           </div>
 
+          {(searchTerm || estadoFilter !== "ALL") && (
+            <div className="flex items-center justify-between pt-2 border-t border-border">
+              <span className="text-caption text-muted-foreground">
+                Mostrando <strong>{misSolicitudesNormativas.length}</strong>{" "}
+                expediente(s)
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setSearchTerm("");
+                  setEstadoFilter("ALL");
+                }}
+                className="h-7 px-2.5 text-caption text-muted-foreground hover:text-foreground gap-1"
+              >
+                <RotateCcw className="size-3" />
+                <span>Limpiar filtros</span>
+              </Button>
+            </div>
+          )}
+        </Card>
+
+        {/* Tabla del Revisor de Normatividad */}
+        <Card className="bg-surface border-border shadow-xs rounded-xl overflow-hidden">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/40 hover:bg-muted/40">
-                  <TableHead className="font-bold text-xs text-foreground">ID Solicitud</TableHead>
-                  <TableHead className="font-bold text-xs text-foreground">Institución Solicitante</TableHead>
-                  <TableHead className="font-bold text-xs text-foreground">Proyecto</TableHead>
-                  <TableHead className="font-bold text-xs text-foreground">Campos Confidenciales</TableHead>
-                  <TableHead className="font-bold text-xs text-foreground">Revisor Jurídico</TableHead>
-                  <TableHead className="font-bold text-xs text-foreground">Firmas de Informe</TableHead>
-                  <TableHead className="font-bold text-xs text-foreground">Estado</TableHead>
-                  <TableHead className="font-bold text-xs text-foreground text-right pr-6">Acción</TableHead>
+                  <TableHead className="font-bold text-caption text-foreground">
+                    ID / Versión
+                  </TableHead>
+                  <TableHead className="font-bold text-caption text-foreground">
+                    Institución Requirente
+                  </TableHead>
+                  <TableHead className="font-bold text-caption text-foreground">
+                    Fuente y Proyecto
+                  </TableHead>
+                  <TableHead className="font-bold text-caption text-foreground">
+                    Campos Confidenciales
+                  </TableHead>
+                  <TableHead className="font-bold text-caption text-foreground">
+                    Revisor Asignado
+                  </TableHead>
+                  <TableHead className="font-bold text-caption text-foreground">
+                    Estado Informe y Firmas
+                  </TableHead>
+                  <TableHead className="font-bold text-caption text-foreground">
+                    Estado
+                  </TableHead>
+                  <TableHead className="font-bold text-caption text-foreground text-right pr-6">
+                    Acción del Revisor
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {solicitudesNormativas.length === 0 ? (
+                {misSolicitudesNormativas.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-12 text-muted-foreground text-sm">
-                      No hay expedientes confidenciales en la bandeja de Normatividad actualmente.
+                    <TableCell
+                      colSpan={8}
+                      className="text-center py-12 text-muted-foreground text-body-sm"
+                    >
+                      No tienes expedientes con campos confidenciales pendientes
+                      de revisión.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  solicitudesNormativas.map((solicitud) => {
-                    const camposConf = (solicitud.fuentes?.[0]?.campos || []).filter(
-                      (c) => c.clasificacion === "Confidencial"
+                  misSolicitudesNormativas.map((solicitud) => {
+                    const camposConf =
+                      solicitud.fuentes?.[0]?.campos?.filter(
+                        (c) => c.clasificacion === "Confidencial"
+                      ) || [];
+                    const tieneInforme = Boolean(solicitud.informeNormativa);
+                    const firmaRevisorOk = Boolean(
+                      solicitud.informeNormativa?.firmadoRevisor
+                    );
+                    const firmaDirectorOk = Boolean(
+                      solicitud.informeNormativa?.firmadoDirector
                     );
 
-                    const tieneInforme = !!solicitud.informeNormativa;
-                    const firmaRevisorOk = solicitud.informeNormativa?.firmadoRevisor === true;
-                    const firmaDirectorOk = solicitud.informeNormativa?.firmadoDirector === true;
-
                     return (
-                      <TableRow key={solicitud.id} className="hover:bg-muted/20 transition-colors">
-                        {/* ID Solicitud */}
-                        <TableCell className="font-mono font-bold text-xs text-foreground">
-                          {solicitud.id}
+                      <TableRow
+                        key={solicitud.id}
+                        className="hover:bg-muted/20 transition-colors"
+                      >
+                        <TableCell className="font-mono text-caption font-bold text-foreground">
+                          <div className="flex items-center gap-1.5">
+                            <span>{solicitud.id}</span>
+                            <Badge
+                              tone="neutral"
+                              appearance="outline"
+                              size="sm"
+                              className="text-caption px-1.5 py-0"
+                            >
+                              v{solicitud.versionExpediente || 1}
+                            </Badge>
+                          </div>
                         </TableCell>
 
-                        {/* Institución */}
-                        <TableCell className="text-xs">
-                          <strong className="text-foreground block truncate max-w-[180px]">
+                        <TableCell className="text-caption">
+                          <span className="font-semibold text-foreground block">
                             {solicitud.institucion}
-                          </strong>
-                          <span className="text-[11px] text-muted-foreground">{solicitud.tipoInstitucion}</span>
-                        </TableCell>
-
-                        {/* Proyecto */}
-                        <TableCell className="text-xs">
-                          <span className="text-foreground truncate block max-w-[170px]" title={solicitud.proyectoNombre}>
-                            {solicitud.proyectoNombre || "Proyecto institucional"}
                           </span>
-                          <span className="text-[10px] text-muted-foreground font-mono">{solicitud.proyectoId}</span>
+                          <span className="text-caption text-muted-foreground">
+                            Validado en Gestión por:{" "}
+                            {solicitud.revisorAsignado || "Ana Torres"}
+                          </span>
                         </TableCell>
 
-                        {/* Campos confidenciales */}
-                        <TableCell className="text-xs">
-                          <div className="flex items-center gap-1.5 font-bold text-amber-700 dark:text-amber-400">
+                        <TableCell className="text-caption">
+                          <span className="font-semibold text-foreground block truncate max-w-48">
+                            {solicitud.fuentePrincipal}
+                          </span>
+                          <span className="text-caption text-muted-foreground font-mono">
+                            {solicitud.proyectoId} · {solicitud.proyectoNombre}
+                          </span>
+                        </TableCell>
+
+                        <TableCell className="text-caption">
+                          <div className="flex items-center gap-1.5 font-bold text-warning">
                             <Lock className="size-3.5" />
                             <span>{camposConf.length} confidencial(es)</span>
                           </div>
-                          <span className="text-[10px] text-muted-foreground truncate block max-w-[150px]">
+                          <span className="text-caption text-muted-foreground truncate block max-w-40">
                             {camposConf.map((c) => c.nombre).join(", ")}
                           </span>
                         </TableCell>
 
-                        {/* Revisor asignado */}
-                        <TableCell className="text-xs">
-                          {solicitud.revisorNormativoAsignado ? (
-                            <div className="flex items-center gap-1.5">
-                              <div className="size-5 rounded-full bg-amber-500/20 text-amber-800 dark:text-amber-300 text-[10px] font-bold flex items-center justify-center">
-                                {solicitud.revisorNormativoAsignado.charAt(0)}
-                              </div>
-                              <span className="font-medium text-foreground">
-                                {solicitud.revisorNormativoAsignado}
-                              </span>
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground italic text-[11px]">Sin asignar</span>
-                          )}
+                        <TableCell className="text-caption">
+                          <span className="font-medium text-foreground">
+                            {solicitud.revisorNormativoAsignado ||
+                              activeRevisor.nombre}
+                          </span>
                         </TableCell>
 
-                        {/* Doble Firma */}
-                        <TableCell className="text-xs">
+                        <TableCell className="text-caption">
                           {tieneInforme ? (
                             <div className="space-y-0.5">
-                              <div className="flex items-center gap-1 text-[11px]">
-                                {firmaRevisorOk ? (
-                                  <Check className="size-3 text-emerald-600 font-bold" />
-                                ) : (
-                                  <Clock className="size-3 text-muted-foreground" />
-                                )}
-                                <span className={firmaRevisorOk ? "text-emerald-700 dark:text-emerald-300 font-medium" : "text-muted-foreground"}>
-                                  Revisor: {firmaRevisorOk ? "Firmado" : "Pendiente"}
+                              <div className="flex items-center gap-1 text-caption">
+                                <Check className="size-3 text-success font-bold" />
+                                <span className="text-success font-medium">
+                                  Revisor:{" "}
+                                  {firmaRevisorOk ? "Firmado" : "Pendiente"}
                                 </span>
                               </div>
-                              <div className="flex items-center gap-1 text-[11px]">
+                              <div className="flex items-center gap-1 text-caption">
                                 {firmaDirectorOk ? (
-                                  <Check className="size-3 text-emerald-600 font-bold" />
+                                  <Check className="size-3 text-success font-bold" />
                                 ) : (
-                                  <Clock className="size-3 text-amber-600" />
+                                  <Clock className="size-3 text-warning" />
                                 )}
-                                <span className={firmaDirectorOk ? "text-emerald-700 dark:text-emerald-300 font-medium" : "text-amber-700 dark:text-amber-400 font-medium"}>
-                                  Director: {firmaDirectorOk ? "Firmado" : "Pendiente"}
+                                <span
+                                  className={
+                                    firmaDirectorOk
+                                      ? "text-success font-medium"
+                                      : "text-warning font-medium"
+                                  }
+                                >
+                                  Director:{" "}
+                                  {firmaDirectorOk
+                                    ? "Firmado"
+                                    : "En espera firma Director"}
                                 </span>
                               </div>
                             </div>
                           ) : (
-                            <span className="text-[11px] text-muted-foreground italic">Informe no emitido</span>
+                            <span className="text-caption text-muted-foreground italic">
+                              Pendiente emitir dictamen
+                            </span>
                           )}
                         </TableCell>
 
-                        {/* Estado */}
-                        <TableCell className="text-xs">
+                        <TableCell className="text-caption">
                           <Badge
                             tone={
                               solicitud.estado === "Aprobada por Normatividad"
                                 ? "success"
-                                : solicitud.estado === "Pendiente de asignación en Normatividad"
-                                ? "warning"
                                 : "info"
                             }
                             appearance="soft"
@@ -478,54 +577,29 @@ export function RevisionNormativaInteroperabilidadView() {
                           </Badge>
                         </TableCell>
 
-                        {/* Acciones */}
-                        <TableCell className="text-xs text-right pr-6">
+                        <TableCell className="text-caption text-right pr-6">
                           <div className="flex items-center justify-end gap-1.5">
-                            {/* Acción Director: Asignar revisor */}
-                            {activeRole === "DIR_NORMATIVA" && solicitud.estado === "Pendiente de asignación en Normatividad" && (
-                              <Button
-                                variant="primary"
-                                size="sm"
-                                onClick={() => setSolicitudToAssign(solicitud)}
-                                className="h-8 px-3 text-xs gap-1 font-semibold"
-                              >
-                                <UserCheck className="size-3.5" />
-                                <span>Asignar revisor</span>
-                              </Button>
-                            )}
+                            {solicitud.estado === "En revisión normativa" &&
+                              !tieneInforme && (
+                                <Button
+                                  variant="primary"
+                                  size="sm"
+                                  onClick={() =>
+                                    setSolicitudReviewing(solicitud)
+                                  }
+                                  className="h-8 px-3 text-caption gap-1 font-semibold"
+                                >
+                                  <Scale className="size-3.5" />
+                                  <span>Revisar confidenciales</span>
+                                </Button>
+                              )}
 
-                            {/* Acción Director: Firmar informe si ya firmó el revisor */}
-                            {activeRole === "DIR_NORMATIVA" && tieneInforme && firmaRevisorOk && !firmaDirectorOk && (
-                              <Button
-                                variant="primary"
-                                size="sm"
-                                onClick={() => handleFirmarDirector(solicitud.id)}
-                                className="h-8 px-3 text-xs gap-1 font-semibold bg-emerald-600 hover:bg-emerald-700 text-white"
-                              >
-                                <FileSignature className="size-3.5" />
-                                <span>Firmar como Director</span>
-                              </Button>
-                            )}
-
-                            {/* Acción Revisor: Evaluar confidenciales */}
-                            {activeRole === "EQ_NORMATIVA" && solicitud.estado === "En revisión normativa" && !tieneInforme && (
-                              <Button
-                                variant="primary"
-                                size="sm"
-                                onClick={() => setSolicitudReviewing(solicitud)}
-                                className="h-8 px-3 text-xs gap-1 font-semibold bg-amber-600 hover:bg-amber-700 text-white"
-                              >
-                                <Scale className="size-3.5" />
-                                <span>Dictaminar</span>
-                              </Button>
-                            )}
-
-                            {/* Ver expediente en Drawer */}
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => setSolicitudReviewing(solicitud)}
-                              className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
+                              className="h-8 px-2 text-caption text-muted-foreground hover:text-foreground"
+                              title="Ver detalle de confidenciales"
                             >
                               <Eye className="size-3.5" />
                             </Button>
@@ -540,124 +614,62 @@ export function RevisionNormativaInteroperabilidadView() {
           </div>
         </Card>
 
-        {/* DIALOG: ASIGNAR REVISOR DE NORMATIVIDAD (DIRECTOR) */}
-        <Dialog open={!!solicitudToAssign} onOpenChange={(open) => !open && setSolicitudToAssign(null)}>
-          <DialogContent size="default">
-            <DialogHeader>
-              <DialogTitle className="text-lg font-bold text-foreground flex items-center gap-2">
-                <UserCheck className="size-5 text-amber-600" />
-                Asignar Revisor Jurídico de Normatividad
-              </DialogTitle>
-              <DialogDescription className="text-xs text-muted-foreground mt-1">
-                El Director de Normatividad asigna manualmente un revisor jurídico para dictaminar los campos confidenciales aprobados funcionalmente por Gestión.
-              </DialogDescription>
-            </DialogHeader>
-
-            {solicitudToAssign && (
-              <div className="space-y-4 my-2 text-xs">
-                <div className="p-3 rounded-xl bg-muted/30 border border-border space-y-1.5">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Solicitud:</span>
-                    <strong className="text-foreground font-mono">{solicitudToAssign.id}</strong>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Institución:</span>
-                    <strong className="text-foreground">{solicitudToAssign.institucion}</strong>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Fuente:</span>
-                    <strong className="text-foreground truncate max-w-[220px]">{solicitudToAssign.fuentePrincipal}</strong>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="font-semibold text-foreground block">
-                    Seleccione Especialista Jurídico de Normatividad:
-                  </label>
-                  <div className="space-y-2">
-                    {REVISORES_NORMATIVA.map((rev) => {
-                      const isSel = selectedRevisorNormId === rev.id;
-                      return (
-                        <button
-                          type="button"
-                          key={rev.id}
-                          onClick={() => setSelectedRevisorNormId(rev.id)}
-                          className={cn(
-                            "w-full flex items-center justify-between p-3 rounded-xl border text-left cursor-pointer transition-all",
-                            isSel
-                              ? "border-amber-500 bg-amber-500/10 text-foreground ring-1 ring-amber-500/40"
-                              : "border-border bg-background hover:bg-muted/40 text-muted-foreground"
-                          )}
-                        >
-                          <div>
-                            <p className="font-bold text-foreground text-xs">{rev.nombre}</p>
-                            <p className="text-[11px] text-muted-foreground">{rev.cargo} · {rev.especialidad}</p>
-                          </div>
-                          {isSel && <CheckCircle2 className="size-4 text-amber-600" />}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <DialogFooter className="pt-2 border-t border-border/60">
-              <Button variant="outline" size="sm" onClick={() => setSolicitudToAssign(null)}>
-                Cancelar
-              </Button>
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={handleConfirmarAsignacionNormativa}
-                className="bg-amber-600 hover:bg-amber-700 text-white font-semibold gap-1.5"
-              >
-                <UserCheck className="size-4" />
-                <span>Confirmar asignación jurídica</span>
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* SHEET / DRAWER: DICTAMEN JURÍDICO DE CAMPOS CONFIDENCIALES */}
-        <Sheet open={!!solicitudReviewing} onOpenChange={(open) => !open && setSolicitudReviewing(null)}>
-          <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto p-6 space-y-6">
+        {/* SHEET: REVISIÓN DE CAMPOS CONFIDENCIALES Y DICTAMEN DEL REVISOR */}
+        <Sheet
+          open={Boolean(solicitudReviewing)}
+          onOpenChange={(open) => !open && setSolicitudReviewing(null)}
+        >
+          <SheetContent
+            side="right"
+            className="w-full sm:max-w-2xl overflow-y-auto p-6 space-y-6"
+          >
             {solicitudReviewing && (
               <>
-                <SheetHeader className="pb-4 border-b border-border/70 text-left">
+                <SheetHeader className="pb-4 border-b border-border text-left">
                   <div className="flex items-center justify-between">
-                    <span className="font-mono font-bold text-base text-foreground">
+                    <span className="font-mono font-bold text-body text-foreground">
                       {solicitudReviewing.id}
                     </span>
-                    <Badge tone="warning" appearance="soft" size="sm" className="gap-1">
+                    <Badge
+                      tone="warning"
+                      appearance="soft"
+                      size="sm"
+                      className="gap-1"
+                    >
                       <Lock className="size-3" />
-                      Evaluación Jurídica Especializada
+                      Revisar Confidenciales (Equipo de Normatividad)
                     </Badge>
                   </div>
-                  <SheetTitle className="text-xl font-bold text-foreground">
-                    Expediente en Normatividad
+                  <SheetTitle className="text-h3 font-bold text-foreground">
+                    Evaluación Jurídica de Campos Confidenciales
                   </SheetTitle>
-                  <SheetDescription className="text-xs text-muted-foreground">
-                    Examen exclusivo de los campos confidenciales, finalidades, justificaciones jurídicas y documentos normativos.
+                  <SheetDescription className="text-caption text-muted-foreground">
+                    Examine la finalidad y justificación legal de cada campo
+                    confidencial para aprobar (emitiendo y firmando informe) u
+                    observar (otorgando 3 días hábiles).
                   </SheetDescription>
                 </SheetHeader>
 
-                {/* Resumen de aprobación por Gestión */}
-                <div className="p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 space-y-1 text-xs">
+                <div className="p-3.5 rounded-lg border border-success/30 bg-success/10 space-y-1 text-caption">
                   <div className="flex items-center gap-1.5 font-bold text-foreground">
-                    <CheckCircle2 className="size-4 text-emerald-600" />
-                    <span>Aprobado funcionalmente por Gestión</span>
+                    <CheckCircle2 className="size-4 text-success" />
+                    <span>Aprobado previamente por Equipo de Gestión</span>
                   </div>
-                  <p className="text-[11px] text-muted-foreground">
-                    Gestión validó la pertinencia técnica, modalidad ({solicitudReviewing.modalidadAprobada || solicitudReviewing.modalidad}) y cupo ({solicitudReviewing.cupoAprobado || solicitudReviewing.cupo} reg.).
+                  <p className="text-caption text-muted-foreground">
+                    Gestión aprobó la pertinencia técnica, modalidad (
+                    {solicitudReviewing.modalidadAprobada ||
+                      solicitudReviewing.modalidad}
+                    ) y cupo (
+                    {solicitudReviewing.cupoAprobado ||
+                      solicitudReviewing.cupo}{" "}
+                    reg.).
                   </p>
                 </div>
 
-                {/* Lista detallada de campos confidenciales */}
                 <div className="space-y-3">
-                  <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5">
-                    <Scale className="size-4 text-amber-600" />
-                    Campos Confidenciales Sujetos a Dictamen
+                  <h3 className="text-body-sm font-bold text-foreground flex items-center gap-1.5">
+                    <Scale className="size-4 text-warning" />
+                    Campos Confidenciales Sujetos a Revisión
                   </h3>
 
                   <div className="space-y-3">
@@ -666,30 +678,33 @@ export function RevisionNormativaInteroperabilidadView() {
                       .map((campo) => (
                         <div
                           key={campo.id}
-                          className="p-3.5 rounded-xl border border-amber-500/30 bg-amber-500/5 space-y-2 text-xs"
+                          className="p-3.5 rounded-lg border border-warning/30 bg-warning/5 space-y-2 text-caption"
                         >
                           <div className="flex items-center justify-between">
-                            <span className="font-mono font-bold text-foreground">{campo.nombre}</span>
-                            <Badge tone="warning" appearance="soft" size="sm" className="text-[10px]">
+                            <span className="font-mono font-bold text-foreground">
+                              {campo.nombre}
+                            </span>
+                            <Badge tone="warning" appearance="soft" size="sm">
                               Confidencial
                             </Badge>
                           </div>
 
-                          <div className="p-2.5 rounded-lg bg-background border border-border/70 space-y-1">
-                            <span className="text-[10px] font-bold text-muted-foreground uppercase">
+                          <div className="p-2.5 rounded-lg bg-background border border-border space-y-1">
+                            <span className="text-caption font-bold text-muted-foreground uppercase">
                               Finalidad de uso declarada:
                             </span>
-                            <p className="text-foreground text-[11px] leading-relaxed">
+                            <p className="text-foreground text-caption leading-relaxed">
                               {campo.finalidad}
                             </p>
                           </div>
 
-                          <div className="p-2.5 rounded-lg bg-background border border-border/70 space-y-1">
-                            <span className="text-[10px] font-bold text-amber-800 dark:text-amber-300 uppercase">
-                              Justificación jurídica presentada:
+                          <div className="p-2.5 rounded-lg bg-background border border-border space-y-1">
+                            <span className="text-caption font-bold text-warning uppercase">
+                              Justificación jurídica presentada (LOPDP):
                             </span>
-                            <p className="text-foreground text-[11px] leading-relaxed">
-                              {campo.fundamento || "Base legal conforme Ley Orgánica de Protección de Datos Personales (LOPDP)."}
+                            <p className="text-foreground text-caption leading-relaxed">
+                              {campo.fundamento ||
+                                "Base legal conforme Ley Orgánica de Protección de Datos Personales (LOPDP)."}
                             </p>
                           </div>
                         </div>
@@ -697,64 +712,70 @@ export function RevisionNormativaInteroperabilidadView() {
                   </div>
                 </div>
 
-                {/* Informe y Firmas si ya existen */}
                 {solicitudReviewing.informeNormativa && (
-                  <div className="p-4 rounded-xl border border-border bg-muted/20 space-y-2 text-xs">
+                  <div className="p-4 rounded-lg border border-border bg-muted/20 space-y-2 text-caption">
                     <div className="flex items-center justify-between">
                       <span className="font-bold text-foreground flex items-center gap-1.5">
                         <FileText className="size-4 text-primary" />
-                        {solicitudReviewing.informeNormativa.numero} - {solicitudReviewing.informeNormativa.titulo}
+                        {solicitudReviewing.informeNormativa.numero} -{" "}
+                        {solicitudReviewing.informeNormativa.titulo}
                       </span>
-                      <span className="text-[10px] font-mono text-muted-foreground">
+                      <span className="font-mono text-muted-foreground">
                         {solicitudReviewing.informeNormativa.fechaEmision}
                       </span>
                     </div>
-                    <p className="text-[11px] text-muted-foreground italic">
-                      &ldquo;{solicitudReviewing.informeNormativa.fundamento}&rdquo;
+                    <p className="text-muted-foreground italic">
+                      &ldquo;{solicitudReviewing.informeNormativa.fundamento}
+                      &rdquo;
                     </p>
-                    <div className="pt-2 border-t border-border/60 flex items-center justify-between">
-                      <span className="text-muted-foreground">Firma Revisor:</span>
+                    <div className="pt-2 border-t border-border flex items-center justify-between">
+                      <span className="text-muted-foreground">
+                        1.ª Firma (Revisor):
+                      </span>
                       <Badge tone="success" appearance="soft" size="sm">
-                        {solicitudReviewing.informeNormativa.revisorNombre} (Firmado)
+                        {solicitudReviewing.informeNormativa.revisorNombre}{" "}
+                        (Firmado)
                       </Badge>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Firma Director:</span>
+                      <span className="text-muted-foreground">
+                        2.ª Firma (Director):
+                      </span>
                       {solicitudReviewing.informeNormativa.firmadoDirector ? (
                         <Badge tone="success" appearance="soft" size="sm">
-                          {solicitudReviewing.informeNormativa.directorNombre} (Firmado)
+                          {solicitudReviewing.informeNormativa.directorNombre}{" "}
+                          (Firmado)
                         </Badge>
                       ) : (
                         <Badge tone="warning" appearance="soft" size="sm">
-                          Pendiente de firma
+                          En bandeja del Director (/revision-normativa/asignacion)
                         </Badge>
                       )}
                     </div>
                   </div>
                 )}
 
-                {/* Acciones de decisión jurídica del Revisor */}
-                {activeRole === "EQ_NORMATIVA" &&
-                  solicitudReviewing.estado === "En revisión normativa" &&
+                {/* Compuerta BPMN: ¿Normatividad aprueba? */}
+                {solicitudReviewing.estado === "En revisión normativa" &&
                   !solicitudReviewing.informeNormativa && (
                     <div className="pt-4 border-t border-border flex items-center justify-end gap-2.5">
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => setIsObservarModalOpen(true)}
-                        className="border-amber-500/40 text-amber-700 dark:text-amber-300 hover:bg-amber-500/10 font-semibold"
+                        className="font-semibold gap-1"
                       >
-                        <AlertTriangle className="size-3.5 mr-1" />
-                        Observar jurídicamente
+                        <AlertTriangle className="size-3.5 text-warning" />
+                        <span>Observar (3 días hábiles)</span>
                       </Button>
                       <Button
                         variant="primary"
                         size="sm"
                         onClick={() => setIsAprobarModalOpen(true)}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold gap-1.5"
+                        className="font-semibold gap-1.5"
                       >
                         <CheckCircle2 className="size-3.5" />
-                        Aprobar y emitir informe
+                        <span>Aprobar y firmar informe (Revisor)</span>
                       </Button>
                     </div>
                   )}
@@ -763,97 +784,119 @@ export function RevisionNormativaInteroperabilidadView() {
           </SheetContent>
         </Sheet>
 
-        {/* MODAL: OBSERVAR JURÍDICAMENTE (NORMATIVIDAD) */}
-        <Dialog open={isObservarModalOpen} onOpenChange={setIsObservarModalOpen}>
+        {/* MODAL: OBSERVAR JURÍDICAMENTE (3 DÍAS HÁBILES) */}
+        <Dialog
+          open={isObservarModalOpen}
+          onOpenChange={setIsObservarModalOpen}
+        >
           <DialogContent size="default">
             <DialogHeader>
-              <DialogTitle className="text-base font-bold text-foreground flex items-center gap-2">
-                <AlertTriangle className="size-5 text-amber-600" />
-                Observar Expediente por Criterio Jurídico
+              <DialogTitle className="text-h3 font-bold text-foreground flex items-center gap-2">
+                <AlertTriangle className="size-5 text-warning" />
+                Notificar Observación Jurídica (3 días hábiles)
               </DialogTitle>
-              <DialogDescription className="text-xs text-muted-foreground mt-1">
-                Indique los fundamentos legales por los cuales no procede el acceso a los campos confidenciales o se requiere mayor sustento.
+              <DialogDescription className="text-caption text-muted-foreground mt-1">
+                Indique los fundamentos legales por los cuales debe subsanarse
+                la justificación de los campos confidenciales.
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-3 my-2 text-xs">
+            <div className="space-y-3 my-2 text-caption">
               <label className="font-semibold text-foreground block">
-                Observación y requerimiento jurídico de subsanación <span className="text-destructive">*</span>:
+                Observación jurídica para subsanación{" "}
+                <span className="text-danger">*</span>:
               </label>
               <Textarea
                 rows={4}
                 value={textoObservacionJuridica}
                 onChange={(e) => setTextoObservacionJuridica(e.target.value)}
-                placeholder="Indique con claridad qué disposición de la LOPDP no se cumple o qué justificación complementaria debe aportar el Coordinador..."
-                className="text-xs bg-background"
+                placeholder="Indique qué competencia legal o justificación LOPDP debe subsanar el Coordinador SINARP..."
+                className="text-caption bg-background"
               />
-              <div className="p-3 rounded-xl bg-amber-500/5 border border-amber-500/20 text-[11px] text-muted-foreground">
-                <strong>Regla de retorno:</strong> Cuando el Coordinador subsana esta observación jurídica, el expediente <strong>vuelve primero por la Dirección de Gestión</strong> antes de reingresar a Normatividad.
+              <div className="p-3 rounded-lg bg-warning/10 border border-warning/30 text-caption text-muted-foreground">
+                <strong className="text-foreground">Regla BPMN BN-07:</strong>{" "}
+                Se notifica plazo de <strong>3 días hábiles</strong> al
+                Coordinador SINARP. Toda corrección vuelve al{" "}
+                <strong>Director de Gestión</strong> para nueva asignación.
               </div>
             </div>
 
-            <DialogFooter className="pt-2 border-t border-border/60">
-              <Button variant="outline" size="sm" onClick={() => setIsObservarModalOpen(false)}>
+            <DialogFooter className="pt-2 border-t border-border">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsObservarModalOpen(false)}
+              >
                 Cancelar
               </Button>
               <Button
                 variant="primary"
                 size="sm"
                 onClick={handleConfirmarObservacionJuridica}
-                className="bg-amber-600 hover:bg-amber-700 text-white font-semibold"
+                className="font-semibold"
               >
-                Confirmar observación jurídica
+                Notificar observación (3 días hábiles)
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
 
-        {/* MODAL: APROBAR Y EMITIR INFORME DE NORMATIVIDAD */}
+        {/* MODAL: APROBAR Y FIRMAR INFORME COMO REVISOR */}
         <Dialog open={isAprobarModalOpen} onOpenChange={setIsAprobarModalOpen}>
           <DialogContent size="default">
             <DialogHeader>
-              <DialogTitle className="text-base font-bold text-foreground flex items-center gap-2">
-                <CheckCircle2 className="size-5 text-emerald-600" />
-                Emitir Informe de Aprobación de Normatividad
+              <DialogTitle className="text-h3 font-bold text-foreground flex items-center gap-2">
+                <CheckCircle2 className="size-5 text-success" />
+                Aprobar Confidenciales y Firmar Informe (1.ª Firma)
               </DialogTitle>
-              <DialogDescription className="text-xs text-muted-foreground mt-1">
-                Genera el informe jurídico oficial del Área de Normatividad y estampa la firma digital del Revisor.
+              <DialogDescription className="text-caption text-muted-foreground mt-1">
+                Emite el informe jurídico-normativo con la firma del Revisor y
+                lo remite al Director de Normatividad para la segunda firma.
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-3 my-2 text-xs">
+            <div className="space-y-3 my-2 text-caption">
               <label className="font-semibold text-foreground block">
-                Conclusiones y Dictamen Jurídico Vinculante:
+                Conclusiones y Dictamen Jurídico (LOPDP):
               </label>
               <Textarea
                 rows={3}
                 value={conclusionesInforme}
                 onChange={(e) => setConclusionesInforme(e.target.value)}
                 placeholder="Se determina que el tratamiento de los datos confidenciales solicitados cuenta con base jurídica habilitante conforme a la LOPDP..."
-                className="text-xs bg-background"
+                className="text-caption bg-background"
               />
 
-              <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-[11px] space-y-1">
-                <p className="font-bold text-foreground">Protocolo de doble firma digital:</p>
+              <div className="p-3 rounded-lg bg-success/10 border border-success/30 text-caption space-y-1">
+                <p className="font-bold text-foreground">
+                  Nodo BPMN: Firmar informe revisor y Director
+                </p>
                 <p className="text-muted-foreground leading-relaxed">
-                  1. Al presionar Confirmar, se registra la <strong>firma digital del Revisor de Normatividad</strong>.<br />
-                  2. Posteriormente, el <strong>Director de Normatividad</strong> deberá validar y firmar digitalmente el documento para que el expediente continúe hacia la formalización.
+                  1. Al confirmar, se estampa la{" "}
+                  <strong>1.ª firma (Revisor de Normatividad)</strong>.<br />
+                  2. El Director de Normatividad firmará en su bandeja (
+                  <code>/revision-normativa/asignacion</code>) para dejar la
+                  solicitud lista para formalización.
                 </p>
               </div>
             </div>
 
-            <DialogFooter className="pt-2 border-t border-border/60">
-              <Button variant="outline" size="sm" onClick={() => setIsAprobarModalOpen(false)}>
+            <DialogFooter className="pt-2 border-t border-border">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsAprobarModalOpen(false)}
+              >
                 Cancelar
               </Button>
               <Button
                 variant="primary"
                 size="sm"
                 onClick={handleConfirmarAprobacionJuridica}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold gap-1.5"
+                className="font-semibold gap-1.5"
               >
-                <FileSignature className="size-4" />
-                <span>Firmar digitalmente como Revisor</span>
+                <CheckCircle2 className="size-4" />
+                <span>Firmar como Revisor y enviar a Director</span>
               </Button>
             </DialogFooter>
           </DialogContent>

@@ -56,6 +56,8 @@ import { PublicarFuenteDialog } from "../components/publicar-fuente-dialog";
 import { FuenteFormDialog } from "../components/fuente-form-dialog";
 import { PrepararNuevaVersionDialog } from "../components/preparar-nueva-version-dialog";
 import { SolicitarBajaDialog } from "../components/solicitar-baja-dialog";
+import { ConfigurarConexionDialog } from "../components/configurar-conexion-dialog";
+import { DefinirEsquemaDialog } from "../components/definir-esquema-dialog";
 import { useFuentesStore } from "../data/fuentes-store";
 import {
   EstadoFuente,
@@ -119,6 +121,8 @@ export function FuentesInboxView({ currentUser, openNuevaOnInit = false }: Fuent
   const [modalidadFilter, setModalidadFilter] = useState<string>("TODOS");
   const [modalidadSearch, setModalidadSearch] = useState("");
   const [fuenteAPublicar, setFuenteAPublicar] = useState<FuenteDatos | null>(null);
+  const [fuenteAConectar, setFuenteAConectar] = useState<FuenteDatos | null>(null);
+  const [fuenteAEsquema, setFuenteAEsquema] = useState<FuenteDatos | null>(null);
   const [isFormModalOpen, setIsFormModalOpen] = useState(openNuevaOnInit);
   const [fuenteAEditar, setFuenteAEditar] = useState<FuenteDatos | null>(null);
   const [initialStepForModal, setInitialStepForModal] = useState<number>(0);
@@ -1128,9 +1132,7 @@ export function FuentesInboxView({ currentUser, openNuevaOnInit = false }: Fuent
                                       variant="ghost"
                                       size="icon-sm"
                                       onClick={() => {
-                                        setFuenteAEditar(fuente);
-                                        setInitialStepForModal(1);
-                                        setIsFormModalOpen(true);
+                                        setFuenteAConectar(fuente);
                                       }}
                                       className="text-primary hover:text-primary hover:bg-primary/10 cursor-pointer"
                                       aria-label={`Configurar conexión de ${fuente.nombre}`}
@@ -1138,7 +1140,7 @@ export function FuentesInboxView({ currentUser, openNuevaOnInit = false }: Fuent
                                       <Plug className="size-4" />
                                     </Button>
                                   </TooltipTrigger>
-                                  <TooltipContent side="top">Configurar conexión</TooltipContent>
+                                  <TooltipContent side="top">FUE-02: Configurar y probar conexión</TooltipContent>
                                 </Tooltip>
                               )}
 
@@ -1151,9 +1153,7 @@ export function FuentesInboxView({ currentUser, openNuevaOnInit = false }: Fuent
                                         variant="ghost"
                                         size="icon-sm"
                                         onClick={() => {
-                                          setFuenteAEditar(fuente);
-                                          setInitialStepForModal(1);
-                                          setIsFormModalOpen(true);
+                                          setFuenteAConectar(fuente);
                                         }}
                                         className="text-warning hover:text-warning hover:bg-warning/10 cursor-pointer"
                                         aria-label={`Corregir configuración de ${fuente.nombre}`}
@@ -1161,7 +1161,7 @@ export function FuentesInboxView({ currentUser, openNuevaOnInit = false }: Fuent
                                         <Wrench className="size-4" />
                                       </Button>
                                     </TooltipTrigger>
-                                    <TooltipContent side="top">Corregir configuración</TooltipContent>
+                                    <TooltipContent side="top">FUE-02: Corregir configuración de conexión</TooltipContent>
                                   </Tooltip>
 
                                   <Tooltip>
@@ -1176,7 +1176,7 @@ export function FuentesInboxView({ currentUser, openNuevaOnInit = false }: Fuent
                                         <RotateCw className="size-4" />
                                       </Button>
                                     </TooltipTrigger>
-                                    <TooltipContent side="top">Reintentar prueba</TooltipContent>
+                                    <TooltipContent side="top">FUE-02: Reintentar prueba de conexión</TooltipContent>
                                   </Tooltip>
                                 </>
                               )}
@@ -1189,9 +1189,7 @@ export function FuentesInboxView({ currentUser, openNuevaOnInit = false }: Fuent
                                       variant="ghost"
                                       size="icon-sm"
                                       onClick={() => {
-                                        setFuenteAEditar(fuente);
-                                        setInitialStepForModal(2);
-                                        setIsFormModalOpen(true);
+                                        setFuenteAEsquema(fuente);
                                       }}
                                       className="text-primary hover:text-primary hover:bg-primary/10 cursor-pointer"
                                       aria-label={`Definir esquema y campos de ${fuente.nombre}`}
@@ -1199,7 +1197,7 @@ export function FuentesInboxView({ currentUser, openNuevaOnInit = false }: Fuent
                                       <Layers className="size-4" />
                                     </Button>
                                   </TooltipTrigger>
-                                  <TooltipContent side="top">Definir esquema y campos</TooltipContent>
+                                  <TooltipContent side="top">FUE-03: Definir esquema y normalización</TooltipContent>
                                 </Tooltip>
                               )}
 
@@ -1212,9 +1210,7 @@ export function FuentesInboxView({ currentUser, openNuevaOnInit = false }: Fuent
                                         variant="ghost"
                                         size="icon-sm"
                                         onClick={() => {
-                                          setFuenteAEditar(fuente);
-                                          setInitialStepForModal(2);
-                                          setIsFormModalOpen(true);
+                                          setFuenteAEsquema(fuente);
                                         }}
                                         className="text-warning hover:text-warning hover:bg-warning/10 cursor-pointer"
                                         aria-label={`Corregir esquema de ${fuente.nombre}`}
@@ -1222,7 +1218,7 @@ export function FuentesInboxView({ currentUser, openNuevaOnInit = false }: Fuent
                                         <Layers className="size-4" />
                                       </Button>
                                     </TooltipTrigger>
-                                    <TooltipContent side="top">Corregir esquema</TooltipContent>
+                                    <TooltipContent side="top">FUE-03: Corregir esquema y normalización</TooltipContent>
                                   </Tooltip>
 
                                   <Tooltip>
@@ -1237,7 +1233,7 @@ export function FuentesInboxView({ currentUser, openNuevaOnInit = false }: Fuent
                                         <RotateCw className="size-4" />
                                       </Button>
                                     </TooltipTrigger>
-                                    <TooltipContent side="top">Volver a probar</TooltipContent>
+                                    <TooltipContent side="top">FUE-03: Volver a probar esquema</TooltipContent>
                                   </Tooltip>
                                 </>
                               )}
@@ -1256,7 +1252,7 @@ export function FuentesInboxView({ currentUser, openNuevaOnInit = false }: Fuent
                                       <Clock className="size-4" />
                                     </Button>
                                   </TooltipTrigger>
-                                  <TooltipContent side="top">En revisión por Gestión</TooltipContent>
+                                  <TooltipContent side="top">FUE-04: En revisión por Dirección de Gestión</TooltipContent>
                                 </Tooltip>
                               )}
 
@@ -1278,7 +1274,7 @@ export function FuentesInboxView({ currentUser, openNuevaOnInit = false }: Fuent
                                       <FileEdit className="size-4" />
                                     </Button>
                                   </TooltipTrigger>
-                                  <TooltipContent side="top">Continuar correcciones de borrador</TooltipContent>
+                                  <TooltipContent side="top">FUE-04: Continuar corrección de borrador devuelto</TooltipContent>
                                 </Tooltip>
                               )}
 
@@ -1296,7 +1292,7 @@ export function FuentesInboxView({ currentUser, openNuevaOnInit = false }: Fuent
                                       <Rocket className="size-4" />
                                     </Button>
                                   </TooltipTrigger>
-                                  <TooltipContent side="top">Publicar versión</TooltipContent>
+                                  <TooltipContent side="top">FUE-05: Publicar versión en API Gateway</TooltipContent>
                                 </Tooltip>
                               )}
 
@@ -1314,7 +1310,7 @@ export function FuentesInboxView({ currentUser, openNuevaOnInit = false }: Fuent
                                       <RotateCcw className="size-4" />
                                     </Button>
                                   </TooltipTrigger>
-                                  <TooltipContent side="top">Reintentar despliegue</TooltipContent>
+                                  <TooltipContent side="top">FUE-05: Reintentar despliegue en API Gateway</TooltipContent>
                                 </Tooltip>
                               )}
 
@@ -1332,7 +1328,7 @@ export function FuentesInboxView({ currentUser, openNuevaOnInit = false }: Fuent
                                       <Cpu className="size-4" />
                                     </Button>
                                   </TooltipTrigger>
-                                  <TooltipContent side="top">En homologación técnica por TI</TooltipContent>
+                                  <TooltipContent side="top">FUE-12: En proceso de homologación por TI</TooltipContent>
                                 </Tooltip>
                               )}
 
@@ -1363,7 +1359,7 @@ export function FuentesInboxView({ currentUser, openNuevaOnInit = false }: Fuent
                                       className="cursor-pointer gap-2 text-xs"
                                     >
                                       <GitFork className="size-4 text-primary" />
-                                      <span>Preparar nueva versión</span>
+                                      <span>FUE-06: Preparar nueva versión</span>
                                     </DropdownMenuItem>
                                     {responsableAutorizado && (
                                       <>
@@ -1376,7 +1372,7 @@ export function FuentesInboxView({ currentUser, openNuevaOnInit = false }: Fuent
                                           className="cursor-pointer gap-2 text-xs text-danger focus:text-danger focus:bg-danger/10"
                                         >
                                           <AlertOctagon className="size-4 text-danger" />
-                                          <span>Solicitar baja</span>
+                                          <span>FUE-08: Solicitar baja de fuente</span>
                                         </DropdownMenuItem>
                                       </>
                                     )}
@@ -1511,6 +1507,37 @@ export function FuentesInboxView({ currentUser, openNuevaOnInit = false }: Fuent
         }}
         onPublicada={() => {
           setFuenteAPublicar(null);
+        }}
+      />
+
+      {/* Dialog de Configurar y Probar Conexión (FUE-02) */}
+      <ConfigurarConexionDialog
+        fuente={fuenteAConectar}
+        open={!!fuenteAConectar}
+        onOpenChange={(open) => {
+          if (!open) setFuenteAConectar(null);
+        }}
+        onGuardado={() => {
+          setFuenteAConectar(null);
+        }}
+        onProcederAEsquema={(fuenteActualizada) => {
+          setFuenteAConectar(null);
+          setFuenteAEsquema(fuenteActualizada);
+        }}
+      />
+
+      {/* Dialog de Definir Esquema y Normalización (FUE-03) */}
+      <DefinirEsquemaDialog
+        fuente={fuenteAEsquema}
+        open={!!fuenteAEsquema}
+        onOpenChange={(open) => {
+          if (!open) setFuenteAEsquema(null);
+        }}
+        onGuardado={() => {
+          setFuenteAEsquema(null);
+        }}
+        onEnviarARevision={() => {
+          setFuenteAEsquema(null);
         }}
       />
 

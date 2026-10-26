@@ -136,13 +136,23 @@ export function PublicarFuenteDialog({
         {step === "confirm" && (
           <>
             <DialogHeader className="shrink-0">
-              <div className="flex items-center gap-2 mb-1">
-                <div className="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
-                  <Globe className="size-4" />
+              <div className="flex items-center justify-between gap-3 flex-wrap mb-1">
+                <div className="flex items-center gap-2">
+                  <div className="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                    <Globe className="size-4" />
+                  </div>
+                  <DialogTitle className="font-heading text-lg">
+                    FUE-05 — Publicar versión aprobada en API Gateway
+                  </DialogTitle>
                 </div>
-                <DialogTitle className="font-heading text-lg">
-                  Publicar fuente en el Catálogo
-                </DialogTitle>
+                <div className="flex items-center gap-2">
+                  <Badge tone="primary" appearance="soft" size="sm" className="font-mono text-[10px] font-bold">
+                    HU: FUE-05
+                  </Badge>
+                  <Badge tone="neutral" appearance="outline" size="sm" className="text-[10px]">
+                    BPM: Publicación (Paso 5)
+                  </Badge>
+                </div>
               </div>
               <DialogDescription className="text-xs">
                 La fuente ha sido aprobada por Gestión y está lista para su despliegue y puesta a disposición en el Catálogo Nacional.

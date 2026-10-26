@@ -220,11 +220,18 @@ const navItems: NavItem[] = [
     allowedRoles: ["DIR_NORMATIVA", "EQ_NORMATIVA", "ADMIN"],
   },
   {
+    id: "asignacion-normativa-fuentes",
+    label: "Asignación y firma de confidenciales",
+    icon: UserCheck,
+    href: "/revision-normativa/asignacion",
+    allowedRoles: ["DIR_NORMATIVA", "ADMIN"],
+  },
+  {
     id: "revision-normativa-fuentes",
-    label: "Revisión de fuentes confidenciales",
+    label: "Evaluación de fuentes confidenciales",
     icon: Lock,
     href: "/revision-normativa/fuentes",
-    allowedRoles: ["DIR_NORMATIVA", "EQ_NORMATIVA", "ADMIN"],
+    allowedRoles: ["EQ_NORMATIVA", "ADMIN"],
   },
 
   // ── Jurídica ──
@@ -307,6 +314,13 @@ const navItems: NavItem[] = [
     label: "Gestión de recuperaciones",
     icon: KeyRound,
     href: "/gestion-recuperaciones",
+    allowedRoles: ["ADMIN"],
+  },
+  {
+    id: "configuracion-financiera",
+    label: "Tarifario, Facturación y Pasarela",
+    icon: Receipt,
+    href: "/configuracion-financiera",
     allowedRoles: ["ADMIN"],
   },
 ];

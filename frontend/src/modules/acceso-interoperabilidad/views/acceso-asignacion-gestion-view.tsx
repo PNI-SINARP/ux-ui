@@ -63,6 +63,7 @@ import {
   ComboboxList,
   ComboboxItem,
 } from "@/components/ui/combobox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-button";
 import { WireframeDashboardLayout } from "@/components/layout/wireframes/wireframe-dashboard-layout";
 import {
   useSolicitudesStore,
@@ -201,7 +202,7 @@ export function AccesoAsignacionGestionView() {
     <WireframeDashboardLayout
       activeMenu="acceso-interoperabilidad-asignacion"
     >
-      <div className="w-full max-w-7xl 2xl:max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
+      <div className="layout-container py-6 sm:py-8 space-y-6">
         {/* Cabecera Principal */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
@@ -227,9 +228,9 @@ export function AccesoAsignacionGestionView() {
 
         {/* Banner de alerta: Solicitudes subsanadas pendientes de nueva asignación */}
         {metricas.pendientesNueva > 0 && (
-          <div className="p-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 flex items-start sm:items-center justify-between gap-4">
+          <div className="p-4 rounded-2xl border border-warning/30 bg-warning/10 flex items-start sm:items-center justify-between gap-4">
             <div className="flex items-start gap-3">
-              <AlertTriangle className="size-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5 sm:mt-0" />
+              <AlertTriangle className="size-5 text-warning shrink-0 mt-0.5 sm:mt-0" />
               <div>
                 <p className="text-sm font-bold text-foreground">
                   Atención requerida: {metricas.pendientesNueva} solicitud(es) subsanada(s) esperan nueva asignación
@@ -243,7 +244,7 @@ export function AccesoAsignacionGestionView() {
               variant="outline"
               size="sm"
               onClick={() => setEstadoFilter("Pendiente de nueva asignación")}
-              className="shrink-0 text-xs border-amber-500/40 text-amber-700 dark:text-amber-300 hover:bg-amber-500/15"
+              className="shrink-0 text-xs border-warning/40 text-warning hover:bg-warning/15"
             >
               Filtrar subsanadas
             </Button>
@@ -263,7 +264,7 @@ export function AccesoAsignacionGestionView() {
           </Card>
 
           <Card className="p-4 bg-surface border-border shadow-xs rounded-2xl flex items-center gap-3.5">
-            <div className="size-11 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+            <div className="size-11 rounded-xl bg-warning/10 text-warning flex items-center justify-center shrink-0">
               <Clock className="size-5" />
             </div>
             <div>
@@ -273,7 +274,7 @@ export function AccesoAsignacionGestionView() {
           </Card>
 
           <Card className="p-4 bg-surface border-border shadow-xs rounded-2xl flex items-center gap-3.5">
-            <div className="size-11 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+            <div className="size-11 rounded-xl bg-info/10 text-info flex items-center justify-center shrink-0">
               <RotateCcw className="size-5" />
             </div>
             <div>
@@ -283,7 +284,7 @@ export function AccesoAsignacionGestionView() {
           </Card>
 
           <Card className="p-4 bg-surface border-border shadow-xs rounded-2xl flex items-center gap-3.5">
-            <div className="size-11 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+            <div className="size-11 rounded-xl bg-success/10 text-success flex items-center justify-center shrink-0">
               <UserCheck className="size-5" />
             </div>
             <div>
@@ -528,7 +529,7 @@ export function AccesoAsignacionGestionView() {
                               }}
                               className={cn(
                                 "h-8 px-3 text-xs gap-1.5 font-semibold",
-                                isNuevaAsignacion && "bg-amber-600 hover:bg-amber-700 text-white"
+                                isNuevaAsignacion && "bg-warning hover:bg-warning/90 text-warning-foreground"
                               )}
                             >
                               <UserCheck className="size-3.5" />
@@ -592,8 +593,8 @@ export function AccesoAsignacionGestionView() {
 
                 {/* Aviso para solicitudes subsanadas */}
                 {solicitudToAssign.estado === "Pendiente de nueva asignación" && (
-                  <div className="p-3 rounded-xl border border-amber-500/30 bg-amber-500/10 flex items-start gap-2.5">
-                    <AlertTriangle className="size-4 text-amber-600 shrink-0 mt-0.5" />
+                  <div className="p-3 rounded-xl border border-warning/30 bg-warning/10 flex items-start gap-2.5">
+                    <AlertTriangle className="size-4 text-warning shrink-0 mt-0.5" />
                     <p className="text-[11px] text-muted-foreground leading-relaxed">
                       Esta solicitud fue <strong>subsanada por el Coordinador</strong> (versión v{solicitudToAssign.versionExpediente || 2}). Por estándar del proceso, requiere una nueva asignación formal que quedará debidamente registrada en la auditoría.
                     </p>
@@ -605,14 +606,17 @@ export function AccesoAsignacionGestionView() {
                   <label className="font-semibold text-foreground block">
                     Seleccione persona activa del Equipo de Gestión <span className="text-destructive">*</span>
                   </label>
-                  <div className="grid grid-cols-1 gap-2.5">
+                  <RadioGroup
+                    value={selectedRevisorId}
+                    onValueChange={setSelectedRevisorId}
+                    className="grid grid-cols-1 gap-2.5"
+                  >
                     {REVISORES_GESTION.map((rev) => {
                       const isSel = selectedRevisorId === rev.id;
                       return (
-                        <button
-                          type="button"
+                        <label
                           key={rev.id}
-                          onClick={() => setSelectedRevisorId(rev.id)}
+                          htmlFor={`revisor-gest-${rev.id}`}
                           className={cn(
                             "flex items-center justify-between p-3 rounded-xl border text-left transition-all cursor-pointer",
                             isSel
@@ -621,6 +625,7 @@ export function AccesoAsignacionGestionView() {
                           )}
                         >
                           <div className="flex items-center gap-3">
+                            <RadioGroupItem value={rev.id} id={`revisor-gest-${rev.id}`} />
                             <div className={cn(
                               "size-8 rounded-full flex items-center justify-center font-bold text-xs",
                               isSel ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"
@@ -637,10 +642,10 @@ export function AccesoAsignacionGestionView() {
                             </div>
                           </div>
                           {isSel && <CheckCircle2 className="size-4 text-primary shrink-0" />}
-                        </button>
+                        </label>
                       );
                     })}
-                  </div>
+                  </RadioGroup>
                 </div>
 
                 {solicitudToAssign.revisorAsignado && (
@@ -809,8 +814,8 @@ export function AccesoAsignacionGestionView() {
                         </div>
 
                         {campo.clasificacion === "Confidencial" && (
-                          <div className="p-2.5 rounded-lg bg-amber-500/5 border border-amber-500/30 space-y-1">
-                            <span className="text-[10px] font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wide block">
+                          <div className="p-2.5 rounded-lg bg-warning/5 border border-warning/30 space-y-1">
+                            <span className="text-[10px] font-semibold text-warning uppercase tracking-wide block">
                               Justificación jurídica presentada:
                             </span>
                             <p className="text-[11px] text-foreground leading-relaxed">
