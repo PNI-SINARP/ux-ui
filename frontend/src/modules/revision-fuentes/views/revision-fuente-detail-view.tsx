@@ -152,71 +152,102 @@ export function RevisionFuenteDetailView({ currentUser }: RevisionFuenteDetailVi
           className="bg-surface rounded-2xl border border-border shadow-xs flex-1 min-h-0 overflow-hidden flex flex-col my-0"
           innerClassName="p-4 sm:p-6 lg:p-8 flex flex-col gap-6 overflow-y-auto flex-1 min-h-0 w-full"
         >
-          {/* Top Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border">
-            <div className="flex items-center gap-3">
-              <Link href="/revision-fuentes">
-                <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-foreground">
-                  <ArrowLeft className="size-4" />
-                </Button>
-              </Link>
+          {/* Cabecera del expediente de revisión */}
+          <div className="flex flex-col gap-4 pb-4 border-b border-border/80">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h1 className="font-heading font-extrabold text-2xl tracking-tight text-primary">
-                    Revisión de Fuente: {fuente.nombre}
-                  </h1>
-                  <span className="font-mono text-xs text-muted-foreground bg-muted/40 px-2 py-0.5 rounded border border-border">
-                    {fuente.id}
-                  </span>
-                  {getEstadoBadge(fuente.estado)}
-                </div>
-                <p className="text-xs sm:text-sm text-muted-foreground flex items-center gap-2 mt-1">
-                  <Building2 className="size-3.5 text-primary" />
-                  <span>Institución proveedora: <strong className="text-foreground">{fuente.institucion_proveedora_nombre}</strong></span>
-                  <span>•</span>
-                  <span>Versión propuesta: <strong className="font-mono text-foreground">{fuente.version_propuesta}</strong></span>
-                </p>
+                <Button
+                  variant="neutral"
+                  size="sm"
+                  asChild
+                  leftIcon={<ArrowLeft className="size-4" />}
+                >
+                  <Link href="/revision-fuentes">
+                    Volver a revisión de fuentes
+                  </Link>
+                </Button>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  variant="neutral"
+                  size="sm"
+                  asChild
+                  leftIcon={<FolderCheck className="size-3.5" />}
+                >
+                  <Link href={`/fuentes/${fuente.id}`}>
+                    Ver expediente completo de fuente
+                  </Link>
+                </Button>
               </div>
             </div>
 
-            {/* Acciones de Decisión FUE-04 */}
-            <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
-              {isEnRevision ? (
-                <>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsDevolverOpen(true)}
-                    className="gap-1.5 text-warning hover:text-warning hover:border-warning/50 h-9 cursor-pointer"
-                  >
-                    <AlertTriangle className="size-3.5" />
-                    <span>Devolver con observaciones</span>
-                  </Button>
-
-                  <Button
-                    type="button"
-                    variant="primary"
-                    size="sm"
-                    onClick={() => setIsAprobarOpen(true)}
-                    disabled={!canApprove}
-                    className="gap-2 shadow-xs h-9 cursor-pointer"
-                    title={
-                      !canApprove
-                        ? `Debe clasificar todos los campos (${camposSinClasificar.length} pendientes)`
-                        : "Aprobar fuente y validar esquema"
-                    }
-                  >
-                    <CheckCircle2 className="size-4" />
-                    <span>Aprobar fuente</span>
-                  </Button>
-                </>
-              ) : (
-                <div className="text-xs text-muted-foreground italic flex items-center gap-1.5 bg-muted/20 px-3 py-1.5 rounded-lg border border-border">
-                  <FileCheck className="size-3.5 text-primary" />
-                  <span>Esta fuente ya fue dictaminada ({fuente.estado.replace("_", " ")}).</span>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <h1 className="font-heading font-extrabold text-2xl sm:text-3xl tracking-tight text-foreground break-words">
+                    Revisión de Fuente: {fuente.nombre}
+                  </h1>
+                  {getEstadoBadge(fuente.estado)}
                 </div>
-              )}
+                <p className="text-xs sm:text-sm text-muted-foreground truncate sm:whitespace-normal">
+                  Dictamen técnico y clasificación de accesibilidad de campos para publicación en catálogo (FUE-04).
+                </p>
+                <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground pt-1">
+                  <span className="font-mono bg-muted/60 px-2 py-0.5 rounded text-[11px] text-foreground font-semibold">
+                    ID: {fuente.id}
+                  </span>
+                  <span>•</span>
+                  <span className="flex items-center gap-1.5">
+                    <Building2 className="size-3.5 text-muted-foreground" />
+                    {fuente.institucion_proveedora_nombre}
+                  </span>
+                  <span>•</span>
+                  <span>
+                    Versión propuesta: <strong className="font-mono text-foreground">{fuente.version_propuesta}</strong>
+                  </span>
+                </div>
+              </div>
+
+              {/* Acciones de Decisión FUE-04 */}
+              <div className="flex flex-wrap items-center gap-2">
+                {isEnRevision ? (
+                  <>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsDevolverOpen(true)}
+                      leftIcon={<AlertTriangle className="size-3.5" />}
+                      className="gap-1.5 text-warning hover:text-warning hover:border-warning/50 h-9 cursor-pointer"
+                    >
+                      Devolver con observaciones
+                    </Button>
+
+                    <Button
+                      type="button"
+                      variant="primary"
+                      size="sm"
+                      onClick={() => setIsAprobarOpen(true)}
+                      disabled={!canApprove}
+                      leftIcon={<CheckCircle2 className="size-4" />}
+                      className="gap-2 shadow-xs h-9 cursor-pointer"
+                      title={
+                        !canApprove
+                          ? `Debe clasificar todos los campos (${camposSinClasificar.length} pendientes)`
+                          : "Aprobar fuente y validar esquema"
+                      }
+                    >
+                      Aprobar fuente
+                    </Button>
+                  </>
+                ) : (
+                  <div className="text-xs text-muted-foreground italic flex items-center gap-1.5 bg-muted/20 px-3 py-1.5 rounded-lg border border-border">
+                    <FileCheck className="size-3.5 text-primary" />
+                    <span>Esta fuente ya fue dictaminada ({fuente.estado.replace("_", " ")}).</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -256,36 +287,32 @@ export function RevisionFuenteDetailView({ currentUser }: RevisionFuenteDetailVi
             historial={fuente.historial}
           />
 
-          {/* Selector de Pestaña Principal UI Kit */}
+          {/* Navegación por pestañas del expediente */}
           <Tabs
             value={activeTab}
             onValueChange={(val) => setActiveTab(val as "revision" | "historial")}
-            className="w-full space-y-6"
+            className="w-full space-y-4"
           >
-            <div className="overflow-x-auto w-full -mx-1 px-1 scrollbar-none">
-              <TabsList className="h-auto p-1 rounded-full bg-surface-subtle border border-border/60 inline-flex gap-1 w-max justify-start flex-nowrap shadow-2xs">
-                <TabsTrigger
-                  value="revision"
-                  className="px-4 py-2 text-xs font-bold gap-2 rounded-full cursor-pointer"
-                >
-                  <ShieldCheck className="size-3.5" />
-                  <span>Evaluación Técnica y Clasificación</span>
-                  {camposSinClasificar.length > 0 && isEnRevision && (
-                    <Badge tone="warning" appearance="solid" size="sm" className="ml-1">
-                      {camposSinClasificar.length} pendientes
-                    </Badge>
-                  )}
-                </TabsTrigger>
+            <TabsList className="bg-muted/40 p-1 rounded-xl w-full sm:w-auto flex flex-wrap">
+              <TabsTrigger
+                value="revision"
+                className="text-xs font-semibold px-4 py-2"
+              >
+                Evaluación técnica y clasificación
+                {camposSinClasificar.length > 0 && isEnRevision && (
+                  <Badge tone="warning" appearance="solid" size="sm" className="ml-1.5">
+                    {camposSinClasificar.length} pendientes
+                  </Badge>
+                )}
+              </TabsTrigger>
 
-                <TabsTrigger
-                  value="historial"
-                  className="px-4 py-2 text-xs font-bold gap-2 rounded-full cursor-pointer"
-                >
-                  <History className="size-3.5" />
-                  <span>Historial ({fuente.historial.length})</span>
-                </TabsTrigger>
-              </TabsList>
-            </div>
+              <TabsTrigger
+                value="historial"
+                className="text-xs font-semibold px-4 py-2"
+              >
+                Historial ({fuente.historial.length})
+              </TabsTrigger>
+            </TabsList>
 
             <TabsContent value="revision" className="space-y-6 animate-in fade-in duration-200 outline-none">
               {/* Card 1: Resumen General */}

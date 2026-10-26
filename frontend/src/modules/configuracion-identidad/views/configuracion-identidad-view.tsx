@@ -357,10 +357,6 @@ export function ConfiguracionIdentidadView() {
     <WireframeDashboardLayout
       activeMenu="configuracion-identidad"
       currentRole="ADMIN"
-      breadcrumbs={[
-        { label: "Administración" },
-        { label: "Configuración de Identidad" },
-      ]}
     >
       <div className="w-full space-y-6 p-4 sm:p-6 lg:p-8 animate-fade-in max-w-7xl mx-auto">
         {/* Cabecera Principal con Identidad y Rol Técnico */}

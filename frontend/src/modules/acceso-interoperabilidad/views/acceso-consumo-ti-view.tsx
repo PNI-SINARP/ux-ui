@@ -116,10 +116,6 @@ export function AccesoConsumoTIView() {
     <WireframeDashboardLayout
       activeMenu="acceso-consumo-ti"
       currentRole="TI"
-      breadcrumbs={[
-        { label: "Infraestructura y Seguridad", href: "/acceso-consumo" },
-        { label: "Aprovisionamiento Técnico de Acceso" },
-      ]}
     >
       <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-6">
         {/* Encabezado */}

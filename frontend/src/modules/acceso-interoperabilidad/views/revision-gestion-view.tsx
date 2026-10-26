@@ -131,10 +131,6 @@ export function RevisionGestionView() {
   return (
     <WireframeDashboardLayout
       activeMenu="revision-gestion"
-      breadcrumbs={[
-        { label: "Acceso a Interoperabilidad", href: "/acceso-interoperabilidad/solicitudes" },
-        { label: "Revisión Funcional de Gestión" },
-      ]}
       headerSlot={
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground hidden sm:inline">Revisor activo:</span>

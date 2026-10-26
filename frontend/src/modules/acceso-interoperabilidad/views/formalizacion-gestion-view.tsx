@@ -153,10 +153,6 @@ export function FormalizacionGestionView() {
     <WireframeDashboardLayout
       activeMenu="formalizacion-gestion"
       currentRole="DIR_GESTION"
-      breadcrumbs={[
-        { label: "Interoperabilidad", href: "/asignacion-solicitudes" },
-        { label: "Formalización y Aprobación Final" },
-      ]}
     >
       <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-6">
         {/* Cabecera Principal */}

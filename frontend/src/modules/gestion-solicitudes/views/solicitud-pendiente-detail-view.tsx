@@ -387,7 +387,7 @@ export function SolicitudPendienteDetailView({ id }: SolicitudPendienteDetailVie
 
   if (!solicitud) {
     return (
-      <WireframeDashboardLayout breadcrumbs={[{ label: activeSectionTitle }]}>
+      <WireframeDashboardLayout breadcrumbs={[{ label: activeSectionTitle, onClick: () => router.push("/solicitudes-pendientes") }, { label: "Cargando..." }]}>
         <div className="p-8 text-center text-xs text-muted-foreground">Cargando datos del trámite...</div>
       </WireframeDashboardLayout>
     );

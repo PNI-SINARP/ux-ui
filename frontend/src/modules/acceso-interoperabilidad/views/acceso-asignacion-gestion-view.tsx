@@ -200,10 +200,6 @@ export function AccesoAsignacionGestionView() {
   return (
     <WireframeDashboardLayout
       activeMenu="acceso-interoperabilidad-asignacion"
-      breadcrumbs={[
-        { label: "Acceso a Interoperabilidad", href: "/acceso-interoperabilidad/solicitudes" },
-        { label: "Bandeja de Asignación de Gestión" },
-      ]}
     >
       <div className="w-full max-w-7xl 2xl:max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
         {/* Cabecera Principal */}

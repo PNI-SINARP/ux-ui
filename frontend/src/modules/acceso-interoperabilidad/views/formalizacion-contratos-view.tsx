@@ -165,10 +165,6 @@ export function FormalizacionContratosView() {
     <WireframeDashboardLayout
       activeMenu="formalizacion-contratos"
       currentRole="JURIDICA"
-      breadcrumbs={[
-        { label: "Formalización", href: "/formalizacion" },
-        { label: "Gestión de Contratos Privados" },
-      ]}
     >
       <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-6">
         {/* Encabezado */}

@@ -512,11 +512,6 @@ export function AccesoSolicitudesView() {
       activeMenu="acceso-interoperabilidad"
       currentUser={MOCK_USERS_BY_ROLE[role]}
       currentRole={role}
-      
-      breadcrumbs={[
-        { label: "Acceso a Interoperabilidad", href: "/acceso-interoperabilidad/solicitudes" },
-        { label: headerInfo.breadcrumb }
-      ]}
       headerSlot={
         <div className="flex items-center gap-2" id="role-selector-tour">
           <Combobox

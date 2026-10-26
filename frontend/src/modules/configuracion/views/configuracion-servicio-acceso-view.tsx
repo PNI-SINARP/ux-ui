@@ -160,10 +160,6 @@ export function ConfiguracionServicioAccesoView() {
   return (
     <WireframeDashboardLayout
       activeMenu="configuracion-acceso"
-      breadcrumbs={[
-        { label: "Configuración" },
-        { label: "Servicio de acceso" }
-      ]}
     >
       <div className="w-full space-y-6 p-4 sm:p-6 lg:p-8 animate-fade-in">
         {/* Cabecera Principal */}

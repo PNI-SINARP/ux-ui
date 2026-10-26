@@ -233,10 +233,6 @@ export function RevisionNormativaInteroperabilidadView() {
   return (
     <WireframeDashboardLayout
       activeMenu="revision-normativa-fuentes"
-      breadcrumbs={[
-        { label: "Área de Normatividad", href: "/revision-normativa/fuentes" },
-        { label: "Evaluación Jurídica de Datos Confidenciales (BN-07)" },
-      ]}
       headerSlot={
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground hidden sm:inline">Perfil Normatividad:</span>

@@ -233,6 +233,31 @@ export function useHomologacionStore() {
     return { success: true };
   }, []);
 
+  const agregarEvidencia = useCallback((casoId: string, textoEvidencia: string, responsable?: string) => {
+    const current = getStoredCasos();
+    const idx = current.findIndex((c) => c.id_caso.toLowerCase() === casoId.toLowerCase());
+    if (idx === -1) return { success: false, error: "Caso no encontrado." };
+
+    const target = current[idx];
+    const now = new Date().toISOString();
+
+    const updatedCaso: HomologacionCaso = {
+      ...target,
+      fecha_actualizacion: now,
+      evidencias_pruebas: [
+        ...(target.evidencias_pruebas || []),
+        `[${new Date().toLocaleTimeString("es-EC", { hour: "2-digit", minute: "2-digit" })}] ${textoEvidencia} (Registrado por: ${responsable || "Equipo TI DINARP"})`,
+      ],
+    };
+
+    const updatedCasos = [...current];
+    updatedCasos[idx] = updatedCaso;
+    saveStoredCasos(updatedCasos);
+    setCasos(updatedCasos);
+
+    return { success: true };
+  }, []);
+
   const restablecerDatosDemo = useCallback(() => {
     saveStoredCasos(CASOS_HOMOLOGACION_INICIALES);
     setCasos(CASOS_HOMOLOGACION_INICIALES);
@@ -246,6 +271,7 @@ export function useHomologacionStore() {
     aprobarHomologacion,
     rechazarHomologacion,
     reintentarHomologacion,
+    agregarEvidencia,
     restablecerDatosDemo,
   };
 }

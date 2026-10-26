@@ -1,4 +1,4 @@
-import { FuentesInboxView } from "@/modules/fuentes/views/fuentes-inbox-view";
+import { NuevaFuenteWizardView } from "@/modules/fuentes/views/nueva-fuente-wizard-view";
 
 export const metadata = {
   title: "Nueva Fuente de Información | Portal PNI-SINARP",
@@ -6,5 +6,6 @@ export const metadata = {
 };
 
 export default function NuevaFuentePage() {
-  return <FuentesInboxView openNuevaOnInit={true} />;
+  return <NuevaFuenteWizardView />;
 }
+

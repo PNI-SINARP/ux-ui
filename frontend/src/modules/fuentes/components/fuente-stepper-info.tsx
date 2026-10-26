@@ -148,7 +148,7 @@ export function FuenteStepperInfo({
 
       <div className="space-y-1.5">
         <Label htmlFor="descripcion" className="text-xs font-semibold text-foreground">
-          Descripción técnica y alcance funcional (PAR-07) <span className="text-danger">*</span>
+          Descripción funcional de la fuente <span className="text-danger">*</span>
         </Label>
         <Textarea
           id="descripcion"
@@ -268,7 +268,7 @@ export function FuenteStepperInfo({
               <div className="p-2.5 rounded-lg bg-warning/10 border border-warning/30 text-warning text-[11px] flex items-start gap-2">
                 <AlertCircle className="size-4 shrink-0 mt-0.5" />
                 <span>
-                  <strong>Restricción FUE-04:</strong> Declarar datos &quot;Real&quot; o &quot;Indeterminado&quot; inhabilita consultas en ambiente de Pruebas. Solo se autorizará para Producción.
+                  <strong>Restricción:</strong> Declarar datos &quot;Real&quot; o &quot;Indeterminado&quot; inhabilita consultas en ambiente de Pruebas. Solo se autorizará para Producción.
                 </span>
               </div>
             ) : (
@@ -288,7 +288,7 @@ export function FuenteStepperInfo({
         <div className="flex items-center justify-between">
           <div>
             <h4 className="font-heading font-bold text-xs uppercase tracking-wider text-foreground">
-              Parámetros de Consulta (FUE-01)
+              Parámetros de Consulta
             </h4>
             <p className="text-[11px] text-muted-foreground">
               Defina las variables de entrada requeridas para invocar esta fuente.

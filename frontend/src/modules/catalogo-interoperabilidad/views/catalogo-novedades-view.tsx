@@ -221,13 +221,6 @@ function NovedadesListContent() {
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-6">
-      {/* Breadcrumb */}
-      <WireframeBreadcrumbs
-        segments={[
-          { label: "Catálogo de Interoperabilidad", href: "/catalogo-interoperabilidad" },
-          { label: "Novedades" }
-        ]}
-      />
 
       {/* Header Principal */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-border pb-6">

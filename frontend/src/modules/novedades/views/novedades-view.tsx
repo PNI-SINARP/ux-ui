@@ -71,12 +71,6 @@ export function NovedadesView() {
   return (
     <WireframeDashboardLayout>
       <div className="space-y-6">
-                <WireframeBreadcrumbs 
-          segments={[
-            { label: "Inicio", href: "/" },
-            { label: "Novedades del Catálogo", href: "/novedades" }
-          ]}
-        />
 
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>

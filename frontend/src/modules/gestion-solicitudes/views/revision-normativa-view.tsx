@@ -948,10 +948,7 @@ export function RevisionNormativaView() {
           setSelectedSolicitud(null);
         }
       },
-      { label: selectedSolicitud.id }] :
-
-      [
-      { label: activeSectionTitle }]
+      { label: selectedSolicitud.id }] : undefined
 
       }>
       

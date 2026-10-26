@@ -34,7 +34,7 @@ export function WireframeBreadcrumbs({ segments, className }: WireframeBreadcrum
     s => s && s.label && s.label.trim().toLowerCase() !== "inicio" && s.label.trim().toLowerCase() !== "home"
   );
 
-  if (filteredSegments.length === 0) return null;
+  if (filteredSegments.length <= 1) return null;
 
   return (
     <TooltipProvider delayDuration={200}>

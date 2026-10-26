@@ -190,10 +190,6 @@ export function CatalogoGestionView() {
         activeMenu="gestion-catalogo"
         currentRole="DGR"
         currentUser={MOCK_USERS_BY_ROLE.DGR}
-        breadcrumbs={[
-          { label: "Catálogo de Interoperabilidad", href: "/catalogo-interoperabilidad" },
-          { label: "Gestión" }
-        ]}
       >
         <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-6">
 

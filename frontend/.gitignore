@@ -43,4 +43,8 @@ next-env.d.ts
 
 .agents
 openspec
-scratch/
+scratch/temp_crops/
+scratch/**
+
+temp_crops/
+temp_crops/**

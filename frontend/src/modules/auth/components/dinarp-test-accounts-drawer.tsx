@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
+import Link from "next/link";
+import { useAuthStore } from "@/modules/gestion-solicitudes/data/auth-store";
 import {
   Copy,
   Check,
@@ -23,6 +25,7 @@ import {
   Database,
   Clock,
   FolderKanban,
+  LogIn,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -86,7 +89,7 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
   {
     roleName: "Usuario Habilitado",
     userName: "Funcionario Habilitado",
-    cedula: "1715489621",
+    cedula: "1788888888",
     description: "Funcionario interno con cuenta activa y doble factor. Autenticación con cédula, contraseña y OTP de Google Authenticator. Puede autogestionar restablecimiento de contraseña.",
     access: "Login 2FA (/login), Restablecer Contraseña (/recuperar-contrasena) y bandeja institucional según su área.",
     storiesBadge: "ID-06, ID-07",
@@ -206,7 +209,7 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
   {
     roleName: "Coordinador Titular (Suplencias)",
     userName: "Juan Pérez",
-    cedula: "1712345678",
+    cedula: "1234567890",
     description: "Coordinador titular que planifica y registra su inactividad temporal (AUS-01) en el calendario institucional para habilitar la delegación de permisos.",
     access: "Gestión de Suplencias (/suplencias) y programación de ausencia temporal.",
     storiesBadge: "BN-04 · AUS-01",
@@ -230,17 +233,17 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
 
   // ── FLUJO INTEROPERABILIDAD Y CONSUMO DE DATOS (BN-05: PRJ-01, PRJ-02) ──
   {
-    roleName: "Coordinador Institucional",
-    userName: "Andrea López",
+    roleName: "Coordinador Consumidor (Entidad Requirente)",
+    userName: "Andrea López (MinEduc)",
     cedula: "1712345678",
-    description: "Coordinador institucional de la entidad requirente (Registro Civil). Crea y gestiona proyectos institucionales (BN-05: PRJ-01 y PRJ-02), agrupa solicitudes de interoperabilidad y consulta el catálogo API.",
-    access: "Proyectos (/proyectos), Solicitudes de Acceso (/acceso-interoperabilidad) y Catálogo de Servicios (/catalogo-interoperabilidad).",
-    storiesBadge: "BN-05 · PRJ-01, 02 · SOL-01",
-    flows: ["proyectos", "interoperabilidad"],
+    description: "Coordinador de una entidad requirente autorizada. Explora el catálogo de datos publicados (CAT-01), solicita autorización de paquetes de datos (SOL-01) y gestiona proyectos institucionales (PRJ-01/02). No tiene acceso a borradores de fuentes de otras entidades.",
+    access: "Explorar Catálogo (/catalogo-interoperabilidad), Solicitudes de Acceso (/acceso-interoperabilidad) y Proyectos (/proyectos).",
+    storiesBadge: "CAT-01 · SOL-01 · PRJ-01..02",
+    flows: ["interoperabilidad", "proyectos", "fuentes"],
     actions: [
-      { label: "Bandeja de Proyectos", route: "/proyectos", huBadge: "BN-05" },
-      { label: "Solicitudes de Acceso", route: "/acceso-interoperabilidad", huBadge: "SOL-01,02" },
-      { label: "Catálogo de Servicios", route: "/catalogo-interoperabilidad", huBadge: "CAT-01" },
+      { label: "Explorar Catálogo", route: "/catalogo-interoperabilidad", huBadge: "CAT-01" },
+      { label: "Solicitudes de Acceso", route: "/acceso-interoperabilidad", huBadge: "SOL-01" },
+      { label: "Bandeja de Proyectos", route: "/proyectos", huBadge: "PRJ-01" },
     ]
   },
   {
@@ -273,49 +276,51 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     roleName: "Coordinador Proveedor (Entidad Emisora)",
     userName: "Carlos Mendoza (Registro Civil)",
     cedula: "1720304050",
-    description: "Representante técnico de la entidad proveedora de datos. Inicia el trámite abriendo el borrador de fuente (FUE-01), suministra credenciales y prueba conector por VPN (FUE-02), y define el esquema con normalización de campos (FUE-03).",
-    access: "Wizard de Nueva Fuente (/fuentes/nueva), Bandeja de Fuentes Propias (/fuentes) y seguimiento de publicación.",
-    storiesBadge: "BN-06 · FUE-01, 02, 03",
+    description: "Coordinador de la institución proveedora activa (Registro Civil). Registra datos básicos y SLA (Paso 1: FUE-01), prueba la conexión de lectura por VPN (Paso 2: FUE-02), selecciona los campos y conversiones (Paso 3: FUE-03), y envía a revisión (Paso 4: FUE-01..03). Publica versiones una vez aprobadas (FUE-05).",
+    access: "Asistente de Nueva Fuente (/fuentes/nueva) y Bandeja de Fuentes (/fuentes).",
+    storiesBadge: "BN-06 · FUE-01..03, 05",
     flows: ["fuentes"],
     actions: [
-      { label: "Registrar Nueva Fuente", route: "/fuentes/nueva", huBadge: "BN-06 · FUE-01..03" },
-      { label: "Bandeja de Fuentes", route: "/fuentes", huBadge: "BN-06" },
+      { label: "Registrar Nueva Fuente", route: "/fuentes/nueva", huBadge: "Paso 1 a 4" },
+      { label: "Bandeja de Fuentes", route: "/fuentes", huBadge: "Bandeja" },
     ]
   },
   {
     roleName: "Equipo de TI / Infraestructura (DTD)",
     userName: "Carlos Mena",
     cedula: "1716543210",
-    description: "Responsable de conectividad y despliegue. Evalúa conector reusable (CNX-01/02), homologa orígenes excepcionales (FUE-12), diagnostica fallas de conexión (FUE-10), y ejecuta despliegue y publicación oficial (FUE-05).",
-    access: "Administración de Fuentes (/fuentes), configuración técnica y homologación de motores.",
-    storiesBadge: "BN-06 · FUE-02, 05, 10, 12 · CNX",
+    description: "Responsable técnico de conectividad y despliegue. Gestiona conectores reutilizables (CNX-01/02), homologa motores no soportados (FUE-12), analiza diagnósticos de conexión VPN (FUE-02/10), y realiza la publicación en el API Gateway (FUE-05).",
+    access: "Homologación Técnica (/homologacion-fuentes) y Administración de Fuentes (/fuentes).",
+    storiesBadge: "BN-06 · CNX-01/02 · FUE-05, 12",
     flows: ["fuentes"],
     actions: [
-      { label: "Administrar Fuentes", route: "/fuentes", huBadge: "BN-06 · FUE-05" },
+      { label: "Homologación Excepcional", route: "/homologacion-fuentes", huBadge: "FUE-12" },
+      { label: "Administrar Fuentes y Gateway", route: "/fuentes", huBadge: "FUE-05" },
     ]
   },
   {
     roleName: "Dirección de Gestión y Registro (DGR)",
     userName: "María Torres",
     cedula: "1717654321",
-    description: "Responsable funcional de la gobernanza de fuentes. Supervisa la procedencia de la fuente, valida pertinencia de los campos y aprueba la integración hacia el catálogo (FUE-03, FUE-05, CAT-01).",
-    access: "Bandeja de Fuentes (/fuentes), Revisión de Gestión (/revision-fuentes) y Catálogo (/catalogo-interoperabilidad).",
-    storiesBadge: "BN-06 · FUE-03, 05 · CAT-01",
+    description: "Revisor funcional de fuentes. Evalúa la viabilidad institucional, pertinencia de los campos expuestos, verifica la prueba técnica de conexión y emite dictamen de aprobación o rechazo (FUE-04). Suspende fuentes preventivamente ante fallos técnicos (FUE-10).",
+    access: "Revisión de Fuentes (/revision-fuentes) y Bandeja de Fuentes (/fuentes).",
+    storiesBadge: "BN-06 · FUE-04, 10",
     flows: ["fuentes"],
     actions: [
-      { label: "Revisión de Fuentes", route: "/revision-fuentes", huBadge: "BN-06 · FUE-03" },
+      { label: "Revisión de Fuentes", route: "/revision-fuentes", huBadge: "FUE-04" },
+      { label: "Bandeja de Fuentes", route: "/fuentes", huBadge: "FUE-10" },
     ]
   },
   {
     roleName: "Dirección de Protección de Información (DPI)",
     userName: "Daniela Ruiz",
     cedula: "1715432109",
-    description: "Oficial de privacidad y protección de datos personales. Evalúa cada campo expuesto y clasifica su sensibilidad como Accesible o Confidencial según la LOPDP; habilita datos sintéticos para el entorno de pruebas (FUE-04).",
-    access: "Clasificación LOPDP (/revision-fuentes/[id]) y matriz de seguridad de datos.",
+    description: "Oficial de privacidad y protección de datos personales. Evalúa cada campo expuesto y clasifica su sensibilidad como Accesible o Confidencial según la LOPDP; comprueba datos sintéticos o anonimizados para habilitar pruebas (FUE-04).",
+    access: "Revisión y Clasificación LOPDP (/revision-fuentes).",
     storiesBadge: "BN-06 · FUE-04 (LOPDP)",
     flows: ["fuentes"],
     actions: [
-      { label: "Clasificación de Campos", route: "/revision-fuentes", huBadge: "BN-06 · FUE-04" },
+      { label: "Clasificación de Campos LOPDP", route: "/revision-fuentes", huBadge: "FUE-04" },
     ]
   }
 ];
@@ -433,11 +438,11 @@ export const FLOW_OPTIONS: FlowOption[] = [
     id: "fuentes",
     title: "Incorporar y Publicar Fuente",
     bnCode: "BN-06",
-    subtitle: "Alta, prueba técnica VPN, esquema y clasificación LOPDP",
-    description: "Coordinador Proveedor (FUE-01..03), TI / DTD (CNX-01/02, FUE-02, 05, 12), DGR (FUE-03) y DPI (FUE-04)",
+    subtitle: "Registro de fuente, conexión VPN, mapeo de campos, clasificación y catálogo",
+    description: "Coordinador Proveedor (FUE-01..03), Revisores DGR/DPI (FUE-04), TI DTD (FUE-05, 12) y Coordinador Consumidor (CAT-01)",
     section: "fuentes",
     sectionTitle: "Incorporación y Publicación de Fuentes (BN-06)",
-    tag: "FUE-01..05, 10, 12 · CNX",
+    tag: "FUE-01..05, 10, 12 · CAT-01",
     icon: Database,
   },
 
@@ -459,6 +464,7 @@ interface DinarpTestAccountsDrawerProps {
 }
 
 export function DinarpTestAccountsDrawer({ onSelectCedula }: DinarpTestAccountsDrawerProps) {
+  const { login } = useAuthStore();
   const [isOpen, setIsOpen] = useState(false);
   const [selectedFlow, setSelectedFlow] = useState<FlowType | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -764,25 +770,44 @@ export function DinarpTestAccountsDrawer({ onSelectCedula }: DinarpTestAccountsD
                           </div>
                         </div>
 
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => handleCopy(acc.cedula, e)}
-                          className="text-xs h-7 px-2.5 gap-1.5 text-muted-foreground hover:text-foreground shrink-0 border border-border/50 group-hover:bg-surface group-hover:border-border"
-                        >
-                          {isCopied ? (
-                            <>
-                              <Check className="size-3.5 text-success" />
-                              <span className="text-[10px] text-success font-medium">Copiado</span>
-                            </>
-                          ) : (
-                            <>
-                              <Copy className="size-3.5" />
-                              <span className="text-[10px]">Copiar</span>
-                            </>
-                          )}
-                        </Button>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              login(acc.cedula, { name: acc.userName, roleTitle: acc.roleName });
+                              toast.success(`Sesión activa: ${acc.userName}`, {
+                                description: `Rol: ${acc.roleName}`,
+                              });
+                            }}
+                            className="text-xs h-7 px-2.5 gap-1 text-primary hover:bg-primary/10 border-primary/30 shrink-0 shadow-2xs font-medium"
+                            title="Iniciar sesión directamente con este usuario"
+                          >
+                            <LogIn className="size-3" />
+                            <span className="text-[10px] font-semibold">Entrar</span>
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => handleCopy(acc.cedula, e)}
+                            className="text-xs h-7 px-2.5 gap-1.5 text-muted-foreground hover:text-foreground shrink-0 border border-border/50 group-hover:bg-surface group-hover:border-border"
+                          >
+                            {isCopied ? (
+                              <>
+                                <Check className="size-3.5 text-success" />
+                                <span className="text-[10px] text-success font-medium">Copiado</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="size-3.5" />
+                                <span className="text-[10px]">Copiar</span>
+                              </>
+                            )}
+                          </Button>
+                        </div>
                       </div>
 
                       {/* Bloque descriptivo: Qué hace y A qué tiene acceso */}
@@ -804,6 +829,29 @@ export function DinarpTestAccountsDrawer({ onSelectCedula }: DinarpTestAccountsD
                           </span>
                         </div>
                       </div>
+
+                      {/* Botones directos a las rutas del flujo */}
+                      {acc.actions && acc.actions.length > 0 && (
+                        <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                          {acc.actions.map((act) => (
+                            <Link
+                              key={`${acc.cedula}-${act.route}`}
+                              href={act.route}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                login(acc.cedula, { name: acc.userName, roleTitle: acc.roleName });
+                                toast.success(`Sesión activa: ${acc.userName}`, {
+                                  description: `Rol: ${acc.roleName}`,
+                                });
+                              }}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-primary/10 hover:bg-primary text-primary hover:text-white border border-primary/25 transition-all shadow-2xs group/btn"
+                            >
+                              <span>{act.label}</span>
+                              <ChevronRight className="size-3 transition-transform group-hover/btn:translate-x-0.5" />
+                            </Link>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   );
                 })}

@@ -113,7 +113,7 @@ export function GestionarResolucionView({ id, basePath = "/asignacion-solicitude
 
   if (!solicitud) {
     return (
-      <WireframeDashboardLayout breadcrumbs={[{ label: activeSectionTitle }]}>
+      <WireframeDashboardLayout breadcrumbs={[{ label: activeSectionTitle, onClick: () => router.push(basePath) }, { label: "Cargando..." }]}>
         <div className="p-8 text-center text-xs text-muted-foreground">
           Cargando...
         </div>

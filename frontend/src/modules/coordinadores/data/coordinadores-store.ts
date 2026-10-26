@@ -63,6 +63,41 @@ export interface CoordinadorCuenta {
 
 export const INITIAL_COORDINADORES: CoordinadorCuenta[] = [
   {
+    id: "COORD-000",
+    cedula: "1720304050",
+    nombreCompleto: "Ing. Carlos Mendoza Zambrano",
+    correo: "carlos.mendoza@registrocivil.gob.ec",
+    correoVerificado: true,
+    recuperacionId08Autorizada: false,
+    sincronizacionIdentityPlatform: "SINCRONIZADO",
+    telefono: "023814400 ext. 5040",
+    cargo: "Coordinador de Servicios e Interoperabilidad",
+    institucion: "Dirección General de Registro Civil, Identificación y Cedulación",
+    rucInstitucion: "1760001550001",
+    tipoDesignacion: "TITULAR",
+    estado: "ACTIVO",
+    anexoBAprobado: true,
+    anexoBDocumento: "ARP-R02_Acuerdo_Registro_Civil_Mendoza.pdf",
+    designacionVigente: true,
+    totpConfigurado: true,
+    sesionesActivas: 1,
+    ultimoAcceso: "23/10/2026 14:00",
+    ultimaActualizacion: "23/10/2026 14:00",
+    fechaDesignacion: "10/01/2026",
+    historial: [
+      {
+        id: "h-c-000",
+        fecha: "10/01/2026 10:00",
+        accion: "Cuenta creada por enrolamiento Anexo B",
+        actor: "Sistema DINARP",
+        causa: "Aprobación de trámite SOL-ING-101",
+        evidencia: "Resolución Nro. DINARP-DGR-2026-0021-R",
+        notificacionEnviada: true,
+        detalles: "Designación como Coordinador Proveedor de Registro Civil formalizada."
+      }
+    ]
+  },
+  {
     id: "COORD-001",
     cedula: "0912345678",
     nombreCompleto: "Javier Bohórquez",

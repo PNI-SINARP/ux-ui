@@ -246,7 +246,7 @@ export function FuenteStepperConexion({
           >
             <Cpu className="size-4 shrink-0 text-warning" />
             <span className="text-xs font-semibold">Otro origen</span>
-            <span className="text-[9px] text-warning font-mono">FUE-12</span>
+            <span className="text-[9px] text-warning font-mono">Homologación</span>
           </button>
         </div>
       </div>
@@ -258,7 +258,7 @@ export function FuenteStepperConexion({
             <AlertTriangle className="size-5 text-warning shrink-0 mt-0.5" />
             <div className="space-y-1">
               <h4 className="font-heading font-bold text-sm text-foreground">
-                Este tipo de origen requiere homologación técnica (FUE-12)
+                Este tipo de origen requiere homologación previa
               </h4>
               <p className="text-xs text-muted-foreground leading-relaxed">
                 DINARP no cuenta actualmente con un conector habilitado para tecnologías no listadas. Por políticas de seguridad institucional, <strong>no está permitido configurar manualmente un conector no homologado</strong>. Debe solicitar la certificación técnica al Equipo de TI de DINARP.
@@ -309,7 +309,7 @@ export function FuenteStepperConexion({
                   className="gap-2 shadow-xs cursor-pointer"
                 >
                   <Cpu className="size-4" />
-                  <span>Solicitar homologación técnica (FUE-12)</span>
+                  <span>Solicitar homologación técnica</span>
                 </Button>
               </div>
             </div>
@@ -550,7 +550,7 @@ export function FuenteStepperConexion({
             <div className="p-3 bg-muted/20 rounded-lg border border-border text-[11px] text-muted-foreground flex items-start gap-2.5">
               <ShieldCheck className="size-4 text-primary shrink-0 mt-0.5" />
               <span>
-                <strong>Seguridad FUE-02 / TEC-00:</strong> Las credenciales nunca se persisten en texto claro. Son cifradas inmediatamente en el módulo KMS y referenciadas de manera opaca.
+                <strong>Seguridad de credenciales:</strong> Las credenciales no se almacenan en texto plano y se gestionan de forma segura para las consultas autorizadas.
               </span>
             </div>
           </div>
@@ -560,10 +560,10 @@ export function FuenteStepperConexion({
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h4 className="font-heading font-bold text-xs uppercase tracking-wider text-foreground">
-                  Prueba Técnica de Conexión (FUE-02)
+                  Prueba Técnica de Conexión
                 </h4>
                 <p className="text-[11px] text-muted-foreground">
-                  Valida la conectividad IP vía túnel VPN DINARP y la autenticación sin exponer secretos.
+                  Comprueba que DINARP pueda conectarse correctamente a su base de datos.
                 </p>
               </div>
 

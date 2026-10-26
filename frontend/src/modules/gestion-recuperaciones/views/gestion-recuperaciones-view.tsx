@@ -324,9 +324,7 @@ export function GestionRecuperacionesView() {
         { label: `Caso ${activeDetailCaso.id}` },
       ];
     }
-    return [
-      { label: "Gestión de recuperaciones" },
-    ];
+    return undefined;
   }, [activeDetailCaso]);
 
   return (

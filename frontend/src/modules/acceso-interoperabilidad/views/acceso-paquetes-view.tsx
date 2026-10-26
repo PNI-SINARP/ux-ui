@@ -81,10 +81,6 @@ export function AccesoPaquetesView() {
   return (
     <WireframeDashboardLayout
       activeMenu="paquetes-consumo"
-      breadcrumbs={[
-        { label: "Acceso a Interoperabilidad" },
-        { label: "Paquetes de consumo" }
-      ]}
       headerSlot={
         <Combobox
           items={roleOptions}

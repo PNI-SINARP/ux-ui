@@ -76,6 +76,10 @@ function validarCedula(cedula: string) {
       "1788888888",
       "1234567890",
       "1710001112",
+      "1720304050", // Carlos Mendoza (Coordinador Proveedor - Registro Civil)
+      "1716543210", // Carlos Mena (TI DTD)
+      "1717654321", // María Torres (DGR)
+      "1715432109", // Daniela Ruiz (DPI)
     ].includes(cedula)
   ) {
     return true;
@@ -396,7 +400,27 @@ export function DinarpWireframe2LoginFlow({
       toast.success(`Autenticación exitosa: ${loggedUser.name}`, {
         description: `Sesión iniciada como: ${loggedUser.roleTitle || loggedUser.role}`,
       });
-      if (loggedUser?.role === "ADMIN") { router.push("/cuentas-internas"); } else if (loggedUser?.role === "DIR_GESTION" || loggedUser?.role === "DIR_NORMATIVA") { router.push("/asignacion-solicitudes"); } else if (loggedUser?.role === "EQ_GESTION") { router.push("/solicitudes-pendientes"); } else if (loggedUser?.role === "EQ_NORMATIVA") { router.push("/revision-normativa"); } else if (loggedUser?.role === "REPRESENTANTE_INSTITUCIONAL") { router.push("/cambio-coordinador"); } else if (loggedUser?.role === "COORDINADOR_SINARP") { router.push("/proyectos"); } else { router.push("/catalogo-interoperabilidad"); }
+      if (loggedUser?.role === "ADMIN") {
+        router.push("/cuentas-internas");
+      } else if (loggedUser?.cedula === "1720304050") {
+        router.push("/fuentes");
+      } else if (loggedUser?.role === "DGR" || loggedUser?.role === "DPI") {
+        router.push("/revision-fuentes");
+      } else if (loggedUser?.role === "DTD") {
+        router.push("/homologacion-fuentes");
+      } else if (loggedUser?.role === "DIR_GESTION" || loggedUser?.role === "DIR_NORMATIVA") {
+        router.push("/asignacion-solicitudes");
+      } else if (loggedUser?.role === "EQ_GESTION") {
+        router.push("/solicitudes-pendientes");
+      } else if (loggedUser?.role === "EQ_NORMATIVA") {
+        router.push("/revision-normativa");
+      } else if (loggedUser?.role === "REPRESENTANTE_INSTITUCIONAL") {
+        router.push("/cambio-coordinador");
+      } else if (loggedUser?.role === "COORDINADOR_SINARP") {
+        router.push("/proyectos");
+      } else {
+        router.push("/catalogo-interoperabilidad");
+      }
     }, 600);
   };
 

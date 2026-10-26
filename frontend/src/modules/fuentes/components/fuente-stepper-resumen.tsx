@@ -42,7 +42,7 @@ export function FuenteStepperResumen({
         </div>
         <div>
           <h4 className="font-heading font-bold text-sm text-primary">
-            Confirmación previa al envío a Gestión (FUE-03 → FUE-04)
+            Confirmación previa al envío a revisión
           </h4>
           <p className="text-xs text-foreground/80 mt-1 leading-relaxed">
             Al enviar esta fuente, su estado cambiará a <strong>En revisión</strong>. El Área de Gestión de la DINARP revisará la configuración técnica, clasificará cada uno de los campos como <em>Accesible</em> o <em>Confidencial</em> y emitirá la decisión de aprobación o devolución con observaciones. El Coordinador no podrá publicar la fuente hasta contar con la aprobación final.

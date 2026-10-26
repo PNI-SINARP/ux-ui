@@ -188,13 +188,6 @@ export function CatalogoIntegracionesView() {
       currentUser={currentUser}
     >
       <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-6">
-        {/* Breadcrumb */}
-        <WireframeBreadcrumbs
-          segments={[
-            { label: "Catálogo de Interoperabilidad", href: "/catalogo-interoperabilidad" },
-            { label: "Integración de Fuentes" }
-          ]}
-        />
 
         {/* Contenedor Principal de Encabezado y Métricas */}
         <div className="border border-border rounded-xl bg-surface p-6 flex flex-col gap-6 shadow-xs">

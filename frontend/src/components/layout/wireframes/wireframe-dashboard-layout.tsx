@@ -82,7 +82,12 @@ export interface WireframeDashboardUser {
   id?: string;
   name?: string;
   role?: string;
+  roleTitle?: string;
+  email?: string;
+  cedula?: string;
+  initials?: string;
   institution?: string;
+  avatar?: string;
   avatarUrl?: string;
 }
 
@@ -137,6 +142,13 @@ const navItems: NavItem[] = [
     allowedRoles: ["COORDINADOR_SINARP", "ADMIN"],
   },
   {
+    id: "fuentes",
+    label: "Fuentes de información",
+    icon: Server,
+    href: "/fuentes",
+    allowedRoles: ["COORDINADOR_SINARP", "DTD", "DGR", "DIR_GESTION", "EQ_GESTION", "TI", "ADMIN"],
+  },
+  {
     id: "cambio-coordinador",
     label: "Cambio de coordinador",
     icon: UserCog,
@@ -189,6 +201,13 @@ const navItems: NavItem[] = [
     href: "/revision-gestion",
     allowedRoles: ["EQ_GESTION", "ADMIN"],
   },
+  {
+    id: "revision-fuentes",
+    label: "Revisión de fuentes (BN-06)",
+    icon: FolderCheck,
+    href: "/revision-fuentes",
+    allowedRoles: ["DGR", "DPI", "DIR_GESTION", "EQ_GESTION", "ADMIN"],
+  },
 
   // ── Dirección y Equipo de Normatividad ──
   {
@@ -222,6 +241,13 @@ const navItems: NavItem[] = [
     icon: Cpu,
     href: "/acceso-consumo",
     allowedRoles: ["TI", "ADMIN"],
+  },
+  {
+    id: "homologacion-fuentes",
+    label: "Homologación orígenes (FUE-12)",
+    icon: Cpu,
+    href: "/homologacion-fuentes",
+    allowedRoles: ["DTD", "TI", "ADMIN"],
   },
 
   // ── Administrador DINARP ──
@@ -349,18 +375,45 @@ export function WireframeDashboardLayout({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
+  // Breadcrumbs solo se muestran en la cabecera cuando se ingresa a un detalle o subpágina (>1 segmento real)
+  const displayBreadcrumbs = React.useMemo(() => {
+    if (!breadcrumbs || breadcrumbs.length === 0) return null;
+    const meaningfulSegments = breadcrumbs.filter(
+      (s) =>
+        s &&
+        s.label &&
+        s.label.trim().toLowerCase() !== "inicio" &&
+        s.label.trim().toLowerCase() !== "home"
+    );
+    return meaningfulSegments.length > 1 ? breadcrumbs : null;
+  }, [breadcrumbs]);
+
   const router = useRouter();
   const { activeUser, logout, setRole } = useAuthStore();
   const fallbackUser = activeUser || MOCK_USERS_BY_ROLE.COORDINADOR_SINARP;
-  const rawUser =
-    currentRole && MOCK_USERS_BY_ROLE[currentRole] && (!currentUser || currentUser.role !== currentRole)
-      ? MOCK_USERS_BY_ROLE[currentRole]
-      : currentUser || fallbackUser;
+  let rawUser: MockUser | WireframeDashboardUser;
+  if (currentUser) {
+    rawUser = currentUser;
+  } else if (activeUser) {
+    if (!currentRole || activeUser.role === currentRole) {
+      rawUser = activeUser;
+    } else {
+      rawUser = MOCK_USERS_BY_ROLE[currentRole] || activeUser;
+    }
+  } else if (currentRole && MOCK_USERS_BY_ROLE[currentRole]) {
+    rawUser = MOCK_USERS_BY_ROLE[currentRole];
+  } else {
+    rawUser = fallbackUser;
+  }
 
   const resolvedUser: MockUser = {
     id: rawUser.id || fallbackUser.id,
     name: rawUser.name || fallbackUser.name,
     role: (rawUser.role as UserRole) || fallbackUser.role,
+    roleTitle: rawUser.roleTitle || fallbackUser.roleTitle,
+    email: rawUser.email || fallbackUser.email,
+    cedula: rawUser.cedula || fallbackUser.cedula,
+    initials: rawUser.initials || fallbackUser.initials,
     institution: rawUser.institution || fallbackUser.institution,
     avatar: ("avatar" in rawUser && rawUser.avatar) ? rawUser.avatar : fallbackUser.avatar,
   };
@@ -614,23 +667,10 @@ export function WireframeDashboardLayout({
                     {headerSlot}
                   </div>
                 )}
-                {breadcrumbs && breadcrumbs.length > 0 ? (
+                {displayBreadcrumbs && (
                   <div className="flex items-center min-w-0 flex-1 overflow-hidden">
-                    <WireframeBreadcrumbs segments={breadcrumbs} />
+                    <WireframeBreadcrumbs segments={displayBreadcrumbs} />
                   </div>
-                ) : (
-                  <Link href="/" className="flex items-center shrink-0">
-                    <img
-                      src={getAssetPath("/logo-horizontal.svg")}
-                      alt="Logo DINARP"
-                      className="dark:hidden h-7 w-auto max-w-[140px] object-contain"
-                    />
-                    <img
-                      src={getAssetPath("/logo-horizontal-blanco.svg")}
-                      alt="Logo DINARP"
-                      className="hidden dark:block h-7 w-auto max-w-[140px] object-contain"
-                    />
-                  </Link>
                 )}
               </div>
             }

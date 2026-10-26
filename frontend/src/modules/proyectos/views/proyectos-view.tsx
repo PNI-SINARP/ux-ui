@@ -249,7 +249,6 @@ export function ProyectosView() {
     <WireframeDashboardLayout
       activeMenu="proyectos"
       currentUser={coordinadorUser}
-      breadcrumbs={[{ label: "Proyectos" }]}
     >
       <main className="w-full pr-3 pl-2 pb-3 pt-1.5 flex-1 min-h-0 flex flex-col overflow-hidden">
         {/* Contenedor Principal (Tarjetas, Encabezado y Tabla) */}

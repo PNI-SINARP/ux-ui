@@ -110,11 +110,11 @@ export function FuenteStepperEsquema({
           <div className="flex items-center gap-2 mb-1">
             <Layers className="size-4 text-primary" />
             <h4 className="font-heading font-bold text-xs uppercase tracking-wider text-foreground">
-              Esquema de Datos Detectado Automáticamente (FUE-03)
+              Campos detectados en su origen de datos
             </h4>
           </div>
           <p className="text-[11px] text-muted-foreground">
-            Solo es posible seleccionar campos que pertenezcan a la estructura física detectada. Configure los atributos publicados y valide la compatibilidad de conversiones de tipo.
+            Seleccione qué columnas desea exponer a las instituciones y confirme su nombre y tipo de dato.
           </p>
         </div>
 
@@ -165,7 +165,7 @@ export function FuenteStepperEsquema({
           <span className="font-semibold text-foreground">
             Normalización técnica vs. Clasificación de acceso:
           </span>{" "}
-          El Coordinador define nombres normalizados (en minúsculas y snake_case), tipos y reglas de transformación. La clasificación de seguridad (<strong>Accesible</strong> o <strong>Confidencial</strong>) será asignada obligatoriamente por Gestión en FUE-04.
+          El Coordinador define nombres comprensibles (en minúsculas), tipos de datos y transformaciones. La clasificación de seguridad (<strong>Accesible</strong> o <strong>Confidencial</strong>) será asignada por el equipo de Gestión de la DINARP.
         </div>
       </div>
 

@@ -39,6 +39,7 @@ import {
   Plus,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useAuthStore } from "@/modules/gestion-solicitudes/data/auth-store";
 
 interface FuenteFormDialogProps {
   open: boolean;
@@ -53,10 +54,10 @@ interface FuenteFormDialogProps {
 }
 
 const PASOS_MODAL = [
-  { id: 0, label: "Información y SLA", sub: "FUE-01", icon: Building2 },
-  { id: 1, label: "Conexión Técnica", sub: "FUE-02", icon: Server },
-  { id: 2, label: "Esquema y Campos", sub: "FUE-03", icon: Layers },
-  { id: 3, label: "Resumen y Envío", sub: "FUE-04", icon: CheckCircle2 },
+  { id: 0, label: "1. Datos básicos", sub: "Nombre y SLA", icon: Building2 },
+  { id: 1, label: "2. Conexión", sub: "Base de datos", icon: Server },
+  { id: 2, label: "3. Campos", sub: "Atributos a compartir", icon: Layers },
+  { id: 3, label: "4. Resumen", sub: "Guardar o enviar", icon: CheckCircle2 },
 ];
 
 export function FuenteFormDialog({
@@ -68,15 +69,20 @@ export function FuenteFormDialog({
 }: FuenteFormDialogProps) {
   const isEditing = !!fuenteAEditar;
   const { crearFuente, actualizarFuente } = useFuentesStore();
+  const { activeUser } = useAuthStore();
 
   const institucionPrecargada =
     currentUser?.institution ||
+    activeUser?.institution ||
     fuenteAEditar?.institucion_proveedora_nombre ||
     "Dirección General de Registro Civil";
   const coordinadorNombre =
-    currentUser?.name || fuenteAEditar?.coordinador_nombre || "Carlos Mendoza";
+    currentUser?.name ||
+    activeUser?.name ||
+    fuenteAEditar?.coordinador_nombre ||
+    "Carlos Mendoza";
   const coordinadorId =
-    fuenteAEditar?.id_coordinador_registrador || "USR-COORD-001";
+    fuenteAEditar?.id_coordinador_registrador || activeUser?.id || "USR-COORD-001";
 
   const [activeStep, setActiveStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
@@ -369,7 +375,7 @@ export function FuenteFormDialog({
               <DialogDescription className="text-xs text-muted-foreground mt-0.5">
                 {isEditing
                   ? `Versión: ${fuenteAEditar.version_propuesta} · Estado: ${fuenteAEditar.estado} · Modificación de parámetros y esquema.`
-                  : "Flujo BN-06 (FUE-01 / FUE-02 / FUE-03) · Registro técnico, conexión privada y catálogo expuesto."}
+                  : "Registro de información, conexión a base de datos y selección de campos a compartir."}
               </DialogDescription>
             </div>
           </div>

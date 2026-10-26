@@ -133,7 +133,6 @@ export function CatalogoConsultaView() {
       <WireframeDashboardLayout
         activeMenu="catalogo-interoperabilidad"
         currentUser={MOCK_USERS_BY_ROLE.COORDINADOR_SINARP}
-        breadcrumbs={[{ label: "Catálogo de Fuentes" }]}
       >
         <main className="w-full flex-1 min-h-0 flex flex-col p-2 sm:p-4 lg:p-5 overflow-hidden">
           {/* Contenedor Principal Ancho Completo */}

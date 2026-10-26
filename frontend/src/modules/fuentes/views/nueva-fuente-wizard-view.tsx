@@ -31,6 +31,7 @@ import {
   Cpu,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useAuthStore } from "@/modules/gestion-solicitudes/data/auth-store";
 
 interface NuevaFuenteWizardViewProps {
   currentUser?: {
@@ -41,20 +42,21 @@ interface NuevaFuenteWizardViewProps {
 }
 
 const WIZARD_STEPS: Step[] = [
-  { id: "1", title: "Información", description: "Datos y SLA (FUE-01)" },
-  { id: "2", title: "Conexión", description: "Prueba técnica (FUE-02)" },
-  { id: "3", title: "Esquema", description: "Campos expuestos (FUE-03)" },
-  { id: "4", title: "Resumen", description: "Envío a Gestión" },
+  { id: "1", title: "Datos básicos", description: "Nombre, versión, SLA y búsqueda" },
+  { id: "2", title: "Conexión", description: "Base de datos y prueba de acceso" },
+  { id: "3", title: "Campos", description: "Selección de atributos a exponer" },
+  { id: "4", title: "Resumen", description: "Guardar borrador o enviar a revisión" },
 ];
 
 export function NuevaFuenteWizardView({ currentUser }: NuevaFuenteWizardViewProps) {
   const router = useRouter();
   const { crearFuente } = useFuentesStore();
+  const { activeUser } = useAuthStore();
 
   const institucionPrecargada =
-    currentUser?.institution || "Dirección General de Registro Civil";
-  const coordinadorNombre = currentUser?.name || "Carlos Mendoza";
-  const coordinadorId = "USR-COORD-001";
+    currentUser?.institution || activeUser?.institution || "Dirección General de Registro Civil";
+  const coordinadorNombre = currentUser?.name || activeUser?.name || "Carlos Mendoza";
+  const coordinadorId = activeUser?.id || "USR-COORD-001";
 
   const [activeStep, setActiveStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
@@ -239,7 +241,7 @@ export function NuevaFuenteWizardView({ currentUser }: NuevaFuenteWizardViewProp
                 </h1>
                 <p className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1.5 mt-0.5">
                   <Building2 className="size-3.5 text-primary" />
-                  {institucionPrecargada} · Flujo BN-06 (FUE-01 → FUE-03)
+                  {institucionPrecargada} · Asistente de incorporación de fuente
                 </p>
               </div>
             </div>

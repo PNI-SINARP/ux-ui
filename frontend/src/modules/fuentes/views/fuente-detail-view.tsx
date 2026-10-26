@@ -226,103 +226,140 @@ export function FuenteDetailView({ currentUser }: FuenteDetailViewProps) {
           className="bg-surface rounded-2xl border border-border shadow-xs flex-1 min-h-0 overflow-hidden flex flex-col my-0"
           innerClassName="p-4 sm:p-6 lg:p-8 flex flex-col gap-6 overflow-y-auto flex-1 min-h-0 w-full"
         >
-          {/* Header de la Fuente */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border">
-            <div className="flex items-center gap-3">
-              <Link href="/fuentes">
-                <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-foreground">
-                  <ArrowLeft className="size-4" />
-                </Button>
-              </Link>
+          {/* Cabecera del expediente */}
+          <div className="flex flex-col gap-4 pb-4 border-b border-border/80">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h1 className="font-heading font-extrabold text-2xl tracking-tight text-primary">
-                    {fuente.nombre}
-                  </h1>
-                  <span className="font-mono text-xs text-muted-foreground bg-muted/40 px-2 py-0.5 rounded border border-border">
-                    {fuente.id}
-                  </span>
-                  {getEstadoBadge(fuente.estado)}
-                </div>
-                <p className="text-xs sm:text-sm text-muted-foreground flex items-center gap-2 mt-1">
-                  <Building2 className="size-3.5 text-primary" />
-                  <span>{fuente.institucion_proveedora_nombre}</span>
-                  <span>•</span>
-                  <span>Versión: <strong className="font-mono text-foreground">{fuente.version_propuesta}</strong></span>
-                  {fuente.version_api && (
-                    <>
-                      <span>•</span>
-                      <span>API Gateway: <strong className="font-mono text-success">{fuente.version_api}</strong></span>
-                    </>
-                  )}
-                </p>
+                <Button
+                  variant="neutral"
+                  size="sm"
+                  asChild
+                  leftIcon={<ArrowLeft className="size-4" />}
+                >
+                  <Link href="/fuentes">
+                    Volver a fuentes de información
+                  </Link>
+                </Button>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                {fuente.caso_homologacion && (
+                  <Button
+                    variant="neutral"
+                    size="sm"
+                    asChild
+                    leftIcon={<Cpu className="size-3.5" />}
+                  >
+                    <Link href={`/homologacion-fuentes/${fuente.caso_homologacion.id_caso}`}>
+                      Ver homologación TI ({fuente.caso_homologacion.id_caso})
+                    </Link>
+                  </Button>
+                )}
+
+                <Button
+                  variant="neutral"
+                  size="sm"
+                  onClick={() => setIsEditModalOpen(true)}
+                  leftIcon={<Edit className="size-3.5" />}
+                >
+                  Editar fuente
+                </Button>
               </div>
             </div>
 
-            {/* CTAs Contextuales */}
-            <div className="flex items-center gap-2.5 self-start sm:self-auto flex-wrap">
-              {/* Botón de Edición en Modal (FUE-01/02/03) */}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsEditModalOpen(true)}
-                className="gap-2 shadow-2xs cursor-pointer text-xs"
-              >
-                <Edit className="size-3.5" />
-                <span>Editar fuente</span>
-              </Button>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <h1 className="font-heading font-extrabold text-2xl sm:text-3xl tracking-tight text-foreground break-words">
+                    {fuente.nombre}
+                  </h1>
+                  {getEstadoBadge(fuente.estado)}
+                </div>
+                <p className="text-xs sm:text-sm text-muted-foreground truncate sm:whitespace-normal">
+                  Expediente técnico de fuente proveedora, catálogo de campos, SLA y credenciales de conector.
+                </p>
+                <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground pt-1">
+                  <span className="font-mono bg-muted/60 px-2 py-0.5 rounded text-[11px] text-foreground font-semibold">
+                    ID: {fuente.id}
+                  </span>
+                  <span>•</span>
+                  <span className="flex items-center gap-1.5">
+                    <Building2 className="size-3.5 text-muted-foreground" />
+                    {fuente.institucion_proveedora_nombre}
+                  </span>
+                  <span>•</span>
+                  <span>
+                    Versión: <strong className="font-mono text-foreground">{fuente.version_propuesta}</strong>
+                  </span>
+                  {fuente.version_api && (
+                    <>
+                      <span>•</span>
+                      <span>
+                        API Gateway: <strong className="font-mono text-success">{fuente.version_api}</strong>
+                      </span>
+                    </>
+                  )}
+                </div>
+              </div>
 
-              {fuente.estado === "DEVUELTA" && (
-                <Button
-                  variant="warning"
-                  size="sm"
-                  onClick={handleOpenCorregir}
-                  className="gap-2 shadow-xs cursor-pointer"
-                >
-                  <Edit className="size-3.5" />
-                  <span>Corregir fuente</span>
-                </Button>
-              )}
-
-              {fuente.estado === "APROBADA" && (
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={() => setShowPublicarDialog(true)}
-                  className="gap-2 shadow-xs cursor-pointer"
-                >
-                  <Globe className="size-4" />
-                  <span>Publicar fuente (FUE-05)</span>
-                </Button>
-              )}
-
-              {fuente.estado === "PUBLICACION_PENDIENTE" && (
-                <Button
-                  variant="warning"
-                  size="sm"
-                  onClick={() => setShowPublicarDialog(true)}
-                  className="gap-2 shadow-xs cursor-pointer"
-                >
-                  <RotateCcw className="size-4" />
-                  <span>Reintentar publicación</span>
-                </Button>
-              )}
-
-              {fuente.estado === "PENDIENTE_HOMOLOGACION" && (
-                <Link href="/homologacion-fuentes">
-                  <Button variant="outline" size="sm" className="gap-2 text-xs">
-                    <Cpu className="size-3.5 text-warning" />
-                    <span>Ver caso en TI</span>
+              {/* Acciones de ciclo de vida principales */}
+              <div className="flex flex-wrap items-center gap-2">
+                {fuente.estado === "DEVUELTA" && (
+                  <Button
+                    variant="warning"
+                    size="sm"
+                    onClick={handleOpenCorregir}
+                    leftIcon={<Edit className="size-3.5" />}
+                    className="gap-2 shadow-xs cursor-pointer"
+                  >
+                    Corregir fuente
                   </Button>
-                </Link>
-              )}
+                )}
 
-              {fuente.estado === "PUBLICADA" && (
-                <Badge tone="success" appearance="soft" size="lg" className="gap-1.5 py-1.5 px-3">
-                  <CheckCircle2 className="size-4" />
-                  Disponible en Catálogo Nacional
-                </Badge>
-              )}
+                {fuente.estado === "APROBADA" && (
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={() => setShowPublicarDialog(true)}
+                    leftIcon={<Globe className="size-4" />}
+                    className="gap-2 shadow-xs cursor-pointer"
+                  >
+                    Publicar fuente (FUE-05)
+                  </Button>
+                )}
+
+                {fuente.estado === "PUBLICACION_PENDIENTE" && (
+                  <Button
+                    variant="warning"
+                    size="sm"
+                    onClick={() => setShowPublicarDialog(true)}
+                    leftIcon={<RotateCcw className="size-4" />}
+                    className="gap-2 shadow-xs cursor-pointer"
+                  >
+                    Reintentar publicación
+                  </Button>
+                )}
+
+                {fuente.estado === "PENDIENTE_HOMOLOGACION" && (
+                  <Button
+                    variant="neutral"
+                    size="sm"
+                    asChild
+                    leftIcon={<Cpu className="size-3.5 text-warning" />}
+                  >
+                    <Link href="/homologacion-fuentes">
+                      Ver caso en TI
+                    </Link>
+                  </Button>
+                )}
+
+                {fuente.estado === "PUBLICADA" && (
+                  <Badge tone="success" appearance="soft" size="lg" className="gap-1.5 py-1.5 px-3">
+                    <CheckCircle2 className="size-4" />
+                    Disponible en Catálogo Nacional
+                  </Badge>
+                )}
+              </div>
             </div>
           </div>
 
@@ -462,56 +499,48 @@ export function FuenteDetailView({ currentUser }: FuenteDetailViewProps) {
             historial={fuente.historial}
           />
 
-          {/* Navegación por Pestañas del UI Kit */}
+          {/* Navegación por pestañas del expediente */}
           <Tabs
             value={activeTab}
             onValueChange={(val) => setActiveTab(val as TabType)}
-            className="w-full space-y-6"
+            className="w-full space-y-4"
           >
-            {/* Lista de pestañas UI Kit estilo pill institucional */}
-            <div className="overflow-x-auto w-full -mx-1 px-1 scrollbar-none">
-              <TabsList className="h-auto p-1 rounded-full bg-surface-subtle border border-border/60 inline-flex gap-1 w-max justify-start flex-nowrap shadow-2xs">
-                <TabsTrigger
-                  value="resumen"
-                  className="px-4 py-2 text-xs font-bold gap-2 rounded-full cursor-pointer"
-                >
-                  <Building2 className="size-3.5" />
-                  <span>Resumen</span>
-                </TabsTrigger>
+            <TabsList className="bg-muted/40 p-1 rounded-xl w-full sm:w-auto flex flex-wrap">
+              <TabsTrigger
+                value="resumen"
+                className="text-xs font-semibold px-4 py-2"
+              >
+                Resumen
+              </TabsTrigger>
 
-                <TabsTrigger
-                  value="configuracion"
-                  className="px-4 py-2 text-xs font-bold gap-2 rounded-full cursor-pointer"
-                >
-                  <Sliders className="size-3.5" />
-                  <span>Configuración</span>
-                </TabsTrigger>
+              <TabsTrigger
+                value="configuracion"
+                className="text-xs font-semibold px-4 py-2"
+              >
+                Configuración
+              </TabsTrigger>
 
-                <TabsTrigger
-                  value="campos"
-                  className="px-4 py-2 text-xs font-bold gap-2 rounded-full cursor-pointer"
-                >
-                  <Layers className="size-3.5" />
-                  <span>Campos ({camposIncluidos.length})</span>
-                </TabsTrigger>
+              <TabsTrigger
+                value="campos"
+                className="text-xs font-semibold px-4 py-2"
+              >
+                Campos ({camposIncluidos.length})
+              </TabsTrigger>
 
-                <TabsTrigger
-                  value="pruebas"
-                  className="px-4 py-2 text-xs font-bold gap-2 rounded-full cursor-pointer"
-                >
-                  <Play className="size-3.5" />
-                  <span>Pruebas Técnicas</span>
-                </TabsTrigger>
+              <TabsTrigger
+                value="pruebas"
+                className="text-xs font-semibold px-4 py-2"
+              >
+                Pruebas técnicas
+              </TabsTrigger>
 
-                <TabsTrigger
-                  value="historial"
-                  className="px-4 py-2 text-xs font-bold gap-2 rounded-full cursor-pointer"
-                >
-                  <History className="size-3.5" />
-                  <span>Historial ({fuente.historial.length})</span>
-                </TabsTrigger>
-              </TabsList>
-            </div>
+              <TabsTrigger
+                value="historial"
+                className="text-xs font-semibold px-4 py-2"
+              >
+                Historial ({fuente.historial.length})
+              </TabsTrigger>
+            </TabsList>
 
             {/* Tab 1: Resumen */}
             <TabsContent value="resumen" className="space-y-6 animate-in fade-in duration-200 outline-none">

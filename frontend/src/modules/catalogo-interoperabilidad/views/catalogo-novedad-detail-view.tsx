@@ -254,17 +254,13 @@ export function CatalogoNovedadDetailView({ initialNovedad }: NovedadDetailClien
       activeMenu="novedades-catalogo"
       currentRole="DGR"
       currentUser={MOCK_USERS_BY_ROLE.DGR}
+      breadcrumbs={[
+        { label: "Catálogo de Interoperabilidad", href: "/catalogo-interoperabilidad" },
+        { label: "Novedades", href: "/catalogo-interoperabilidad/novedades" },
+        { label: novedad.nroTramite }
+      ]}
     >
       <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-8">
-        {/* Breadcrumb */}
-        <WireframeBreadcrumbs
-          segments={[
-            { label: "Catálogo de Interoperabilidad", href: "/catalogo-interoperabilidad" },
-            { label: "Novedades", href: "/catalogo-interoperabilidad/novedades" },
-            { label: novedad.nroTramite }
-          ]}
-        />
-
         {/* Barra de Retorno y Accesos */}
         <div className="flex items-center justify-between gap-4 -mt-2">
           <Button variant="ghost" size="sm" asChild className="gap-1.5 -ml-2 text-muted-foreground hover:text-foreground">

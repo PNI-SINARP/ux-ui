@@ -37,16 +37,13 @@ export function NovedadesDetalleView() {
   const activeStepIndex = 3; // FINALIZADA
 
   return (
-    <WireframeDashboardLayout>
+    <WireframeDashboardLayout
+      breadcrumbs={[
+        { label: "Novedades del Catálogo", href: "/novedades" },
+        { label: "NOV-2026-001" },
+      ]}
+    >
       <div className="space-y-6">
-        <WireframeBreadcrumbs 
-          segments={[
-            { label: "Inicio", href: "/" },
-            { label: "Novedades del Catálogo", href: "/novedades" },
-            { label: "NOV-2026-001", href: "/novedades/detalle" },
-          ]}
-        />
-
         <div className="flex items-center gap-4">
           <Link href="/novedades">
             <Button variant="outline" size="icon" className="h-9 w-9">

@@ -4567,6 +4567,24 @@ export function useSolicitudesIngresoStore() {
       }
     }
 
+    // Cédula oficial de prueba para Coordinador Proveedor (Registro Civil - FUE-01..05)
+    if (cleanCedula === "1720304050") {
+      return {
+        encontrado: true,
+        invitacionValida: true,
+        tipo: "TITULAR",
+        nombreCompleto: "Ing. Carlos Mendoza Zambrano",
+        cedula: "1720304050",
+        cargo: "Coordinador de Servicios e Interoperabilidad",
+        correo: "carlos.mendoza@registrocivil.gob.ec",
+        institucion: "Dirección General de Registro Civil, Identificación y Cedulación",
+        direccion: "Av. Amazonas N37-61 y Villalengua, Quito",
+        representanteLegal: "Dirección General de Registro Civil",
+        origenTramiteId: "SOL-ING-101",
+        yaEnrolado: true
+      };
+    }
+
     // Cédula oficial de prueba para Anexo B — Enrolamiento de Coordinador
     if (cleanCedula === "4444444444") {
       return {
