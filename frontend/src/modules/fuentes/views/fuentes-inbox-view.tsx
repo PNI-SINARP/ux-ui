@@ -340,16 +340,18 @@ export function FuentesInboxView({ currentUser, openNuevaOnInit = false }: Fuent
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
-              <Link href="/fuentes/nueva">
-                <Button
-                  variant="primary"
-                  size="sm"
-                  className="text-xs gap-2 shadow-xs h-9 cursor-pointer"
-                >
-                  <Plus className="size-4" />
-                  <span>Nueva fuente</span>
-                </Button>
-              </Link>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => {
+                  setFuenteAEditar(null);
+                  setIsFormModalOpen(true);
+                }}
+                className="text-xs gap-2 shadow-xs h-9 cursor-pointer"
+              >
+                <Plus className="size-4" />
+                <span>Nueva fuente</span>
+              </Button>
             </div>
           </div>
 

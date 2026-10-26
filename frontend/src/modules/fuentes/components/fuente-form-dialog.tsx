@@ -352,9 +352,9 @@ export function FuenteFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent size="4xl" variant="standard" className="p-0 gap-0 max-h-[92vh] flex flex-col">
+      <DialogContent size="5xl" variant="standard" className="p-0 gap-0 max-h-[92vh] flex flex-col w-[96vw] max-w-5xl">
         {/* Cabecera Institucional */}
-        <div className="p-5 sm:p-6 pb-4 border-b border-border bg-surface-subtle/30 flex items-start justify-between gap-4">
+        <div className="p-4 sm:p-6 pb-3 sm:pb-4 border-b border-border bg-surface-subtle/30 flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="size-10 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0">
               {isEditing ? <Edit className="size-5" /> : <Plus className="size-5" />}
@@ -382,8 +382,8 @@ export function FuenteFormDialog({
         </div>
 
         {/* Barra de Navegación por Pasos / Secciones */}
-        <div className="px-5 sm:px-6 py-2.5 border-b border-border bg-surface flex items-center justify-between gap-2 overflow-x-auto scrollbar-none">
-          <div className="flex items-center gap-1.5 sm:gap-2 w-full justify-between sm:justify-start">
+        <div className="px-3 sm:px-6 py-2.5 border-b border-border bg-surface flex items-center justify-between gap-2 overflow-x-auto scrollbar-none">
+          <div className="flex items-center gap-1.5 sm:gap-2 w-full justify-start">
             {PASOS_MODAL.map((paso) => {
               const Icon = paso.icon;
               const isActive = activeStep === paso.id;
@@ -393,7 +393,7 @@ export function FuenteFormDialog({
                   key={paso.id}
                   type="button"
                   onClick={() => setActiveStep(paso.id)}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
+                  className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                     isActive
                       ? "bg-primary text-primary-foreground shadow-2xs"
                       : isPast
@@ -402,7 +402,7 @@ export function FuenteFormDialog({
                   }`}
                 >
                   <span
-                    className={`size-5 rounded-full flex items-center justify-center text-[11px] font-bold ${
+                    className={`size-5 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 ${
                       isActive
                         ? "bg-primary-foreground text-primary"
                         : isPast

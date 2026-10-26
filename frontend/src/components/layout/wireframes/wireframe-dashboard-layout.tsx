@@ -146,7 +146,7 @@ const navItems: NavItem[] = [
     label: "Fuentes de información",
     icon: Server,
     href: "/fuentes",
-    allowedRoles: ["COORDINADOR_SINARP", "DTD", "DGR", "DIR_GESTION", "EQ_GESTION", "TI", "ADMIN"],
+    allowedRoles: ["COORDINADOR_SINARP", "DTD", "DGR", "DPI", "DIR_GESTION", "EQ_GESTION", "TI", "ADMIN"],
   },
   {
     id: "cambio-coordinador",

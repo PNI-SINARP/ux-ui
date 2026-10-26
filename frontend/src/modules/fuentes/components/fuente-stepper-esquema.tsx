@@ -10,6 +10,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
   TableHeader,
@@ -169,21 +170,21 @@ export function FuenteStepperEsquema({
         </div>
       </div>
 
-      {/* Tabla de Mapeo y Configuración de Campos con encabezados blancos y sin contenedor */}
+      {/* Tabla de Mapeo y Configuración de Campos con encabezados adaptados al tema */}
       <div className="w-full">
         <Table className="w-full" containerClassName="overflow-x-auto w-full">
           <TableHeader>
             <TableRow className="border-0">
-              <TableHead className="w-14 text-center text-xs font-bold text-white pl-6">Exponer</TableHead>
-              <TableHead className="text-xs font-bold text-white">Ruta Física Origen</TableHead>
-              <TableHead className="text-xs font-bold text-white">Nombre Publicado (snake_case)</TableHead>
-              <TableHead className="text-xs font-bold text-white">Tipo Físico</TableHead>
-              <TableHead className="text-xs font-bold text-white">Tipo Normalizado</TableHead>
-              <TableHead className="text-xs font-bold text-white">Regla Conversión</TableHead>
-              <TableHead className="w-14 text-center text-xs font-bold text-white">Oblig.</TableHead>
-              <TableHead className="w-14 text-center text-xs font-bold text-white">ID Pers.</TableHead>
-              <TableHead className="w-14 text-center text-xs font-bold text-white">Cons. Dir.</TableHead>
-              <TableHead className="text-xs font-bold text-white pr-6">Descripción Funcional</TableHead>
+              <TableHead className="w-14 text-center text-xs font-bold pl-6">Exponer</TableHead>
+              <TableHead className="text-xs font-bold">Ruta Física Origen</TableHead>
+              <TableHead className="text-xs font-bold">Nombre Publicado (snake_case)</TableHead>
+              <TableHead className="text-xs font-bold">Tipo Físico</TableHead>
+              <TableHead className="text-xs font-bold">Tipo Normalizado</TableHead>
+              <TableHead className="text-xs font-bold">Regla Conversión</TableHead>
+              <TableHead className="w-14 text-center text-xs font-bold">Oblig.</TableHead>
+              <TableHead className="w-14 text-center text-xs font-bold">ID Pers.</TableHead>
+              <TableHead className="w-14 text-center text-xs font-bold">Cons. Dir.</TableHead>
+              <TableHead className="text-xs font-bold pr-6">Descripción Funcional</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -204,12 +205,13 @@ export function FuenteStepperEsquema({
                   }`}
                 >
                   <TableCell className="text-center pl-6">
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => toggleCampo(campo.id_campo)}
-                      className="rounded border-input text-primary focus:ring-primary size-4 cursor-pointer"
-                    />
+                    <div className="flex justify-center">
+                      <Checkbox
+                        checked={isSelected}
+                        onCheckedChange={() => toggleCampo(campo.id_campo)}
+                        aria-label={`Exponer ${campo.ruta_origen}`}
+                      />
+                    </div>
                   </TableCell>
 
                   <TableCell className="font-mono text-xs text-muted-foreground whitespace-nowrap">
@@ -285,41 +287,44 @@ export function FuenteStepperEsquema({
 
                   {/* Obligatorio */}
                   <TableCell className="text-center">
-                    <input
-                      type="checkbox"
-                      disabled={!isSelected}
-                      checked={campo.obligatorio ?? !campo.admite_nulo}
-                      onChange={(e) =>
-                        updateCampo(campo.id_campo, { obligatorio: e.target.checked })
-                      }
-                      className="rounded border-input text-primary focus:ring-primary size-3.5 cursor-pointer"
-                    />
+                    <div className="flex justify-center">
+                      <Checkbox
+                        disabled={!isSelected}
+                        checked={campo.obligatorio ?? !campo.admite_nulo}
+                        onCheckedChange={(checked) =>
+                          updateCampo(campo.id_campo, { obligatorio: !!checked })
+                        }
+                        aria-label={`Obligatorio para ${campo.nombre_publicado}`}
+                      />
+                    </div>
                   </TableCell>
 
                   {/* Es Identificador de Persona */}
                   <TableCell className="text-center">
-                    <input
-                      type="checkbox"
-                      disabled={!isSelected}
-                      checked={campo.es_identificador_persona ?? false}
-                      onChange={(e) =>
-                        updateCampo(campo.id_campo, { es_identificador_persona: e.target.checked })
-                      }
-                      className="rounded border-input text-primary focus:ring-primary size-3.5 cursor-pointer"
-                    />
+                    <div className="flex justify-center">
+                      <Checkbox
+                        disabled={!isSelected}
+                        checked={campo.es_identificador_persona ?? false}
+                        onCheckedChange={(checked) =>
+                          updateCampo(campo.id_campo, { es_identificador_persona: !!checked })
+                        }
+                        aria-label={`Identificador de persona para ${campo.nombre_publicado}`}
+                      />
+                    </div>
                   </TableCell>
 
                   {/* Admite Consultas Directas */}
                   <TableCell className="text-center">
-                    <input
-                      type="checkbox"
-                      disabled={!isSelected}
-                      checked={campo.admite_consultas_directas ?? true}
-                      onChange={(e) =>
-                        updateCampo(campo.id_campo, { admite_consultas_directas: e.target.checked })
-                      }
-                      className="rounded border-input text-primary focus:ring-primary size-3.5 cursor-pointer"
-                    />
+                    <div className="flex justify-center">
+                      <Checkbox
+                        disabled={!isSelected}
+                        checked={campo.admite_consultas_directas ?? true}
+                        onCheckedChange={(checked) =>
+                          updateCampo(campo.id_campo, { admite_consultas_directas: !!checked })
+                        }
+                        aria-label={`Admite consulta directa para ${campo.nombre_publicado}`}
+                      />
+                    </div>
                   </TableCell>
 
                   <TableCell className="pr-6">

@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Alert } from "@/components/ui/alert";
 import {
   ParametroConsulta,
@@ -414,32 +415,28 @@ export function FuenteStepperInfo({
             </div>
           </div>
 
-          <div className="flex items-center gap-4 pt-1">
-            <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
-              <input
-                type="checkbox"
-                checked={nuevoParametro.obligatorio}
-                onChange={(e) =>
-                  setNuevoParametro({ ...nuevoParametro, obligatorio: e.target.checked })
+          <div className="flex flex-wrap items-center gap-4 pt-1">
+            <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
+              <Checkbox
+                checked={!!nuevoParametro.obligatorio}
+                onCheckedChange={(checked) =>
+                  setNuevoParametro({ ...nuevoParametro, obligatorio: !!checked })
                 }
-                className="rounded border-input text-primary focus:ring-primary size-3.5"
               />
-              Obligatorio
+              <span>Obligatorio</span>
             </label>
 
-            <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
-              <input
-                type="checkbox"
-                checked={nuevoParametro.es_identificador_persona}
-                onChange={(e) =>
+            <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
+              <Checkbox
+                checked={!!nuevoParametro.es_identificador_persona}
+                onCheckedChange={(checked) =>
                   setNuevoParametro({
                     ...nuevoParametro,
-                    es_identificador_persona: e.target.checked,
+                    es_identificador_persona: !!checked,
                   })
                 }
-                className="rounded border-input text-primary focus:ring-primary size-3.5"
               />
-              Identificador de persona (Cédula/RUC)
+              <span>Identificador de persona (Cédula/RUC)</span>
             </label>
           </div>
         </div>
