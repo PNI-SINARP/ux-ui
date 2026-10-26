@@ -124,33 +124,33 @@ export function NuevaFuenteWizardView({ currentUser }: NuevaFuenteWizardViewProp
   const handleNext = () => {
     if (activeStep === 0) {
       if (!canProceedFromStep1) {
-        toast.error("Complete los campos obligatorios (FUE-01)", {
+        toast.error("Complete los campos obligatorios", {
           description: "Debe ingresar nombre descriptivo, descripción funcional y al menos un parámetro de consulta.",
         });
         return;
       }
     } else if (activeStep === 1) {
       if (isStep2BlockedByHomologation) {
-        toast.warning("Paso bloqueado por homologación técnica (FUE-12)", {
+        toast.warning("Paso bloqueado por homologación técnica", {
           description: `El caso ${casoHomologacion.id_caso} está en revisión por el Equipo de TI. El asistente se mantendrá bloqueado hasta su certificación.`,
         });
         return;
       }
       if (!canProceedFromStep2) {
-        toast.error("Prueba técnica requerida (FUE-02)", {
+        toast.error("Prueba técnica requerida", {
           description: "Debe ejecutar la prueba de conexión y obtener resultado satisfactorio antes de continuar.",
         });
         return;
       }
     } else if (activeStep === 2) {
       if (hasIncompatibilities) {
-        toast.error("Conversiones incompatibles en el esquema (FUE-03)", {
+        toast.error("Conversiones incompatibles en el esquema", {
           description: "Debe corregir las reglas de normalización marcadas en rojo antes de pasar al resumen.",
         });
         return;
       }
       if (!canProceedFromStep3) {
-        toast.error("Seleccione al menos un campo a exponer (FUE-03)", {
+        toast.error("Seleccione al menos un campo a exponer", {
           description: "Debe incluir al menos un atributo del esquema detectado.",
         });
         return;
@@ -200,8 +200,8 @@ export function NuevaFuenteWizardView({ currentUser }: NuevaFuenteWizardViewProp
       setIsSubmitting(false);
 
       if (enviarInmediato && !hasIncompatibilities) {
-        toast.success("Fuente enviada a revisión de Gestión (FUE-03)", {
-          description: `La fuente ${nueva.id} se encuentra en estado 'En revisión'. El equipo de Gestión procederá con la clasificación de campos (FUE-04).`,
+        toast.success("Fuente enviada a revisión de Gestión", {
+          description: `La fuente ${nueva.id} se encuentra en estado 'En revisión'. El equipo de Gestión procederá con la clasificación de campos.`,
         });
       } else {
         toast.success("Borrador de fuente guardado", {
@@ -209,16 +209,16 @@ export function NuevaFuenteWizardView({ currentUser }: NuevaFuenteWizardViewProp
         });
       }
 
-      router.push(`/fuentes/${nueva.id}`);
+      router.push(`/proveedor/fuentes/${nueva.id}`);
     }, 700);
   };
 
   return (
     <WireframeDashboardLayout
-      activeMenu="fuentes"
+      activeMenu="fuentes-proveedor"
       currentUser={currentUser}
       breadcrumbs={[
-        { label: "Fuentes de información", href: "/fuentes" },
+        { label: "Mis fuentes", href: "/proveedor/fuentes" },
         { label: "Nueva fuente" },
       ]}
     >
@@ -230,7 +230,7 @@ export function NuevaFuenteWizardView({ currentUser }: NuevaFuenteWizardViewProp
           {/* Header del Asistente */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border">
             <div className="flex items-center gap-3">
-              <Link href="/fuentes">
+              <Link href="/proveedor/fuentes">
                 <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-foreground">
                   <ArrowLeft className="size-4" />
                 </Button>
@@ -249,7 +249,7 @@ export function NuevaFuenteWizardView({ currentUser }: NuevaFuenteWizardViewProp
             <div className="flex items-center gap-2">
               {isStep2BlockedByHomologation && (
                 <Badge tone="warning" appearance="soft" size="sm" className="gap-1">
-                  <Cpu className="size-3" /> FUE-12 Pendiente
+                  <Cpu className="size-3" /> Pendiente homologación
                 </Badge>
               )}
               <Badge tone="primary" appearance="soft" size="sm">
@@ -328,7 +328,7 @@ export function NuevaFuenteWizardView({ currentUser }: NuevaFuenteWizardViewProp
                   <span>Anterior</span>
                 </Button>
               ) : (
-                <Link href="/fuentes">
+                <Link href="/proveedor/fuentes">
                   <Button variant="ghost" size="sm" className="text-muted-foreground h-9 cursor-pointer">
                     <span>Cancelar</span>
                   </Button>
@@ -341,11 +341,11 @@ export function NuevaFuenteWizardView({ currentUser }: NuevaFuenteWizardViewProp
                 <>
                   <Button
                     type="button"
-                    variant="outline"
+                    variant="secondary"
                     size="sm"
                     onClick={() => handleFinalizar(false)}
                     disabled={isSubmitting}
-                    className="gap-2 h-9 cursor-pointer"
+                    className="gap-2 h-9 cursor-pointer shadow-xs"
                   >
                     <Save className="size-4" />
                     <span>Guardar borrador</span>

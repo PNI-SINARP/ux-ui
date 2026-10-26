@@ -1,7 +1,5 @@
-import { Metadata } from "next";
-import { HomologacionDetailView } from "@/modules/homologacion-fuentes/views/homologacion-detail-view";
+import { redirect } from "next/navigation";
 import { CASOS_HOMOLOGACION_INICIALES } from "@/modules/fuentes/data/fuentes-data";
-
 
 export function generateStaticParams() {
   return CASOS_HOMOLOGACION_INICIALES.map((caso) => ({
@@ -9,11 +7,13 @@ export function generateStaticParams() {
   }));
 }
 
-export const metadata: Metadata = {
-  title: "Detalle de Homologación Técnica | DINARP",
-  description: "Revisión técnica y certificación de origen no soportado (FUE-12 / CNX-01)",
-};
+interface PageProps {
+  params: Promise<{ id: string }>;
+}
 
-export default function HomologacionDetailPage() {
-  return <HomologacionDetailView />;
+export default async function HomologacionDetailRedirectPage({
+  params,
+}: PageProps) {
+  const { id } = await params;
+  redirect(`/tecnologia/homologaciones/${id}`);
 }

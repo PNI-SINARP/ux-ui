@@ -1,4 +1,4 @@
-import { RevisionFuenteDetailView } from "@/modules/revision-fuentes/views/revision-fuente-detail-view";
+import { redirect } from "next/navigation";
 
 const REVISION_FUENTES_IDS = [
   "FUE-RC-001",
@@ -20,11 +20,13 @@ export function generateStaticParams() {
   return REVISION_FUENTES_IDS.map((id) => ({ id }));
 }
 
-export const metadata = {
-  title: "Revisión y Clasificación de Fuente | Portal PNI-SINARP",
-  description: "Clasificación de campos y dictamen de aprobación de fuentes del SINARP.",
-};
+interface PageProps {
+  params: Promise<{ id: string }>;
+}
 
-export default function RevisionFuenteDetailPage() {
-  return <RevisionFuenteDetailView />;
+export default async function RevisionFuenteDetailRedirectPage({
+  params,
+}: PageProps) {
+  const { id } = await params;
+  redirect(`/gestion/fuentes/${id}`);
 }

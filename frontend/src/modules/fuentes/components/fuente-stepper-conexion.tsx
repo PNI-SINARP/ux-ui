@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   ConfiguracionConexion,
   ConectorTipo,
@@ -100,13 +101,13 @@ export function FuenteStepperConexion({
       institucionNombre,
       tecnologia: tecnologiaNoSoportada.trim(),
       protocolo: protocoloNoSoportado.trim() || "TCP/IP propietario",
-      diagnostico: `Solicitud FUE-12 ingresada durante el asistente de nueva fuente para tecnología ${tecnologiaNoSoportada}. Requiere homologación de laboratorio antes de habilitar conector en producción.`,
+      diagnostico: `Solicitud ingresada durante el asistente de nueva fuente para tecnología ${tecnologiaNoSoportada}. Requiere homologación de laboratorio antes de habilitar conector en producción.`,
     });
 
     setCasoHomologacionActivo(nuevoCaso);
     onOrigenNoSoportado?.(nuevoCaso);
 
-    toast.warning("Caso FUE-12 de homologación técnica registrado", {
+    toast.warning("Caso de homologación técnica registrado", {
       description: `Caso ${nuevoCaso.id_caso} creado y asignado al Equipo TI DINARP. La fuente queda pendiente de homologación.`,
     });
   };
@@ -568,12 +569,10 @@ export function FuenteStepperConexion({
               </div>
 
               <div className="flex items-center gap-3">
-                <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
-                  <input
-                    type="checkbox"
+                <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
+                  <Checkbox
                     checked={simularFallo}
-                    onChange={(e) => setSimularFallo(e.target.checked)}
-                    className="rounded border-input text-danger focus:ring-danger size-3.5"
+                    onCheckedChange={(checked) => setSimularFallo(!!checked)}
                   />
                   <span>Simular fallo técnico</span>
                 </label>

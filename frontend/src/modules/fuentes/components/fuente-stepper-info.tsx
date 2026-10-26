@@ -6,8 +6,16 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert } from "@/components/ui/alert";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   ParametroConsulta,
   ModalidadSoportada,
@@ -41,12 +49,16 @@ interface FuenteStepperInfoProps {
   formData: InfoFormData;
   onChange: (data: Partial<InfoFormData>) => void;
   institucionPrecargada: string;
+  coordinadorNombre?: string;
+  coordinadorId?: string;
 }
 
 export function FuenteStepperInfo({
   formData,
   onChange,
   institucionPrecargada,
+  coordinadorNombre,
+  coordinadorId,
 }: FuenteStepperInfoProps) {
   const [nuevoParametro, setNuevoParametro] = useState<Partial<ParametroConsulta>>({
     nombre: "",
@@ -98,25 +110,49 @@ export function FuenteStepperInfo({
 
   return (
     <div className="space-y-6">
-      {/* Institución Proveedora Precargada */}
-      <div className="p-4 bg-muted/20 rounded-xl border border-border flex items-center justify-between gap-4 flex-wrap">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-primary/10 text-primary rounded-lg shrink-0">
-            <Building2 className="size-5" />
+      {/* Institución Proveedora Precargada en Card con Ícono con Color (FUE-01) */}
+      <Card
+        size="sm"
+        className="bg-surface/90 border-border/70 shadow-xs rounded-2xl"
+        innerClassName="p-4 sm:p-4.5 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+      >
+        <div className="flex items-center gap-3.5 min-w-0">
+          <div className="size-11 sm:size-12 rounded-xl bg-primary/15 border border-primary/25 text-primary flex items-center justify-center shrink-0 shadow-xs">
+            <Building2 className="size-5.5 sm:size-6 text-primary" />
           </div>
-          <div>
-            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block">
+          <div className="min-w-0 space-y-0.5">
+            <span className="text-[10px] sm:text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">
               Institución proveedora (Precargada por sesión)
             </span>
-            <span className="font-heading font-bold text-sm text-foreground">
+            <span className="font-heading font-extrabold text-sm sm:text-base text-foreground block truncate">
               {institucionPrecargada}
             </span>
+            {coordinadorNombre && (
+              <span className="text-xs text-muted-foreground block truncate">
+                Coordinador registrador: <strong className="text-foreground">{coordinadorNombre}</strong>
+                {coordinadorId && <span className="font-mono text-[11px] ml-1.5 opacity-80">({coordinadorId})</span>}
+              </span>
+            )}
           </div>
         </div>
-        <Badge tone="primary" appearance="soft" size="sm">
-          Capacidad Proveedora Activa
-        </Badge>
-      </div>
+
+        <div className="flex items-center gap-2 flex-wrap shrink-0">
+          <Badge
+            tone="primary"
+            appearance="soft"
+            size="sm"
+            className="font-bold text-[10px] sm:text-[11px] uppercase tracking-wider px-3 py-1 rounded-full border border-primary/25"
+          >
+            Capacidad Proveedora Activa
+          </Badge>
+          <Badge tone="neutral" appearance="outline" size="sm" className="font-semibold text-[10px] sm:text-[11px]">
+            Coordinador Proveedor
+          </Badge>
+          <Badge tone="neutral" appearance="outline" size="sm" className="font-medium text-[10px] sm:text-[11px]">
+            Borrador
+          </Badge>
+        </div>
+      </Card>
 
       {/* Datos Básicos de la Fuente */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -210,37 +246,43 @@ export function FuenteStepperInfo({
             <Label htmlFor="modalidad" className="text-xs font-medium text-muted-foreground">
               Modalidades soportadas <span className="text-danger">*</span>
             </Label>
-            <select
-              id="modalidad"
+            <Select
               value={formData.modalidades_soportadas}
-              onChange={(e) =>
-                onChange({ modalidades_soportadas: e.target.value as ModalidadSoportada })
+              onValueChange={(val) =>
+                onChange({ modalidades_soportadas: val as ModalidadSoportada })
               }
-              className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              <option value="Ambas modalidades">Ambas modalidades (individual y masiva)</option>
-              <option value="API individual">API individual (tiempo real)</option>
-              <option value="API masiva">API masiva (lotes)</option>
-            </select>
+              <SelectTrigger id="modalidad" className="h-9 text-xs">
+                <SelectValue placeholder="Seleccione modalidad" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Ambas modalidades">Ambas modalidades (individual y masiva)</SelectItem>
+                <SelectItem value="API individual">API individual (tiempo real)</SelectItem>
+                <SelectItem value="API masiva">API masiva (lotes)</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-1.5">
             <Label htmlFor="formato" className="text-xs font-medium text-muted-foreground">
               Formato de respuesta <span className="text-danger">*</span>
             </Label>
-            <select
-              id="formato"
+            <Select
               value={formData.formato_respuesta}
-              onChange={(e) =>
+              onValueChange={(val) =>
                 onChange({
-                  formato_respuesta: e.target.value as "application/json" | "application/xml",
+                  formato_respuesta: val as "application/json" | "application/xml",
                 })
               }
-              className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              <option value="application/json">application/json (Recomendado)</option>
-              <option value="application/xml">application/xml</option>
-            </select>
+              <SelectTrigger id="formato" className="h-9 text-xs">
+                <SelectValue placeholder="Seleccione formato" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="application/json">application/json (Recomendado)</SelectItem>
+                <SelectItem value="application/xml">application/xml</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
@@ -249,19 +291,22 @@ export function FuenteStepperInfo({
             <Label htmlFor="tipo-prueba" className="text-xs font-medium text-muted-foreground">
               Tipo de datos para entorno de Pruebas <span className="text-danger">*</span>
             </Label>
-            <select
-              id="tipo-prueba"
+            <Select
               value={formData.tipo_dato_pruebas}
-              onChange={(e) =>
-                onChange({ tipo_dato_pruebas: e.target.value as TipoDatoPruebas })
+              onValueChange={(val) =>
+                onChange({ tipo_dato_pruebas: val as TipoDatoPruebas })
               }
-              className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              <option value="Sintético">Sintético (datos de prueba autogenerados)</option>
-              <option value="Anonimizado">Anonimizado (datos reales enmascarados)</option>
-              <option value="Real">Real (datos auténticos de producción)</option>
-              <option value="Indeterminado">Indeterminado (pendiente de certificación)</option>
-            </select>
+              <SelectTrigger id="tipo-prueba" className="h-9 text-xs">
+                <SelectValue placeholder="Seleccione tipo de datos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Sintético">Sintético (datos de prueba autogenerados)</SelectItem>
+                <SelectItem value="Anonimizado">Anonimizado (datos reales enmascarados)</SelectItem>
+                <SelectItem value="Real">Real (datos auténticos de producción)</SelectItem>
+                <SelectItem value="Indeterminado">Indeterminado (pendiente de certificación)</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="flex items-center">
@@ -367,22 +412,26 @@ export function FuenteStepperInfo({
 
             <div>
               <Label className="text-[11px] text-muted-foreground">Tipo de dato</Label>
-              <select
+              <Select
                 value={nuevoParametro.tipo}
-                onChange={(e) =>
+                onValueChange={(val) =>
                   setNuevoParametro({
                     ...nuevoParametro,
-                    tipo: e.target.value as TipoDatoCanonico,
+                    tipo: val as TipoDatoCanonico,
                   })
                 }
-                className="w-full h-8 rounded-md border border-input bg-background px-2 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                <option value="Texto">Texto</option>
-                <option value="Entero">Entero</option>
-                <option value="Decimal">Decimal</option>
-                <option value="Fecha">Fecha</option>
-                <option value="Booleano">Booleano</option>
-              </select>
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue placeholder="Tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Texto">Texto</SelectItem>
+                  <SelectItem value="Entero">Entero</SelectItem>
+                  <SelectItem value="Decimal">Decimal</SelectItem>
+                  <SelectItem value="Fecha">Fecha</SelectItem>
+                  <SelectItem value="Booleano">Booleano</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div>
@@ -438,6 +487,45 @@ export function FuenteStepperInfo({
               />
               <span>Identificador de persona (Cédula/RUC)</span>
             </label>
+          </div>
+
+          {/* Operadores permitidos (FUE-01: subconjunto no vacío) */}
+          <div className="pt-2 border-t border-border/60">
+            <span className="text-[11px] font-semibold text-muted-foreground block mb-1.5">
+              Operadores permitidos:
+            </span>
+            <div className="flex flex-wrap items-center gap-3">
+              {(["Igual", "En lista", "Mayor que", "Mayor o igual", "Menor que", "Menor o igual"] as const).map(
+                (op) => {
+                  const currentOps = nuevoParametro.operadores_permitidos || ["Igual"];
+                  const isChecked = currentOps.includes(op);
+                  return (
+                    <label
+                      key={op}
+                      className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none"
+                    >
+                      <Checkbox
+                        checked={isChecked}
+                        onCheckedChange={(checked) => {
+                          let nextOps: string[];
+                          if (checked) {
+                            nextOps = [...currentOps, op];
+                          } else {
+                            nextOps = currentOps.filter((o) => o !== op);
+                            if (nextOps.length === 0) nextOps = ["Igual"]; // no vacío
+                          }
+                          setNuevoParametro({
+                            ...nuevoParametro,
+                            operadores_permitidos: nextOps,
+                          });
+                        }}
+                      />
+                      <span>{op}</span>
+                    </label>
+                  );
+                }
+              )}
+            </div>
           </div>
         </div>
       </div>

@@ -74,6 +74,12 @@ interface RevisionFuentesInboxViewProps {
 export function RevisionFuentesInboxView({ currentUser }: RevisionFuentesInboxViewProps) {
   const { fuentes, isLoaded } = useFuentesStore();
 
+  const userRole = (currentUser?.role || "").toUpperCase();
+  const esRolGestion =
+    !currentUser ||
+    !currentUser.role ||
+    ["DIR_GESTION", "EQ_GESTION", "DGR", "DPI", "ADMIN"].includes(userRole);
+
   const [searchTerm, setSearchTerm] = useState("");
   const [estadoFilter, setEstadoFilter] = useState<string>("ALL");
   const [estadoSearch, setEstadoSearch] = useState("");
@@ -198,31 +204,49 @@ export function RevisionFuentesInboxView({ currentUser }: RevisionFuentesInboxVi
 
   return (
     <WireframeDashboardLayout
-      activeMenu="revision-fuentes"
+      activeMenu="revision-aprobacion-fuentes"
       currentUser={currentUser}
+      breadcrumbs={[
+        { label: "Revisión y aprobación de fuentes", href: "/gestion/fuentes" },
+      ]}
     >
       <main className="w-full pr-3 pl-2 pb-3 pt-1.5 flex-1 min-h-0 flex flex-col overflow-hidden">
-        <Card
-          className="bg-surface rounded-2xl border border-border shadow-xs flex-1 min-h-0 overflow-hidden flex flex-col my-0"
-          innerClassName="p-4 sm:p-6 lg:p-8 flex flex-col gap-6 overflow-y-auto flex-1 min-h-0 w-full"
-        >
-          {/* Header del Módulo */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary/10 text-primary rounded-lg shrink-0">
-                <FolderCheck className="size-6" />
-              </div>
-              <div>
-                <h1 className="font-heading font-extrabold text-2xl tracking-tight text-primary">
-                  Revisión y Clasificación de Fuentes
-                </h1>
-                <p className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1.5 mt-0.5">
-                  <ShieldCheck className="size-3.5 text-primary" />
-                  Área de Gestión · Flujo BN-06 (FUE-04 — Clasificar campos y aprobar publicación)
+        {!esRolGestion ? (
+          <Card
+            className="bg-surface rounded-2xl border border-border shadow-xs flex-1 min-h-0 overflow-hidden flex flex-col my-0 items-center justify-center p-8 text-center space-y-4"
+          >
+            <FolderCheck className="size-12 text-warning mx-auto" />
+            <h3 className="font-heading font-bold text-lg text-foreground">
+              Acceso restringido al rol de Gestión
+            </h3>
+            <p className="text-xs text-muted-foreground max-w-md">
+              Esta pantalla de revisión, clasificación y aprobación es exclusiva para los miembros del equipo de Gestión de DINARP. Como coordinador institucional, gestiona tus fuentes desde tu espacio asignado.
+            </p>
+            <Link href="/proveedor/fuentes">
+              <Button variant="primary" size="sm">
+                Ir a Mis fuentes
+              </Button>
+            </Link>
+          </Card>
+        ) : (
+          <Card
+            className="bg-surface rounded-2xl border border-border shadow-xs flex-1 min-h-0 overflow-hidden flex flex-col my-0"
+            innerClassName="p-4 sm:p-6 lg:p-8 flex flex-col gap-6 overflow-y-auto flex-1 min-h-0 w-full"
+          >
+            {/* Header Principal */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 w-full">
+              <div className="space-y-1 min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <FolderCheck className="size-6 text-primary shrink-0" />
+                  <h1 className="font-heading font-extrabold text-2xl sm:text-3xl tracking-tight text-primary">
+                    Revisión y aprobación de fuentes
+                  </h1>
+                </div>
+                <p className="text-xs sm:text-sm text-muted-foreground w-full max-w-none leading-relaxed font-normal">
+                  Revisa las fuentes registradas por las instituciones proveedoras, clasifica sus campos y gestiona las decisiones de aprobación o devolución.
                 </p>
               </div>
             </div>
-          </div>
 
           {/* KPI Cards de Resumen Interactivas (Estilo Cuentas Internas) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 w-full">
@@ -689,7 +713,7 @@ export function RevisionFuentesInboxView({ currentUser }: RevisionFuentesInboxVi
                           <TooltipProvider delayDuration={100}>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <Link href={`/revision-fuentes/${fuente.id}`}>
+                                <Link href={`/gestion/fuentes/${fuente.id}`}>
                                   <Button
                                     variant="ghost"
                                     size="icon-sm"
@@ -705,7 +729,7 @@ export function RevisionFuentesInboxView({ currentUser }: RevisionFuentesInboxVi
                                 </Link>
                               </TooltipTrigger>
                               <TooltipContent side="top">
-                                {isPendiente ? "Revisar y clasificar fuente (FUE-04)" : "Ver detalle de fuente"}
+                                {isPendiente ? "Revisar y clasificar fuente" : "Ver detalle de fuente"}
                               </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
@@ -829,6 +853,7 @@ export function RevisionFuentesInboxView({ currentUser }: RevisionFuentesInboxVi
             </div>
           </div>
         </Card>
+        )}
       </main>
     </WireframeDashboardLayout>
   );

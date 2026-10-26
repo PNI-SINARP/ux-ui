@@ -12,6 +12,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableHeader,
   TableBody,
@@ -224,7 +231,7 @@ export function FuenteStepperEsquema({
                       value={campo.nombre_publicado}
                       onChange={(e) => updateCampo(campo.id_campo, { nombre_publicado: e.target.value })}
                       onBlur={(e) => handleNormalizarNombre(campo.id_campo, e.target.value)}
-                      className="h-8 text-xs font-mono max-w-[150px]"
+                      className="h-8 text-xs font-mono min-w-[130px] max-w-[200px]"
                       placeholder="nombre_campo"
                     />
                   </TableCell>
@@ -236,46 +243,56 @@ export function FuenteStepperEsquema({
                   </TableCell>
 
                   <TableCell>
-                    <select
+                    <Select
                       disabled={!isSelected}
                       value={campo.tipo_normalizado}
-                      onChange={(e) =>
+                      onValueChange={(val) =>
                         updateCampo(campo.id_campo, {
-                          tipo_normalizado: e.target.value as TipoDatoCanonico,
+                          tipo_normalizado: val as TipoDatoCanonico,
                         })
                       }
-                      className="h-8 rounded-md border border-input bg-background px-2 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                     >
-                      {TIPOS_CANONICOS.map((t) => (
-                        <option key={t} value={t}>
-                          {t}
-                        </option>
-                      ))}
-                    </select>
+                      <SelectTrigger className="h-8 text-xs min-w-[120px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {TIPOS_CANONICOS.map((t) => (
+                          <SelectItem key={t} value={t}>
+                            {t}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </TableCell>
 
                   <TableCell>
                     <div className="space-y-1">
-                      <select
+                      <Select
                         disabled={!isSelected}
                         value={campo.regla_conversion}
-                        onChange={(e) =>
+                        onValueChange={(val) =>
                           updateCampo(campo.id_campo, {
-                            regla_conversion: e.target.value as ReglaConversion,
+                            regla_conversion: val as ReglaConversion,
                           })
                         }
-                        className={`h-8 rounded-md border px-2 text-xs font-mono shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring ${
-                          hasError
-                            ? "border-danger text-danger bg-danger/10 font-bold"
-                            : "border-input bg-background"
-                        }`}
                       >
-                        {REGLAS_VALIDAS.map((r) => (
-                          <option key={r} value={r}>
-                            {r}
-                          </option>
-                        ))}
-                      </select>
+                        <SelectTrigger
+                          className={`h-8 text-xs font-mono min-w-[140px] ${
+                            hasError
+                              ? "border-danger text-danger bg-danger/10 font-bold"
+                              : ""
+                          }`}
+                        >
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {REGLAS_VALIDAS.map((r) => (
+                            <SelectItem key={r} value={r} className="font-mono text-xs">
+                              {r}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       {hasError && (
                         <span className="text-[10px] text-danger font-semibold flex items-center gap-1">
                           <XCircle className="size-3 shrink-0" />

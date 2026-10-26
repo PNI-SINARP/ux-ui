@@ -44,6 +44,7 @@ import {
   Lock,
   Cpu,
   FileCheck2,
+  Plug,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -142,11 +143,12 @@ const navItems: NavItem[] = [
     allowedRoles: ["COORDINADOR_SINARP", "ADMIN"],
   },
   {
-    id: "fuentes",
-    label: "Fuentes de información",
+    id: "fuentes-proveedor",
+    label: "Mis fuentes",
     icon: Server,
-    href: "/fuentes",
-    allowedRoles: ["COORDINADOR_SINARP", "DTD", "DGR", "DPI", "DIR_GESTION", "EQ_GESTION", "TI", "ADMIN"],
+    href: "/proveedor/fuentes",
+    allowedRoles: ["COORDINADOR_SINARP", "ADMIN"],
+    providerOnly: true,
   },
   {
     id: "cambio-coordinador",
@@ -202,10 +204,10 @@ const navItems: NavItem[] = [
     allowedRoles: ["EQ_GESTION", "ADMIN"],
   },
   {
-    id: "revision-fuentes",
-    label: "Revisión de fuentes (BN-06)",
+    id: "revision-aprobacion-fuentes",
+    label: "Revisión y aprobación de fuentes",
     icon: FolderCheck,
-    href: "/revision-fuentes",
+    href: "/gestion/fuentes",
     allowedRoles: ["DGR", "DPI", "DIR_GESTION", "EQ_GESTION", "ADMIN"],
   },
 
@@ -236,18 +238,25 @@ const navItems: NavItem[] = [
 
   // ── Equipo TI ──
   {
+    id: "tecnologia-conectores",
+    label: "Gestión de conectores",
+    icon: Plug,
+    href: "/tecnologia/conectores",
+    allowedRoles: ["TI", "DTD", "ADMIN"],
+  },
+  {
+    id: "tecnologia-homologaciones",
+    label: "Homologación de orígenes",
+    icon: Cpu,
+    href: "/tecnologia/homologaciones",
+    allowedRoles: ["TI", "DTD", "ADMIN"],
+  },
+  {
     id: "acceso-consumo-ti",
     label: "Aprovisionamiento y acceso",
     icon: Cpu,
     href: "/acceso-consumo",
     allowedRoles: ["TI", "ADMIN"],
-  },
-  {
-    id: "homologacion-fuentes",
-    label: "Homologación orígenes (FUE-12)",
-    icon: Cpu,
-    href: "/homologacion-fuentes",
-    allowedRoles: ["DTD", "TI", "ADMIN"],
   },
 
   // ── Administrador DINARP ──

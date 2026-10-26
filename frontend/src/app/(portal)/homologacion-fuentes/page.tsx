@@ -1,11 +1,5 @@
-import { Metadata } from "next";
-import { HomologacionesInboxView } from "@/modules/homologacion-fuentes/views/homologaciones-inbox-view";
+import { redirect } from "next/navigation";
 
-export const metadata: Metadata = {
-  title: "Homologación Técnica de Fuentes | DINARP",
-  description: "Bandeja del Equipo de TI para homologación de orígenes de datos no soportados (FUE-12)",
-};
-
-export default function HomologacionFuentesPage() {
-  return <HomologacionesInboxView />;
+export default function HomologacionFuentesRedirectPage() {
+  redirect("/tecnologia/homologaciones");
 }

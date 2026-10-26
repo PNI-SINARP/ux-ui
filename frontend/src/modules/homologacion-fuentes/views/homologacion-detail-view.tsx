@@ -79,10 +79,10 @@ export function HomologacionDetailView({ currentUser }: HomologacionDetailViewPr
   if (!isLoaded) {
     return (
       <WireframeDashboardLayout
-        activeMenu="homologacion-fuentes"
+        activeMenu="tecnologia-homologaciones"
         currentUser={currentUser}
         breadcrumbs={[
-          { label: "Homologación técnica", href: "/homologacion-fuentes" },
+          { label: "Homologación de orígenes", href: "/tecnologia/homologaciones" },
           { label: "Cargando..." },
         ]}
       >
@@ -96,10 +96,10 @@ export function HomologacionDetailView({ currentUser }: HomologacionDetailViewPr
   if (!caso) {
     return (
       <WireframeDashboardLayout
-        activeMenu="homologacion-fuentes"
+        activeMenu="tecnologia-homologaciones"
         currentUser={currentUser}
         breadcrumbs={[
-          { label: "Homologación técnica", href: "/homologacion-fuentes" },
+          { label: "Homologación de orígenes", href: "/tecnologia/homologaciones" },
           { label: "No encontrado" },
         ]}
       >
@@ -114,7 +114,7 @@ export function HomologacionDetailView({ currentUser }: HomologacionDetailViewPr
             <p className="text-xs text-muted-foreground max-w-sm">
               No se encontró el caso de homologación solicitado ({id}).
             </p>
-            <Link href="/homologacion-fuentes">
+            <Link href="/tecnologia/homologaciones">
               <Button variant="neutral" size="sm">
                 <ArrowLeft className="size-4 mr-2" />
                 Volver a la bandeja
@@ -197,10 +197,10 @@ export function HomologacionDetailView({ currentUser }: HomologacionDetailViewPr
 
   return (
     <WireframeDashboardLayout
-      activeMenu="homologacion-fuentes"
+      activeMenu="tecnologia-homologaciones"
       currentUser={currentUser}
       breadcrumbs={[
-        { label: "Homologación técnica", href: "/homologacion-fuentes" },
+        { label: "Homologación de orígenes", href: "/tecnologia/homologaciones" },
         { label: `Caso ${caso.id_caso}` },
       ]}
     >
@@ -219,8 +219,8 @@ export function HomologacionDetailView({ currentUser }: HomologacionDetailViewPr
                   asChild
                   leftIcon={<ArrowLeft className="size-4" />}
                 >
-                  <Link href="/homologacion-fuentes">
-                    Volver a homologación técnica
+                  <Link href="/tecnologia/homologaciones">
+                    Volver a homologación de orígenes
                   </Link>
                 </Button>
               </div>
@@ -233,7 +233,7 @@ export function HomologacionDetailView({ currentUser }: HomologacionDetailViewPr
                     asChild
                     leftIcon={<ExternalLink className="size-3.5" />}
                   >
-                    <Link href={`/fuentes/${caso.id_fuente}`}>
+                    <Link href={`/proveedor/fuentes/${caso.id_fuente}`}>
                       Ver fuente vinculada
                     </Link>
                   </Button>
@@ -334,7 +334,7 @@ export function HomologacionDetailView({ currentUser }: HomologacionDetailViewPr
                 </p>
                 {caso.id_fuente && (
                   <Link
-                    href={`/fuentes/${caso.id_fuente}`}
+                    href={`/proveedor/fuentes/${caso.id_fuente}`}
                     className="inline-flex items-center gap-1.5 text-xs text-primary font-semibold hover:underline pt-1"
                   >
                     Ver fuente vinculada ({caso.id_fuente}) <ExternalLink className="size-3" />

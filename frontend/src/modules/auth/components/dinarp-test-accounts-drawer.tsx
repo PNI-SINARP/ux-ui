@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/modules/gestion-solicitudes/data/auth-store";
 import {
   Copy,
@@ -277,12 +278,12 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     userName: "Carlos Mendoza (Registro Civil)",
     cedula: "1720304050",
     description: "Coordinador de la institución proveedora activa (Registro Civil). Registra datos básicos y SLA (Paso 1: FUE-01), prueba la conexión de lectura por VPN (Paso 2: FUE-02), selecciona los campos y conversiones (Paso 3: FUE-03), y envía a revisión (Paso 4: FUE-01..03). Publica versiones una vez aprobadas (FUE-05).",
-    access: "Asistente de Nueva Fuente (/fuentes/nueva) y Bandeja de Fuentes (/fuentes).",
+    access: "Asistente de Nueva Fuente (/proveedor/fuentes/nueva) y Mis Fuentes (/proveedor/fuentes).",
     storiesBadge: "BN-06 · FUE-01..03, 05",
     flows: ["fuentes"],
     actions: [
-      { label: "Registrar Nueva Fuente", route: "/fuentes/nueva", huBadge: "Paso 1 a 4" },
-      { label: "Bandeja de Fuentes", route: "/fuentes", huBadge: "Bandeja" },
+      { label: "Registrar Nueva Fuente", route: "/proveedor/fuentes/nueva", huBadge: "Paso 1 a 4" },
+      { label: "Mis Fuentes", route: "/proveedor/fuentes", huBadge: "Bandeja" },
     ]
   },
   {
@@ -290,12 +291,12 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     userName: "Carlos Mena",
     cedula: "1716543210",
     description: "Responsable técnico de conectividad y despliegue. Gestiona conectores reutilizables (CNX-01/02), homologa motores no soportados (FUE-12), analiza diagnósticos de conexión VPN (FUE-02/10), y realiza la publicación en el API Gateway (FUE-05).",
-    access: "Homologación Técnica (/homologacion-fuentes) y Administración de Fuentes (/fuentes).",
+    access: "Gestión de Conectores (/tecnologia/conectores) y Homologación de Orígenes (/tecnologia/homologaciones).",
     storiesBadge: "BN-06 · CNX-01/02 · FUE-05, 12",
     flows: ["fuentes"],
     actions: [
-      { label: "Homologación Excepcional", route: "/homologacion-fuentes", huBadge: "FUE-12" },
-      { label: "Administrar Fuentes y Gateway", route: "/fuentes", huBadge: "FUE-05" },
+      { label: "Gestión de Conectores", route: "/tecnologia/conectores", huBadge: "CNX-01/02" },
+      { label: "Homologación de Orígenes", route: "/tecnologia/homologaciones", huBadge: "FUE-12" },
     ]
   },
   {
@@ -303,12 +304,11 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     userName: "María Torres",
     cedula: "1717654321",
     description: "Revisor funcional de fuentes. Evalúa la viabilidad institucional, pertinencia de los campos expuestos, verifica la prueba técnica de conexión y emite dictamen de aprobación o rechazo (FUE-04). Suspende fuentes preventivamente ante fallos técnicos (FUE-10).",
-    access: "Revisión de Fuentes (/revision-fuentes) y Bandeja de Fuentes (/fuentes).",
+    access: "Revisión y Aprobación de Fuentes (/gestion/fuentes).",
     storiesBadge: "BN-06 · FUE-04, 10",
     flows: ["fuentes"],
     actions: [
-      { label: "Revisión de Fuentes", route: "/revision-fuentes", huBadge: "FUE-04" },
-      { label: "Bandeja de Fuentes", route: "/fuentes", huBadge: "FUE-10" },
+      { label: "Revisión de Fuentes", route: "/gestion/fuentes", huBadge: "FUE-04" },
     ]
   },
   {
@@ -316,11 +316,11 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     userName: "Daniela Ruiz",
     cedula: "1715432109",
     description: "Oficial de privacidad y protección de datos personales. Evalúa cada campo expuesto y clasifica su sensibilidad como Accesible o Confidencial según la LOPDP; comprueba datos sintéticos o anonimizados para habilitar pruebas (FUE-04).",
-    access: "Revisión y Clasificación LOPDP (/revision-fuentes).",
+    access: "Revisión y Clasificación LOPDP (/gestion/fuentes).",
     storiesBadge: "BN-06 · FUE-04 (LOPDP)",
     flows: ["fuentes"],
     actions: [
-      { label: "Clasificación de Campos LOPDP", route: "/revision-fuentes", huBadge: "FUE-04" },
+      { label: "Clasificación de Campos LOPDP", route: "/gestion/fuentes", huBadge: "FUE-04" },
     ]
   }
 ];
@@ -464,6 +464,7 @@ interface DinarpTestAccountsDrawerProps {
 }
 
 export function DinarpTestAccountsDrawer({ onSelectCedula }: DinarpTestAccountsDrawerProps) {
+  const router = useRouter();
   const { login } = useAuthStore();
   const [isOpen, setIsOpen] = useState(false);
   const [selectedFlow, setSelectedFlow] = useState<FlowType | null>(null);
@@ -781,6 +782,13 @@ export function DinarpTestAccountsDrawer({ onSelectCedula }: DinarpTestAccountsD
                               toast.success(`Sesión activa: ${acc.userName}`, {
                                 description: `Rol: ${acc.roleName}`,
                               });
+                              const defaultRoute = acc.actions?.[0]?.route ? `${acc.actions[0].route}/` : "/catalogo-interoperabilidad/";
+                              router.push(defaultRoute);
+                              setTimeout(() => {
+                                if (typeof window !== "undefined" && window.location.pathname.includes("/login")) {
+                                  window.location.assign(defaultRoute);
+                                }
+                              }, 350);
                             }}
                             className="text-xs h-7 px-2.5 gap-1 text-primary hover:bg-primary/10 border-primary/30 shrink-0 shadow-2xs font-medium"
                             title="Iniciar sesión directamente con este usuario"
@@ -833,23 +841,26 @@ export function DinarpTestAccountsDrawer({ onSelectCedula }: DinarpTestAccountsD
                       {/* Botones directos a las rutas del flujo */}
                       {acc.actions && acc.actions.length > 0 && (
                         <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                          {acc.actions.map((act) => (
-                            <Link
-                              key={`${acc.cedula}-${act.route}`}
-                              href={act.route}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                login(acc.cedula, { name: acc.userName, roleTitle: acc.roleName });
-                                toast.success(`Sesión activa: ${acc.userName}`, {
-                                  description: `Rol: ${acc.roleName}`,
-                                });
-                              }}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-primary/10 hover:bg-primary text-primary hover:text-white border border-primary/25 transition-all shadow-2xs group/btn"
-                            >
-                              <span>{act.label}</span>
-                              <ChevronRight className="size-3 transition-transform group-hover/btn:translate-x-0.5" />
-                            </Link>
-                          ))}
+                          {acc.actions.map((act) => {
+                            const routeHref = act.route.includes("?") || act.route.endsWith("/") ? act.route : `${act.route}/`;
+                            return (
+                              <Link
+                                key={`${acc.cedula}-${act.route}`}
+                                href={routeHref}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  login(acc.cedula, { name: acc.userName, roleTitle: acc.roleName });
+                                  toast.success(`Sesión activa: ${acc.userName}`, {
+                                    description: `Rol: ${acc.roleName}`,
+                                  });
+                                }}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-primary/10 hover:bg-primary text-primary hover:text-white border border-primary/25 transition-all shadow-2xs group/btn"
+                              >
+                                <span>{act.label}</span>
+                                <ChevronRight className="size-3 transition-transform group-hover/btn:translate-x-0.5" />
+                              </Link>
+                            );
+                          })}
                         </div>
                       )}
                     </div>

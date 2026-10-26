@@ -193,8 +193,11 @@ export function HomologacionesInboxView({ currentUser }: HomologacionesInboxView
 
   return (
     <WireframeDashboardLayout
-      activeMenu="homologacion-fuentes"
+      activeMenu="tecnologia-homologaciones"
       currentUser={currentUser}
+      breadcrumbs={[
+        { label: "Homologación de orígenes", href: "/tecnologia/homologaciones" },
+      ]}
     >
       <main className="w-full pr-3 pl-2 pb-3 pt-1.5 flex-1 min-h-0 flex flex-col overflow-hidden">
         <Card
@@ -207,11 +210,11 @@ export function HomologacionesInboxView({ currentUser }: HomologacionesInboxView
               <div className="flex items-center gap-2">
                 <Cpu className="size-6 text-primary shrink-0" />
                 <h1 className="font-heading font-extrabold text-2xl sm:text-3xl tracking-tight text-primary">
-                  Homologación técnica de fuentes
+                  Homologación de orígenes
                 </h1>
               </div>
               <p className="text-xs sm:text-sm text-muted-foreground w-full max-w-none leading-relaxed font-normal">
-                Bandeja del Equipo de TI de DINARP para el diagnóstico, laboratorio y certificación de orígenes de datos no soportados y conector reutilizable.
+                Gestiona y verifica los orígenes de datos no soportados y las transformaciones excepcionales antes de habilitar su integración.
               </p>
             </div>
           </div>
@@ -647,7 +650,7 @@ export function HomologacionesInboxView({ currentUser }: HomologacionesInboxView
                         <TooltipProvider delayDuration={100}>
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <Link href={`/homologacion-fuentes/${caso.id_caso}`}>
+                              <Link href={`/tecnologia/homologaciones/${caso.id_caso}`}>
                                 <Button
                                   variant="ghost"
                                   size="icon-sm"

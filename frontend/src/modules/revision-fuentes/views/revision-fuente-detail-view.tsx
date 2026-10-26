@@ -64,10 +64,10 @@ export function RevisionFuenteDetailView({ currentUser }: RevisionFuenteDetailVi
   if (!isLoaded) {
     return (
       <WireframeDashboardLayout
-        activeMenu="revision-fuentes"
+        activeMenu="revision-aprobacion-fuentes"
         currentUser={currentUser}
         breadcrumbs={[
-          { label: "Gestión", href: "/revision-fuentes" },
+          { label: "Revisión y aprobación de fuentes", href: "/gestion/fuentes" },
           { label: "Cargando..." },
         ]}
       >
@@ -81,10 +81,10 @@ export function RevisionFuenteDetailView({ currentUser }: RevisionFuenteDetailVi
   if (!fuente) {
     return (
       <WireframeDashboardLayout
-        activeMenu="revision-fuentes"
+        activeMenu="revision-aprobacion-fuentes"
         currentUser={currentUser}
         breadcrumbs={[
-          { label: "Gestión", href: "/revision-fuentes" },
+          { label: "Revisión y aprobación de fuentes", href: "/gestion/fuentes" },
           { label: "No encontrada" },
         ]}
       >
@@ -99,7 +99,7 @@ export function RevisionFuenteDetailView({ currentUser }: RevisionFuenteDetailVi
             <p className="text-xs text-muted-foreground max-w-sm">
               No se encontró la fuente de datos solicitada para revisión.
             </p>
-            <Link href="/revision-fuentes">
+            <Link href="/gestion/fuentes">
               <Button variant="outline" size="sm">
                 Volver a la bandeja de revisión
               </Button>
@@ -140,10 +140,10 @@ export function RevisionFuenteDetailView({ currentUser }: RevisionFuenteDetailVi
 
   return (
     <WireframeDashboardLayout
-      activeMenu="revision-fuentes"
+      activeMenu="revision-aprobacion-fuentes"
       currentUser={currentUser}
       breadcrumbs={[
-        { label: "Gestión", href: "/revision-fuentes" },
+        { label: "Revisión y aprobación de fuentes", href: "/gestion/fuentes" },
         { label: `Revisión: ${fuente.id}` },
       ]}
     >
@@ -162,7 +162,7 @@ export function RevisionFuenteDetailView({ currentUser }: RevisionFuenteDetailVi
                   asChild
                   leftIcon={<ArrowLeft className="size-4" />}
                 >
-                  <Link href="/revision-fuentes">
+                  <Link href="/gestion/fuentes">
                     Volver a revisión de fuentes
                   </Link>
                 </Button>
@@ -175,7 +175,7 @@ export function RevisionFuenteDetailView({ currentUser }: RevisionFuenteDetailVi
                   asChild
                   leftIcon={<FolderCheck className="size-3.5" />}
                 >
-                  <Link href={`/fuentes/${fuente.id}`}>
+                  <Link href={`/proveedor/fuentes/${fuente.id}`}>
                     Ver expediente completo de fuente
                   </Link>
                 </Button>

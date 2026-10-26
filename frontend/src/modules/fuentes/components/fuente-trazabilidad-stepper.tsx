@@ -34,7 +34,7 @@ interface EtapaConfig {
   key: string;
   index: number;
   prefix: string;
-  codigoHU: string;
+  codigoHU?: string;
   title: string;
   sublabel: string;
   descripcion: string;
@@ -182,8 +182,7 @@ export function FuenteTrazabilidadStepper({
       key: "BORRADOR",
       index: 0,
       prefix: "Etapa 1",
-      codigoHU: "FUE-01",
-      title: "Borrador",
+            title: "Borrador",
       sublabel: "Metadatos y SLA inicial",
       descripcion: "Definición de nombre, descripción, SLA, parámetros de consulta y versión propuesta por la entidad proveedora.",
       responsableRol: "Coordinador Institucional",
@@ -199,8 +198,7 @@ export function FuenteTrazabilidadStepper({
       key: "CONEXION",
       index: 1,
       prefix: "Etapa 2",
-      codigoHU: "FUE-02 / FUE-03",
-      title: "Conexión y esquema",
+            title: "Conexión y esquema",
       sublabel: "Verificación de red y campos",
       descripcion: "Conexión cifrada vía KMS, verificación técnica de latencia y selección de campos expuestos del origen de datos.",
       responsableRol: estado === "PENDIENTE_HOMOLOGACION" ? "Equipo TI DINARP" : "Coordinador Institucional",
@@ -211,14 +209,13 @@ export function FuenteTrazabilidadStepper({
       badgeAppearance: s2Status === "warning" ? "soft" : "soft",
       fecha: formatFecha(evtConexion?.fecha || fuente?.conexion?.ultima_prueba?.instante_prueba),
       actor: estado === "PENDIENTE_HOMOLOGACION" ? "Laboratorio TI DINARP" : evtConexion?.actor || fuente?.coordinador_nombre,
-      observacion: estado === "PENDIENTE_HOMOLOGACION" ? "Conector no estándar requiere certificación técnica por el Equipo de TI (FUE-12 / CNX-01)." : undefined,
+      observacion: estado === "PENDIENTE_HOMOLOGACION" ? "Conector no estándar requiere certificación técnica por el Equipo de TI ." : undefined,
     },
     {
       key: "REVISION",
       index: 2,
       prefix: "Etapa 3",
-      codigoHU: "FUE-04",
-      title: "Revisión técnica",
+            title: "Revisión técnica",
       sublabel: "Clasificación de campos",
       descripcion: "Inspección técnica de seguridad por Gestión y clasificación individual de campos como Accesibles o Confidenciales.",
       responsableRol: "Dirección de Gestión (DINARP)",
@@ -235,8 +232,7 @@ export function FuenteTrazabilidadStepper({
       key: "APROBACION",
       index: 3,
       prefix: "Etapa 4",
-      codigoHU: "FUE-04",
-      title: "Dictamen formal",
+            title: "Dictamen formal",
       sublabel: "Aprobación de publicación",
       descripcion: "Validación de cumplimiento normativo y dictamen favorable para habilitar la publicación en catálogo.",
       responsableRol: "Dirección de Gestión (DINARP)",
@@ -252,8 +248,7 @@ export function FuenteTrazabilidadStepper({
       key: "PUBLICACION",
       index: 4,
       prefix: "Etapa 5",
-      codigoHU: "FUE-05",
-      title: "Publicación",
+            title: "Publicación",
       sublabel: "Catálogo Nacional",
       descripcion: "Despliegue del proxy en Apigee API Gateway y alta oficial de la fuente en el Catálogo de Interoperabilidad.",
       responsableRol: "Coordinador Institucional",
@@ -297,7 +292,7 @@ export function FuenteTrazabilidadStepper({
                 Ciclo de vida y trazabilidad (BN-06)
               </h3>
               <Badge tone="neutral" appearance="soft" size="sm" className="font-mono text-[10px]">
-                FUE-01 → FUE-05
+                Flujo oficial DINARP
               </Badge>
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">
@@ -429,7 +424,7 @@ export function FuenteTrazabilidadStepper({
                 {/* Textos del paso */}
                 <div className="flex flex-col items-center w-full min-w-0">
                   <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-0.5">
-                    {etapa.prefix} · {etapa.codigoHU}
+                    {etapa.prefix}
                   </span>
 
                   <span
@@ -510,7 +505,7 @@ export function FuenteTrazabilidadStepper({
             <div className="space-y-0.5 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-bold text-foreground">
-                  {etapaInspeccionada.prefix}: {etapaInspeccionada.title} ({etapaInspeccionada.codigoHU})
+                  {etapaInspeccionada.prefix}: {etapaInspeccionada.title}
                 </span>
                 <span className="text-muted-foreground">•</span>
                 <span className="text-muted-foreground flex items-center gap-1">

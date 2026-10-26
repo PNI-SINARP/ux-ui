@@ -47,6 +47,9 @@ const dialogVariants = cva(
         "3xl": "max-w-3xl",
         "4xl": "max-w-4xl",
         "5xl": "max-w-5xl",
+        "6xl": "max-w-6xl",
+        "7xl": "max-w-7xl",
+        full: "max-w-[96vw]",
       },
     },
     defaultVariants: {
@@ -164,6 +167,7 @@ function DialogContent({
           dialogVariants({ variant, size }),
           "overflow-hidden",
           className,
+          "fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2",
         )}
         {...props}
       >
@@ -190,7 +194,7 @@ function DialogContent({
         <div
           className={cn(
             "relative z-10 flex flex-col w-full flex-1 min-h-0",
-            isAlert ? "items-center text-center gap-2" : "gap-4",
+            (className?.includes("gap-0") || className?.includes("p-0")) ? "gap-0" : isAlert ? "items-center text-center gap-2" : "gap-4",
           )}
         >
           {isAlert && variant !== "default" && <DialogIcon variant={variant} icon={icon} />}

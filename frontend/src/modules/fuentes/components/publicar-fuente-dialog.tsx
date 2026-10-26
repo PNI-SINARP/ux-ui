@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Globe,
   CheckCircle2,
@@ -107,7 +108,7 @@ export function PublicarFuenteDialog({
               if (res.success && res.despliegue) {
                 setDespliegueResult(res.despliegue);
                 setStep("success");
-                toast.success("Fuente publicada exitosamente en el catálogo (FUE-05)", {
+                toast.success("Fuente publicada exitosamente en el catálogo", {
                   description: `Versión ${res.despliegue.version_api} activa en API Gateway.`,
                 });
                 onPublicada?.();
@@ -131,16 +132,16 @@ export function PublicarFuenteDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[90vh] flex flex-col p-6 overflow-hidden">
         {step === "confirm" && (
           <>
-            <DialogHeader>
+            <DialogHeader className="shrink-0">
               <div className="flex items-center gap-2 mb-1">
                 <div className="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
                   <Globe className="size-4" />
                 </div>
                 <DialogTitle className="font-heading text-lg">
-                  Publicar fuente en el Catálogo (FUE-05)
+                  Publicar fuente en el Catálogo
                 </DialogTitle>
               </div>
               <DialogDescription className="text-xs">
@@ -148,7 +149,7 @@ export function PublicarFuenteDialog({
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-3 py-2 text-xs">
+            <div className="space-y-3 py-2 text-xs overflow-y-auto flex-1 min-h-0 pr-1">
               <div className="p-3.5 bg-surface rounded-xl border border-border space-y-2.5">
                 <div className="flex justify-between items-center pb-2 border-b border-border">
                   <span className="text-muted-foreground font-medium">Fuente:</span>
@@ -181,24 +182,22 @@ export function PublicarFuenteDialog({
               <div className="p-3 bg-primary/5 rounded-lg border border-primary/20 space-y-1">
                 <div className="flex items-center gap-1.5 text-primary font-semibold text-xs">
                   <Info className="size-3.5" />
-                  Efecto de la publicación (FUE-05)
+                  Efecto de la publicación
                 </div>
                 <p className="text-[11px] text-muted-foreground leading-relaxed">
-                  La publicación habilita la fuente en el Catálogo de Interoperabilidad. <strong>Importante:</strong> Publicar no concede automáticamente acceso técnico a instituciones consumidoras; estas deberán cursar una solicitud formal de interoperabilidad (SOL-01) posterior.
+                  La publicación habilita la fuente en el Catálogo de Interoperabilidad. <strong>Importante:</strong> Publicar no concede automáticamente acceso técnico a instituciones consumidoras; estas deberán cursar una solicitud formal de interoperabilidad posterior.
                 </p>
               </div>
 
               {/* Control de prueba: simular fallo */}
               <div className="p-2.5 bg-muted/30 rounded-lg border border-border flex items-center justify-between">
-                <label htmlFor="simFallo" className="text-[11px] text-muted-foreground cursor-pointer flex items-center gap-2">
-                  <input
+                <label htmlFor="simFallo" className="text-[11px] text-muted-foreground cursor-pointer flex items-center gap-2 select-none">
+                  <Checkbox
                     id="simFallo"
-                    type="checkbox"
                     checked={simularFallo}
-                    onChange={(e) => setSimularFallo(e.target.checked)}
-                    className="rounded border-input text-primary focus:ring-primary size-3.5"
+                    onCheckedChange={(checked) => setSimularFallo(!!checked)}
                   />
-                  <span>Simular fallo técnico de despliegue para pruebas (FUE-05)</span>
+                  <span>Simular fallo técnico de despliegue para pruebas</span>
                 </label>
                 {simularFallo && (
                   <Badge tone="warning" appearance="soft" size="sm" className="text-[10px]">
@@ -208,7 +207,7 @@ export function PublicarFuenteDialog({
               </div>
             </div>
 
-            <DialogFooter className="gap-2 sm:gap-0">
+            <DialogFooter className="gap-3 sm:gap-3 shrink-0">
               <Button variant="outline" size="sm" onClick={handleClose}>
                 Cancelar
               </Button>
@@ -381,7 +380,7 @@ export function PublicarFuenteDialog({
               </div>
             </div>
 
-            <DialogFooter className="gap-2 sm:gap-0">
+            <DialogFooter className="gap-3 sm:gap-3 shrink-0">
               <Button variant="outline" size="sm" onClick={handleClose}>
                 Cerrar
               </Button>

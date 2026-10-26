@@ -141,7 +141,7 @@ export function FuenteObservacionesAlert({
             </div>
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0">
+          <DialogFooter className="gap-3 sm:gap-3 shrink-0">
             <Button
               type="button"
               variant="outline"

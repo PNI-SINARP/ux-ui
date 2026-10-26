@@ -395,33 +395,41 @@ export function DinarpWireframe2LoginFlow({
     setOtpError("");
 
     setTimeout(() => {
-      setIsSubmittingOtp(false);
       const loggedUser = login(cedula);
       toast.success(`Autenticación exitosa: ${loggedUser.name}`, {
         description: `Sesión iniciada como: ${loggedUser.roleTitle || loggedUser.role}`,
       });
+
+      let targetRoute = "/catalogo-interoperabilidad/";
       if (loggedUser?.role === "ADMIN") {
-        router.push("/cuentas-internas");
+        targetRoute = "/cuentas-internas/";
       } else if (loggedUser?.cedula === "1720304050") {
-        router.push("/fuentes");
+        targetRoute = "/proveedor/fuentes/";
       } else if (loggedUser?.role === "DGR" || loggedUser?.role === "DPI") {
-        router.push("/revision-fuentes");
-      } else if (loggedUser?.role === "DTD") {
-        router.push("/homologacion-fuentes");
+        targetRoute = "/gestion/fuentes/";
+      } else if (loggedUser?.role === "DTD" || loggedUser?.role === "TI") {
+        targetRoute = "/tecnologia/conectores/";
       } else if (loggedUser?.role === "DIR_GESTION" || loggedUser?.role === "DIR_NORMATIVA") {
-        router.push("/asignacion-solicitudes");
+        targetRoute = "/asignacion-solicitudes/";
       } else if (loggedUser?.role === "EQ_GESTION") {
-        router.push("/solicitudes-pendientes");
+        targetRoute = "/solicitudes-pendientes/";
       } else if (loggedUser?.role === "EQ_NORMATIVA") {
-        router.push("/revision-normativa");
+        targetRoute = "/revision-normativa/";
       } else if (loggedUser?.role === "REPRESENTANTE_INSTITUCIONAL") {
-        router.push("/cambio-coordinador");
+        targetRoute = "/cambio-coordinador/";
       } else if (loggedUser?.role === "COORDINADOR_SINARP") {
-        router.push("/proyectos");
-      } else {
-        router.push("/catalogo-interoperabilidad");
+        targetRoute = "/proyectos/";
       }
-    }, 600);
+
+      router.push(targetRoute);
+
+      // Respaldo de navegación inmediata para evitar bloqueos por compilación Turbopack o trailingSlash
+      setTimeout(() => {
+        if (typeof window !== "undefined" && window.location.pathname.includes("/login")) {
+          window.location.assign(targetRoute);
+        }
+      }, 400);
+    }, 400);
   };
 
   // Verificación de preregistro para enrolamiento (Proceso B)

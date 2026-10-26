@@ -1,4 +1,4 @@
-import { FuenteDetailView } from "@/modules/fuentes/views/fuente-detail-view";
+import { redirect } from "next/navigation";
 
 const FUENTES_IDS = [
   "FUE-RC-001",
@@ -20,11 +20,11 @@ export function generateStaticParams() {
   return FUENTES_IDS.map((id) => ({ id }));
 }
 
-export const metadata = {
-  title: "Detalle de Fuente de Información | Portal PNI-SINARP",
-  description: "Detalle, trazabilidad y publicación de fuentes de información del SINARP.",
-};
+interface PageProps {
+  params: Promise<{ id: string }>;
+}
 
-export default function FuenteDetailPage() {
-  return <FuenteDetailView />;
+export default async function FuentesDetailRedirectPage({ params }: PageProps) {
+  const { id } = await params;
+  redirect(`/proveedor/fuentes/${id}`);
 }
