@@ -116,6 +116,7 @@ import { cn } from "@/lib/utils";
 import { WireframeDashboardLayout } from "@/components/layout/wireframes/wireframe-dashboard-layout";
 import { MOCK_USERS_BY_ROLE } from "@/modules/catalogo-interoperabilidad/data/catalogo-data";
 import { useAuthStore } from "@/modules/gestion-solicitudes/data/auth-store";
+import { useCambioCoordinadorStore } from "@/modules/cambio-coordinador/data/cambio-coordinador-store";
 import {
   useSolicitudesIngresoStore,
   getEstadoBadgeProps,
@@ -132,6 +133,7 @@ import { BorradorAnexoAModal } from "@/components/shared/solicitudes/borrador-an
 import { Enr03SimulacionPanel } from "@/components/shared/solicitudes/enr03-simulacion-panel";
 import { useEnr03SimulationStore } from "@/modules/gestion-solicitudes/data/enr03-store";
 import { asignarRevisorStandalone } from "@/modules/cambio-coordinador/data/cambio-coordinador-store";
+import { ViewModeToggle, type ViewMode } from "@/components/shared/view-mode-toggle";
 
 interface FilterComboboxProps {
   label?: string;
@@ -235,10 +237,23 @@ function FilterCombobox({
   );
 }
 
-export function AsignacionSolicitudesView() {
+export interface AsignacionSolicitudesViewProps {
+  procesoFixed?: TipoTramiteIngreso;
+  basePath?: string;
+  activeMenu?: string;
+}
+
+export function AsignacionSolicitudesView({
+  procesoFixed = "PROCESO_A_REGISTRO_INSTITUCION",
+  basePath = "/asignacion-solicitudes",
+  activeMenu = "asignacion-solicitudes",
+}: AsignacionSolicitudesViewProps = {}) {
   const router = useRouter();
   const { activeUser } = useAuthStore();
   const currentUser = activeUser || MOCK_USERS_BY_ROLE.DIR_GESTION;
+
+  // Asegurar sincronización de Anexo C en el store global
+  useCambioCoordinadorStore();
 
   const store = useSolicitudesIngresoStore();
   const {
@@ -252,8 +267,8 @@ export function AsignacionSolicitudesView() {
 
   const sim = useEnr03SimulationStore();
 
-  // Filtro de proceso (Todos / Proceso A / Proceso B / Proceso C)
-  const [filterTramite, setFilterTramite] = useState<string>("TODOS");
+  // Proceso fijo por ruta independiente (Anexo A, B o C)
+  const [filterTramite, setFilterTramite] = useState<string>(procesoFixed);
 
   // Search & Filters
   const [searchQuery, setSearchQuery] = useState("");
@@ -273,6 +288,7 @@ export function AsignacionSolicitudesView() {
   >("fecha-desc");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState<number>(5);
+  const [viewMode, setViewMode] = useState<ViewMode>("table");
 
   // Selected item for full Detail View
   const [selectedSolicitud, setSelectedSolicitud] = useState<SolicitudIngreso | null>(null);
@@ -294,7 +310,7 @@ export function AsignacionSolicitudesView() {
   const [borradorSolicitud, setBorradorSolicitud] = useState<SolicitudIngreso | null>(null);
 
   const handleSelectSolicitud = (solicitud: SolicitudIngreso) => {
-    router.push(`/asignacion-solicitudes/${solicitud.id}`);
+    router.push(`${basePath}/${solicitud.id}`);
   };
 
   const handleOpenAssign = (solicitud: SolicitudIngreso) => {
@@ -366,12 +382,17 @@ export function AsignacionSolicitudesView() {
     return new Date(year, (month || 1) - 1, day || 1, hours || 0, minutes || 0).getTime();
   };
 
+  // Solicitudes acotadas exclusivamente al anexo de la ruta
+  const solicitudesPorAnexo = useMemo(() => {
+    return solicitudes.filter((s) => s.tipoTramite === procesoFixed);
+  }, [solicitudes, procesoFixed]);
+
   // Institution options from data
   const institucionesList = useMemo(() => {
     const set = new Set<string>();
-    solicitudes.forEach((s) => set.add(s.institucion));
+    solicitudesPorAnexo.forEach((s) => set.add(s.institucion));
     return Array.from(set);
-  }, [solicitudes]);
+  }, [solicitudesPorAnexo]);
 
   // Construction of timelineItems for selectedSolicitud using Timeline component
   const timelineItems: TimelineItem[] = useMemo(() => {
@@ -443,39 +464,38 @@ export function AsignacionSolicitudesView() {
   ], []);
 
   const activeSectionTitle = useMemo(() => {
+    if (procesoFixed === "PROCESO_B_ENROLAMIENTO_COORDINADOR") {
+      return "Anexo B — Registro de coordinadores";
+    }
+    if (procesoFixed === "PROCESO_C_CAMBIO_COORDINADOR") {
+      return "Anexo C — Cambio de coordinador";
+    }
     if (currentUser.role === "DIR_NORMATIVA") {
-      return "Asignación de solicitudes para generar resoluciones";
+      return "Anexo A — Resoluciones de incorporación";
     }
-    if (currentUser.role === "DIR_GESTION") {
-      return "Asignación de solicitudes";
-    }
-    if (currentUser.role === "EQ_GESTION" || currentUser.role === "EQ_NORMATIVA") {
-      return "Solicitudes asignadas";
-    }
-    return "Gestión de ingresos";
-  }, [currentUser.role]);
+    return "Anexo A — Incorporación institucional";
+  }, [currentUser.role, procesoFixed]);
 
   const hasActiveFilters = useMemo(() => {
     return (
       searchQuery.trim() !== "" ||
-      filterTramite !== "TODOS" ||
       filterEstado !== "Todos" ||
       filterInstitucion !== "Todas"
     );
-  }, [searchQuery, filterTramite, filterEstado, filterInstitucion]);
+  }, [searchQuery, filterEstado, filterInstitucion]);
 
   const clearAllFilters = () => {
     setSearchQuery("");
-    setFilterTramite("TODOS");
+    setFilterTramite(procesoFixed);
     setFilterEstado("Todos");
     setFilterInstitucion("Todas");
     setCurrentPage(1);
   };
 
-  // KPIs globales por rol
+  // KPIs globales por rol y anexo
   const dynamicKpis = useMemo(() => {
     if (currentUser.role === "EQ_GESTION") {
-      const misSolicitudes = solicitudes.filter(
+      const misSolicitudes = solicitudesPorAnexo.filter(
         (s) => (s.revisorGestion === currentUser.name || s.revisor === currentUser.name)
       );
       return {
@@ -509,17 +529,17 @@ export function AsignacionSolicitudesView() {
     const isNormativa = currentUser.role === "DIR_NORMATIVA" || currentUser.role === "EQ_NORMATIVA";
     if (isNormativa) {
       return {
-        sinAsignar: solicitudes.filter(
+        sinAsignar: solicitudesPorAnexo.filter(
           (s) => s.estado === "PENDIENTE_ASIGNACION_NORMATIVIDAD" || (!s.revisorNormatividad && (s.estado as string).includes("NORMATIVIDAD"))
         ).length,
-        enRevision: solicitudes.filter(
+        enRevision: solicitudesPorAnexo.filter(
           (s) =>
             s.estado === "PENDIENTE_GENERAR_RESOLUCION" ||
             s.estado === "EN_GENERACION_RESOLUCION" ||
             s.estado === "EN_REVISION_NORMATIVIDAD" ||
             s.estado === "GENERACION_PENDIENTE"
         ).length,
-        resueltas: solicitudes.filter(
+        resueltas: solicitudesPorAnexo.filter(
           (s) =>
             s.estado === "RESOLUCION_GENERADA" ||
             s.estado === "APROBADO_FINAL" ||
@@ -529,18 +549,18 @@ export function AsignacionSolicitudesView() {
       };
     }
     return {
-      sinAsignar: solicitudes.filter(
+      sinAsignar: solicitudesPorAnexo.filter(
         (s) =>
           s.estado === "PENDIENTE_ASIGNACION_GESTION" ||
           s.estado === "PENDIENTE_ASIGNACION_NORMATIVIDAD" ||
           s.estado === "Pendiente"
       ).length,
-      enRevision: solicitudes.filter(
+      enRevision: solicitudesPorAnexo.filter(
         (s) =>
           s.estado === "EN_REVISION_GESTION" ||
           s.estado === "EN_REVISION_NORMATIVIDAD"
       ).length,
-      resueltas: solicitudes.filter(
+      resueltas: solicitudesPorAnexo.filter(
         (s) =>
           s.estado === "Aprobada" ||
           s.estado === "APROBADO_FINAL" ||
@@ -549,14 +569,13 @@ export function AsignacionSolicitudesView() {
           s.estado === "Cancelada"
       ).length,
     };
-  }, [solicitudes, currentUser.role]);
+  }, [solicitudesPorAnexo, currentUser.role, currentUser.name]);
 
   // Filter & Sort
   const filteredData = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
-    let result = solicitudes.filter((item) => {
-      // Filtro de pestaña de trámite
-      if (filterTramite !== "TODOS" && item.tipoTramite !== filterTramite) {
+    let result = solicitudesPorAnexo.filter((item) => {
+      if (item.tipoTramite !== procesoFixed) {
         return false;
       }
 
@@ -862,7 +881,7 @@ export function AsignacionSolicitudesView() {
     <WireframeDashboardLayout
       currentUser={currentUser}
       currentRole={currentUser.role}
-      activeMenu="asignacion-solicitudes"
+      activeMenu={activeMenu}
       breadcrumbs={
         selectedSolicitud
           ? [
@@ -2121,36 +2140,36 @@ export function AsignacionSolicitudesView() {
           >
             {/* â”€â”€ 1. Encabezado Principal â”€â”€ */}
             {(() => {
-              const isDirGestion = currentUser.role === "DIR_GESTION";
-              const isEqGestion = currentUser.role === "EQ_GESTION";
-              const isDirNormativa = currentUser.role === "DIR_NORMATIVA";
-              const isEqNormativa = currentUser.role === "EQ_NORMATIVA";
+              let badgeText = "Anexo A · Incorporación institucional";
+              let titleText = "Asignar incorporaciones";
+              let subtitleText =
+                "Gestiona y asigna los expedientes de incorporación institucional (Anexo A) a los revisores de Gestión.";
 
-              let badgeText = "Dirección de Gestión y Registro · DINARP";
-              let titleText = "Asignación de solicitudes";
-              let subtitleText = "Gestiona y asigna las solicitudes pendientes a los revisores del área de gestión.";
-
-              if (isEqGestion) {
-                badgeText = "Equipo de Gestión y Registro · DINARP";
-                titleText = "Solicitudes pendientes de revisión";
-                subtitleText = "Consulta y revisa las solicitudes asignadas para su aprobación o rechazo.";
-              } else if (isDirNormativa) {
-                badgeText = "Dirección de Normatividad · DINARP";
-                titleText = "Asignación de solicitudes para generar resoluciones";
-                subtitleText = "Asignación de solicitudes para generar resoluciones a instituciones aprobadas.";
-              } else if (isEqNormativa) {
-                badgeText = "Equipo de Normatividad · DINARP";
-                titleText = "Solicitudes pendientes por generar resolución";
-                subtitleText = "Análisis normativo y resolución jurídica de solicitudes asignadas a tu usuario.";
-              } else if (isDirGestion) {
-                badgeText = "Dirección de Gestión y Registro · DINARP";
-                titleText = "Asignación de solicitudes";
-                subtitleText = "Gestiona y asigna las solicitudes pendientes a los revisores del área de gestión.";
+              if (procesoFixed === "PROCESO_B_ENROLAMIENTO_COORDINADOR") {
+                badgeText = "Anexo B · Registro de coordinadores";
+                titleText = "Asignar enrolamientos";
+                subtitleText =
+                  "Gestiona y asigna los expedientes de enrolamiento de coordinadores (Anexo B) a los revisores de Gestión.";
+              } else if (procesoFixed === "PROCESO_C_CAMBIO_COORDINADOR") {
+                badgeText = "Anexo C · Cambio de coordinador";
+                titleText = "Asignar cambios";
+                subtitleText =
+                  "Gestiona y asigna los expedientes de cambio de coordinador institucional (Anexo C) a los revisores de Gestión.";
               }
+
               return (
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div className="space-y-1 w-full">
-
+                  <div className="space-y-1.5 w-full">
+                    <div className="flex items-center gap-2">
+                      <Badge
+                        tone="primary"
+                        appearance="soft"
+                        size="sm"
+                        className="font-semibold text-[11px]"
+                      >
+                        {badgeText}
+                      </Badge>
+                    </div>
                     <h1 className="font-heading font-extrabold text-2xl sm:text-3xl tracking-tight text-primary">
                       {titleText}
                     </h1>
@@ -2437,19 +2456,6 @@ export function AsignacionSolicitudesView() {
                 {/* Filtros Combobox del UI Kit con ancho holgado y responsivo */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-nowrap items-end gap-2.5">
                   <FilterCombobox
-                    label="Proceso"
-                    placeholder="Proceso..."
-                    groupLabel="Tipo de Proceso"
-                    options={procesoOptions}
-                    value={filterTramite}
-                    onChange={(val) => {
-                      setFilterTramite(val);
-                      setCurrentPage(1);
-                    }}
-                    className="w-full lg:w-[195px]"
-                  />
-
-                  <FilterCombobox
                     label="Estado"
                     placeholder="Estado..."
                     groupLabel="Estado de Solicitud"
@@ -2484,6 +2490,8 @@ export function AsignacionSolicitudesView() {
                     onChange={(val) => setSortOrder(val as any)}
                     className="w-full lg:w-[195px]"
                   />
+
+                  <ViewModeToggle value={viewMode} onChange={setViewMode} />
                 </div>
               </div>
 
@@ -2504,22 +2512,6 @@ export function AsignacionSolicitudesView() {
                       <X
                         className="size-3.5 cursor-pointer hover:text-foreground/80 transition-colors"
                         onClick={() => setSearchQuery("")}
-                      />
-                    </Badge>
-                  )}
-
-                  {filterTramite !== "TODOS" && (
-                    <Badge
-                      tone="neutral"
-                      appearance="soft"
-                      className="gap-1.5 px-3 py-1 font-semibold text-xs rounded-full border border-border"
-                    >
-                      <span>
-                        {procesoOptions.find((o) => o.value === filterTramite)?.label}
-                      </span>
-                      <X
-                        className="size-3.5 cursor-pointer hover:text-foreground/80 transition-colors"
-                        onClick={() => setFilterTramite("TODOS")}
                       />
                     </Badge>
                   )}
@@ -2592,7 +2584,7 @@ export function AsignacionSolicitudesView() {
               return (
                 <>
                   {/* Vista de Tabla para Escritorio */}
-                  <div className="hidden md:block">
+                  <div className={cn("w-full", viewMode === "table" ? "hidden md:block" : "hidden")}>
                     <Table
                       className="w-full table-fixed min-w-[1080px]"
                       containerClassName="overflow-x-auto rounded-xl"
@@ -2931,9 +2923,9 @@ export function AsignacionSolicitudesView() {
                 </div>
 
                 {/* Vista Mobile Card Row (Responsive) para Pantallas Estrechas */}
-                <div className="block md:hidden">
+                <div className={cn("w-full", viewMode === "cards" ? "block" : "block md:hidden")}>
                   {paginatedData.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center p-8 bg-surface border border-border rounded-xl text-center space-y-2">
+                    <div className="col-span-full flex flex-col items-center justify-center p-8 bg-surface border border-border rounded-xl text-center space-y-2">
                       <div className="size-12 rounded-full bg-muted/60 flex items-center justify-center text-muted-foreground mb-1">
                         <SearchIcon className="size-6" />
                       </div>
@@ -2945,7 +2937,7 @@ export function AsignacionSolicitudesView() {
                       </p>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {paginatedData.map((row) => {
                         const { puedeReasignar, esReasignacion } = puedeReasignarSolicitud(row, currentUser.role);
                         const isAssignable = puedeReasignar;

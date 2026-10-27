@@ -45,6 +45,8 @@ import {
   PaginationEllipsis,
 } from "@/components/ui/pagination";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
+import { InteractiveCard } from "@/components/ui/data-display";
+import { ViewModeToggle, type ViewMode } from "@/components/shared/view-mode-toggle";
 import { WireframeDashboardLayout } from "@/components/layout/wireframes/wireframe-dashboard-layout";
 import { cn } from "@/lib/utils";
 import { INITIAL_INSTITUCIONES, MOCK_USERS_BY_ROLE } from "@/modules/catalogo-interoperabilidad/data/catalogo-data";
@@ -55,6 +57,7 @@ export function CatalogoConsultaView() {
   const [institucionSearch, setInstitucionSearch] = useState("");
   const [selectedClasificacion, setSelectedClasificacion] = useState<string>("ALL");
   const [clasificacionSearch, setClasificacionSearch] = useState("");
+  const [viewMode, setViewMode] = useState<ViewMode>("table");
 
   // Paginación UI Kit
   const [currentPage, setCurrentPage] = useState(1);
@@ -224,10 +227,10 @@ export function CatalogoConsultaView() {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 w-full">
               <div className="space-y-1 min-w-0 flex-1">
                 <h1 className="font-heading font-extrabold text-2xl sm:text-3xl tracking-tight text-primary">
-                  Catálogo de Fuentes
+                  Catálogo de fuentes
                 </h1>
                 <p className="text-xs sm:text-sm text-muted-foreground w-full max-w-none leading-relaxed font-normal">
-                  Consulta las fuentes de datos disponibles para interoperar entre instituciones públicas y conoce qué requisitos necesitas para solicitar cada dato.
+                  Consulta las fuentes de datos disponibles para interoperar entre instituciones y revisa los requisitos necesarios para solicitar cada campo.
                 </p>
               </div>
             </div>
@@ -620,6 +623,8 @@ export function CatalogoConsultaView() {
                       Limpiar
                     </Button>
                   )}
+
+                  <ViewModeToggle value={viewMode} onChange={setViewMode} />
                 </div>
               </div>
 
@@ -903,7 +908,12 @@ export function CatalogoConsultaView() {
                                       </div>
                                     </div>
 
-                                    <div className="border border-border rounded-xl overflow-x-auto bg-card w-full">
+                                    <div
+                                      className={cn(
+                                        "border border-border rounded-xl overflow-x-auto bg-card w-full",
+                                        viewMode === "table" ? "hidden md:block" : "hidden"
+                                      )}
+                                    >
                                       <table className="w-full text-left text-xs min-w-full">
                                         <thead className="bg-muted/40 border-b border-border text-muted-foreground uppercase text-[10px] tracking-wider font-semibold">
                                           <tr>
@@ -970,6 +980,61 @@ export function CatalogoConsultaView() {
                                           })}
                                         </tbody>
                                       </table>
+                                    </div>
+
+                                    {/* Vista de Tarjetas (Mobile o viewMode === "cards") */}
+                                    <div
+                                      className={cn(
+                                        "w-full",
+                                        viewMode === "cards"
+                                          ? "grid grid-cols-1 md:grid-cols-2 gap-4"
+                                          : "block md:hidden space-y-3.5"
+                                      )}
+                                    >
+                                      {fuente.campos.length === 0 ? (
+                                        <div className="col-span-full py-8 text-center text-muted-foreground text-xs border border-dashed border-border rounded-xl">
+                                          No hay datos registrados en esta fuente.
+                                        </div>
+                                      ) : (
+                                        fuente.campos.map((campo) => {
+                                          const esAccesible = campo.clasificacion === "Accesible";
+                                          return (
+                                            <InteractiveCard key={campo.id} className="p-4 flex flex-col gap-3">
+                                              <div className="flex items-start justify-between gap-2">
+                                                <span className="font-mono font-semibold text-xs text-foreground break-all">
+                                                  {campo.nombre}
+                                                </span>
+                                                {esAccesible ? (
+                                                  <Badge tone="success" appearance="soft" size="sm" className="gap-1 shrink-0 font-semibold">
+                                                    <Unlock className="size-3" />
+                                                    ACCESIBLE
+                                                  </Badge>
+                                                ) : (
+                                                  <Badge tone="warning" appearance="soft" size="sm" className="gap-1 shrink-0 font-semibold">
+                                                    <Lock className="size-3" />
+                                                    CONFIDENCIAL
+                                                  </Badge>
+                                                )}
+                                              </div>
+                                              <p className="text-xs text-muted-foreground leading-relaxed">
+                                                {campo.descripcion}
+                                              </p>
+                                              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/60 text-[11px]">
+                                                <div className="flex flex-col gap-0.5">
+                                                  <span className="text-muted-foreground">Clasificación</span>
+                                                  <span className="font-medium text-foreground">{campo.clasificacion}</span>
+                                                </div>
+                                                <div className="flex flex-col gap-0.5">
+                                                  <span className="text-muted-foreground">Requisito</span>
+                                                  <span className="font-medium text-foreground">
+                                                    {esAccesible ? "Solo finalidad de uso" : "Finalidad y justificación"}
+                                                  </span>
+                                                </div>
+                                              </div>
+                                            </InteractiveCard>
+                                          );
+                                        })
+                                      )}
                                     </div>
                                   </div>
                                 )}

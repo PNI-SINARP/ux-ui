@@ -26,6 +26,7 @@ import {
 import { WireframeDashboardLayout } from "@/components/layout/wireframes/wireframe-dashboard-layout";
 import { Card } from "@/components/ui/card";
 import { InteractiveCard } from "@/components/ui/data-display";
+import { ViewModeToggle, type ViewMode } from "@/components/shared/view-mode-toggle";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Search } from "@/components/ui/search";
@@ -92,6 +93,7 @@ export function ProyectosView() {
   const [filterVersion, setFilterVersion] = useState<string>("TODAS");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
+  const [viewMode, setViewMode] = useState<ViewMode>("table");
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [isCrearDialogOpen, setIsCrearDialogOpen] = useState(false);
   const [editingProyecto, setEditingProyecto] = useState<ProyectoInstitucional | null>(null);
@@ -260,7 +262,7 @@ export function ProyectosView() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 w-full">
             <div className="space-y-1 min-w-0 flex-1">
               <h1 className="font-heading font-extrabold text-2xl sm:text-3xl tracking-tight text-primary">
-                Proyectos institucionales
+                Mis proyectos
               </h1>
               <p className="text-xs sm:text-sm text-muted-foreground w-full max-w-none leading-relaxed font-normal">
                 Gestiona las iniciativas de tu institución. Desde aquí puedes registrar nuevos proyectos, consultar y actualizar su información, y dar seguimiento a las solicitudes de acceso a datos vinculadas a cada uno.
@@ -644,6 +646,11 @@ export function ProyectosView() {
                     </ComboboxContent>
                   </Combobox>
                 </div>
+
+                {/* Selector de vista Tabla / Tarjetas */}
+                <div className="flex items-center justify-end sm:col-span-2 xl:col-span-1">
+                  <ViewModeToggle value={viewMode} onChange={setViewMode} />
+                </div>
               </div>
             </div>
 
@@ -740,7 +747,7 @@ export function ProyectosView() {
 
           <TooltipProvider delayDuration={150}>
             {/* Tabla de Proyectos (Desktop md+) */}
-            <div className="hidden md:block w-full">
+            <div className={cn("w-full", viewMode === "table" ? "hidden md:block" : "hidden")}>
               {!isLoaded ? (
                 <div className="py-16 text-center text-xs text-muted-foreground">
                   Cargando bandeja de proyectos institucionales...
@@ -961,10 +968,17 @@ export function ProyectosView() {
               )}
             </div>
 
-            {/* Vista Mobile Cards (<md) con InteractiveCard del UI Kit */}
-            <div className="block md:hidden w-full space-y-3.5">
+            {/* Vista Cards con InteractiveCard del UI Kit */}
+            <div
+              className={cn(
+                "w-full",
+                viewMode === "cards"
+                  ? "grid grid-cols-1 md:grid-cols-2 gap-4"
+                  : "block md:hidden space-y-3.5"
+              )}
+            >
               {paginatedProyectos.length === 0 ? (
-                <div className="flex flex-col items-center justify-center p-8 bg-surface border border-border rounded-xl text-center space-y-2">
+                <div className="col-span-full flex flex-col items-center justify-center p-8 bg-surface border border-border rounded-xl text-center space-y-2">
                   <FolderKanban className="size-8 stroke-[1.5] text-muted-foreground/60" />
                   <p className="text-sm font-semibold text-foreground">
                     No se encontraron proyectos institucionales

@@ -41,6 +41,8 @@ import {
   ComboboxLabel,
 } from "@/components/ui/combobox";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
+import { InteractiveCard } from "@/components/ui/data-display";
+import { ViewModeToggle, type ViewMode } from "@/components/shared/view-mode-toggle";
 import { cn } from "@/lib/utils";
 import { MOCK_USERS_BY_ROLE } from "@/modules/catalogo-interoperabilidad/data/catalogo-data";
 import {
@@ -83,6 +85,7 @@ export function RolesView({ initialSelectedId = null }: RolesViewProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterEstado, setFilterEstado] = useState<string>("TODOS");
   const [estadoSearch, setEstadoSearch] = useState("");
+  const [viewMode, setViewMode] = useState<ViewMode>("table");
 
   // Modales
   const [crearModalOpen, setCrearModalOpen] = useState(false);
@@ -474,42 +477,45 @@ export function RolesView({ initialSelectedId = null }: RolesViewProps) {
                   />
                 </div>
 
-                {/* Filtro por Estado (Combobox Oficial) */}
-                <div className="w-full sm:w-[240px]">
-                  <Combobox
-                    value={filterEstado === "TODOS" ? null : filterEstado}
-                    onValueChange={(val) => {
-                      handleSetFilterEstado(val || "TODOS");
-                    }}
-                    inputValue={estadoSearch}
-                    onInputValueChange={(newSearch) => {
-                      setEstadoSearch(newSearch);
-                    }}
-                  >
-                    <ComboboxInput
-                      size="sm"
-                      placeholder="Todos los estados"
-                      showClear={filterEstado !== "TODOS"}
-                      showTrigger={true}
-                      className="w-full"
-                    />
-                    <ComboboxContent className="min-w-[240px] z-[80]">
-                      <ComboboxList>
-                        <ComboboxGroup>
-                          <ComboboxLabel>Filtrar por estado</ComboboxLabel>
-                          {ESTADOS_OPCIONES.map((opt) => (
-                            <ComboboxItem
-                              key={opt.value}
-                              value={opt.value}
-                              className="text-xs py-1.5 cursor-pointer"
-                            >
-                              {opt.label}
-                            </ComboboxItem>
-                          ))}
-                        </ComboboxGroup>
-                      </ComboboxList>
-                    </ComboboxContent>
-                  </Combobox>
+                {/* Filtro por Estado (Combobox Oficial) + Selector de Vista */}
+                <div className="flex items-center gap-2.5 w-full sm:w-auto">
+                  <div className="flex-1 sm:w-[240px]">
+                    <Combobox
+                      value={filterEstado === "TODOS" ? null : filterEstado}
+                      onValueChange={(val) => {
+                        handleSetFilterEstado(val || "TODOS");
+                      }}
+                      inputValue={estadoSearch}
+                      onInputValueChange={(newSearch) => {
+                        setEstadoSearch(newSearch);
+                      }}
+                    >
+                      <ComboboxInput
+                        size="sm"
+                        placeholder="Todos los estados"
+                        showClear={filterEstado !== "TODOS"}
+                        showTrigger={true}
+                        className="w-full"
+                      />
+                      <ComboboxContent className="min-w-[240px] z-[80]">
+                        <ComboboxList>
+                          <ComboboxGroup>
+                            <ComboboxLabel>Filtrar por estado</ComboboxLabel>
+                            {ESTADOS_OPCIONES.map((opt) => (
+                              <ComboboxItem
+                                key={opt.value}
+                                value={opt.value}
+                                className="text-xs py-1.5 cursor-pointer"
+                              >
+                                {opt.label}
+                              </ComboboxItem>
+                            ))}
+                          </ComboboxGroup>
+                        </ComboboxList>
+                      </ComboboxContent>
+                    </Combobox>
+                  </div>
+                  <ViewModeToggle value={viewMode} onChange={setViewMode} />
                 </div>
               </div>
 
@@ -578,7 +584,7 @@ export function RolesView({ initialSelectedId = null }: RolesViewProps) {
 
             {/* Tabla de Roles Oficial con Columnas Requeridas */}
             <TooltipProvider delayDuration={150}>
-              <div className="w-full">
+              <div className={cn("w-full", viewMode === "table" ? "hidden md:block" : "hidden")}>
                 <Table
                   className="w-full min-w-[1450px]"
                   containerClassName="overflow-x-auto w-full"
@@ -876,6 +882,190 @@ export function RolesView({ initialSelectedId = null }: RolesViewProps) {
                     )}
                   </TableBody>
                 </Table>
+              </div>
+
+              {/* Vista de Tarjetas (Móvil o modo Tarjetas) */}
+              <div
+                className={cn(
+                  "w-full",
+                  viewMode === "cards"
+                    ? "grid grid-cols-1 md:grid-cols-2 gap-4"
+                    : "block md:hidden space-y-3.5"
+                )}
+              >
+                {filteredRoles.length === 0 ? (
+                  <Card className="p-8 text-center col-span-full border border-border bg-surface">
+                    <div className="flex flex-col items-center justify-center space-y-2">
+                      <Shield className="size-8 stroke-[1.5] text-muted-foreground/60" />
+                      <p className="text-sm font-semibold text-foreground">
+                        No se encontraron roles coincidentes
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Ajusta los términos de búsqueda o crea un nuevo rol institucional.
+                      </p>
+                    </div>
+                  </Card>
+                ) : (
+                  filteredRoles.map((r) => (
+                    <InteractiveCard
+                      key={r.id}
+                      as="div"
+                      hideChevron
+                      color="primary"
+                      icon={<Shield className="size-5" />}
+                      title={r.nombre}
+                      subtitle={`${r.codigo} · ${r.id}`}
+                      description={r.descripcion}
+                      meta={
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          {getEstadoBadge(r.estado)}
+                          <Badge
+                            tone="primary"
+                            appearance="soft"
+                            size="sm"
+                            className="font-mono text-[11px] font-bold px-2 py-0.5"
+                          >
+                            {r.version}
+                          </Badge>
+                          {r.esProtegido && (
+                            <Badge
+                              tone="danger"
+                              appearance="soft"
+                              size="sm"
+                              className="text-[10px] font-bold px-2 py-0.5 inline-flex items-center gap-1"
+                            >
+                              <Lock className="size-3" />
+                              Protegido
+                            </Badge>
+                          )}
+                        </div>
+                      }
+                    >
+                      <div className="space-y-3 pt-1">
+                        <div className="grid grid-cols-2 gap-2.5 text-xs bg-muted/30 p-2.5 rounded-lg border border-border/60">
+                          <div>
+                            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block">
+                              Capacidades
+                            </span>
+                            <span className="inline-flex items-center gap-1 font-semibold text-foreground mt-0.5">
+                              <Layers className="size-3.5 text-primary" />
+                              {r.capacidades.length} permisos
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block">
+                              Cuentas vinculadas
+                            </span>
+                            <span className="inline-flex items-center gap-1 font-semibold text-foreground mt-0.5">
+                              <Users className="size-3.5 text-primary" />
+                              {r.cuentasAsociadas} {r.cuentasAsociadas === 1 ? "cuenta" : "cuentas"}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between gap-2 pt-1 border-t border-border/60">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedRolId(r.id);
+                              if (typeof window !== "undefined") {
+                                window.history.pushState({}, "", `/roles?id=${r.id}`);
+                              }
+                            }}
+                            className="text-xs h-8 cursor-pointer"
+                          >
+                            Ver detalle
+                          </Button>
+
+                          <div className="inline-flex items-center gap-1">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon-sm"
+                              onClick={() => {
+                                setEditingRol(r);
+                                setEditarModalOpen(true);
+                              }}
+                              className="text-muted-foreground hover:text-primary hover:bg-primary/10 cursor-pointer"
+                              aria-label="Editar rol"
+                            >
+                              <Edit2 className="size-4" />
+                            </Button>
+
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon-sm"
+                              onClick={() => {
+                                setImpactoRol(r);
+                                setImpactoModalOpen(true);
+                              }}
+                              className="text-warning hover:text-warning hover:bg-warning/15 cursor-pointer"
+                              aria-label="Ver impacto y dependencias"
+                            >
+                              <ShieldAlert className="size-4" />
+                            </Button>
+
+                            {r.estado === "Borrador" && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon-sm"
+                                onClick={() => handleOpenAccion(r, "activar")}
+                                className="text-warning hover:text-warning hover:bg-warning/15 cursor-pointer"
+                                aria-label="Activar rol"
+                              >
+                                <UserCheck className="size-4" />
+                              </Button>
+                            )}
+
+                            {r.estado === "Inactivo" && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon-sm"
+                                onClick={() => handleOpenAccion(r, "reactivar")}
+                                className="text-warning hover:text-warning hover:bg-warning/15 cursor-pointer"
+                                aria-label="Reactivar rol"
+                              >
+                                <RotateCcw className="size-4" />
+                              </Button>
+                            )}
+
+                            {r.estado === "Activo" && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon-sm"
+                                disabled={r.esProtegido}
+                                onClick={() => handleOpenAccion(r, "retirar")}
+                                className="text-warning hover:text-warning hover:bg-warning/15 cursor-pointer disabled:opacity-40"
+                                aria-label="Retirar rol"
+                              >
+                                <UserX className="size-4" />
+                              </Button>
+                            )}
+
+                            {r.estado === "Borrador" && r.nuncaUsado && r.cuentasAsociadas === 0 && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon-sm"
+                                onClick={() => handleOpenAccion(r, "eliminar_borrador")}
+                                className="text-danger hover:text-danger hover:bg-danger/15 cursor-pointer"
+                                aria-label="Eliminar borrador permanentemente"
+                              >
+                                <Trash2 className="size-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </InteractiveCard>
+                  ))
+                )}
               </div>
             </TooltipProvider>
           </Card>

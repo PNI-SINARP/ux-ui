@@ -1,26 +1,22 @@
 "use client";
 
-import React from "react";
+import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import {
   FileText,
-  Search,
   Filter,
   Plus,
   Eye,
-  CheckCircle2,
-  Clock,
-  XCircle,
-  ArrowRight
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Search } from "@/components/ui/search";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { InteractiveCard } from "@/components/ui/data-display";
+import { ViewModeToggle, type ViewMode } from "@/components/shared/view-mode-toggle";
 import { WireframeDashboardLayout } from "@/components/layout/wireframes/wireframe-dashboard-layout";
-import { WireframeBreadcrumbs } from "@/components/layout/wireframes/wireframe-breadcrumbs";
-import { useSimulatedRole } from "@/modules/catalogo-interoperabilidad/hooks/use-simulated-role";
-import { MOCK_USERS_BY_ROLE } from "@/modules/catalogo-interoperabilidad/data/catalogo-data";
+import { cn } from "@/lib/utils";
 
 const NOVEDADES = [
   {
@@ -50,32 +46,57 @@ const NOVEDADES = [
 ];
 
 export function NovedadesView() {
-  const getBadgeColor = (estado: string) => {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [viewMode, setViewMode] = useState<ViewMode>("table");
+
+  const filteredNovedades = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return NOVEDADES;
+    return NOVEDADES.filter(
+      (n) =>
+        n.id.toLowerCase().includes(q) ||
+        n.tipo.toLowerCase().includes(q) ||
+        n.entidad.toLowerCase().includes(q) ||
+        n.fuente.toLowerCase().includes(q) ||
+        n.estado.toLowerCase().includes(q)
+    );
+  }, [searchQuery]);
+
+  const getEstadoTone = (estado: string): "success" | "info" | "warning" | "neutral" => {
     switch (estado) {
-      case "FINALIZADA": return "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800";
-      case "EN PROCESO": return "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800";
-      case "RADICADA": return "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800";
-      default: return "bg-slate-100 text-slate-800 border-slate-200 dark:bg-slate-800 dark:text-slate-300";
+      case "FINALIZADA":
+        return "success";
+      case "EN PROCESO":
+        return "info";
+      case "RADICADA":
+        return "warning";
+      default:
+        return "neutral";
     }
   };
 
-  const getTipoColor = (tipo: string) => {
+  const getTipoTone = (tipo: string): "danger" | "success" | "primary" | "neutral" => {
     switch (tipo) {
-      case "SUPRESIÓN": return "bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-300";
-      case "CREACIÓN": return "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300";
-      case "MODIFICACIÓN": return "bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-900/20 dark:text-violet-300";
-      default: return "bg-slate-50 text-slate-700 border-slate-200";
+      case "SUPRESIÓN":
+        return "danger";
+      case "CREACIÓN":
+        return "success";
+      case "MODIFICACIÓN":
+        return "primary";
+      default:
+        return "neutral";
     }
   };
 
   return (
     <WireframeDashboardLayout>
       <div className="space-y-6">
-
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-50">Novedades del Catálogo</h1>
-            <p className="text-slate-500 dark:text-slate-400 mt-1">
+            <h1 className="text-3xl font-bold font-heading tracking-tight text-foreground">
+              Novedades del Catálogo
+            </h1>
+            <p className="text-muted-foreground mt-1">
               Gestiona las solicitudes de creación, modificación o supresión de fuentes en el catálogo.
             </p>
           </div>
@@ -85,67 +106,141 @@ export function NovedadesView() {
           </Button>
         </div>
 
-        <Card>
-          <CardHeader className="pb-3 border-b">
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-              <CardTitle className="text-lg font-semibold">Listado de Novedades</CardTitle>
-              <div className="flex gap-2 w-full sm:w-auto">
-                <div className="relative flex-1 sm:w-64">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-500" />
-                  <input
-                    type="text"
+        <Card className="border-border bg-surface">
+          <CardHeader className="pb-3 border-b border-border">
+            <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4">
+              <CardTitle className="text-lg font-semibold text-foreground">
+                Listado de Novedades
+              </CardTitle>
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <div className="flex-1 sm:w-64">
+                  <Search
+                    size="sm"
                     placeholder="Buscar novedad..."
-                    className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-950 disabled:cursor-not-allowed disabled:opacity-50 pl-9 dark:border-slate-800 dark:focus-visible:ring-slate-300"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onClear={() => setSearchQuery("")}
+                    className="w-full"
                   />
                 </div>
-                <Button variant="outline" size="icon" className="shrink-0">
+                <Button variant="outline" size="icon" className="shrink-0" aria-label="Filtrar">
                   <Filter className="h-4 w-4" />
                 </Button>
+                <ViewModeToggle value={viewMode} onChange={setViewMode} />
               </div>
             </div>
           </CardHeader>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader className="bg-slate-50 dark:bg-slate-900/50">
-                <TableRow>
-                  <TableHead className="font-semibold">ID Novedad</TableHead>
-                  <TableHead className="font-semibold">Tipo</TableHead>
-                  <TableHead className="font-semibold hidden md:table-cell">Entidad Solicitante</TableHead>
-                  <TableHead className="font-semibold hidden lg:table-cell">Fuente Afectada</TableHead>
-                  <TableHead className="font-semibold">Fecha</TableHead>
-                  <TableHead className="font-semibold">Estado</TableHead>
-                  <TableHead className="w-24 text-center">Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {NOVEDADES.map((novedad) => (
-                  <TableRow key={novedad.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
-                    <TableCell className="font-medium">{novedad.id}</TableCell>
-                    <TableCell>
-                      <Badge appearance="outline" className={getTipoColor(novedad.tipo)}>
+          <CardContent className={cn("p-0", viewMode === "cards" && "p-4")}>
+            <div className={cn("w-full", viewMode === "table" ? "hidden md:block" : "hidden")}>
+              <Table>
+                <TableHeader className="bg-muted/50">
+                  <TableRow>
+                    <TableHead className="font-semibold">ID Novedad</TableHead>
+                    <TableHead className="font-semibold">Tipo</TableHead>
+                    <TableHead className="font-semibold hidden md:table-cell">Entidad Solicitante</TableHead>
+                    <TableHead className="font-semibold hidden lg:table-cell">Fuente Afectada</TableHead>
+                    <TableHead className="font-semibold">Fecha</TableHead>
+                    <TableHead className="font-semibold">Estado</TableHead>
+                    <TableHead className="w-24 text-center">Acciones</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredNovedades.map((novedad) => (
+                    <TableRow key={novedad.id} className="hover:bg-muted/40">
+                      <TableCell className="font-medium text-foreground">{novedad.id}</TableCell>
+                      <TableCell>
+                        <Badge tone={getTipoTone(novedad.tipo)} appearance="soft" size="sm">
+                          {novedad.tipo}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell text-foreground">{novedad.entidad}</TableCell>
+                      <TableCell className="hidden lg:table-cell text-muted-foreground">{novedad.fuente}</TableCell>
+                      <TableCell className="text-muted-foreground">{novedad.fecha}</TableCell>
+                      <TableCell>
+                        <Badge tone={getEstadoTone(novedad.estado)} appearance="soft" size="sm">
+                          {novedad.estado}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Link href="/novedades/detalle">
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            className="text-muted-foreground hover:text-primary hover:bg-primary/10"
+                            aria-label={`Ver detalle de ${novedad.id}`}
+                          >
+                            <Eye className="size-4" />
+                          </Button>
+                        </Link>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Vista de Tarjetas (Móvil o modo Tarjetas) */}
+            <div
+              className={cn(
+                "w-full",
+                viewMode === "cards"
+                  ? "grid grid-cols-1 md:grid-cols-2 gap-4"
+                  : "block md:hidden space-y-3.5 p-4"
+              )}
+            >
+              {filteredNovedades.map((novedad) => (
+                <InteractiveCard
+                  key={novedad.id}
+                  as="div"
+                  hideChevron
+                  color="primary"
+                  icon={<FileText className="size-5" />}
+                  title={novedad.fuente}
+                  subtitle={novedad.id}
+                  description={novedad.entidad}
+                  meta={
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <Badge tone={getTipoTone(novedad.tipo)} appearance="soft" size="sm">
                         {novedad.tipo}
                       </Badge>
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">{novedad.entidad}</TableCell>
-                    <TableCell className="hidden lg:table-cell">{novedad.fuente}</TableCell>
-                    <TableCell>{novedad.fecha}</TableCell>
-                    <TableCell>
-                      <Badge appearance="outline" className={getBadgeColor(novedad.estado)}>
+                      <Badge tone={getEstadoTone(novedad.estado)} appearance="soft" size="sm">
                         {novedad.estado}
                       </Badge>
-                    </TableCell>
-                    <TableCell className="text-center">
+                    </div>
+                  }
+                >
+                  <div className="space-y-3 pt-1">
+                    <div className="grid grid-cols-2 gap-2.5 text-xs bg-muted/30 p-2.5 rounded-lg border border-border/60">
+                      <div>
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block">
+                          Entidad
+                        </span>
+                        <span className="font-semibold text-foreground mt-0.5 block truncate">
+                          {novedad.entidad}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block">
+                          Fecha
+                        </span>
+                        <span className="font-mono text-foreground mt-0.5 block">
+                          {novedad.fecha}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2 pt-1 border-t border-border/60">
                       <Link href="/novedades/detalle">
-                        <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-primary-300 hover:bg-primary-300/10">
-                          <Eye className="size-4" />
-                          
+                        <Button variant="outline" size="sm" className="text-xs h-8 gap-1.5">
+                          <Eye className="size-3.5" />
+                          <span>Ver detalle</span>
                         </Button>
                       </Link>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                    </div>
+                  </div>
+                </InteractiveCard>
+              ))}
+            </div>
           </CardContent>
         </Card>
       </div>

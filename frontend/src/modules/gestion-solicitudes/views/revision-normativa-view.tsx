@@ -129,6 +129,7 @@ import { RechazarSolicitudDialog } from "@/components/shared/solicitudes/rechaza
 import { AsignarRevisorDialog } from "@/components/shared/solicitudes/asignar-revisor-dialog";
 import { Enr03SimulacionPanel } from "@/components/shared/solicitudes/enr03-simulacion-panel";
 import { buildTramiteTimelineItems } from "@/components/shared/solicitudes/tramite-timeline-helper";
+import { ViewModeToggle, type ViewMode } from "@/components/shared/view-mode-toggle";
 
 interface FilterComboboxProps {
   label?: string;
@@ -250,8 +251,8 @@ export function RevisionNormativaView() {
     resetStore
   } = store;
 
-  // Filtro de proceso (Todos / Proceso A / Proceso B / Proceso C)
-  const [filterTramite, setFilterTramite] = useState<string>("TODOS");
+  // Normativa participa exclusivamente en Anexo A (Incorporación institucional)
+  const [filterTramite, setFilterTramite] = useState<string>("PROCESO_A_REGISTRO_INSTITUCION");
 
   // Search & Filters
   const [searchQuery, setSearchQuery] = useState("");
@@ -271,6 +272,7 @@ export function RevisionNormativaView() {
     "fecha-desc");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState<number>(5);
+  const [viewMode, setViewMode] = useState<ViewMode>("table");
 
   // Selected item for full Detail View
   const [selectedSolicitud, setSelectedSolicitud] = useState<SolicitudIngreso | null>(null);
@@ -352,12 +354,17 @@ export function RevisionNormativaView() {
     return new Date(year, (month || 1) - 1, day || 1, hours || 0, minutes || 0).getTime();
   };
 
+  // Solicitudes exclusivas de Anexo A (Incorporación institucional)
+  const solicitudesAnexoA = useMemo(() => {
+    return solicitudes.filter((s) => s.tipoTramite === "PROCESO_A_REGISTRO_INSTITUCION");
+  }, [solicitudes]);
+
   // Institution options from data
   const institucionesList = useMemo(() => {
     const set = new Set<string>();
-    solicitudes.forEach((s) => set.add(s.institucion));
+    solicitudesAnexoA.forEach((s) => set.add(s.institucion));
     return Array.from(set);
-  }, [solicitudes]);
+  }, [solicitudesAnexoA]);
 
   // Construction of timelineItems for selectedSolicitud using Timeline component
   const timelineItems: TimelineItem[] = useMemo(() => {
@@ -431,29 +438,28 @@ export function RevisionNormativaView() {
   { value: "estado-prioridad", label: "Pendientes primero" }],
   []);
 
-  const activeSectionTitle = "Solicitudes pendientes";
+  const activeSectionTitle = "Anexo A — Resoluciones de incorporación";
 
   const hasActiveFilters = useMemo(() => {
     return (
       searchQuery.trim() !== "" ||
-      filterTramite !== "TODOS" ||
       filterEstado !== "Todos" ||
       filterInstitucion !== "Todas");
 
-  }, [searchQuery, filterTramite, filterEstado, filterInstitucion]);
+  }, [searchQuery, filterEstado, filterInstitucion]);
 
   const clearAllFilters = () => {
     setSearchQuery("");
-    setFilterTramite("TODOS");
+    setFilterTramite("PROCESO_A_REGISTRO_INSTITUCION");
     setFilterEstado("Todos");
     setFilterInstitucion("Todas");
     setCurrentPage(1);
   };
 
-  // KPIs globales por rol
+  // KPIs globales por rol (Anexo A)
   const dynamicKpis = useMemo(() => {
     if (currentUser.role === "EQ_GESTION") {
-      const misSolicitudes = solicitudes.filter(
+      const misSolicitudes = solicitudesAnexoA.filter(
         (s) => s.revisorGestion === currentUser.name || s.revisor === currentUser.name
       );
       return {
@@ -485,7 +491,7 @@ export function RevisionNormativaView() {
       };
     }
     if (currentUser.role === "EQ_NORMATIVA") {
-      const misSolicitudes = solicitudes.filter(
+      const misSolicitudes = solicitudesAnexoA.filter(
         (s) =>
           s.tipoTramite === "PROCESO_A_REGISTRO_INSTITUCION" &&
           (s.revisorNormatividad === currentUser.name ||
@@ -524,17 +530,17 @@ export function RevisionNormativaView() {
     }
     if (currentUser.role === "DIR_NORMATIVA") {
       return {
-        sinAsignar: solicitudes.filter(
+        sinAsignar: solicitudesAnexoA.filter(
           (s) => s.estado === "PENDIENTE_ASIGNACION_NORMATIVIDAD" || (!s.revisorNormatividad && (s.estado as string).includes("NORMATIVIDAD"))
         ).length,
-        enRevision: solicitudes.filter(
+        enRevision: solicitudesAnexoA.filter(
           (s) =>
             s.estado === "PENDIENTE_GENERAR_RESOLUCION" ||
             s.estado === "EN_GENERACION_RESOLUCION" ||
             s.estado === "EN_REVISION_NORMATIVIDAD" ||
             s.estado === "GENERACION_PENDIENTE"
         ).length,
-        resueltas: solicitudes.filter(
+        resueltas: solicitudesAnexoA.filter(
           (s) =>
             s.estado === "RESOLUCION_GENERADA" ||
             s.estado === "APROBADO_FINAL" ||
@@ -547,18 +553,18 @@ export function RevisionNormativaView() {
       };
     }
     return {
-      sinAsignar: solicitudes.filter(
+      sinAsignar: solicitudesAnexoA.filter(
         (s) =>
         s.estado === "PENDIENTE_ASIGNACION_GESTION" ||
         s.estado === "PENDIENTE_ASIGNACION_NORMATIVIDAD" ||
         s.estado === "Pendiente"
       ).length,
-      enRevision: solicitudes.filter(
+      enRevision: solicitudesAnexoA.filter(
         (s) =>
         s.estado === "EN_REVISION_GESTION" ||
         s.estado === "EN_REVISION_NORMATIVIDAD"
       ).length,
-      resueltas: solicitudes.filter(
+      resueltas: solicitudesAnexoA.filter(
         (s) =>
         s.estado === "Aprobada" ||
         s.estado === "APROBADO_FINAL" ||
@@ -567,14 +573,13 @@ export function RevisionNormativaView() {
         s.estado === "Cancelada"
       ).length
     };
-  }, [solicitudes, currentUser.role]);
+  }, [solicitudesAnexoA, currentUser.role, currentUser.name]);
 
   // Filter & Sort
   const filteredData = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
-    let result = solicitudes.filter((item) => {
-      // Filtro de pestaña de trámite
-      if (filterTramite !== "TODOS" && item.tipoTramite !== filterTramite) {
+    let result = solicitudesAnexoA.filter((item) => {
+      if (item.tipoTramite !== "PROCESO_A_REGISTRO_INSTITUCION") {
         return false;
       }
 
@@ -647,7 +652,6 @@ export function RevisionNormativaView() {
       includes(item.estado))
 
       return false;
-      if (currentUser.role === "DIR_NORMATIVA" && item.tipoTramite === "PROCESO_B_ENROLAMIENTO_COORDINADOR") return false;
 
       if (currentUser.role === "EQ_NORMATIVA") {
         // Solo solicitudes del proceso de Registro de Institución (Anexo A)
@@ -2188,36 +2192,27 @@ export function RevisionNormativaView() {
           
             {/* -- 1. Encabezado Principal -- */}
             {(() => {
-            const isDirGestion = currentUser.role === "DIR_GESTION";
-            const isEqGestion = currentUser.role === "EQ_GESTION";
-            const isDirNormativa = currentUser.role === "DIR_NORMATIVA";
-            const isEqNormativa = currentUser.role === "EQ_NORMATIVA";
+              const isDirNormativa = currentUser.role === "DIR_NORMATIVA";
 
-            let badgeText = "Equipo de Normatividad · DINARP";
-            let titleText = "Solicitudes pendientes por generar resolución";
-            let subtitleText = "Análisis normativo y resolución jurídica de solicitudes asignadas a tu usuario.";
+              const badgeText = "Anexo A · Incorporación institucional";
+              const titleText = "Elaborar resoluciones";
+              const subtitleText = isDirNormativa
+                ? "Gestiona y asigna la elaboración de resoluciones de incorporación institucional (Anexo A) aprobadas por Gestión."
+                : "Elabora los proyectos de resolución de incorporación institucional (Anexo A) aprobados por Gestión.";
 
-            if (isEqGestion) {
-              badgeText = "Equipo de Gestión y Registro · DINARP";
-              titleText = "Solicitudes pendientes de revisión";
-              subtitleText = "Consulta y revisa las solicitudes asignadas para su aprobación o rechazo.";
-            } else if (isDirNormativa) {
-              badgeText = "Dirección de Normatividad · DINARP";
-              titleText = "Asignación de solicitudes para generar resoluciones";
-              subtitleText = "Asignación de solicitudes para generar resoluciones a instituciones aprobadas.";
-            } else if (isEqNormativa) {
-              badgeText = "Equipo de Normatividad · DINARP";
-              titleText = "Solicitudes pendientes por generar resolución";
-              subtitleText = "Análisis normativo y resolución jurídica de solicitudes asignadas a tu usuario.";
-            } else if (isDirGestion) {
-              badgeText = "Dirección de Gestión y Registro · DINARP";
-              titleText = "Asignación de solicitudes";
-              subtitleText = "Gestiona y asigna las solicitudes pendientes a los revisores del área de gestión.";
-            }
-            return (
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div className="space-y-1 w-full">
-
+              return (
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="space-y-1.5 w-full">
+                    <div className="flex items-center gap-2">
+                      <Badge
+                        tone="primary"
+                        appearance="soft"
+                        size="sm"
+                        className="font-semibold text-[11px]"
+                      >
+                        {badgeText}
+                      </Badge>
+                    </div>
                     <h1 className="font-heading font-extrabold text-2xl sm:text-3xl tracking-tight text-primary">
                       {titleText}
                     </h1>
@@ -2225,9 +2220,9 @@ export function RevisionNormativaView() {
                       {subtitleText}
                     </p>
                   </div>
-                </div>);
-
-          })()}
+                </div>
+              );
+            })()}
 
             {/* -- 2. Resumen Superior (Tarjetas Interactivas con Layout Horizontal Optimizado) -- */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 lg:gap-4 w-full">
@@ -2465,19 +2460,6 @@ export function RevisionNormativaView() {
                 {/* Filtros Combobox del UI Kit con ancho holgado y responsivo */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-nowrap items-end gap-2.5">
                   <FilterCombobox
-                  label="Proceso"
-                  placeholder="Proceso..."
-                  groupLabel="Tipo de Proceso"
-                  options={procesoOptions}
-                  value={filterTramite}
-                  onChange={(val) => {
-                    setFilterTramite(val);
-                    setCurrentPage(1);
-                  }}
-                  className="w-full lg:w-[195px]" />
-                
-
-                  <FilterCombobox
                   label="Estado"
                   placeholder="Estado..."
                   groupLabel="Estado de Solicitud"
@@ -2511,7 +2493,8 @@ export function RevisionNormativaView() {
                   value={sortOrder}
                   onChange={(val) => setSortOrder(val as any)}
                   className="w-full lg:w-[195px]" />
-                
+
+                  <ViewModeToggle value={viewMode} onChange={setViewMode} />
                 </div>
               </div>
 
@@ -2532,22 +2515,6 @@ export function RevisionNormativaView() {
                       <X
                   className="size-3.5 cursor-pointer hover:text-foreground/80 transition-colors"
                   onClick={() => setSearchQuery("")} />
-                
-                    </Badge>
-              }
-
-                  {filterTramite !== "TODOS" &&
-              <Badge
-                tone="neutral"
-                appearance="soft"
-                className="gap-1.5 px-3 py-1 font-semibold text-xs rounded-full border border-border">
-                
-                      <span>
-                        {procesoOptions.find((o) => o.value === filterTramite)?.label}
-                      </span>
-                      <X
-                  className="size-3.5 cursor-pointer hover:text-foreground/80 transition-colors"
-                  onClick={() => setFilterTramite("TODOS")} />
                 
                     </Badge>
               }
@@ -2620,7 +2587,7 @@ export function RevisionNormativaView() {
             return (
               <>
                   {/* Vista de Tabla para Escritorio */}
-                  <div className="hidden md:block">
+                  <div className={cn("w-full", viewMode === "table" ? "hidden md:block" : "hidden")}>
                     <Table
                     className="w-full table-fixed min-w-[1080px]"
                     containerClassName="overflow-x-auto rounded-xl">
@@ -2970,9 +2937,9 @@ export function RevisionNormativaView() {
                 </div>
 
                 {/* Vista Mobile Card Row (Responsive) para Pantallas Estrechas */}
-                <div className="block md:hidden">
+                <div className={cn("w-full", viewMode === "cards" ? "block" : "block md:hidden")}>
                   {paginatedData.length === 0 ?
-                  <div className="flex flex-col items-center justify-center p-8 bg-surface border border-border rounded-xl text-center space-y-2">
+                  <div className="col-span-full flex flex-col items-center justify-center p-8 bg-surface border border-border rounded-xl text-center space-y-2">
                       <div className="size-12 rounded-full bg-muted/60 flex items-center justify-center text-muted-foreground mb-1">
                         <SearchIcon className="size-6" />
                       </div>
@@ -2984,7 +2951,7 @@ export function RevisionNormativaView() {
                       </p>
                     </div> :
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {paginatedData.map((row) => {
                       const { puedeReasignar, esReasignacion } = puedeReasignarSolicitud(row, currentUser.role);
                       const isAssignable = puedeReasignar;

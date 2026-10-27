@@ -8,6 +8,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { InteractiveCard } from "@/components/ui/data-display";
+import { ViewModeToggle, type ViewMode } from "@/components/shared/view-mode-toggle";
 import { cn } from "@/lib/utils";
 import { Search } from "@/components/ui/search";
 import {
@@ -231,6 +233,7 @@ export function FuentesInboxView({ currentUser, openNuevaOnInit = false }: Fuent
   // Paginación UI Kit
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [viewMode, setViewMode] = useState<ViewMode>("table");
 
   useEffect(() => {
     setCurrentPage(1);
@@ -537,13 +540,11 @@ export function FuentesInboxView({ currentUser, openNuevaOnInit = false }: Fuent
                 <div className="flex items-center gap-2">
                   <Server className="size-6 text-primary shrink-0" />
                   <h1 className="font-heading font-extrabold text-2xl sm:text-3xl tracking-tight text-primary">
-                    {isCoordinadorConsumidor ? "Borradores de Fuentes" : "Mis fuentes de datos"}
+                    Mis fuentes de datos
                   </h1>
                 </div>
                 <p className="text-xs sm:text-sm text-muted-foreground w-full max-w-none leading-relaxed font-normal">
-                  {isCoordinadorConsumidor
-                    ? "Registra y prepara propuestas de fuentes de datos (FUE-01) con responsable, SLA y parámetros requeridos."
-                    : "Gestión, configuración técnica, pruebas de conectividad y publicación de fuentes de información institucional para interoperabilidad nacional (FUE-01 a FUE-05)."}
+                  Registra, configura técnicamente, ejecuta pruebas de conectividad y publica las fuentes de datos de tu institución para interoperabilidad nacional.
                 </p>
               </div>
 
@@ -870,10 +871,10 @@ export function FuentesInboxView({ currentUser, openNuevaOnInit = false }: Fuent
                 />
               </div>
 
-              {/* Filtros Combobox UI Kit */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 w-full xl:w-auto shrink-0">
+              {/* Filtros Combobox UI Kit + Selector de Vista */}
+              <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 w-full xl:w-auto shrink-0">
                 {/* Filtro Estado */}
-                <div className="w-full xl:w-[250px] min-w-0">
+                <div className="w-full sm:flex-1 xl:w-[250px] min-w-0">
                   <Combobox
                     value={estadoFilter === "ALL" ? null : estadoFilter}
                     onValueChange={(val) => {
@@ -921,7 +922,7 @@ export function FuentesInboxView({ currentUser, openNuevaOnInit = false }: Fuent
                 </div>
 
                 {/* Filtro Modalidad */}
-                <div className="w-full xl:w-[210px] min-w-0">
+                <div className="flex-1 xl:w-[210px] min-w-0">
                   <Combobox
                     value={modalidadFilter === "TODOS" ? null : modalidadFilter}
                     onValueChange={(val) => {
@@ -967,6 +968,8 @@ export function FuentesInboxView({ currentUser, openNuevaOnInit = false }: Fuent
                     </ComboboxContent>
                   </Combobox>
                 </div>
+
+                <ViewModeToggle value={viewMode} onChange={setViewMode} />
               </div>
             </div>
 
@@ -1071,7 +1074,7 @@ export function FuentesInboxView({ currentUser, openNuevaOnInit = false }: Fuent
           </div>
 
           {/* Tabla UI Kit con encabezados blancos, sin contenedor envolvente y solo iconos en acciones */}
-          <div className="w-full">
+          <div className={cn("w-full", viewMode === "table" ? "hidden md:block" : "hidden")}>
             <Table className="w-full" containerClassName="overflow-x-auto w-full">
               <TableHeader>
                 <TableRow className="border-0">
@@ -1453,6 +1456,303 @@ export function FuentesInboxView({ currentUser, openNuevaOnInit = false }: Fuent
                 )}
               </TableBody>
             </Table>
+          </div>
+
+          {/* Vista de Tarjetas (Móvil o modo Tarjetas) */}
+          <div
+            className={cn(
+              "w-full",
+              viewMode === "cards"
+                ? "grid grid-cols-1 md:grid-cols-2 gap-4"
+                : "block md:hidden space-y-3.5"
+            )}
+          >
+            {!isLoaded ? (
+              <Card className="p-8 text-center col-span-full border border-border bg-surface text-xs text-muted-foreground">
+                Cargando fuentes de información...
+              </Card>
+            ) : fuentesFiltradas.length === 0 ? (
+              <Card className="p-8 text-center col-span-full border border-border bg-surface space-y-2">
+                <Server className="size-8 text-muted-foreground/40 mx-auto" />
+                <p className="text-xs font-medium text-foreground">
+                  No se encontraron fuentes de información
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  Ajusta los filtros de búsqueda o registra una nueva fuente institucional.
+                </p>
+              </Card>
+            ) : (
+              paginatedFuentes.map((fuente) => {
+                const isConexionFallida =
+                  fuente.conexion?.ultima_prueba?.resultado === "Fallida";
+                const isConexionVerificada =
+                  !isConexionFallida &&
+                  fuente.conexion?.ultima_prueba?.resultado === "Satisfactoria" &&
+                  (fuente.estado === "BORRADOR" || fuente.estado === "CONFIGURACION");
+                const isBorrador =
+                  (fuente.estado === "BORRADOR" || fuente.estado === "CONEXION_PENDIENTE") &&
+                  !isConexionFallida &&
+                  !isConexionVerificada;
+                const isEsquemaPendiente = fuente.estado === "ESQUEMA_PENDIENTE_CORRECCION";
+                const isEnRevision = fuente.estado === "EN_REVISION";
+                const isDevuelta = fuente.estado === "DEVUELTA";
+                const isAprobada = fuente.estado === "APROBADA";
+                const isFallidaGateway = fuente.estado === "PUBLICACION_PENDIENTE";
+                const isHomologacion = fuente.estado === "PENDIENTE_HOMOLOGACION";
+                const isPublicada = fuente.estado === "PUBLICADA";
+                const responsableAutorizado = isResponsableAutorizado(fuente);
+
+                return (
+                  <InteractiveCard
+                    key={fuente.id}
+                    as="div"
+                    hideChevron
+                    color="primary"
+                    icon={<Server className="size-5" />}
+                    title={fuente.nombre}
+                    subtitle={`${fuente.id} · v${fuente.version_propuesta}`}
+                    description={fuente.descripcion_fuente}
+                    meta={
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {getEstadoBadge(fuente.estado)}
+                        <Badge tone="neutral" appearance="soft" size="sm" className="text-[10px]">
+                          {fuente.modalidades_soportadas}
+                        </Badge>
+                      </div>
+                    }
+                  >
+                    <div className="space-y-3 pt-1">
+                      <div className="grid grid-cols-2 gap-2.5 text-xs bg-muted/30 p-2.5 rounded-lg border border-border/60">
+                        <div>
+                          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block">
+                            Institución Proveedora
+                          </span>
+                          <span className="font-semibold text-foreground mt-0.5 block truncate">
+                            {fuente.institucion_proveedora_nombre}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block">
+                            Actualización
+                          </span>
+                          <span className="font-mono text-foreground mt-0.5 block">
+                            {formatDate(fuente.fecha_actualizacion || fuente.fecha_creacion)}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between gap-2 pt-1 border-t border-border/60">
+                        <Link href={`/proveedor/fuentes/${fuente.id}`}>
+                          <Button variant="outline" size="sm" className="text-xs h-8 cursor-pointer">
+                            Ver detalle
+                          </Button>
+                        </Link>
+
+                        <div className="inline-flex items-center gap-1">
+                          {isCoordinadorConsumidor ? (
+                            ["BORRADOR", "DEVUELTA", "CONFIGURACION"].includes(fuente.estado) ? (
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                onClick={() => {
+                                  setFuenteAEditar(fuente);
+                                  setInitialStepForModal(0);
+                                  setIsFormModalOpen(true);
+                                }}
+                                className="text-primary hover:text-primary hover:bg-primary/10 cursor-pointer"
+                                aria-label={`Editar borrador de ${fuente.nombre}`}
+                              >
+                                <FileEdit className="size-4" />
+                              </Button>
+                            ) : (
+                              <span className="text-[11px] text-muted-foreground italic px-2">Solo lectura</span>
+                            )
+                          ) : (
+                            <>
+                              {isBorrador && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  onClick={() => setFuenteAConectar(fuente)}
+                                  className="text-primary hover:text-primary hover:bg-primary/10 cursor-pointer"
+                                  aria-label={`Configurar conexión de ${fuente.nombre}`}
+                                >
+                                  <Plug className="size-4" />
+                                </Button>
+                              )}
+
+                              {isConexionFallida && (
+                                <>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon-sm"
+                                    onClick={() => setFuenteAConectar(fuente)}
+                                    className="text-warning hover:text-warning hover:bg-warning/10 cursor-pointer"
+                                    aria-label={`Corregir configuración de ${fuente.nombre}`}
+                                  >
+                                    <Wrench className="size-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon-sm"
+                                    onClick={() => handleReintentarPruebaConexion(fuente)}
+                                    className="text-primary hover:text-primary hover:bg-primary/10 cursor-pointer"
+                                    aria-label={`Reintentar prueba de conexión de ${fuente.nombre}`}
+                                  >
+                                    <RotateCw className="size-4" />
+                                  </Button>
+                                </>
+                              )}
+
+                              {isConexionVerificada && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  onClick={() => setFuenteAEsquema(fuente)}
+                                  className="text-primary hover:text-primary hover:bg-primary/10 cursor-pointer"
+                                  aria-label={`Definir esquema y campos de ${fuente.nombre}`}
+                                >
+                                  <Layers className="size-4" />
+                                </Button>
+                              )}
+
+                              {isEsquemaPendiente && (
+                                <>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon-sm"
+                                    onClick={() => setFuenteAEsquema(fuente)}
+                                    className="text-warning hover:text-warning hover:bg-warning/10 cursor-pointer"
+                                    aria-label={`Corregir esquema de ${fuente.nombre}`}
+                                  >
+                                    <Layers className="size-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon-sm"
+                                    onClick={() => handleVolverAProbarEsquema(fuente)}
+                                    className="text-primary hover:text-primary hover:bg-primary/10 cursor-pointer"
+                                    aria-label={`Volver a probar esquema de ${fuente.nombre}`}
+                                  >
+                                    <RotateCw className="size-4" />
+                                  </Button>
+                                </>
+                              )}
+
+                              {isEnRevision && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  disabled
+                                  className="text-muted-foreground/60 cursor-not-allowed opacity-75"
+                                  aria-label="En revisión por Gestión"
+                                >
+                                  <Clock className="size-4" />
+                                </Button>
+                              )}
+
+                              {isDevuelta && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  onClick={() => {
+                                    setFuenteAEditar(fuente);
+                                    setInitialStepForModal(0);
+                                    setIsFormModalOpen(true);
+                                  }}
+                                  className="text-danger hover:text-danger hover:bg-danger/10 cursor-pointer"
+                                  aria-label={`Continuar corrección de ${fuente.nombre}`}
+                                >
+                                  <FileEdit className="size-4" />
+                                </Button>
+                              )}
+
+                              {isAprobada && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  onClick={() => setFuenteAPublicar(fuente)}
+                                  className="text-primary hover:text-primary hover:bg-primary/10 cursor-pointer"
+                                  aria-label={`Publicar versión de ${fuente.nombre}`}
+                                >
+                                  <Rocket className="size-4" />
+                                </Button>
+                              )}
+
+                              {isFallidaGateway && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  onClick={() => setFuenteAPublicar(fuente)}
+                                  className="text-warning hover:text-warning hover:bg-warning/10 cursor-pointer"
+                                  aria-label={`Reintentar despliegue de ${fuente.nombre}`}
+                                >
+                                  <RotateCcw className="size-4" />
+                                </Button>
+                              )}
+
+                              {isHomologacion && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  disabled
+                                  className="text-warning/80 cursor-default opacity-85"
+                                  aria-label={`En proceso de homologación técnica por TI: ${fuente.nombre}`}
+                                >
+                                  <Cpu className="size-4" />
+                                </Button>
+                              )}
+
+                              {isPublicada && (
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon-sm"
+                                      className="text-muted-foreground hover:text-foreground cursor-pointer"
+                                      aria-label={`Más opciones para ${fuente.nombre}`}
+                                    >
+                                      <MoreHorizontal className="size-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="w-56">
+                                    <DropdownMenuItem
+                                      onClick={() => {
+                                        setFuenteParaNuevaVersion(fuente);
+                                        setIsNuevaVersionModalOpen(true);
+                                      }}
+                                      className="cursor-pointer gap-2 text-xs"
+                                    >
+                                      <GitFork className="size-4 text-primary" />
+                                      <span>FUE-06: Preparar nueva versión</span>
+                                    </DropdownMenuItem>
+                                    {responsableAutorizado && (
+                                      <>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem
+                                          onClick={() => {
+                                            setFuenteParaBaja(fuente);
+                                            setIsBajaModalOpen(true);
+                                          }}
+                                          className="cursor-pointer gap-2 text-xs text-danger focus:text-danger focus:bg-danger/10"
+                                        >
+                                          <AlertOctagon className="size-4 text-danger" />
+                                          <span>FUE-08: Solicitar baja de fuente</span>
+                                        </DropdownMenuItem>
+                                      </>
+                                    )}
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </InteractiveCard>
+                );
+              })
+            )}
           </div>
 
           {/* Paginación UI Kit */}

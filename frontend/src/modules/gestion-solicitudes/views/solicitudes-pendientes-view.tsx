@@ -132,7 +132,9 @@ import { Enr03SimulacionPanel } from "@/components/shared/solicitudes/enr03-simu
 import { useEnr03SimulationStore } from "@/modules/gestion-solicitudes/data/enr03-store";
 import { SolicitudAnexoBDetail } from "@/components/shared/solicitudes/solicitud-anexo-b-tabs";
 import { SolicitudAnexoCDetail } from "@/components/shared/solicitudes/solicitud-anexo-c-tabs";
+import { ViewModeToggle, type ViewMode } from "@/components/shared/view-mode-toggle";
 import {
+  useCambioCoordinadorStore,
   aprobarCambioStandalone,
   rechazarCambioStandalone,
 } from "@/modules/cambio-coordinador/data/cambio-coordinador-store";
@@ -239,10 +241,23 @@ function FilterCombobox({
   );
 }
 
-export function SolicitudesPendientesView() {
+export interface SolicitudesPendientesViewProps {
+  procesoFixed?: TipoTramiteIngreso;
+  basePath?: string;
+  activeMenu?: string;
+}
+
+export function SolicitudesPendientesView({
+  procesoFixed = "PROCESO_A_REGISTRO_INSTITUCION",
+  basePath = "/solicitudes-pendientes",
+  activeMenu = "solicitudes-pendientes",
+}: SolicitudesPendientesViewProps = {}) {
   const router = useRouter();
   const { activeUser } = useAuthStore();
   const currentUser = activeUser || MOCK_USERS_BY_ROLE.EQ_GESTION;
+
+  // Asegurar sincronización de Anexo C en el store global
+  useCambioCoordinadorStore();
 
   const store = useSolicitudesIngresoStore();
   const {
@@ -262,8 +277,8 @@ export function SolicitudesPendientesView() {
     }
   }, [activeUser, router]);
 
-  // Filtro de proceso (Todos / Proceso A / Proceso B / Proceso C)
-  const [filterTramite, setFilterTramite] = useState<string>("TODOS");
+  // Proceso fijo por ruta independiente (Anexo A, B o C)
+  const [filterTramite, setFilterTramite] = useState<string>(procesoFixed);
 
   // Search & Filters
   const [searchQuery, setSearchQuery] = useState("");
@@ -283,6 +298,7 @@ export function SolicitudesPendientesView() {
   >("fecha-desc");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState<number>(5);
+  const [viewMode, setViewMode] = useState<ViewMode>("table");
 
   // Selected item for full Detail View
   const [selectedSolicitud, setSelectedSolicitud] = useState<SolicitudIngreso | null>(null);
@@ -302,7 +318,7 @@ export function SolicitudesPendientesView() {
   const [isAssignOpen, setIsAssignOpen] = useState(false);
 
   const handleSelectSolicitud = (solicitud: SolicitudIngreso) => {
-    router.push(`/solicitudes-pendientes/${solicitud.id}`);
+    router.push(`${basePath}/${solicitud.id}`);
   };
 
   const handleOpenAssign = (solicitud: SolicitudIngreso) => {
@@ -360,12 +376,17 @@ export function SolicitudesPendientesView() {
     return new Date(year, (month || 1) - 1, day || 1, hours || 0, minutes || 0).getTime();
   };
 
+  // Solicitudes acotadas exclusivamente al anexo de la ruta
+  const solicitudesPorAnexo = useMemo(() => {
+    return solicitudes.filter((s) => s.tipoTramite === procesoFixed);
+  }, [solicitudes, procesoFixed]);
+
   // Institution options from data
   const institucionesList = useMemo(() => {
     const set = new Set<string>();
-    solicitudes.forEach((s) => set.add(s.institucion));
+    solicitudesPorAnexo.forEach((s) => set.add(s.institucion));
     return Array.from(set);
-  }, [solicitudes]);
+  }, [solicitudesPorAnexo]);
 
   // Construction of timelineItems for selectedSolicitud using Timeline component
   const timelineItems: TimelineItem[] = useMemo(() => {
@@ -421,38 +442,34 @@ export function SolicitudesPendientesView() {
   ], []);
 
   const activeSectionTitle = useMemo(() => {
-    if (currentUser.role === "DIR_GESTION" || currentUser.role === "DIR_NORMATIVA") {
-      return "Asignación de solicitudes de enrolamiento";
+    if (procesoFixed === "PROCESO_B_ENROLAMIENTO_COORDINADOR") {
+      return "Anexo B — Registro de coordinadores";
     }
-    if (currentUser.role === "EQ_NORMATIVA") {
-      return "Solicitudes pendientes";
+    if (procesoFixed === "PROCESO_C_CAMBIO_COORDINADOR") {
+      return "Anexo C — Cambio de coordinador";
     }
-    if (currentUser.role === "EQ_GESTION") {
-      return "Solicitudes pendientes";
-    }
-    return "Gestión de ingresos";
-  }, [currentUser.role]);
+    return "Anexo A — Incorporación institucional";
+  }, [procesoFixed]);
 
   const hasActiveFilters = useMemo(() => {
     return (
       searchQuery.trim() !== "" ||
-      filterTramite !== "TODOS" ||
       filterEstado !== "Todos" ||
       filterInstitucion !== "Todas"
     );
-  }, [searchQuery, filterTramite, filterEstado, filterInstitucion]);
+  }, [searchQuery, filterEstado, filterInstitucion]);
 
   const clearAllFilters = () => {
     setSearchQuery("");
-    setFilterTramite("TODOS");
+    setFilterTramite(procesoFixed);
     setFilterEstado("Todos");
     setFilterInstitucion("Todas");
     setCurrentPage(1);
   };
 
-  // KPIs globales para Equipo de Gestión
+  // KPIs globales para Equipo de Gestión por anexo
   const dynamicKpis = useMemo(() => {
-    const misSolicitudes = solicitudes.filter(
+    const misSolicitudes = solicitudesPorAnexo.filter(
       (s) =>
         s.revisorGestion === currentUser.name ||
         s.revisor === currentUser.name ||
@@ -497,14 +514,13 @@ export function SolicitudesPendientesView() {
         (s) => s.estado === "Rechazada" || s.estado === "Cancelada"
       ).length,
     };
-  }, [solicitudes, currentUser.name, currentUser.role]);
+  }, [solicitudesPorAnexo, currentUser.name, currentUser.role]);
 
   // Filter & Sort
   const filteredData = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
-    let result = solicitudes.filter((item) => {
-      // Filtro de pestaña de trámite
-      if (filterTramite !== "TODOS" && item.tipoTramite !== filterTramite) {
+    let result = solicitudesPorAnexo.filter((item) => {
+      if (item.tipoTramite !== procesoFixed) {
         return false;
       }
 
@@ -804,7 +820,7 @@ export function SolicitudesPendientesView() {
 
   return (
     <WireframeDashboardLayout
-      activeMenu="solicitudes-pendientes"
+      activeMenu={activeMenu}
       breadcrumbs={
         selectedSolicitud
           ? [
@@ -1931,36 +1947,36 @@ export function SolicitudesPendientesView() {
           >
             {/* â”€â”€ 1. Encabezado Principal â”€â”€ */}
             {(() => {
-              const isDirGestion = currentUser.role === "DIR_GESTION";
-              const isEqGestion = currentUser.role === "EQ_GESTION";
-              const isDirNormativa = currentUser.role === "DIR_NORMATIVA";
-              const isEqNormativa = currentUser.role === "EQ_NORMATIVA";
+              let badgeText = "Anexo A · Incorporación institucional";
+              let titleText = "Revisar incorporaciones";
+              let subtitleText =
+                "Consulta y evalúa los expedientes de incorporación institucional (Anexo A) que tienes asignados.";
 
-              let badgeText = "Dirección de Gestión y Registro · DINARP";
-              let titleText = "Asignación de solicitudes de enrolamiento";
-              let subtitleText = "Gestiona la asignación de solicitudes de enrolamiento institucional y coordinadores a los revisores del área de gestión.";
-
-              if (isEqGestion) {
-                badgeText = "Equipo de Gestión y Registro · DINARP";
-                titleText = "Solicitudes pendientes";
-                subtitleText = "Consulta y revisa las solicitudes de enrolamiento pendientes para su evaluación, aprobación o rechazo.";
-              } else if (isDirNormativa) {
-                badgeText = "Dirección de Normatividad · DINARP";
-                titleText = "Asignación de solicitudes de enrolamiento";
-                subtitleText = "Gestiona la asignación de solicitudes de enrolamiento institucional y coordinadores a los revisores del equipo de normatividad.";
-              } else if (isEqNormativa) {
-                badgeText = "Equipo de Normatividad · DINARP";
-                titleText = "Bandeja de Solicitudes Asignadas - Normatividad";
-                subtitleText = "Análisis normativo y resolución jurídica de solicitudes de enrolamiento asignadas a tu usuario.";
-              } else if (isDirGestion) {
-                badgeText = "Dirección de Gestión y Registro · DINARP";
-                titleText = "Asignación de solicitudes de enrolamiento";
-                subtitleText = "Gestiona la asignación de solicitudes de enrolamiento institucional y coordinadores a los revisores del área de gestión.";
+              if (procesoFixed === "PROCESO_B_ENROLAMIENTO_COORDINADOR") {
+                badgeText = "Anexo B · Registro de coordinadores";
+                titleText = "Revisar enrolamientos";
+                subtitleText =
+                  "Consulta y evalúa los expedientes de enrolamiento de coordinadores (Anexo B) que tienes asignados.";
+              } else if (procesoFixed === "PROCESO_C_CAMBIO_COORDINADOR") {
+                badgeText = "Anexo C · Cambio de coordinador";
+                titleText = "Revisar cambios";
+                subtitleText =
+                  "Consulta y evalúa los expedientes de cambio de coordinador institucional (Anexo C) que tienes asignados.";
               }
 
               return (
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div className="space-y-1 w-full">
+                  <div className="space-y-1.5 w-full">
+                    <div className="flex items-center gap-2">
+                      <Badge
+                        tone="primary"
+                        appearance="soft"
+                        size="sm"
+                        className="font-semibold text-[11px]"
+                      >
+                        {badgeText}
+                      </Badge>
+                    </div>
                     <h1 className="font-heading font-extrabold text-2xl sm:text-3xl tracking-tight text-primary">
                       {titleText}
                     </h1>
@@ -2258,19 +2274,6 @@ export function SolicitudesPendientesView() {
                 {/* Filtros Combobox del UI Kit anchos e independientes */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-nowrap items-end gap-2.5">
                   <FilterCombobox
-                    label="Proceso"
-                    placeholder="Proceso..."
-                    groupLabel="Tipo de Proceso"
-                    options={procesoOptions}
-                    value={filterTramite}
-                    onChange={(val) => {
-                      setFilterTramite(val);
-                      setCurrentPage(1);
-                    }}
-                    className="w-full lg:w-[195px]"
-                  />
-
-                  <FilterCombobox
                     label="Estado"
                     placeholder="Estado..."
                     groupLabel="Estado de Solicitud"
@@ -2305,6 +2308,8 @@ export function SolicitudesPendientesView() {
                     onChange={(val) => setSortOrder(val as any)}
                     className="w-full lg:w-[195px]"
                   />
+
+                  <ViewModeToggle value={viewMode} onChange={setViewMode} />
                 </div>
               </div>
 
@@ -2325,22 +2330,6 @@ export function SolicitudesPendientesView() {
                       <X
                         className="size-3.5 cursor-pointer hover:text-foreground/80 transition-colors"
                         onClick={() => setSearchQuery("")}
-                      />
-                    </Badge>
-                  )}
-
-                  {filterTramite !== "TODOS" && (
-                    <Badge
-                      tone="neutral"
-                      appearance="soft"
-                      className="gap-1.5 px-3 py-1 font-semibold text-xs rounded-full border border-border"
-                    >
-                      <span>
-                        {procesoOptions.find((o) => o.value === filterTramite)?.label}
-                      </span>
-                      <X
-                        className="size-3.5 cursor-pointer hover:text-foreground/80 transition-colors"
-                        onClick={() => setFilterTramite("TODOS")}
                       />
                     </Badge>
                   )}
@@ -2413,7 +2402,7 @@ export function SolicitudesPendientesView() {
               return (
                 <>
                   {/* Vista de Tabla para Escritorio */}
-                  <div className="hidden md:block">
+                  <div className={cn("w-full", viewMode === "table" ? "hidden md:block" : "hidden")}>
                     <Table
                       className="w-full min-w-[1080px] table-fixed"
                       containerClassName="overflow-x-auto rounded-xl"
@@ -2654,9 +2643,9 @@ export function SolicitudesPendientesView() {
                 </div>
 
                 {/* Vista Mobile Card Row (Responsive) para Pantallas Estrechas */}
-                <div className="block md:hidden">
+                <div className={cn("w-full", viewMode === "cards" ? "block" : "block md:hidden")}>
                   {paginatedData.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center p-8 bg-surface border border-border rounded-xl text-center space-y-2">
+                    <div className="col-span-full flex flex-col items-center justify-center p-8 bg-surface border border-border rounded-xl text-center space-y-2">
                       <div className="size-12 rounded-full bg-muted/60 flex items-center justify-center text-muted-foreground mb-1">
                         <SearchIcon className="size-6" />
                       </div>
@@ -2668,7 +2657,7 @@ export function SolicitudesPendientesView() {
                       </p>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {paginatedData.map((row) => {
                         const fechaAsignacionTexto = row.fechaAsignacionGestion || row.fechaSolicitud;
                         const procesoLabel =

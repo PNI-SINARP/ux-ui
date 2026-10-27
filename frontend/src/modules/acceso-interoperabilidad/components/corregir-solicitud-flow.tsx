@@ -398,9 +398,12 @@ export function CorregirSolicitudFlow({
 
   return (
     <TooltipProvider>
-      <div className="w-full max-w-7xl 2xl:max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 flex flex-col gap-6">
+      <main className="w-full pr-3 pl-2 pb-3 pt-1.5 flex-1 min-h-0 flex flex-col overflow-hidden">
         {/* Contenedor Principal */}
-        <div className="bg-card border border-border rounded-2xl p-6 sm:p-8 shadow-xs flex flex-col gap-6">
+        <Card
+          className="bg-surface rounded-2xl border border-border shadow-xs flex-1 min-h-0 overflow-hidden flex flex-col my-0"
+          innerClassName="p-4 sm:p-6 lg:p-8 flex flex-col gap-6 overflow-y-auto flex-1 min-h-0 w-full"
+        >
           {/* Volver al expediente */}
           <div className="flex items-center justify-between">
             <button
@@ -410,8 +413,8 @@ export function CorregirSolicitudFlow({
               <ArrowLeft className="size-4" />
               <span>Volver al detalle del expediente</span>
             </button>
-            <Badge tone="neutral" appearance="outline" className="text-amber-700 dark:text-amber-300 border-amber-500/40 bg-amber-500/10 text-xs font-semibold">
-              Modo corrección de solicitud
+            <Badge tone="warning" appearance="soft" className="text-xs font-semibold">
+              Modo subsanación de solicitud (SOL-05)
             </Badge>
           </div>
 
@@ -419,26 +422,29 @@ export function CorregirSolicitudFlow({
           <div>
             <div className="flex items-center gap-3 flex-wrap">
               <h1 className="text-2xl font-bold text-foreground">
-                Corregir solicitud: {solicitud.id}
+                Subsanar solicitud: {solicitud.id}
               </h1>
               <Badge tone="neutral" appearance="outline" className="text-xs">
                 {solicitud.institucion}
               </Badge>
+              <Badge tone="warning" appearance="outline" className="text-xs font-semibold">
+                Plazo: {solicitud.diasRestantesSubsanacion ?? 3} días hábiles (PAR-13 / PAR-10)
+              </Badge>
             </div>
             <p className="text-sm text-muted-foreground mt-1">
-              Revise las observaciones realizadas por el Aprobador, ajuste los campos y comentarios en los 3 pasos y vuelva a enviar el expediente para su aprobación.
+              Revise las observaciones emitidas por la Dirección de Gestión o la Dirección de Protección de la Información (DPI), subsane únicamente los elementos observados y reenvíe la versión corregida dentro del plazo permitido.
             </p>
           </div>
 
-          {/* BANNER DESTACADO CON LAS OBSERVACIONES DEL APROBADOR */}
-          <div className="p-4 rounded-xl border border-amber-500/40 bg-amber-500/10 flex items-start gap-3 shadow-2xs">
-            <AlertTriangle className="size-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+          {/* BANNER DESTACADO CON LAS OBSERVACIONES DE GESTIÓN / DPI */}
+          <div className="p-4 rounded-xl border border-warning/40 bg-warning/10 flex items-start gap-3 shadow-2xs">
+            <AlertTriangle className="size-5 text-warning shrink-0 mt-0.5" />
             <div className="space-y-0.5">
               <p className="text-sm font-bold text-foreground">
-                Observaciones del Aprobador que debe subsanar:
+                Observaciones de Gestión / Protección de la Información (DPI) por subsanar:
               </p>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                {solicitud.observaciones || "Se requiere justificar adecuadamente la finalidad de uso y fundamento legal de los campos solicitados."}
+                {solicitud.observaciones || "Se requiere justificar adecuadamente la finalidad de uso y el sustento jurídico de los campos confidenciales solicitados."}
               </p>
             </div>
           </div>
@@ -1119,6 +1125,9 @@ export function CorregirSolicitudFlow({
                                         Finalidad de uso específica
                                         <span className="text-destructive">*</span>
                                       </label>
+                                      <p className="text-[11px] text-muted-foreground bg-muted/40 px-2.5 py-1.5 rounded-md border border-border/60">
+                                        <strong>Texto de ayuda permanente (PAR-11):</strong> Describa el trámite, proceso administrativo o servicio institucional exacto en el que se utilizará este campo y cómo aporta al objetivo del proyecto.
+                                      </p>
                                       <Textarea
                                         rows={3}
                                         placeholder="Especifique con exactitud para qué proceso o trámite institucional se requiere este dato..."
@@ -1140,9 +1149,12 @@ export function CorregirSolicitudFlow({
                                       <div className="space-y-1.5">
                                         <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
                                           <Scale className="size-3.5 text-warning" />
-                                          Justificación jurídica (Requerido para datos confidenciales)
+                                          Justificación jurídica (Requerido para datos confidenciales — Evalúa Dirección de Protección de la Información DPI)
                                           <span className="text-destructive">*</span>
                                         </label>
+                                        <p className="text-[11px] text-muted-foreground bg-warning/10 px-2.5 py-1.5 rounded-md border border-warning/30">
+                                          <strong>Texto de ayuda permanente (PAR-12 — Evaluación DPI):</strong> Cite la norma legal vigente (Ley, Decreto, Acuerdo Ministerial y artículos específicos) que faculta a su institución para tratar este dato confidencial conforme a la LOPDP.
+                                        </p>
                                         <Textarea
                                           rows={2}
                                           placeholder="Indique los artículos y leyes específicas que justifican jurídicamente el acceso..."
@@ -1379,8 +1391,8 @@ export function CorregirSolicitudFlow({
               </div>
             </div>
           )}
-        </div>
-      </div>
+        </Card>
+      </main>
     </TooltipProvider>
   );
 }

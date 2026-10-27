@@ -512,10 +512,10 @@ export function ConfiguracionFinancieraInteroperabilidadView() {
             </Badge>
           </div>
           <h1 className="text-h2 font-heading font-bold text-foreground">
-            Configuración de Tarifario, Facturación API y Pasarela de Pagos
+            Tarifario y pasarela
           </h1>
           <p className="text-body-sm text-muted-foreground">
-            Parametrización centralizada para entidades privadas (sin SIGEF ni rol Financiero manual). Incluye mesa de conciliación de divergencias y desbloqueo de intentos.
+            Configura las versiones del tarifario, la integración con facturación electrónica y la pasarela de pagos, y gestiona la conciliación o desbloqueo de intentos.
           </p>
         </div>
       </div>

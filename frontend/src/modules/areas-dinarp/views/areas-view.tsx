@@ -60,6 +60,7 @@ import {
 } from "@/components/ui/combobox";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { ViewModeToggle, type ViewMode } from "@/components/shared/view-mode-toggle";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useAreasStore } from "../data/areas-store";
@@ -98,6 +99,7 @@ export function AreasView() {
   // Paginación (estilo cuentas-internas: selector 5, 10, 15)
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
+  const [viewMode, setViewMode] = useState<ViewMode>("table");
 
   // Estados de modales
   const [modalFormOpen, setModalFormOpen] = useState(false);
@@ -432,10 +434,10 @@ export function AreasView() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 w-full">
             <div className="space-y-1 min-w-0 flex-1">
               <h1 className="font-heading font-extrabold text-2xl sm:text-3xl tracking-tight text-primary">
-                Gestión de Áreas DINARP
+                Áreas DINARP
               </h1>
               <p className="text-xs sm:text-sm text-muted-foreground w-full max-w-none leading-relaxed font-normal">
-                Administra el catálogo orgánico institucional, control de versiones, trazabilidad y análisis de impacto del SINARP.
+                Administra el catálogo orgánico institucional, el control de versiones y el estado operativo de las áreas de la DINARP.
               </p>
             </div>
 
@@ -688,48 +690,52 @@ export function AreasView() {
                 />
               </div>
 
-              {/* Filtro Estado Combobox */}
-              <div className="w-full xl:w-[220px] min-w-0 shrink-0">
-                <Combobox
-                  value={filterEstado === "TODOS" ? null : filterEstado}
-                  onValueChange={(val) => {
-                    handleSetFilterEstado(val || "TODOS");
-                  }}
-                  inputValue={estadoSearch}
-                  onInputValueChange={(newSearch) => {
-                    const opt = ESTADOS_OPCIONES.find((e) => e.value === newSearch);
-                    if (opt) setEstadoSearch(opt.label);
-                    else if (newSearch === "TODOS") setEstadoSearch("");
-                    else setEstadoSearch(newSearch);
-                  }}
-                >
-                  <ComboboxInput
-                    size="sm"
-                    placeholder="Todos los estados"
-                    showClear={filterEstado !== "TODOS"}
-                    showTrigger={true}
-                    className="w-full"
-                  />
-                  <ComboboxContent className="min-w-[230px] z-[80]">
-                    <ComboboxList>
-                      <ComboboxGroup>
-                        <ComboboxLabel>Filtrar por estado</ComboboxLabel>
-                        {filteredEstadosForFilter.map((opt) => (
-                          <ComboboxItem
-                            key={opt.value}
-                            value={opt.value}
-                            className="text-xs py-1.5 cursor-pointer"
-                          >
-                            {opt.label}
-                          </ComboboxItem>
-                        ))}
-                      </ComboboxGroup>
-                      {filteredEstadosForFilter.length === 0 && (
-                        <ComboboxEmpty>No se encontraron estados.</ComboboxEmpty>
-                      )}
-                    </ComboboxList>
-                  </ComboboxContent>
-                </Combobox>
+              {/* Filtro Estado Combobox + Selector de Vista */}
+              <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 w-full xl:w-auto shrink-0">
+                <div className="w-full sm:w-[220px] min-w-0 flex-1 sm:flex-none">
+                  <Combobox
+                    value={filterEstado === "TODOS" ? null : filterEstado}
+                    onValueChange={(val) => {
+                      handleSetFilterEstado(val || "TODOS");
+                    }}
+                    inputValue={estadoSearch}
+                    onInputValueChange={(newSearch) => {
+                      const opt = ESTADOS_OPCIONES.find((e) => e.value === newSearch);
+                      if (opt) setEstadoSearch(opt.label);
+                      else if (newSearch === "TODOS") setEstadoSearch("");
+                      else setEstadoSearch(newSearch);
+                    }}
+                  >
+                    <ComboboxInput
+                      size="sm"
+                      placeholder="Todos los estados"
+                      showClear={filterEstado !== "TODOS"}
+                      showTrigger={true}
+                      className="w-full"
+                    />
+                    <ComboboxContent className="min-w-[230px] z-[80]">
+                      <ComboboxList>
+                        <ComboboxGroup>
+                          <ComboboxLabel>Filtrar por estado</ComboboxLabel>
+                          {filteredEstadosForFilter.map((opt) => (
+                            <ComboboxItem
+                              key={opt.value}
+                              value={opt.value}
+                              className="text-xs py-1.5 cursor-pointer"
+                            >
+                              {opt.label}
+                            </ComboboxItem>
+                          ))}
+                        </ComboboxGroup>
+                        {filteredEstadosForFilter.length === 0 && (
+                          <ComboboxEmpty>No se encontraron estados.</ComboboxEmpty>
+                        )}
+                      </ComboboxList>
+                    </ComboboxContent>
+                  </Combobox>
+                </div>
+
+                <ViewModeToggle value={viewMode} onChange={setViewMode} />
               </div>
             </div>
 
@@ -802,7 +808,7 @@ export function AreasView() {
 
           <TooltipProvider delayDuration={150}>
             {/* Tabla de Áreas DINARP (Desktop md+) */}
-            <div className="hidden md:block w-full">
+            <div className={cn("w-full", viewMode === "table" ? "hidden md:block" : "hidden")}>
               <Table
                 className="w-full min-w-[1100px]"
                 containerClassName="overflow-x-auto w-full"
@@ -1087,10 +1093,17 @@ export function AreasView() {
               </Table>
             </div>
 
-            {/* Vista Mobile Cards (<md) con Tarjeta Interactiva del UI Kit */}
-            <div className="block md:hidden w-full space-y-3.5">
+            {/* Vista Cards (<md o cuando viewMode === "cards") con Tarjeta Interactiva del UI Kit */}
+            <div
+              className={cn(
+                "w-full",
+                viewMode === "cards"
+                  ? "grid grid-cols-1 md:grid-cols-2 gap-4"
+                  : "block md:hidden space-y-3.5"
+              )}
+            >
               {paginatedAreas.length === 0 ? (
-                <div className="flex flex-col items-center justify-center p-8 bg-surface border border-border rounded-xl text-center space-y-2">
+                <div className="col-span-full flex flex-col items-center justify-center p-8 bg-surface border border-border rounded-xl text-center space-y-2">
                   <Building2 className="size-8 stroke-[1.5] text-muted-foreground/60" />
                   <p className="text-sm font-semibold text-foreground">
                     No se encontraron áreas orgánicas

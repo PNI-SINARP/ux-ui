@@ -126,20 +126,25 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     storiesBadge: "BN-01 · INS-01 a INS-03",
     flows: ["anexo-a"],
     actions: [
-      { label: "Registro Institucional (Anexo A)", route: "/registro-institucion", huBadge: "INS-01..03" },
+      { label: "Nueva Solicitud (Anexo A)", route: "/registro-institucion", huBadge: "INS-01..03" },
+      { label: "Mis Expedientes Anexo A", route: "/expedientes-anexo-a", huBadge: "INS-03..07" },
+      { label: "Seguimiento Coordinadores (Anexo B)", route: "/expedientes-anexo-b", huBadge: "ENR-01..04" },
+      { label: "Mis Expedientes Anexo C", route: "/expedientes-anexo-c", huBadge: "CAM-01..04" },
     ]
   },
   {
     roleName: "Director Área de Gestión",
     userName: "Director Gestión",
     cedula: "1711223344",
-    description: "Recibe trámites institucionales (Anexos A/B/C) y solicitudes de acceso a fuentes (nuevas y subsanadas en BN-07). Asigna y reasigna revisores del Equipo de Gestión, y autoriza la formalización final.",
-    access: "Asignación de Trámites (/asignacion-solicitudes), Asignación de Interoperabilidad (/acceso-interoperabilidad/asignacion) y Formalización (/formalizacion).",
+    description: "Recibe trámites institucionales en bandejas separadas por anexo (Anexos A, B y C) y solicitudes de acceso a fuentes (BN-07). Asigna y reasigna revisores del Equipo de Gestión, y autoriza la formalización final.",
+    access: "Asignación Anexo A (/asignacion-solicitudes), Asignación Anexo B (/asignacion-anexo-b), Asignación Anexo C (/asignacion-anexo-c), Asignación Interoperabilidad (/acceso-interoperabilidad/asignacion) y Formalización (/formalizacion).",
     storiesBadge: "BN-01..03 · BN-07 (SOL-03)",
     flows: ["anexo-a", "anexo-b", "anexo-c", "interoperabilidad"],
     actions: [
+      { label: "Anexo A — Asignación", route: "/asignacion-solicitudes", huBadge: "INS-04" },
+      { label: "Anexo B — Asignación", route: "/asignacion-anexo-b", huBadge: "ENR-03" },
+      { label: "Anexo C — Asignación", route: "/asignacion-anexo-c", huBadge: "CAM-02" },
       { label: "Asignar Revisor Fuente (BN-07)", route: "/acceso-interoperabilidad/asignacion", huBadge: "SOL-03" },
-      { label: "Asignación Trámites (BN-01..03)", route: "/asignacion-solicitudes", huBadge: "INS-04" },
       { label: "Formalización de Acceso", route: "/formalizacion", huBadge: "FOR-01" },
     ]
   },
@@ -147,14 +152,15 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     roleName: "Revisor Área de Gestión",
     userName: "Ana Torres (Revisor)",
     cedula: "1111111111",
-    description: "Evalúa solicitudes de acceso a fuentes (BN-07: campos, modalidad, cupo y finalidad). Aprueba funcionalmente (bifurca a Normatividad si hay confidenciales) u observa otorgando 3 días hábiles de subsanación.",
-    access: "Revisión de Interoperabilidad (/revision-gestion) y Bandeja de Solicitudes Institucionales (/solicitudes-pendientes).",
+    description: "Evalúa expedientes en bandejas independientes para Anexo A, Anexo B y Anexo C, además de solicitudes de acceso a fuentes (BN-07).",
+    access: "Revisión Anexo A (/solicitudes-pendientes), Revisión Anexo B (/revision-anexo-b), Revisión Anexo C (/revision-anexo-c) y Revisión Interoperabilidad (/revision-gestion).",
     storiesBadge: "BN-01..03 · BN-07 (SOL-04)",
     flows: ["anexo-a", "anexo-b", "anexo-c", "interoperabilidad"],
     actions: [
+      { label: "Anexo A — Revisión", route: "/solicitudes-pendientes", huBadge: "INS-05" },
+      { label: "Anexo B — Revisión", route: "/revision-anexo-b", huBadge: "ENR-04" },
+      { label: "Anexo C — Revisión", route: "/revision-anexo-c", huBadge: "CAM-03" },
       { label: "Revisar Solicitud Fuente (BN-07)", route: "/revision-gestion", huBadge: "SOL-04" },
-      { label: "Detalle Evaluación (SOL-0091)", route: "/revision-gestion/SOL-2026-0091", huBadge: "SOL-04" },
-      { label: "Solicitudes Institucionales", route: "/solicitudes-pendientes", huBadge: "INS-05" },
     ]
   },
   {

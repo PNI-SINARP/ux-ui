@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Plus,
   ArrowLeft,
@@ -96,17 +97,23 @@ import {
   ComboboxLabel,
   ComboboxEmpty,
 } from "@/components/ui/combobox";
+import { ViewModeToggle, type ViewMode } from "@/components/shared/view-mode-toggle";
 
 const roleOptions = [
-  { value: "COORDINADOR_SINARP", label: "Coordinador SINARP" },
-  { value: "APROBADOR", label: "Aprobador" },
-  { value: "FACTURACION", label: "Facturación" },
+  { value: "COORDINADOR_SINARP", label: "1. Coordinador SINARP", route: "/acceso-interoperabilidad/solicitudes" },
+  { value: "DIR_GESTION", label: "2. Director de Gestión", route: "/acceso-interoperabilidad/asignacion" },
+  { value: "EQ_GESTION", label: "3. Revisor de Gestión", route: "/revision-gestion" },
+  { value: "DIR_NORMATIVA", label: "4. Director DPI", route: "/revision-normativa/asignacion" },
+  { value: "EQ_NORMATIVA", label: "5. Revisor DPI", route: "/revision-normativa/fuentes" },
+  { value: "APROBADOR", label: "Aprobador (Entidad Emisora)", route: "/acceso-interoperabilidad/solicitudes" },
+  { value: "FACTURACION", label: "Facturación (DINARP)", route: "/acceso-interoperabilidad/solicitudes" },
 ];
 
 type KpiFilterGroup = "ALL" | "HABILITADAS" | "EN_REVISION" | "ACCION_REQUERIDA";
 
 export function AccesoSolicitudesView() {
-  const { activeUser } = useAuthStore();
+  const router = useRouter();
+  const { activeUser, setRole: setStoreRole } = useAuthStore();
   const role = (activeUser?.role as UserRole) || ("COORDINADOR_SINARP" as UserRole);
   const effectiveUser = activeUser || MOCK_USERS_BY_ROLE[role];
   const isProvider =
@@ -118,6 +125,7 @@ export function AccesoSolicitudesView() {
     useSolicitudesStore();
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [viewMode, setViewMode] = useState<ViewMode>("table");
   const [institucionFilter, setInstitucionFilter] = useState("ALL");
   const [estadoFilter, setEstadoFilter] = useState("ALL");
   const [proyectoFilter, setProyectoFilter] = useState("ALL");
@@ -149,6 +157,16 @@ export function AccesoSolicitudesView() {
   const [curFileError, setCurFileError] = useState(false);
   const [numeroCurInput, setNumeroCurInput] = useState("");
 
+  // Sincronizar con ?tab=habilitadas ("Mis accesos") desde el sidebar
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("tab") === "habilitadas") {
+        setKpiGroup("HABILITADAS");
+      }
+    }
+  }, []);
+
   // Limpiar filtros al cambiar rol
   useEffect(() => {
     setSearchTerm("");
@@ -158,7 +176,11 @@ export function AccesoSolicitudesView() {
     setFuenteFilter("ALL");
     setResponsableFilter("ALL");
     setFechaFilter("ALL");
-    setKpiGroup("ALL");
+    if (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("tab") === "habilitadas") {
+      setKpiGroup("HABILITADAS");
+    } else {
+      setKpiGroup("ALL");
+    }
     setEstadoSearch("");
     setInstitucionSearch("");
     setProyectoSearch("");
@@ -213,6 +235,7 @@ export function AccesoSolicitudesView() {
     est === "Acceso habilitado" || est === "Acceso generado";
 
   const isEstadoAccionRequerida = (est: string) =>
+    est === "Borrador" ||
     est === "Requiere corrección" ||
     est === "Observada" ||
     est === "Rechazada" ||
@@ -537,6 +560,18 @@ export function AccesoSolicitudesView() {
 
   const getEstadoBadge = (estado: string) => {
     switch (estado) {
+      case "Borrador":
+        return (
+          <Badge
+            tone="neutral"
+            appearance="soft"
+            size="sm"
+            className="gap-1.5 font-semibold whitespace-nowrap px-2.5 py-0.5 text-xs h-6 inline-flex items-center"
+          >
+            <Edit className="size-3.5 shrink-0" />
+            <span>Borrador</span>
+          </Badge>
+        );
       case "Acceso habilitado":
       case "Acceso generado":
         return (
@@ -551,6 +586,8 @@ export function AccesoSolicitudesView() {
           </Badge>
         );
       case "Aprobada":
+      case "Aprobada por Gestión":
+      case "Aprobada por DPI":
       case "Pago validado":
       case "Pago verificado":
         return (
@@ -589,6 +626,7 @@ export function AccesoSolicitudesView() {
           </Badge>
         );
       case "Pendiente de firma":
+      case "Pendiente firma Director DPI":
         return (
           <Badge
             tone="warning"
@@ -597,7 +635,7 @@ export function AccesoSolicitudesView() {
             className="gap-1.5 font-semibold whitespace-nowrap px-2.5 py-0.5 text-xs h-6 inline-flex items-center"
           >
             <FileSignature className="size-3.5 shrink-0" />
-            <span>Pendiente de firma</span>
+            <span>{estado}</span>
           </Badge>
         );
       case "En formalización":
@@ -613,6 +651,8 @@ export function AccesoSolicitudesView() {
           </Badge>
         );
       case "En revisión jurídica":
+      case "Pendiente de asignación en DPI":
+      case "En revisión en DPI":
         return (
           <Badge
             tone="warning"
@@ -621,11 +661,13 @@ export function AccesoSolicitudesView() {
             className="gap-1.5 font-semibold whitespace-nowrap px-2.5 py-0.5 text-xs h-6 inline-flex items-center"
           >
             <Scale className="size-3.5 shrink-0" />
-            <span>En revisión jurídica</span>
+            <span>{estado}</span>
           </Badge>
         );
       case "Por revisar":
       case "En revisión":
+      case "Pendiente de asignación":
+      case "Subsanada - Pendiente de asignación":
       case "Pendiente de aprobación":
       case "Reenviada":
       case "Reenviada para aprobación":
@@ -737,6 +779,7 @@ export function AccesoSolicitudesView() {
       s.fuentes?.some((f) =>
         f.campos?.some((c) => c.clasificacion === "Confidencial")
       ) ?? false;
+    const isBorrador = s.estado === "Borrador";
     const isObservada =
       s.estado === "Requiere corrección" ||
       s.estado === "Observada" ||
@@ -854,6 +897,20 @@ export function AccesoSolicitudesView() {
             </Link>
           </Button>
 
+          {isBorrador && (
+            <Button
+              asChild
+              variant="primary"
+              size="sm"
+              className="flex-1 text-xs font-semibold gap-1.5 h-9 justify-center"
+            >
+              <Link href={`/acceso-interoperabilidad/solicitudes/${s.id}`}>
+                <Edit className="size-3.5" />
+                <span>Continuar</span>
+              </Link>
+            </Button>
+          )}
+
           {isObservada && (
             <Button
               asChild
@@ -918,6 +975,13 @@ export function AccesoSolicitudesView() {
 
   // Títulos y descripciones dinámicos según rol
   const getHeaderInfo = () => {
+    if (kpiGroup === "HABILITADAS") {
+      return {
+        title: "Mis accesos",
+        desc: "Consulta los accesos habilitados de tu institución, descarga credenciales técnicas y verifica el cupo de consumo autorizado.",
+        breadcrumb: "Mis accesos",
+      };
+    }
     if (role === "FACTURACION") {
       return {
         title: "Gestión de solicitudes pendientes de pago",
@@ -934,15 +998,15 @@ export function AccesoSolicitudesView() {
     }
     if (isProvider) {
       return {
-        title: "Solicitudes de acceso a fuentes de información",
-        desc: "Revisa y gestiona las solicitudes de interoperabilidad para el consumo de datos provistos por tu institución emisora.",
+        title: "Solicitudes de acceso",
+        desc: "Consulta y realiza seguimiento a las solicitudes de interoperabilidad vinculadas al consumo de datos de tu institución.",
         breadcrumb: "Solicitudes de acceso",
       };
     }
     return {
-      title: "Gestión de solicitudes",
-      desc: "Crea, consulta y realiza seguimiento integral a las solicitudes institucionales de acceso a servicios de interoperabilidad del SINARP.",
-      breadcrumb: "Gestión de solicitudes",
+      title: "Solicitudes de acceso",
+      desc: "Consulta el estado, avance de revisión y formalización de las solicitudes de acceso a interoperabilidad de tu institución.",
+      breadcrumb: "Solicitudes de acceso",
     };
   };
 
@@ -1046,37 +1110,15 @@ export function AccesoSolicitudesView() {
       currentUser={effectiveUser}
       currentRole={role}
       breadcrumbs={[
+        { label: "Inicio", href: "/" },
         {
-          label: isProvider ? "Entidad Emisora" : "Interoperabilidad",
+          label: isProvider ? "Entidad Emisora" : "Acceso a Interoperabilidad",
           href: "/acceso-interoperabilidad/solicitudes",
         },
         {
           label: headerInfo.breadcrumb,
-          href: "/acceso-interoperabilidad/solicitudes",
         },
       ]}
-      headerSlot={
-        <div className="flex items-center gap-2" id="role-selector-tour">
-          <Combobox
-            items={roleOptions}
-            value={
-              roleOptions.find((opt) => opt.value === role) || roleOptions[0]
-            }
-            onValueChange={() => {}}
-          >
-            <ComboboxSelectTrigger className="h-8 text-xs min-w-[185px]" />
-            <ComboboxContent align="start" className="min-w-[200px]">
-              <ComboboxList>
-                {roleOptions.map((opt) => (
-                  <ComboboxItem key={opt.value} value={opt}>
-                    {opt.label}
-                  </ComboboxItem>
-                ))}
-              </ComboboxList>
-            </ComboboxContent>
-          </Combobox>
-        </div>
-      }
     >
       <WireframeTour
         isOpen={tourOpen}
@@ -1384,9 +1426,9 @@ export function AccesoSolicitudesView() {
 
           {/* Filtros y Búsqueda con UI Kit Oficial */}
           <div className="space-y-3 w-full" id="toolbar-filtros">
-            <div className="flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-3 w-full">
+            <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-2.5 w-full">
               {/* Buscador UI Kit */}
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-[200px]">
                 <Search
                   size="sm"
                   placeholder={
@@ -1409,10 +1451,10 @@ export function AccesoSolicitudesView() {
                 />
               </div>
 
-              {/* Filtros Combobox UI Kit */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 w-full xl:w-auto shrink-0">
+              {/* Filtros Combobox UI Kit al lado del Search */}
+              <div className="flex flex-wrap lg:flex-nowrap items-center gap-2 shrink-0">
                 {/* 1. Filtro Estado */}
-                <div className="w-full xl:w-[195px] min-w-0">
+                <div className="w-full sm:w-44 lg:w-44 xl:w-48 min-w-0">
                   <Combobox
                     value={estadoFilter === "ALL" ? null : estadoFilter}
                     onValueChange={(val) => {
@@ -1457,7 +1499,7 @@ export function AccesoSolicitudesView() {
 
                 {/* 2. Filtro Proyecto (para Coordinador) */}
                 {role === "COORDINADOR_SINARP" && (
-                  <div className="w-full xl:w-[210px] min-w-0">
+                  <div className="w-full sm:w-44 lg:w-44 xl:w-48 min-w-0">
                     <Combobox
                       value={proyectoFilter === "ALL" ? null : proyectoFilter}
                       onValueChange={(val) => {
@@ -1504,7 +1546,7 @@ export function AccesoSolicitudesView() {
 
                 {/* 3. Filtro Fuente (para Coordinador) */}
                 {role === "COORDINADOR_SINARP" && (
-                  <div className="w-full xl:w-[210px] min-w-0">
+                  <div className="w-full sm:w-44 lg:w-44 xl:w-48 min-w-0">
                     <Combobox
                       value={fuenteFilter === "ALL" ? null : fuenteFilter}
                       onValueChange={(val) => {
@@ -1550,7 +1592,7 @@ export function AccesoSolicitudesView() {
                 )}
 
                 {/* 4. Filtro Institución */}
-                <div className="w-full xl:w-[205px] min-w-0">
+                <div className="w-full sm:w-44 lg:w-44 xl:w-48 min-w-0">
                   <Combobox
                     value={institucionFilter === "ALL" ? null : institucionFilter}
                     onValueChange={(val) => {
@@ -1593,6 +1635,8 @@ export function AccesoSolicitudesView() {
                     </ComboboxContent>
                   </Combobox>
                 </div>
+
+                <ViewModeToggle value={viewMode} onChange={setViewMode} />
               </div>
             </div>
 
@@ -1775,7 +1819,7 @@ export function AccesoSolicitudesView() {
 
           {/* TABLA PRINCIPAL SEGÚN ROL (Desktop md+) */}
           <TooltipProvider delayDuration={150}>
-            <div className="hidden md:block w-full">
+            <div className={cn("w-full", viewMode === "table" ? "hidden md:block" : "hidden")}>
               <Table
                 id="table-solicitudes"
                 className="w-full min-w-[1380px]"
@@ -1869,6 +1913,7 @@ export function AccesoSolicitudesView() {
                       const instrumentoRef =
                         s.contrato || s.instrumento || "En formalización";
 
+                      const isBorrador = s.estado === "Borrador";
                       const isObservada =
                         s.estado === "Requiere corrección" ||
                         s.estado === "Observada" ||
@@ -2055,71 +2100,10 @@ export function AccesoSolicitudesView() {
                             </Tooltip>
                           </TableCell>
 
-                          {/* 8. Acciones (UI Kit estandarizado alineado a la derecha) */}
+                          {/* 8. Acciones (UI Kit estandarizado con icon-sm y Tooltip) */}
                           <TableCell className="w-[165px] min-w-[155px] pr-6 text-right align-middle">
                             <div className="inline-flex items-center gap-1 justify-end w-full">
-                              {/* Acción Contextual Principal con Badge/Button Semántico del UI Kit */}
-                              {isObservada && (
-                                <Button
-                                  asChild
-                                  variant="warning"
-                                  size="sm"
-                                  className="h-7 px-2.5 text-xs font-semibold gap-1 shadow-2xs"
-                                >
-                                  <Link
-                                    href={`/acceso-interoperabilidad/solicitudes/${s.id}?edit=true`}
-                                  >
-                                    <Edit className="size-3" />
-                                    <span>Corregir</span>
-                                  </Link>
-                                </Button>
-                              )}
-
-                              {isFirma && (
-                                <Button
-                                  asChild
-                                  variant="primary"
-                                  size="sm"
-                                  className="h-7 px-2.5 text-xs font-semibold gap-1 shadow-2xs"
-                                >
-                                  <Link
-                                    href={`/acceso-interoperabilidad/solicitudes/${s.id}`}
-                                  >
-                                    <FileSignature className="size-3" />
-                                    <span>Firmar</span>
-                                  </Link>
-                                </Button>
-                              )}
-
-                              {isPago && (
-                                <Button
-                                  asChild
-                                  variant="primary"
-                                  size="sm"
-                                  className="h-7 px-2.5 text-xs font-semibold gap-1 shadow-2xs"
-                                >
-                                  <Link
-                                    href={`/acceso-interoperabilidad/solicitudes/${s.id}/facturacion`}
-                                  >
-                                    <CreditCard className="size-3" />
-                                    <span>Pagar</span>
-                                  </Link>
-                                </Button>
-                              )}
-
-                              {isHabilitada && (
-                                <Button
-                                  variant="success"
-                                  size="sm"
-                                  onClick={() => setModalCredenciales(s)}
-                                  className="h-7 px-2.5 text-xs font-semibold gap-1 shadow-2xs cursor-pointer"
-                                >
-                                  <KeyRound className="size-3" />
-                                  <span>Credencial</span>
-                                </Button>
-                              )}
-
-                              {/* Botón de consulta de expediente siempre disponible con Tooltip */}
+                              {/* 1. Ver expediente completo */}
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <Button
@@ -2140,6 +2124,122 @@ export function AccesoSolicitudesView() {
                                   Ver expediente completo
                                 </TooltipContent>
                               </Tooltip>
+
+                              {/* 2. Continuar borrador */}
+                              {isBorrador && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      asChild
+                                      variant="ghost"
+                                      size="icon-sm"
+                                      className="text-muted-foreground hover:text-primary hover:bg-primary/10 cursor-pointer"
+                                    >
+                                      <Link
+                                        href={`/acceso-interoperabilidad/solicitudes/${s.id}`}
+                                        aria-label={`Continuar borrador ${s.id}`}
+                                      >
+                                        <Edit className="size-4" />
+                                      </Link>
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top">
+                                    Continuar edición de borrador
+                                  </TooltipContent>
+                                </Tooltip>
+                              )}
+
+                              {/* 3. Corregir / Subsanar observaciones */}
+                              {isObservada && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      asChild
+                                      variant="ghost"
+                                      size="icon-sm"
+                                      className="text-muted-foreground hover:text-warning hover:bg-warning/10 cursor-pointer"
+                                    >
+                                      <Link
+                                        href={`/acceso-interoperabilidad/solicitudes/${s.id}?edit=true`}
+                                        aria-label={`Subsanar solicitud ${s.id}`}
+                                      >
+                                        <Edit className="size-4" />
+                                      </Link>
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top">
+                                    Subsanar observaciones del expediente
+                                  </TooltipContent>
+                                </Tooltip>
+                              )}
+
+                              {/* 4. Firmar instrumento */}
+                              {isFirma && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      asChild
+                                      variant="ghost"
+                                      size="icon-sm"
+                                      className="text-muted-foreground hover:text-primary hover:bg-primary/10 cursor-pointer"
+                                    >
+                                      <Link
+                                        href={`/acceso-interoperabilidad/solicitudes/${s.id}`}
+                                        aria-label={`Firmar solicitud ${s.id}`}
+                                      >
+                                        <FileSignature className="size-4" />
+                                      </Link>
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top">
+                                    Revisar y firmar instrumento
+                                  </TooltipContent>
+                                </Tooltip>
+                              )}
+
+                              {/* 5. Gestionar pago */}
+                              {isPago && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      asChild
+                                      variant="ghost"
+                                      size="icon-sm"
+                                      className="text-muted-foreground hover:text-primary hover:bg-primary/10 cursor-pointer"
+                                    >
+                                      <Link
+                                        href={`/acceso-interoperabilidad/solicitudes/${s.id}/facturacion`}
+                                        aria-label={`Gestionar pago ${s.id}`}
+                                      >
+                                        <CreditCard className="size-4" />
+                                      </Link>
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top">
+                                    Gestionar facturación y pago
+                                  </TooltipContent>
+                                </Tooltip>
+                              )}
+
+                              {/* 6. Ver credenciales */}
+                              {isHabilitada && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon-sm"
+                                      onClick={() => setModalCredenciales(s)}
+                                      className="text-muted-foreground hover:text-success hover:bg-success/10 cursor-pointer"
+                                      aria-label={`Ver credenciales ${s.id}`}
+                                    >
+                                      <KeyRound className="size-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top">
+                                    Ver credenciales Apigee
+                                  </TooltipContent>
+                                </Tooltip>
+                              )}
                             </div>
                           </TableCell>
                         </TableRow>
@@ -2356,10 +2456,17 @@ export function AccesoSolicitudesView() {
               </Table>
             </div>
 
-            {/* Vista Mobile Cards (<md) con Tarjeta Interactiva del UI Kit */}
-            <div className="block md:hidden w-full space-y-3.5">
+            {/* Vista Cards (<md o cuando viewMode === "cards") con Tarjeta Interactiva del UI Kit */}
+            <div
+              className={cn(
+                "w-full",
+                viewMode === "cards"
+                  ? "grid grid-cols-1 md:grid-cols-2 gap-4"
+                  : "block md:hidden space-y-3.5"
+              )}
+            >
               {paginatedSolicitudes.length === 0 ? (
-                <div className="flex flex-col items-center justify-center p-8 bg-surface border border-border rounded-xl text-center space-y-2">
+                <div className="col-span-full flex flex-col items-center justify-center p-8 bg-surface border border-border rounded-xl text-center space-y-2">
                   <FolderKanban className="size-8 stroke-[1.5] text-muted-foreground/60" />
                   <p className="text-sm font-semibold text-foreground">
                     No se encontraron solicitudes

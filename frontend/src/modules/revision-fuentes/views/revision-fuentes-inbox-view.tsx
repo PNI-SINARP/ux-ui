@@ -9,6 +9,8 @@ import { EstadoFuente } from "@/modules/fuentes/data/fuentes-data";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { InteractiveCard } from "@/components/ui/data-display";
+import { ViewModeToggle, type ViewMode } from "@/components/shared/view-mode-toggle";
 import { cn } from "@/lib/utils";
 import { Search } from "@/components/ui/search";
 import {
@@ -129,6 +131,7 @@ export function RevisionFuentesInboxView({ currentUser }: RevisionFuentesInboxVi
   // Paginación UI Kit
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [viewMode, setViewMode] = useState<ViewMode>("table");
 
   useEffect(() => {
     setCurrentPage(1);
@@ -239,7 +242,7 @@ export function RevisionFuentesInboxView({ currentUser }: RevisionFuentesInboxVi
                 <div className="flex items-center gap-2">
                   <FolderCheck className="size-6 text-primary shrink-0" />
                   <h1 className="font-heading font-extrabold text-2xl sm:text-3xl tracking-tight text-primary">
-                    Revisión y aprobación de fuentes
+                    Revisar fuentes
                   </h1>
                 </div>
                 <p className="text-xs sm:text-sm text-muted-foreground w-full max-w-none leading-relaxed font-normal">
@@ -486,52 +489,55 @@ export function RevisionFuentesInboxView({ currentUser }: RevisionFuentesInboxVi
                 />
               </div>
 
-              {/* Filtro Combobox UI Kit */}
-              <div className="w-full xl:w-[260px] min-w-0 shrink-0">
-                <Combobox
-                  value={estadoFilter === "ALL" ? null : estadoFilter}
-                  onValueChange={(val) => {
-                    setEstadoFilter(val || "ALL");
-                  }}
-                  inputValue={estadoSearch}
-                  onInputValueChange={(newSearch) => {
-                    const opt = ESTADOS_REVISION_OPCIONES.find(
-                      (e) =>
-                        e.value.toLowerCase() === newSearch.toLowerCase() ||
-                        e.label.toLowerCase() === newSearch.toLowerCase()
-                    );
-                    if (opt) setEstadoSearch(opt.label);
-                    else if (newSearch === "ALL") setEstadoSearch("");
-                    else setEstadoSearch(newSearch);
-                  }}
-                >
-                  <ComboboxInput
-                    size="sm"
-                    placeholder="Todos los estados"
-                    showClear={estadoFilter !== "ALL"}
-                    showTrigger={true}
-                    className="w-full"
-                  />
-                  <ComboboxContent className="min-w-[280px] z-[80]">
-                    <ComboboxList>
-                      <ComboboxGroup>
-                        <ComboboxLabel>Filtrar por estado</ComboboxLabel>
-                        {filteredEstadosForFilter.map((opt) => (
-                          <ComboboxItem
-                            key={opt.value}
-                            value={opt.value}
-                            className="text-xs py-1.5 cursor-pointer"
-                          >
-                            {opt.label}
-                          </ComboboxItem>
-                        ))}
-                      </ComboboxGroup>
-                      {filteredEstadosForFilter.length === 0 && (
-                        <ComboboxEmpty>No se encontraron estados.</ComboboxEmpty>
-                      )}
-                    </ComboboxList>
-                  </ComboboxContent>
-                </Combobox>
+              {/* Filtro Combobox UI Kit + Selector de Vista */}
+              <div className="flex items-center gap-2.5 w-full xl:w-auto shrink-0">
+                <div className="flex-1 xl:w-[260px] min-w-0">
+                  <Combobox
+                    value={estadoFilter === "ALL" ? null : estadoFilter}
+                    onValueChange={(val) => {
+                      setEstadoFilter(val || "ALL");
+                    }}
+                    inputValue={estadoSearch}
+                    onInputValueChange={(newSearch) => {
+                      const opt = ESTADOS_REVISION_OPCIONES.find(
+                        (e) =>
+                          e.value.toLowerCase() === newSearch.toLowerCase() ||
+                          e.label.toLowerCase() === newSearch.toLowerCase()
+                      );
+                      if (opt) setEstadoSearch(opt.label);
+                      else if (newSearch === "ALL") setEstadoSearch("");
+                      else setEstadoSearch(newSearch);
+                    }}
+                  >
+                    <ComboboxInput
+                      size="sm"
+                      placeholder="Todos los estados"
+                      showClear={estadoFilter !== "ALL"}
+                      showTrigger={true}
+                      className="w-full"
+                    />
+                    <ComboboxContent className="min-w-[280px] z-[80]">
+                      <ComboboxList>
+                        <ComboboxGroup>
+                          <ComboboxLabel>Filtrar por estado</ComboboxLabel>
+                          {filteredEstadosForFilter.map((opt) => (
+                            <ComboboxItem
+                              key={opt.value}
+                              value={opt.value}
+                              className="text-xs py-1.5 cursor-pointer"
+                            >
+                              {opt.label}
+                            </ComboboxItem>
+                          ))}
+                        </ComboboxGroup>
+                        {filteredEstadosForFilter.length === 0 && (
+                          <ComboboxEmpty>No se encontraron estados.</ComboboxEmpty>
+                        )}
+                      </ComboboxList>
+                    </ComboboxContent>
+                  </Combobox>
+                </div>
+                <ViewModeToggle value={viewMode} onChange={setViewMode} />
               </div>
             </div>
 
@@ -609,7 +615,7 @@ export function RevisionFuentesInboxView({ currentUser }: RevisionFuentesInboxVi
           </div>
 
           {/* Tabla de Revisión con encabezados blancos, sin contenedor y solo iconos en acciones */}
-          <div className="w-full">
+          <div className={cn("w-full", viewMode === "table" ? "hidden md:block" : "hidden")}>
             <Table className="w-full" containerClassName="overflow-x-auto w-full">
               <TableHeader>
                 <TableRow className="border-0">
@@ -746,6 +752,116 @@ export function RevisionFuentesInboxView({ currentUser }: RevisionFuentesInboxVi
                 )}
               </TableBody>
             </Table>
+          </div>
+
+          {/* Vista de Tarjetas (Móvil o modo Tarjetas) */}
+          <div
+            className={cn(
+              "w-full",
+              viewMode === "cards"
+                ? "grid grid-cols-1 md:grid-cols-2 gap-4"
+                : "block md:hidden space-y-3.5"
+            )}
+          >
+            {paginatedFuentes.length > 0 ? (
+              paginatedFuentes.map((fuente) => {
+                const isPendiente = fuente.estado === "EN_REVISION";
+                const totalCampos = fuente.campos.filter((c) => c.incluido).length;
+                const camposClasificados = fuente.campos.filter(
+                  (c) => c.incluido && (c.clasificacion === "Accesible" || c.clasificacion === "Confidencial")
+                ).length;
+                const pruebaResultado = fuente.conexion.ultima_prueba?.resultado;
+                const pruebaLatencia = fuente.conexion.ultima_prueba?.latencia_ms;
+
+                return (
+                  <InteractiveCard
+                    key={fuente.id}
+                    as="div"
+                    hideChevron
+                    color={isPendiente ? "warning" : "primary"}
+                    icon={<FolderCheck className="size-5" />}
+                    title={fuente.nombre}
+                    subtitle={`${fuente.id} · v${fuente.version_propuesta}`}
+                    description={fuente.institucion_proveedora_nombre}
+                    meta={
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {getEstadoBadge(fuente.estado)}
+                        <Badge tone="neutral" appearance="soft" size="sm" className="text-[10px]">
+                          {fuente.modalidades_soportadas}
+                        </Badge>
+                      </div>
+                    }
+                  >
+                    <div className="space-y-3 pt-1">
+                      <div className="grid grid-cols-2 gap-2.5 text-xs bg-muted/30 p-2.5 rounded-lg border border-border/60">
+                        <div>
+                          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block">
+                            Campos y Clasificación
+                          </span>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <span className="font-semibold text-foreground">{totalCampos} campos</span>
+                            {camposClasificados === totalCampos ? (
+                              <Badge tone="success" appearance="soft" size="sm">100%</Badge>
+                            ) : (
+                              <Badge tone="warning" appearance="soft" size="sm">
+                                {camposClasificados}/{totalCampos}
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                        <div>
+                          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block">
+                            Prueba Técnica / Recepción
+                          </span>
+                          <div className="mt-0.5">
+                            {pruebaResultado === "Satisfactoria" ? (
+                              <span className="inline-flex items-center gap-1 text-[11px] text-success font-semibold">
+                                <CheckCircle2 className="size-3.5" />
+                                <span>OK ({pruebaLatencia} ms)</span>
+                              </span>
+                            ) : pruebaResultado === "Fallida" ? (
+                              <span className="inline-flex items-center gap-1 text-[11px] text-danger font-semibold">
+                                <XCircle className="size-3.5" />
+                                <span>Fallo</span>
+                              </span>
+                            ) : (
+                              <span className="text-[11px] text-muted-foreground italic">
+                                Pendiente
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-[10px] font-mono text-muted-foreground block">
+                            {formatDate(fuente.fecha_actualizacion)}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-end gap-2 pt-1 border-t border-border/60">
+                        <Link href={`/gestion/fuentes/${fuente.id}`}>
+                          <Button variant="outline" size="sm" className="text-xs h-8 gap-1.5 cursor-pointer">
+                            {isPendiente ? (
+                              <>
+                                <FolderCheck className="size-3.5 text-primary" />
+                                <span>Revisar y clasificar</span>
+                              </>
+                            ) : (
+                              <>
+                                <Eye className="size-3.5" />
+                                <span>Ver detalle</span>
+                              </>
+                            )}
+                          </Button>
+                        </Link>
+                      </div>
+                    </div>
+                  </InteractiveCard>
+                );
+              })
+            ) : (
+              <Card className="p-8 text-center col-span-full border border-border bg-surface text-xs text-muted-foreground">
+                No se encontraron fuentes para el criterio de búsqueda seleccionado.
+              </Card>
+            )}
           </div>
 
           {/* Paginación UI Kit */}

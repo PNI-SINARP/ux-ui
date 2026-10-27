@@ -75,8 +75,26 @@ export function AccesoSolicitudNuevaView() {
   const [selectedProyectoId, setSelectedProyectoId] = useState("PRJ-2026-001");
   const [modalidadSolicitada, setModalidadSolicitada] = useState<"API individual" | "API masiva" | "Ambas">("API individual");
   const [cupoSolicitado, setCupoSolicitado] = useState<number>(50000);
-  const [documentosAdjuntos, setDocumentosAdjuntos] = useState<{ id: string; nombre: string; tamano: string; fecha: string }[]>([
-    { id: "doc-1", nombre: "Oficio_Solicitud_Interoperabilidad_Firmado.pdf", tamano: "1.8 MB", fecha: "2026-09-24" }
+  const [documentosAdjuntos, setDocumentosAdjuntos] = useState<
+    {
+      id: string;
+      nombre: string;
+      tipo: "PDF" | "ZIP" | "DOCX";
+      tamano: string;
+      fechaCarga: string;
+      categoria: "Oficio Formal" | "Justificación Legal" | "Anexo Técnico" | "Certificado Digital";
+      fecha?: string;
+    }[]
+  >([
+    {
+      id: "doc-1",
+      nombre: "Oficio_Solicitud_Interoperabilidad_Firmado.pdf",
+      tipo: "PDF",
+      tamano: "1.8 MB",
+      fechaCarga: "2026-09-24",
+      categoria: "Oficio Formal",
+      fecha: "2026-09-24",
+    },
   ]);
   const [nuevoDocInput, setNuevoDocInput] = useState("");
 
@@ -338,6 +356,70 @@ export function AccesoSolicitudNuevaView() {
     }
   ];
 
+  const handleGuardarBorrador = () => {
+    const fuenteNombre = activeFuente
+      ? activeFuente.nombre
+      : selectedCamposDetails[0]?.fuenteNombre ||
+        "Dirección General de Registro Civil, Identificación y Cedulación";
+    const servicioNombre =
+      selectedCamposDetails[0]?.servicioNombre ||
+      "Consulta de Datos de Identidad";
+
+    crearNuevaSolicitud({
+      institucion: "Ministerio de Salud Pública",
+      tipoInstitucion: "Pública",
+      estado: "Borrador",
+      proyectoId: activeProyecto.id,
+      proyectoNombre: activeProyecto.nombre,
+      modalidad: modalidadSolicitada,
+      cupo: cupoSolicitado,
+      documentos: documentosAdjuntos,
+      fuentePrincipal: fuenteNombre,
+      servicioPrincipal: servicioNombre,
+      camposCount: Math.max(1, selectedCamposDetails.length),
+      fuentes: [
+        {
+          id: activeFuente?.id || "f-regciv",
+          nombre: fuenteNombre,
+          institucion: fuenteNombre,
+          campos:
+            selectedCamposDetails.length > 0
+              ? selectedCamposDetails.map((c) => ({
+                  id: c.campo.id,
+                  nombre: c.campo.nombre,
+                  descripcion: c.campo.descripcion || "",
+                  tipo: c.campo.tipo,
+                  clasificacion: (c.campo.clasificacion === "Confidencial"
+                    ? "Confidencial"
+                    : "Accesible") as "Accesible" | "Confidencial",
+                  finalidad:
+                    justificaciones[c.campo.id]?.finalidad ||
+                    "Borrador pendiente de completar finalidad.",
+                  fundamento:
+                    justificaciones[c.campo.id]?.fundamento ||
+                    "Borrador pendiente de completar justificación jurídica.",
+                }))
+              : [
+                  {
+                    id: "c-borrador-1",
+                    nombre: "cedula_identidad",
+                    descripcion: "Número único de identificación ciudadana",
+                    tipo: "Alfanumérico",
+                    clasificacion: "Accesible",
+                    finalidad: "Borrador en edición.",
+                  },
+                ],
+        },
+      ],
+    });
+
+    toast.success("Solicitud guardada como borrador (SOL-01)", {
+      description:
+        "Puede retomar su edición y enviarla a Gestión desde Mis solicitudes.",
+    });
+    router.push("/acceso-interoperabilidad/solicitudes");
+  };
+
   const stepperSteps: Step[] = [
     { id: "1", title: "Seleccionar información", icon: Database },
     { id: "2", title: "Justificar campos", icon: FileText },
@@ -347,21 +429,13 @@ export function AccesoSolicitudNuevaView() {
   return (
     <TooltipProvider>
       <WireframeDashboardLayout
-        activeMenu="acceso-interoperabilidad"
+        activeMenu="nueva-solicitud-interoperabilidad"
+        currentRole="COORDINADOR_SINARP"
         breadcrumbs={[
-          { label: "Gestión de solicitudes", href: "/acceso-interoperabilidad/solicitudes" },
+          { label: "Inicio", href: "/" },
+          { label: "Acceso a Interoperabilidad", href: "/acceso-interoperabilidad/solicitudes" },
           { label: "Nueva Solicitud" }
         ]}
-        headerSlot={
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => { setTourOpen(true); setCurrentTourStep(0); }}
-            className="h-8 px-2 text-xs"
-          >
-            Ver guía
-          </Button>
-        }
       >
         <WireframeTour
           isOpen={tourOpen}
@@ -371,9 +445,12 @@ export function AccesoSolicitudNuevaView() {
           onStepChange={setCurrentTourStep}
         />
 
-        <div className="w-full max-w-7xl 2xl:max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        <main className="w-full pr-3 pl-2 pb-3 pt-1.5 flex-1 min-h-0 flex flex-col overflow-hidden">
           {/* Contenedor principal */}
-          <div className="bg-card border border-border rounded-2xl p-6 sm:p-8 shadow-xs flex flex-col gap-6">
+          <Card
+            className="bg-surface rounded-2xl border border-border shadow-xs flex-1 min-h-0 overflow-hidden flex flex-col my-0"
+            innerClassName="p-4 sm:p-6 lg:p-8 flex flex-col gap-6 overflow-y-auto flex-1 min-h-0 w-full"
+          >
             {/* Volver a gestión de solicitudes */}
             <div>
               <Link
@@ -388,10 +465,10 @@ export function AccesoSolicitudNuevaView() {
             {/* Cabecera */}
             <div>
               <h1 className="text-2xl font-bold text-foreground">
-                Nueva solicitud de acceso a interoperabilidad
+                Solicitar acceso
               </h1>
               <p className="text-sm text-muted-foreground mt-1">
-                Seleccione los campos requeridos. Los campos accesibles requieren solo finalidad de uso; los campos confidenciales requieren finalidad de uso y justificación jurídica.
+                Selecciona los campos requeridos de las fuentes del catálogo y registra la finalidad de uso y justificación jurídica para solicitar acceso a interoperabilidad.
               </p>
             </div>
 
@@ -408,6 +485,161 @@ export function AccesoSolicitudNuevaView() {
             {/* PASO 1: SELECCIONAR INFORMACIÓN */}
             {step === 1 && (
               <div className="flex flex-col gap-4">
+                {/* Configuración de Proyecto, Modalidad, Cupo y Documentación (SOL-01) */}
+                <Card className="p-4 sm:p-5 bg-muted/15 border border-border rounded-xl space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+                    <div className="md:col-span-5 space-y-1.5">
+                      <label className="text-caption font-semibold text-foreground flex items-center gap-1.5">
+                        <Briefcase className="size-3.5 text-primary" />
+                        <span>Proyecto institucional activo (SOL-01)</span>
+                        <span className="text-danger">*</span>
+                      </label>
+                      <Combobox
+                        items={proyectoOptions}
+                        value={
+                          proyectoOptions.find(
+                            (p) => p.value === selectedProyectoId
+                          ) || proyectoOptions[0]
+                        }
+                        onValueChange={(val: any) => {
+                          if (val) {
+                            setSelectedProyectoId(
+                              typeof val === "string" ? val : val.value
+                            );
+                          }
+                        }}
+                      >
+                        <ComboboxSelectTrigger className="w-full h-10 justify-between text-caption bg-background rounded-xl border-border px-3.5 shadow-none" />
+                        <ComboboxContent align="start" className="w-96 max-w-[90vw]">
+                          <ComboboxList>
+                            {proyectoOptions.map((opt) => (
+                              <ComboboxItem
+                                key={opt.value}
+                                value={opt}
+                                className="text-caption"
+                              >
+                                {opt.label}
+                              </ComboboxItem>
+                            ))}
+                          </ComboboxList>
+                        </ComboboxContent>
+                      </Combobox>
+                    </div>
+
+                    <div className="md:col-span-4 space-y-1.5">
+                      <label className="text-caption font-semibold text-foreground block">
+                        Modalidad de consulta solicitada <span className="text-danger">*</span>
+                      </label>
+                      <Combobox
+                        items={[
+                          { value: "API individual", label: "API individual (Tiempo real)" },
+                          { value: "API masiva", label: "API masiva (Por lotes)" },
+                          { value: "Ambas", label: "Ambas (Individual y Masiva)" },
+                        ]}
+                        value={{
+                          value: modalidadSolicitada,
+                          label:
+                            modalidadSolicitada === "API individual"
+                              ? "API individual (Tiempo real)"
+                              : modalidadSolicitada === "API masiva"
+                              ? "API masiva (Por lotes)"
+                              : "Ambas (Individual y Masiva)",
+                        }}
+                        onValueChange={(val: any) => {
+                          if (val) {
+                            const next = typeof val === "string" ? val : val.value;
+                            setModalidadSolicitada(
+                              next as "API individual" | "API masiva" | "Ambas"
+                            );
+                          }
+                        }}
+                      >
+                        <ComboboxSelectTrigger className="w-full h-10 justify-between text-caption bg-background rounded-xl border-border px-3.5 shadow-none" />
+                        <ComboboxContent align="start" className="w-72">
+                          <ComboboxList>
+                            {[
+                              { value: "API individual", label: "API individual (Tiempo real)" },
+                              { value: "API masiva", label: "API masiva (Por lotes)" },
+                              { value: "Ambas", label: "Ambas (Individual y Masiva)" },
+                            ].map((opt) => (
+                              <ComboboxItem
+                                key={opt.value}
+                                value={opt}
+                                className="text-caption"
+                              >
+                                {opt.label}
+                              </ComboboxItem>
+                            ))}
+                          </ComboboxList>
+                        </ComboboxContent>
+                      </Combobox>
+                    </div>
+
+                    <div className="md:col-span-3 space-y-1.5">
+                      <label className="text-caption font-semibold text-foreground block">
+                        Cupo mensual solicitado (reg.) <span className="text-danger">*</span>
+                      </label>
+                      <Input
+                        type="number"
+                        min={100}
+                        value={cupoSolicitado}
+                        onChange={(e) =>
+                          setCupoSolicitado(Math.max(100, Number(e.target.value) || 0))
+                        }
+                        className="h-10 bg-background rounded-xl border-border text-caption font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Documentos de respaldo adjuntos */}
+                  <div className="pt-3 border-t border-border/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-caption font-semibold text-muted-foreground flex items-center gap-1.5">
+                        <Paperclip className="size-3.5 text-primary" />
+                        Documentación adjunta:
+                      </span>
+                      {documentosAdjuntos.map((doc) => (
+                        <Badge
+                          key={doc.id}
+                          tone="neutral"
+                          appearance="outline"
+                          size="sm"
+                          className="gap-1.5 bg-background text-caption"
+                        >
+                          <FileText className="size-3 text-primary" />
+                          <span>{doc.nombre}</span>
+                          <span className="text-muted-foreground">({doc.tamano})</span>
+                        </Badge>
+                      ))}
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const fechaHoy = new Date().toISOString().substring(0, 10);
+                        const nuevo = {
+                          id: `doc-${Date.now()}`,
+                          nombre: `Anexo_Soporte_Juridico_${documentosAdjuntos.length + 1}.pdf`,
+                          tipo: "PDF" as const,
+                          tamano: "1.2 MB",
+                          fechaCarga: fechaHoy,
+                          categoria: "Justificación Legal" as const,
+                          fecha: fechaHoy,
+                        };
+                        setDocumentosAdjuntos((prev) => [...prev, nuevo]);
+                        toast.info("Documento adjuntado al expediente", {
+                          description: nuevo.nombre,
+                        });
+                      }}
+                      className="h-8 text-caption gap-1.5 self-start sm:self-center"
+                    >
+                      <UploadCloud className="size-3.5" />
+                      <span>Adjuntar documento soporte</span>
+                    </Button>
+                  </div>
+                </Card>
+
                 {/* 3 Filtros horizontales sin contenedor, separados por línea */}
                 <div className="pb-6 border-b border-border" id="datos-documentos">
                   <div className="flex flex-col gap-3">
@@ -967,9 +1199,20 @@ export function AccesoSolicitudNuevaView() {
                       </Badge>
                     )}
                   </div>
-                  <Button onClick={nextStep} disabled={selectedCount === 0} size="sm" className="shrink-0">
-                    Continuar con la justificación
-                  </Button>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleGuardarBorrador}
+                      className="gap-1.5"
+                    >
+                      <FileText className="size-3.5" />
+                      <span>Guardar como borrador</span>
+                    </Button>
+                    <Button onClick={nextStep} disabled={selectedCount === 0} size="sm" className="shrink-0">
+                      Continuar con la justificación
+                    </Button>
+                  </div>
                 </div>
               </div>
             )}
@@ -1174,9 +1417,20 @@ export function AccesoSolicitudNuevaView() {
                                   {isExpanded && (
                                     <div className="border-t border-border/70 p-5 sm:p-6 pt-4 flex flex-col gap-4 bg-muted/10 animate-in fade-in-50 duration-150">
                                       <div className="flex flex-col gap-1.5 w-full">
-                                        <label className="text-xs font-semibold text-foreground flex items-center gap-1">
-                                          Finalidad de uso declarada <span className="text-destructive">*</span>
-                                        </label>
+                                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                                          <label className="text-xs font-semibold text-foreground flex items-center gap-1">
+                                            Finalidad de uso declarada <span className="text-destructive">*</span>
+                                          </label>
+                                          <Badge tone="neutral" appearance="outline" size="sm" className="text-[10px]">
+                                            Texto de ayuda parametrizable (PAR-11)
+                                          </Badge>
+                                        </div>
+                                        <div className="p-2.5 rounded-lg bg-info/10 border border-info/25 text-[11px] text-muted-foreground flex items-start gap-2">
+                                          <Info className="size-3.5 text-info shrink-0 mt-0.5" />
+                                          <span>
+                                            <strong className="text-foreground">Guía permanente (PAR-11):</strong> Especifique el proceso o trámite institucional en el que se consumirá este dato, el beneficio directo para el ciudadano y la unidad administrativa responsable.
+                                          </span>
+                                        </div>
                                         <Textarea
                                           className="w-full rounded-xl min-h-[95px] text-xs sm:text-sm bg-background border-border"
                                           placeholder="Describa con precisión la finalidad de uso para este campo..."
@@ -1195,9 +1449,20 @@ export function AccesoSolicitudNuevaView() {
 
                                       {item.campo.clasificacion === "Confidencial" && (
                                         <div className="flex flex-col gap-1.5 w-full">
-                                          <label className="text-xs font-semibold text-foreground flex items-center gap-1">
-                                            Justificación jurídica requerida <span className="text-destructive">*</span>
-                                          </label>
+                                          <div className="flex items-center justify-between gap-2 flex-wrap">
+                                            <label className="text-xs font-semibold text-foreground flex items-center gap-1">
+                                              Justificación jurídica adicional (Campo Confidencial) <span className="text-destructive">*</span>
+                                            </label>
+                                            <Badge tone="warning" appearance="soft" size="sm" className="text-[10px]">
+                                              Evaluado por Protección de la Información - DPI (PAR-12)
+                                            </Badge>
+                                          </div>
+                                          <div className="p-2.5 rounded-lg bg-warning/10 border border-warning/30 text-[11px] text-muted-foreground flex items-start gap-2">
+                                            <Scale className="size-3.5 text-warning shrink-0 mt-0.5" />
+                                            <span>
+                                              <strong className="text-foreground">Guía permanente (PAR-12):</strong> Cite de forma expresa la ley, artículo, decreto o competencia legal vigente (ej. LOPDP, COESC) que faculta a su institución a tratar este dato confidencial. Será evaluado por la <strong>Dirección de Protección de la Información (DPI)</strong>.
+                                            </span>
+                                          </div>
                                           <Textarea
                                             className="w-full rounded-xl min-h-[95px] text-xs sm:text-sm bg-background border-warning/40"
                                             placeholder="Indique el fundamento legal o norma jurídica que autoriza el acceso a este campo confidencial..."
@@ -1226,21 +1491,32 @@ export function AccesoSolicitudNuevaView() {
                   </div>
                 )}
 
-                <div className="flex justify-between items-center pt-2">
+                <div className="flex flex-wrap justify-between items-center gap-3 pt-2">
                   <Button variant="outline" size="sm" onClick={prevStep} className="gap-2">
                     <ArrowLeft className="size-4" />
                     Atrás
                   </Button>
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    onClick={nextStep}
-                    disabled={!isStep2Valid}
-                    className="gap-2"
-                  >
-                    <span>Revisar y enviar</span>
-                    <ChevronRight className="size-4" />
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleGuardarBorrador}
+                      className="gap-1.5 font-semibold"
+                    >
+                      <FileText className="size-4" />
+                      <span>Guardar borrador</span>
+                    </Button>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={nextStep}
+                      disabled={!isStep2Valid}
+                      className="gap-2"
+                    >
+                      <span>Revisar y enviar</span>
+                      <ChevronRight className="size-4" />
+                    </Button>
+                  </div>
                 </div>
               </div>
             )}
@@ -1254,7 +1530,7 @@ export function AccesoSolicitudNuevaView() {
                     Resumen de la solicitud
                   </h2>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Revisión de toda la información y justificaciones ingresadas en los pasos anteriores antes del envío formal.
+                    Revisión de toda la información y justificaciones ingresadas en los pasos anteriores antes del envío formal a Gestión DINARP.
                   </p>
                 </div>
 
@@ -1270,7 +1546,7 @@ export function AccesoSolicitudNuevaView() {
                           Ficha ejecutiva de la solicitud
                         </h3>
                         <p className="text-xs text-muted-foreground">
-                          Datos institucionales consolidados para emisión y revisión
+                          Datos institucionales consolidados para emisión y revisión en Gestión y DPI
                         </p>
                       </div>
                     </div>
@@ -1281,9 +1557,11 @@ export function AccesoSolicitudNuevaView() {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
                     <div className="p-3 rounded-xl bg-muted/30 border border-border/60">
-                      <span className="text-muted-foreground block text-[11px] mb-0.5">Institución solicitante:</span>
-                      <strong className="text-foreground text-xs sm:text-sm block">Ministerio de Salud Pública</strong>
-                      <span className="text-[10px] text-muted-foreground">Entidad del sector público</span>
+                      <span className="text-muted-foreground block text-[11px] mb-0.5">Proyecto institucional:</span>
+                      <strong className="text-foreground text-xs sm:text-sm truncate block" title={activeProyecto.nombre}>
+                        {activeProyecto.nombre}
+                      </strong>
+                      <span className="text-[10px] text-muted-foreground">Ministerio de Salud Pública ({activeProyecto.id})</span>
                     </div>
 
                     <div className="p-3 rounded-xl bg-muted/30 border border-border/60">
@@ -1291,24 +1569,26 @@ export function AccesoSolicitudNuevaView() {
                       <strong className="text-foreground text-xs sm:text-sm truncate block" title={activeFuente ? activeFuente.nombre : (selectedCamposDetails[0]?.fuenteNombre || "Registro Civil")}>
                         {activeFuente ? activeFuente.nombre : (selectedCamposDetails[0]?.fuenteNombre || "Registro Civil")}
                       </strong>
-                      <span className="text-[10px] text-muted-foreground">Fuente única autorizada</span>
-                    </div>
-
-                    <div className="p-3 rounded-xl bg-muted/30 border border-border/60">
-                      <span className="text-muted-foreground block text-[11px] mb-0.5">Fuente solicitada:</span>
-                      <strong className="text-foreground text-xs sm:text-sm truncate block" title={selectedCamposDetails[0]?.servicioNombre || "Consulta de Datos de Identidad"}>
+                      <span className="text-[10px] text-muted-foreground truncate block">
                         {selectedCamposDetails[0]?.servicioNombre || "Consulta de Datos de Identidad"}
-                      </strong>
-                      <span className="text-[10px] text-muted-foreground">Acceso vía API segura</span>
+                      </span>
                     </div>
 
                     <div className="p-3 rounded-xl bg-muted/30 border border-border/60">
-                      <span className="text-muted-foreground block text-[11px] mb-0.5">Documentos adjuntos:</span>
+                      <span className="text-muted-foreground block text-[11px] mb-0.5">Modalidad y cupo:</span>
+                      <strong className="text-foreground text-xs sm:text-sm truncate block">
+                        {modalidadSolicitada}
+                      </strong>
+                      <span className="text-[10px] text-muted-foreground">Cupo: {cupoSolicitado}</span>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-muted/30 border border-border/60">
+                      <span className="text-muted-foreground block text-[11px] mb-0.5">Documentos adjuntos ({documentosAdjuntos.length}):</span>
                       <div className="flex items-center gap-1.5 text-foreground font-semibold">
                         <FileText className="size-3.5 text-primary shrink-0" />
-                        <span className="truncate">Oficio_Solicitud.pdf</span>
+                        <span className="truncate">{documentosAdjuntos[0]?.nombre || "Oficio_Solicitud_Acceso.pdf"}</span>
                       </div>
-                      <span className="text-[10px] text-muted-foreground">Firma electrónica incorporada</span>
+                      <span className="text-[10px] text-muted-foreground">Respaldo técnico-jurídico</span>
                     </div>
                   </div>
                 </Card>
@@ -1471,66 +1751,90 @@ export function AccesoSolicitudNuevaView() {
                   </div>
                 </Card>
 
-                <div className="flex justify-between items-center pt-2">
+                <div className="flex flex-wrap justify-between items-center gap-3 pt-2">
                   <Button variant="outline" size="sm" onClick={prevStep} className="gap-2">
                     <ArrowLeft className="size-4" />
                     Volver a editar
                   </Button>
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    onClick={() => setIsModalConfirmacionOpen(true)}
-                    id="btn-enviar-solicitud"
-                    className="gap-2 font-semibold shadow-sm"
-                  >
-                    <Send className="size-4" />
-                    <span>Crear y enviar solicitud</span>
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleGuardarBorrador}
+                      className="gap-1.5 font-semibold"
+                    >
+                      <FileText className="size-4" />
+                      <span>Guardar borrador</span>
+                    </Button>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() => setIsModalConfirmacionOpen(true)}
+                      id="btn-enviar-solicitud"
+                      className="gap-2 font-semibold shadow-sm"
+                    >
+                      <Send className="size-4" />
+                      <span>Crear y enviar solicitud</span>
+                    </Button>
+                  </div>
                 </div>
 
                 {/* MODAL DE CONFIRMACIÓN: ENVÍO DE SOLICITUD */}
                 <Dialog open={isModalConfirmacionOpen} onOpenChange={setIsModalConfirmacionOpen}>
-                  <DialogContent size="sm">
-                    <DialogHeader>
-                      <DialogTitle className="text-lg font-bold text-foreground flex items-center gap-2">
-                        <Check className="size-5 text-success" />
-                        Solicitud creada y enviada correctamente
+                  <DialogContent
+                    variant="success"
+                    size="lg"
+                    className="p-6 sm:p-7 max-w-lg max-h-[90vh] flex flex-col overflow-hidden"
+                    icon={<Check className="size-10 text-success stroke-[2px]" />}
+                  >
+                    <DialogHeader className="items-center text-center gap-1.5 shrink-0 pb-3 border-b border-border/50">
+                      <DialogTitle className="font-heading text-xl font-bold text-foreground">
+                        Solicitud lista para enviarse a Gestión
                       </DialogTitle>
-                      <DialogDescription className="text-xs text-muted-foreground mt-2 leading-relaxed">
-                        Tu solicitud fue enviada correctamente y continuará con el proceso de revisión y firma por parte del Aprobador.
+                      <DialogDescription className="text-sm text-muted-foreground max-w-md mx-auto">
+                        Tu solicitud será radicada y enviada formalmente a la bandeja de la Dirección de Gestión DINARP para su asignación y revisión (SOL-01).
                       </DialogDescription>
                     </DialogHeader>
 
-                    <div className="p-3.5 my-2 rounded-xl bg-muted/40 border border-border text-xs space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Institución solicitante:</span>
-                        <strong className="text-foreground">Ministerio de Salud Pública</strong>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Institución:</span>
-                        <strong className="text-foreground truncate max-w-[200px]">
-                          {activeFuente ? activeFuente.nombre : (selectedCamposDetails[0]?.fuenteNombre || "Registro Civil")}
-                        </strong>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Fuente:</span>
-                        <strong className="text-foreground truncate max-w-[200px]">
-                          {selectedCamposDetails[0]?.servicioNombre || "Consulta de Datos de Identidad"}
-                        </strong>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Campos solicitados:</span>
-                        <strong className="text-foreground">{selectedCamposDetails.length} campo(s)</strong>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Estado inicial:</span>
-                        <Badge tone="info" appearance="soft" size="sm">Por revisar</Badge>
+                    <div className="modal-scroll-area overflow-y-auto pr-2 py-2.5 space-y-3 w-full flex-1 min-h-0 text-left">
+                      <div className="p-3.5 rounded-2xl bg-muted/40 border border-border text-xs space-y-2">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Proyecto activo:</span>
+                          <strong className="text-foreground truncate max-w-[200px]">{activeProyecto.nombre}</strong>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Fuente:</span>
+                          <strong className="text-foreground truncate max-w-[200px]">
+                            {activeFuente ? activeFuente.nombre : (selectedCamposDetails[0]?.fuenteNombre || "Registro Civil")}
+                          </strong>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Modalidad / Cupo:</span>
+                          <strong className="text-foreground truncate max-w-[200px]">
+                            {cupoSolicitado}
+                          </strong>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Campos solicitados:</span>
+                          <strong className="text-foreground">{selectedCamposDetails.length} campo(s)</strong>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Estado inicial:</span>
+                          <Badge tone="info" appearance="soft" size="sm">Pendiente de asignación en Gestión</Badge>
+                        </div>
                       </div>
                     </div>
 
-                    <DialogFooter className="pt-2 border-t border-border/60">
+                    <DialogFooter className="mt-3 pt-4 border-t border-border flex flex-col-reverse sm:flex-row gap-2.5 w-full shrink-0">
                       <Button
-                        size="sm"
+                        variant="ghost"
+                        onClick={() => setIsModalConfirmacionOpen(false)}
+                        className="w-full sm:w-1/2 font-semibold"
+                      >
+                        Seguir revisando
+                      </Button>
+                      <Button
+                        variant="success"
                         onClick={() => {
                           const fuenteNombre = activeFuente ? activeFuente.nombre : (selectedCamposDetails[0]?.fuenteNombre || "Dirección General de Registro Civil, Identificación y Cedulación");
                           const servicioNombre = selectedCamposDetails[0]?.servicioNombre || "Consulta de Datos de Identidad";
@@ -1538,6 +1842,12 @@ export function AccesoSolicitudNuevaView() {
                           crearNuevaSolicitud({
                             institucion: "Ministerio de Salud Pública",
                             tipoInstitucion: "Pública",
+                            proyectoId: activeProyecto.id,
+                            proyectoNombre: activeProyecto.nombre,
+                            modalidad: modalidadSolicitada,
+                            cupo: cupoSolicitado,
+                            estado: "Por revisar",
+                            documentos: documentosAdjuntos,
                             fuentePrincipal: fuenteNombre,
                             servicioPrincipal: servicioNombre,
                             camposCount: selectedCamposDetails.length,
@@ -1559,20 +1869,20 @@ export function AccesoSolicitudNuevaView() {
                             ]
                           });
                           setIsModalConfirmacionOpen(false);
-                          toast.success("Solicitud creada y enviada exitosamente");
+                          toast.success("Solicitud creada y enviada exitosamente a Gestión DINARP");
                           router.push('/acceso-interoperabilidad/solicitudes');
                         }}
-                        className="w-full bg-primary text-primary-foreground font-semibold"
+                        className="w-full sm:w-1/2 font-bold shadow-xs"
                       >
-                        Ir a Gestión de solicitudes
+                        Confirmar y Enviar
                       </Button>
                     </DialogFooter>
                   </DialogContent>
                 </Dialog>
               </div>
             )}
-          </div>
-        </div>
+          </Card>
+        </main>
       </WireframeDashboardLayout>
     </TooltipProvider>
   );

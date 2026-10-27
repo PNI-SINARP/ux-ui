@@ -13,16 +13,13 @@ import {
   ChevronDown,
   Building2,
   X,
-  FileText,
-  ExternalLink,
-  MoreHorizontal,
-  ArrowRight,
   Edit,
   ShieldAlert
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardDecorativeIcon } from "@/components/ui/card";
+import { InteractiveCard } from "@/components/ui/data-display";
 import { Search as SearchInput } from "@/components/ui/search";
 import {
   Table,
@@ -35,7 +32,6 @@ import {
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
@@ -43,14 +39,17 @@ import {
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { ViewModeToggle, type ViewMode } from "@/components/shared/view-mode-toggle";
 import { WireframeDashboardLayout } from "@/components/layout/wireframes/wireframe-dashboard-layout";
 import { WireframeTour, type TourStep } from "@/components/layout/wireframes/wireframe-tour";
+import { cn } from "@/lib/utils";
 import { INITIAL_INSTITUCIONES, MOCK_USERS_BY_ROLE, type FuenteEstado } from "@/modules/catalogo-interoperabilidad/data/catalogo-data";
 
 export function CatalogoGestionView() {
   const [searchTerm, setSearchTerm] = useState("");
   const [estadoFilter, setEstadoFilter] = useState<string>("ALL");
   const [institucionFilter, setInstitucionFilter] = useState<string>("ALL");
+  const [viewMode, setViewMode] = useState<ViewMode>("table");
 
   // Estados del Onboarding Tour
   const [isTourOpen, setIsTourOpen] = useState(false);
@@ -306,122 +305,128 @@ export function CatalogoGestionView() {
           <div className="border border-border rounded-xl bg-surface p-6 flex flex-col gap-6 shadow-xs">
             {/* Barra de Filtros */}
             <div data-tour="tour-filtros" className="flex flex-col gap-3">
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
-                {/* Búsqueda general */}
-                <div className="sm:col-span-12 lg:col-span-6 flex flex-col gap-1.5">
-                  <label htmlFor="search-fuentes" className="text-xs font-medium text-muted-foreground">
-                    Búsqueda general
-                  </label>
-                  <SearchInput
-                    id="search-fuentes"
-                    placeholder="Buscar por fuente, código o institución..."
-                    value={searchTerm}
-                    onChange={e => setSearchTerm(e.target.value)}
-                    onClear={() => setSearchTerm("")}
-                    className="w-full bg-background"
-                  />
-                </div>
+              <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-end">
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end flex-1">
+                  {/* Búsqueda general */}
+                  <div className="sm:col-span-12 lg:col-span-6 flex flex-col gap-1.5">
+                    <label htmlFor="search-fuentes" className="text-xs font-medium text-muted-foreground">
+                      Búsqueda general
+                    </label>
+                    <SearchInput
+                      id="search-fuentes"
+                      placeholder="Buscar por fuente, código o institución..."
+                      value={searchTerm}
+                      onChange={e => setSearchTerm(e.target.value)}
+                      onClear={() => setSearchTerm("")}
+                      className="w-full bg-background"
+                    />
+                  </div>
 
-                {/* Filtro por Estado */}
-                <div className="sm:col-span-6 lg:col-span-3 flex flex-col gap-1.5">
-                  <label className="text-xs font-medium text-muted-foreground">
-                    Estado
-                  </label>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className="w-full h-10 justify-between text-xs sm:text-sm font-normal bg-background rounded-xl border-border/80 px-3.5 hover:bg-muted/40"
-                      >
-                        <span className="truncate flex items-center gap-1.5">
-                          {estadoFilter === "ALL" && "Todos los estados"}
-                          {estadoFilter === "PUBLICADO" && (
-                            <>
-                              <Eye className="size-3.5 text-muted-foreground" />
-                              PUBLICADO
-                            </>
-                          )}
-                          {estadoFilter === "OCULTO" && (
-                            <>
-                              <EyeOff className="size-3.5 text-muted-foreground" />
-                              OCULTO
-                            </>
-                          )}
-                          {estadoFilter === "DESACTIVADO" && (
-                            <>
-                              <FolderArchive className="size-3.5 text-muted-foreground" />
-                              DESACTIVADO
-                            </>
-                          )}
-                        </span>
-                        <ChevronDown className="size-4 opacity-60 ml-2 shrink-0" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="w-64">
-                      <DropdownMenuLabel className="text-xs">Estado en el catálogo</DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuRadioGroup
-                        value={estadoFilter}
-                        onValueChange={setEstadoFilter}
-                      >
-                        <DropdownMenuRadioItem value="ALL" className="text-xs">
-                          Todos los estados
-                        </DropdownMenuRadioItem>
-                        <DropdownMenuRadioItem value="PUBLICADO" className="text-xs">
-                          <Eye className="size-3.5 mr-1.5 text-muted-foreground" />
-                          PUBLICADO
-                        </DropdownMenuRadioItem>
-                        <DropdownMenuRadioItem value="OCULTO" className="text-xs">
-                          <EyeOff className="size-3.5 mr-1.5 text-muted-foreground" />
-                          OCULTO
-                        </DropdownMenuRadioItem>
-                        <DropdownMenuRadioItem value="DESACTIVADO" className="text-xs">
-                          <FolderArchive className="size-3.5 mr-1.5 text-muted-foreground" />
-                          DESACTIVADO
-                        </DropdownMenuRadioItem>
-                      </DropdownMenuRadioGroup>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-
-                {/* Filtro por Institución */}
-                <div className="sm:col-span-6 lg:col-span-3 flex flex-col gap-1.5">
-                  <label className="text-xs font-medium text-muted-foreground">
-                    Institución
-                  </label>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className="w-full h-10 justify-between text-xs sm:text-sm font-normal bg-background rounded-xl border-border/80 px-3.5 hover:bg-muted/40"
-                      >
-                        <span className="truncate flex items-center gap-1.5">
-                          {institucionFilter === "ALL"
-                            ? "Todas las instituciones"
-                            : INITIAL_INSTITUCIONES.find(i => i.id === institucionFilter)?.sigla || institucionFilter}
-                        </span>
-                        <ChevronDown className="size-4 opacity-60 ml-2 shrink-0" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-80 max-h-72 overflow-y-auto">
-                      <DropdownMenuLabel className="text-xs">Institución proveedora</DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuRadioGroup
-                        value={institucionFilter}
-                        onValueChange={setInstitucionFilter}
-                      >
-                        <DropdownMenuRadioItem value="ALL" className="text-xs">
-                          Todas las instituciones
-                        </DropdownMenuRadioItem>
-                        {INITIAL_INSTITUCIONES.map(inst => (
-                          <DropdownMenuRadioItem key={inst.id} value={inst.id} className="text-xs">
-                            <span className="font-medium mr-1.5">{inst.sigla}</span>
-                            <span className="text-muted-foreground truncate">{inst.nombre}</span>
+                  {/* Filtro por Estado */}
+                  <div className="sm:col-span-6 lg:col-span-3 flex flex-col gap-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">
+                      Estado
+                    </label>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="w-full h-10 justify-between text-xs sm:text-sm font-normal bg-background rounded-xl border-border/80 px-3.5 hover:bg-muted/40"
+                        >
+                          <span className="truncate flex items-center gap-1.5">
+                            {estadoFilter === "ALL" && "Todos los estados"}
+                            {estadoFilter === "PUBLICADO" && (
+                              <>
+                                <Eye className="size-3.5 text-muted-foreground" />
+                                PUBLICADO
+                              </>
+                            )}
+                            {estadoFilter === "OCULTO" && (
+                              <>
+                                <EyeOff className="size-3.5 text-muted-foreground" />
+                                OCULTO
+                              </>
+                            )}
+                            {estadoFilter === "DESACTIVADO" && (
+                              <>
+                                <FolderArchive className="size-3.5 text-muted-foreground" />
+                                DESACTIVADO
+                              </>
+                            )}
+                          </span>
+                          <ChevronDown className="size-4 opacity-60 ml-2 shrink-0" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="w-64">
+                        <DropdownMenuLabel className="text-xs">Estado en el catálogo</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuRadioGroup
+                          value={estadoFilter}
+                          onValueChange={setEstadoFilter}
+                        >
+                          <DropdownMenuRadioItem value="ALL" className="text-xs">
+                            Todos los estados
                           </DropdownMenuRadioItem>
-                        ))}
-                      </DropdownMenuRadioGroup>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                          <DropdownMenuRadioItem value="PUBLICADO" className="text-xs">
+                            <Eye className="size-3.5 mr-1.5 text-muted-foreground" />
+                            PUBLICADO
+                          </DropdownMenuRadioItem>
+                          <DropdownMenuRadioItem value="OCULTO" className="text-xs">
+                            <EyeOff className="size-3.5 mr-1.5 text-muted-foreground" />
+                            OCULTO
+                          </DropdownMenuRadioItem>
+                          <DropdownMenuRadioItem value="DESACTIVADO" className="text-xs">
+                            <FolderArchive className="size-3.5 mr-1.5 text-muted-foreground" />
+                            DESACTIVADO
+                          </DropdownMenuRadioItem>
+                        </DropdownMenuRadioGroup>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+
+                  {/* Filtro por Institución */}
+                  <div className="sm:col-span-6 lg:col-span-3 flex flex-col gap-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">
+                      Institución
+                    </label>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="w-full h-10 justify-between text-xs sm:text-sm font-normal bg-background rounded-xl border-border/80 px-3.5 hover:bg-muted/40"
+                        >
+                          <span className="truncate flex items-center gap-1.5">
+                            {institucionFilter === "ALL"
+                              ? "Todas las instituciones"
+                              : INITIAL_INSTITUCIONES.find(i => i.id === institucionFilter)?.sigla || institucionFilter}
+                          </span>
+                          <ChevronDown className="size-4 opacity-60 ml-2 shrink-0" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-80 max-h-72 overflow-y-auto">
+                        <DropdownMenuLabel className="text-xs">Institución proveedora</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuRadioGroup
+                          value={institucionFilter}
+                          onValueChange={setInstitucionFilter}
+                        >
+                          <DropdownMenuRadioItem value="ALL" className="text-xs">
+                            Todas las instituciones
+                          </DropdownMenuRadioItem>
+                          {INITIAL_INSTITUCIONES.map(inst => (
+                            <DropdownMenuRadioItem key={inst.id} value={inst.id} className="text-xs">
+                              <span className="font-medium mr-1.5">{inst.sigla}</span>
+                              <span className="text-muted-foreground truncate">{inst.nombre}</span>
+                            </DropdownMenuRadioItem>
+                          ))}
+                        </DropdownMenuRadioGroup>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end shrink-0">
+                  <ViewModeToggle value={viewMode} onChange={setViewMode} />
                 </div>
               </div>
 
@@ -438,7 +443,7 @@ export function CatalogoGestionView() {
                     >
                       <span className="flex items-center gap-1">
                         <Search className="size-3 text-muted-foreground" />
-                        Texto: <strong className="font-semibold text-foreground">"{searchTerm}"</strong>
+                        Texto: <strong className="font-semibold text-foreground">&quot;{searchTerm}&quot;</strong>
                       </span>
                       <button
                         type="button"
@@ -517,7 +522,12 @@ export function CatalogoGestionView() {
             </div>
 
             {/* Tabla Principal Simplificada y Escaneable */}
-            <div className="overflow-x-auto border-y border-border bg-card mt-2">
+            <div
+              className={cn(
+                "overflow-x-auto border-y border-border bg-card mt-2",
+                viewMode === "table" ? "hidden md:block" : "hidden"
+              )}
+            >
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -586,7 +596,7 @@ export function CatalogoGestionView() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    fuentesFiltradas.map((fuente, idx) => (
+                    fuentesFiltradas.map((fuente) => (
                       <TableRow key={fuente.id}>
                         {/* Fuente: Nombre y Código */}
                         <TableCell>
@@ -633,7 +643,7 @@ export function CatalogoGestionView() {
                             <TooltipProvider delayDuration={0}>
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <Button asChild variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-primary-300 hover:bg-primary-300/10">
+                                  <Button asChild variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-primary hover:bg-primary/10">
                                     <Link href={`/catalogo-interoperabilidad/gestion/fuente/${fuente.id}`}>
                                       <Eye className="size-4" />
                                     </Link>
@@ -647,7 +657,7 @@ export function CatalogoGestionView() {
                               {(MOCK_USERS_BY_ROLE.DGR.role === "COORDINADOR_SINARP" || MOCK_USERS_BY_ROLE.DGR.role === "DTD") && (
                                 <Tooltip>
                                   <TooltipTrigger asChild>
-                                    <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-primary-300 hover:bg-primary-300/10">
+                                    <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-primary hover:bg-primary/10">
                                       <Edit className="size-4" />
                                     </Button>
                                   </TooltipTrigger>
@@ -660,7 +670,7 @@ export function CatalogoGestionView() {
                               {MOCK_USERS_BY_ROLE.DGR.role === "DPI" && (
                                 <Tooltip>
                                   <TooltipTrigger asChild>
-                                    <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-primary-300 hover:bg-primary-300/10">
+                                    <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-primary hover:bg-primary/10">
                                       <ShieldAlert className="size-4" />
                                     </Button>
                                   </TooltipTrigger>
@@ -677,6 +687,66 @@ export function CatalogoGestionView() {
                   )}
                 </TableBody>
               </Table>
+            </div>
+
+            {/* Vista de Tarjetas (Mobile o viewMode === "cards") */}
+            <div
+              className={cn(
+                "w-full",
+                viewMode === "cards"
+                  ? "grid grid-cols-1 md:grid-cols-2 gap-4"
+                  : "block md:hidden space-y-3.5"
+              )}
+            >
+              {fuentesFiltradas.length === 0 ? (
+                <div className="col-span-full py-10 text-center text-muted-foreground text-xs border border-dashed border-border rounded-xl">
+                  No se encontraron fuentes bajo los criterios de búsqueda o filtros seleccionados.
+                </div>
+              ) : (
+                fuentesFiltradas.map((fuente) => (
+                  <InteractiveCard key={fuente.id} className="p-4 flex flex-col gap-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex flex-col gap-0.5 min-w-0">
+                        <span className="font-semibold text-foreground text-sm leading-snug">
+                          {fuente.nombre}
+                        </span>
+                        <span className="font-mono text-[11px] text-muted-foreground">
+                          {fuente.codigoServicio}
+                        </span>
+                      </div>
+                      {getEstadoBadge(fuente.estado)}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 pt-2 border-t border-border/60 text-xs">
+                      <div className="flex flex-col gap-0.5 col-span-2">
+                        <span className="text-[11px] text-muted-foreground">Institución</span>
+                        <span className="font-medium text-foreground">
+                          {fuente.institucionSigla} — {fuente.institucionNombreCompleto}
+                        </span>
+                      </div>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-[11px] text-muted-foreground">Campos</span>
+                        <span className="font-mono font-medium text-foreground">
+                          {fuente.campos?.length || 0}
+                        </span>
+                      </div>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-[11px] text-muted-foreground">Última actualización</span>
+                        <span className="text-foreground">{fuente.ultimaActualizacion}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2 pt-2 border-t border-border/60">
+                      <Button asChild variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
+                        <Link href={`/catalogo-interoperabilidad/gestion/fuente/${fuente.id}`}>
+                          <Eye className="size-3.5" />
+                          <span>Ver detalle</span>
+                        </Link>
+                      </Button>
+                    </div>
+                  </InteractiveCard>
+                ))
+              )}
             </div>
 
           </div>

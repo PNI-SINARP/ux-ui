@@ -20,7 +20,8 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDecorativeIcon } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardDecorativeIcon } from "@/components/ui/card";
+import { InteractiveCard } from "@/components/ui/data-display";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -41,8 +42,9 @@ import {
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem
 } from "@/components/ui/dropdown-menu";
+import { ViewModeToggle, type ViewMode } from "@/components/shared/view-mode-toggle";
 import { WireframeDashboardLayout } from "@/components/layout/wireframes/wireframe-dashboard-layout";
-import { WireframeBreadcrumbs } from "@/components/layout/wireframes/wireframe-breadcrumbs";
+import { cn } from "@/lib/utils";
 import {
   INITIAL_NOVEDADES,
   INITIAL_INSTITUCIONES,
@@ -62,6 +64,7 @@ function NovedadesListContent() {
   const [tipoFilter, setTipoFilter] = useState<string>("ALL");
   const [estadoFilter, setEstadoFilter] = useState<string>("ALL");
   const [organismoFilter, setOrganismoFilter] = useState<string>("ALL");
+  const [viewMode, setViewMode] = useState<ViewMode>("table");
 
   // Modal Nueva Novedad
   const [isNewModalOpen, setIsNewModalOpen] = useState(openModalParam);
@@ -70,7 +73,7 @@ function NovedadesListContent() {
   const [newFuenteId, setNewFuenteId] = useState(preselectedFuenteId || "FNT-001");
   const [newNroOficio, setNewNroOficio] = useState("");
   const [newFechaOficio, setNewFechaOficio] = useState(new Date().toLocaleDateString("es-EC"));
-  const [newArchivoNombre, setNewArchivoNombre] = useState("Oficio_Requerimiento_2026.pdf");
+  const [newArchivoNombre] = useState("Oficio_Requerimiento_2026.pdf");
 
   // Todas las fuentes disponibles para el selector
   const todasLasFuentes = useMemo(() => {
@@ -279,10 +282,10 @@ function NovedadesListContent() {
                 En validación
               </span>
               <CardDecorativeIcon>
-                <Clock className="size-4 text-amber-600" />
+                <Clock className="size-4 text-warning" />
               </CardDecorativeIcon>
             </div>
-            <div className="text-3xl font-bold font-heading text-amber-600 mt-1">
+            <div className="text-3xl font-bold font-heading text-warning mt-1">
               {stats.enValidacion}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
@@ -298,10 +301,10 @@ function NovedadesListContent() {
                 Finalizadas
               </span>
               <CardDecorativeIcon>
-                <CheckCircle2 className="size-4 text-emerald-600" />
+                <CheckCircle2 className="size-4 text-success" />
               </CardDecorativeIcon>
             </div>
-            <div className="text-3xl font-bold font-heading text-emerald-600 mt-1">
+            <div className="text-3xl font-bold font-heading text-success mt-1">
               {stats.finalizadas}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
@@ -333,84 +336,90 @@ function NovedadesListContent() {
       {/* Filtros */}
       <Card>
         <CardContent className="p-4 flex flex-col gap-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            {/* Búsqueda general */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por número, fuente u organismo..."
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                className="pl-9 h-10 text-sm"
-              />
+          <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 flex-1">
+              {/* Búsqueda general */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por número, fuente u organismo..."
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                  className="pl-9 h-10 text-sm"
+                />
+              </div>
+
+              {/* Tipo de novedad */}
+              <div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="w-full h-10 justify-between text-xs sm:text-sm font-normal bg-background px-3">
+                      <span>{tipoFilter === "ALL" ? "Todos los tipos" : tipoFilter}</span>
+                      <ChevronDown className="size-4 opacity-60 ml-2 shrink-0" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-48">
+                    <DropdownMenuLabel className="text-xs">Tipo de novedad</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuRadioGroup value={tipoFilter} onValueChange={setTipoFilter}>
+                      <DropdownMenuRadioItem value="ALL">Todos los tipos</DropdownMenuRadioItem>
+                      <DropdownMenuRadioItem value="Eliminación">Eliminación</DropdownMenuRadioItem>
+                      <DropdownMenuRadioItem value="Supresión">Supresión</DropdownMenuRadioItem>
+                      <DropdownMenuRadioItem value="Fusión">Fusión</DropdownMenuRadioItem>
+                    </DropdownMenuRadioGroup>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+
+              {/* Estado */}
+              <div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="w-full h-10 justify-between text-xs sm:text-sm font-normal bg-background px-3">
+                      <span>{estadoFilter === "ALL" ? "Todos los estados" : estadoFilter}</span>
+                      <ChevronDown className="size-4 opacity-60 ml-2 shrink-0" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-48">
+                    <DropdownMenuLabel className="text-xs">Estado</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuRadioGroup value={estadoFilter} onValueChange={setEstadoFilter}>
+                      <DropdownMenuRadioItem value="ALL">Todos los estados</DropdownMenuRadioItem>
+                      <DropdownMenuRadioItem value="En validación">En validación</DropdownMenuRadioItem>
+                      <DropdownMenuRadioItem value="Finalizada">Finalizada</DropdownMenuRadioItem>
+                      <DropdownMenuRadioItem value="No procede">No procede</DropdownMenuRadioItem>
+                    </DropdownMenuRadioGroup>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+
+              {/* Organismo Solicitante */}
+              <div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="w-full h-10 justify-between text-xs sm:text-sm font-normal bg-background px-3 truncate">
+                      <span className="truncate">{organismoFilter === "ALL" ? "Todos los organismos" : organismoFilter}</span>
+                      <ChevronDown className="size-4 opacity-60 ml-2 shrink-0" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-64">
+                    <DropdownMenuLabel className="text-xs">Organismo solicitante</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuRadioGroup value={organismoFilter} onValueChange={setOrganismoFilter}>
+                      <DropdownMenuRadioItem value="ALL">Todos los organismos</DropdownMenuRadioItem>
+                      {organismosList.map(org => (
+                        <DropdownMenuRadioItem key={org} value={org} className="text-xs">
+                          {org}
+                        </DropdownMenuRadioItem>
+                      ))}
+                    </DropdownMenuRadioGroup>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </div>
 
-            {/* Tipo de novedad */}
-            <div>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="w-full h-10 justify-between text-xs sm:text-sm font-normal bg-background px-3">
-                    <span>{tipoFilter === "ALL" ? "Todos los tipos" : tipoFilter}</span>
-                    <ChevronDown className="size-4 opacity-60 ml-2 shrink-0" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-48">
-                  <DropdownMenuLabel className="text-xs">Tipo de novedad</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuRadioGroup value={tipoFilter} onValueChange={setTipoFilter}>
-                    <DropdownMenuRadioItem value="ALL">Todos los tipos</DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem value="Eliminación">Eliminación</DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem value="Supresión">Supresión</DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem value="Fusión">Fusión</DropdownMenuRadioItem>
-                  </DropdownMenuRadioGroup>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-
-            {/* Estado */}
-            <div>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="w-full h-10 justify-between text-xs sm:text-sm font-normal bg-background px-3">
-                    <span>{estadoFilter === "ALL" ? "Todos los estados" : estadoFilter}</span>
-                    <ChevronDown className="size-4 opacity-60 ml-2 shrink-0" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-48">
-                  <DropdownMenuLabel className="text-xs">Estado</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuRadioGroup value={estadoFilter} onValueChange={setEstadoFilter}>
-                    <DropdownMenuRadioItem value="ALL">Todos los estados</DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem value="En validación">En validación</DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem value="Finalizada">Finalizada</DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem value="No procede">No procede</DropdownMenuRadioItem>
-                  </DropdownMenuRadioGroup>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-
-            {/* Organismo Solicitante */}
-            <div>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="w-full h-10 justify-between text-xs sm:text-sm font-normal bg-background px-3 truncate">
-                    <span className="truncate">{organismoFilter === "ALL" ? "Todos los organismos" : organismoFilter}</span>
-                    <ChevronDown className="size-4 opacity-60 ml-2 shrink-0" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-64">
-                  <DropdownMenuLabel className="text-xs">Organismo solicitante</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuRadioGroup value={organismoFilter} onValueChange={setOrganismoFilter}>
-                    <DropdownMenuRadioItem value="ALL">Todos los organismos</DropdownMenuRadioItem>
-                    {organismosList.map(org => (
-                      <DropdownMenuRadioItem key={org} value={org} className="text-xs">
-                        {org}
-                      </DropdownMenuRadioItem>
-                    ))}
-                  </DropdownMenuRadioGroup>
-                </DropdownMenuContent>
-              </DropdownMenu>
+            <div className="flex items-center justify-end shrink-0">
+              <ViewModeToggle value={viewMode} onChange={setViewMode} />
             </div>
           </div>
 
@@ -458,7 +467,12 @@ function NovedadesListContent() {
 
       {/* Tabla de Novedades */}
       <Card>
-        <div className="overflow-x-auto">
+        <div
+          className={cn(
+            "overflow-x-auto",
+            viewMode === "table" ? "hidden md:block" : "hidden"
+          )}
+        >
           <table className="w-full text-left text-sm border-collapse">
             <thead>
               <tr className="border-b border-border bg-muted/40 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -556,6 +570,65 @@ function NovedadesListContent() {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Vista de Tarjetas (Mobile o viewMode === "cards") */}
+        <div
+          className={cn(
+            "w-full p-4",
+            viewMode === "cards"
+              ? "grid grid-cols-1 md:grid-cols-2 gap-4"
+              : "block md:hidden space-y-3.5"
+          )}
+        >
+          {novedadesFiltradas.length === 0 ? (
+            <div className="col-span-full py-10 text-center text-muted-foreground text-xs border border-dashed border-border rounded-xl">
+              No se encontraron novedades con los criterios seleccionados.
+            </div>
+          ) : (
+            novedadesFiltradas.map(nov => (
+              <InteractiveCard key={nov.id} className="p-4 flex flex-col gap-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex flex-col gap-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-mono font-bold text-xs text-foreground">
+                        {nov.nroTramite}
+                      </span>
+                      {getBadgeTipo(nov.tipoNovedad)}
+                    </div>
+                    <span className="font-semibold text-sm text-foreground leading-snug">
+                      {nov.fuentesAfectadas.map(fa => fa.fuenteNombre).join(", ")}
+                    </span>
+                  </div>
+                  {getBadgeEstado(nov.estado)}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 pt-2 border-t border-border/60 text-xs">
+                  <div className="flex flex-col gap-0.5 col-span-2">
+                    <span className="text-[11px] text-muted-foreground">Organismo solicitante</span>
+                    <span className="font-medium text-foreground">{nov.organismoSolicitante}</span>
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[11px] text-muted-foreground">Radicación</span>
+                    <span className="text-foreground">{nov.fechaRadicacion}</span>
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[11px] text-muted-foreground">Actualización</span>
+                    <span className="text-foreground">{nov.ultimaActualizacion || nov.fechaRadicacion}</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-2 border-t border-border/60">
+                  <Button variant="outline" size="sm" asChild className="h-8 gap-1 text-xs">
+                    <Link href={`/catalogo-interoperabilidad/novedades/${nov.id}`}>
+                      Ver detalle
+                      <ArrowRight className="size-3" />
+                    </Link>
+                  </Button>
+                </div>
+              </InteractiveCard>
+            ))
+          )}
         </div>
       </Card>
 

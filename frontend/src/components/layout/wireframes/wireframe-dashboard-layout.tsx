@@ -110,23 +110,34 @@ interface NavItem {
   href: string;
   allowedRoles?: UserRole[];
   providerOnly?: boolean;
+  section?: string;
 }
 
 const navItems: NavItem[] = [
-  // ── Coordinador SINARP ──
+  // ── Coordinador SINARP — Acceso a Interoperabilidad (BN-07) ──
   {
-    id: "catalogo-interoperabilidad",
-    label: "Catálogo de interoperabilidad",
-    icon: Database,
-    href: "/catalogo-interoperabilidad",
+    id: "nueva-solicitud-interoperabilidad",
+    label: "Solicitar acceso",
+    icon: FileSignature,
+    href: "/acceso-interoperabilidad/nueva",
     allowedRoles: ["COORDINADOR_SINARP", "ADMIN"],
+    section: "Acceso a Interoperabilidad",
   },
   {
     id: "mis-solicitudes",
-    label: "Mis solicitudes",
+    label: "Solicitudes de acceso",
     icon: Network,
     href: "/acceso-interoperabilidad/solicitudes",
     allowedRoles: ["COORDINADOR_SINARP", "ADMIN"],
+    section: "Acceso a Interoperabilidad",
+  },
+  {
+    id: "catalogo-interoperabilidad",
+    label: "Catálogo de fuentes",
+    icon: Database,
+    href: "/catalogo-interoperabilidad",
+    allowedRoles: ["COORDINADOR_SINARP", "ADMIN"],
+    section: "Acceso a Interoperabilidad",
   },
   {
     id: "mis-accesos",
@@ -134,28 +145,24 @@ const navItems: NavItem[] = [
     icon: KeyRound,
     href: "/acceso-interoperabilidad/solicitudes?tab=habilitadas",
     allowedRoles: ["COORDINADOR_SINARP", "ADMIN"],
+    section: "Acceso a Interoperabilidad",
   },
   {
     id: "proyectos",
-    label: "Proyectos",
+    label: "Mis proyectos",
     icon: FolderKanban,
     href: "/proyectos",
     allowedRoles: ["COORDINADOR_SINARP", "ADMIN"],
+    section: "Acceso a Interoperabilidad",
   },
   {
     id: "fuentes-proveedor",
-    label: "Mis fuentes",
+    label: "Mis fuentes de datos",
     icon: Server,
     href: "/proveedor/fuentes",
     allowedRoles: ["COORDINADOR_SINARP", "ADMIN"],
     providerOnly: true,
-  },
-  {
-    id: "cambio-coordinador",
-    label: "Cambio de coordinador",
-    icon: UserCog,
-    href: "/cambio-coordinador",
-    allowedRoles: ["COORDINADOR_SINARP", "REPRESENTANTE_INSTITUCIONAL", "ADMIN"],
+    section: "Gestión de Fuentes",
   },
   {
     id: "mi-suplencia",
@@ -163,81 +170,241 @@ const navItems: NavItem[] = [
     icon: ArrowLeftRight,
     href: "/mi-suplencia",
     allowedRoles: ["COORDINADOR_SINARP", "APROBADOR", "REPRESENTANTE_INSTITUCIONAL"],
+    section: "Gestión Institucional",
   },
 
-  // ── Director de Gestión ──
+  // ── SECCIÓN INDEPENDIENTE: EXPEDIENTES ANEXO A (Incorporación Institucional) ──
   {
-    id: "asignacion-solicitudes-gestion",
-    label: "Asignación de solicitudes",
+    id: "registro-institucion",
+    label: "Solicitar incorporación",
+    icon: Building2,
+    href: "/registro-institucion",
+    allowedRoles: ["REPRESENTANTE_INSTITUCIONAL"],
+    section: "Expedientes Anexo A",
+  },
+  {
+    id: "expedientes-anexo-a",
+    label: "Estado de incorporación",
+    icon: FileText,
+    href: "/expedientes-anexo-a",
+    allowedRoles: ["REPRESENTANTE_INSTITUCIONAL", "ADMIN"],
+    section: "Expedientes Anexo A",
+  },
+  {
+    id: "asignacion-solicitudes",
+    label: "Asignar incorporaciones",
     icon: UserCheck,
     href: "/asignacion-solicitudes",
     allowedRoles: ["DIR_GESTION", "ADMIN"],
+    section: "Expedientes Anexo A",
   },
-  {
-    id: "acceso-interoperabilidad-asignacion",
-    label: "Asignación de interoperabilidad",
-    icon: Database,
-    href: "/acceso-interoperabilidad/asignacion",
-    allowedRoles: ["DIR_GESTION", "ADMIN"],
-  },
-  {
-    id: "formalizacion-gestion",
-    label: "Formalización y aprobación final",
-    icon: FileCheck2,
-    href: "/formalizacion",
-    allowedRoles: ["DIR_GESTION", "ADMIN"],
-  },
-
-  // ── Revisor de Gestión ──
   {
     id: "solicitudes-pendientes",
-    label: "Solicitudes pendientes",
-    icon: FileSignature,
+    label: "Revisar incorporaciones",
+    icon: CheckSquare,
     href: "/solicitudes-pendientes",
     allowedRoles: ["EQ_GESTION", "ADMIN"],
+    section: "Expedientes Anexo A",
   },
-  {
-    id: "revision-gestion",
-    label: "Revisión de interoperabilidad",
-    icon: Network,
-    href: "/revision-gestion",
-    allowedRoles: ["EQ_GESTION", "ADMIN"],
-  },
-  {
-    id: "revision-aprobacion-fuentes",
-    label: "Revisión y aprobación de fuentes",
-    icon: FolderCheck,
-    href: "/gestion/fuentes",
-    allowedRoles: ["DGR", "DPI", "DIR_GESTION", "EQ_GESTION", "ADMIN"],
-  },
-
-  // ── Dirección y Equipo de Normatividad ──
   {
     id: "revision-normativa",
-    label: "Revisión normativa",
+    label: "Elaborar resoluciones",
     icon: Scale,
     href: "/revision-normativa",
     allowedRoles: ["DIR_NORMATIVA", "EQ_NORMATIVA", "ADMIN"],
+    section: "Expedientes Anexo A",
   },
   {
+    id: "firma-resoluciones",
+    label: "Firmar resoluciones",
+    icon: FileSignature,
+    href: "/firma-resoluciones",
+    allowedRoles: ["APROBADOR", "ADMIN"],
+    section: "Expedientes Anexo A",
+  },
+
+  // ── SECCIÓN INDEPENDIENTE: EXPEDIENTES ANEXO B (Registro de Coordinadores) ──
+  {
+    id: "enrolamiento-coordinador",
+    label: "Registrar enrolamiento",
+    icon: UserCheck,
+    href: "/enrolamiento-coordinador",
+    allowedRoles: ["COORDINADOR_SINARP"],
+    section: "Expedientes Anexo B",
+  },
+  {
+    id: "expedientes-anexo-b-coord",
+    label: "Mi enrolamiento",
+    icon: FileText,
+    href: "/expedientes-anexo-b",
+    allowedRoles: ["COORDINADOR_SINARP"],
+    section: "Expedientes Anexo B",
+  },
+  {
+    id: "expedientes-anexo-b",
+    label: "Estado de enrolamientos",
+    icon: UserCheck,
+    href: "/expedientes-anexo-b",
+    allowedRoles: ["REPRESENTANTE_INSTITUCIONAL", "ADMIN"],
+    section: "Expedientes Anexo B",
+  },
+  {
+    id: "asignacion-anexo-b",
+    label: "Asignar enrolamientos",
+    icon: UserCheck,
+    href: "/asignacion-anexo-b",
+    allowedRoles: ["DIR_GESTION", "ADMIN"],
+    section: "Expedientes Anexo B",
+  },
+  {
+    id: "revision-anexo-b",
+    label: "Revisar enrolamientos",
+    icon: CheckSquare,
+    href: "/revision-anexo-b",
+    allowedRoles: ["EQ_GESTION", "ADMIN"],
+    section: "Expedientes Anexo B",
+  },
+
+  // ── SECCIÓN INDEPENDIENTE: EXPEDIENTES ANEXO C (Cambio de Coordinador) ──
+  {
+    id: "cambio-coordinador-rep",
+    label: "Solicitar cambio",
+    icon: UserCog,
+    href: "/cambio-coordinador",
+    allowedRoles: ["REPRESENTANTE_INSTITUCIONAL"],
+    section: "Expedientes Anexo C",
+  },
+  {
+    id: "expedientes-anexo-c-rep",
+    label: "Estado de cambios",
+    icon: FileText,
+    href: "/expedientes-anexo-c",
+    allowedRoles: ["REPRESENTANTE_INSTITUCIONAL"],
+    section: "Expedientes Anexo C",
+  },
+  {
+    id: "cambio-coordinador",
+    label: "Solicitar cambio",
+    icon: UserCog,
+    href: "/cambio-coordinador",
+    allowedRoles: ["COORDINADOR_SINARP"],
+    section: "Expedientes Anexo C",
+  },
+  {
+    id: "expedientes-anexo-c",
+    label: "Expedientes de cambio",
+    icon: FileText,
+    href: "/expedientes-anexo-c",
+    allowedRoles: ["COORDINADOR_SINARP", "ADMIN"],
+    section: "Expedientes Anexo C",
+  },
+  {
+    id: "asignacion-anexo-c",
+    label: "Asignar cambios",
+    icon: UserCheck,
+    href: "/asignacion-anexo-c",
+    allowedRoles: ["DIR_GESTION", "ADMIN"],
+    section: "Expedientes Anexo C",
+  },
+  {
+    id: "revision-anexo-c",
+    label: "Revisar cambios",
+    icon: CheckSquare,
+    href: "/revision-anexo-c",
+    allowedRoles: ["EQ_GESTION", "ADMIN"],
+    section: "Expedientes Anexo C",
+  },
+
+  // ── Director de Gestión — Gestión de Solicitudes (BN-07) ──
+  {
+    id: "acceso-interoperabilidad-asignacion",
+    label: "Asignar accesos",
+    icon: UserCheck,
+    href: "/acceso-interoperabilidad/asignacion",
+    allowedRoles: ["DIR_GESTION", "ADMIN"],
+    section: "Gestión de Interoperabilidad",
+  },
+  {
+    id: "acceso-interoperabilidad-seguimiento",
+    label: "Seguimiento de accesos",
+    icon: History,
+    href: "/acceso-interoperabilidad/asignacion?tab=seguimiento",
+    allowedRoles: ["DIR_GESTION"],
+    section: "Gestión de Interoperabilidad",
+  },
+  {
+    id: "formalizacion-gestion",
+    label: "Formalizar accesos",
+    icon: FileCheck2,
+    href: "/formalizacion",
+    allowedRoles: ["DIR_GESTION", "ADMIN"],
+    section: "Gestión de Interoperabilidad",
+  },
+
+  // ── Revisor del Equipo de Gestión — Revisión de Solicitudes (BN-07) ──
+  {
+    id: "revision-gestion",
+    label: "Revisar accesos",
+    icon: Network,
+    href: "/revision-gestion",
+    allowedRoles: ["EQ_GESTION", "ADMIN"],
+    section: "Revisión de Interoperabilidad",
+  },
+  {
+    id: "revision-aprobacion-fuentes",
+    label: "Revisar fuentes",
+    icon: FolderCheck,
+    href: "/gestion/fuentes",
+    allowedRoles: ["DGR", "DPI", "DIR_GESTION", "EQ_GESTION", "ADMIN"],
+    section: "Catálogo de Fuentes",
+  },
+
+  // ── Dirección y Equipo de Protección de la Información (DPI) (BN-07) ──
+  {
     id: "asignacion-normativa-fuentes",
-    label: "Asignación y firma de confidenciales",
+    label: "Asignar revisiones DPI",
     icon: UserCheck,
     href: "/revision-normativa/asignacion",
-    allowedRoles: ["DIR_NORMATIVA", "ADMIN"],
+    allowedRoles: ["DIR_NORMATIVA", "DPI", "ADMIN"],
+    section: "Protección de la Información",
+  },
+  {
+    id: "informes-aprobacion-dpi",
+    label: "Informes de aprobación",
+    icon: FileSignature,
+    href: "/revision-normativa/asignacion?tab=informes",
+    allowedRoles: ["DIR_NORMATIVA", "DPI"],
+    section: "Protección de la Información",
+  },
+  {
+    id: "seguimiento-dpi",
+    label: "Seguimiento DPI",
+    icon: History,
+    href: "/revision-normativa/asignacion?tab=seguimiento",
+    allowedRoles: ["DIR_NORMATIVA", "DPI"],
+    section: "Protección de la Información",
   },
   {
     id: "revision-normativa-fuentes",
-    label: "Evaluación de fuentes confidenciales",
+    label: "Revisar campos DPI",
     icon: Lock,
     href: "/revision-normativa/fuentes",
     allowedRoles: ["EQ_NORMATIVA", "ADMIN"],
+    section: "Protección de la Información",
+  },
+  {
+    id: "informes-elaborados-dpi",
+    label: "Informes elaborados",
+    icon: FileCheck2,
+    href: "/revision-normativa/fuentes?tab=informes",
+    allowedRoles: ["EQ_NORMATIVA"],
+    section: "Protección de la Información",
   },
 
   // ── Jurídica ──
   {
     id: "formalizacion-contratos",
-    label: "Contratos de interoperabilidad",
+    label: "Contratos de acceso",
     icon: FileText,
     href: "/formalizacion/contratos",
     allowedRoles: ["JURIDICA", "ADMIN"],
@@ -260,7 +427,7 @@ const navItems: NavItem[] = [
   },
   {
     id: "acceso-consumo-ti",
-    label: "Aprovisionamiento y acceso",
+    label: "Aprovisionar accesos",
     icon: Cpu,
     href: "/acceso-consumo",
     allowedRoles: ["TI", "ADMIN"],
@@ -283,7 +450,7 @@ const navItems: NavItem[] = [
   },
   {
     id: "coordinadores",
-    label: "Coordinadores",
+    label: "Coordinadores SINARP",
     icon: UserCheck,
     href: "/coordinadores",
     allowedRoles: ["ADMIN"],
@@ -318,7 +485,7 @@ const navItems: NavItem[] = [
   },
   {
     id: "configuracion-financiera",
-    label: "Tarifario, Facturación y Pasarela",
+    label: "Tarifario y pasarela",
     icon: Receipt,
     href: "/configuracion-financiera",
     allowedRoles: ["ADMIN"],
@@ -498,14 +665,19 @@ export function WireframeDashboardLayout({
   };
 
   const isItemActive = (item: NavItem) => {
-    if (activeMenu && (activeMenu === item.id || activeMenu === item.href.replace(/^\//, ""))) {
-      return true;
+    if (activeMenu) {
+      return activeMenu === item.id || activeMenu === item.href.replace(/^\//, "");
     }
     if (item.href && pathname) {
       const cleanPath = pathname.replace(/\/$/, "");
       const cleanHref = item.href.replace(/\/$/, "");
       if (cleanHref === "" || cleanHref === "/") {
         return cleanPath === "" || cleanPath === "/";
+      }
+      if (cleanHref === "/revision-normativa") {
+        if (cleanPath.startsWith("/revision-normativa/asignacion") || cleanPath.startsWith("/revision-normativa/fuentes")) {
+          return false;
+        }
       }
       return cleanPath === cleanHref || cleanPath.startsWith(cleanHref + "/");
     }
@@ -551,11 +723,6 @@ export function WireframeDashboardLayout({
 
         {/* Sidebar Content */}
         <SidebarContent className="flex-1 overflow-y-auto py-3 px-2 group-data-[collapsible=icon]:px-2 space-y-1">
-          <div className="px-2 pb-1.5 group-data-[collapsible=icon]:hidden">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70 dark:text-white/50 px-2">
-              {activeUserRole === "ADMIN" ? "Administración" : "Secciones"}
-            </p>
-          </div>
           <SidebarMenu>
             {(() => {
               const baseNavItems = navItems.filter((item) => {
@@ -569,14 +736,19 @@ export function WireframeDashboardLayout({
               });
 
               let visibleNavItems = baseNavItems;
-              if (isProvider) {
+              if (isProvider && activeUserRole === "COORDINADOR_SINARP") {
                 const priorityOrder: Record<string, number> = {
                   "fuentes-proveedor": 1,
                   "mis-solicitudes": 2,
-                  "catalogo-interoperabilidad": 3,
-                  "proyectos": 4,
-                  "cambio-coordinador": 5,
-                  "mi-suplencia": 6,
+                  "nueva-solicitud-interoperabilidad": 3,
+                  "catalogo-interoperabilidad": 4,
+                  "mis-accesos": 5,
+                  "proyectos": 6,
+                  "enrolamiento-coordinador": 7,
+                  "expedientes-anexo-b-coord": 8,
+                  "cambio-coordinador": 9,
+                  "expedientes-anexo-c": 10,
+                  "mi-suplencia": 11,
                 };
                 visibleNavItems = [...baseNavItems]
                   .sort((a, b) => (priorityOrder[a.id] || 99) - (priorityOrder[b.id] || 99))
@@ -591,24 +763,39 @@ export function WireframeDashboardLayout({
                   });
               }
 
-              return visibleNavItems.map((item) => {
+              const defaultSection = activeUserRole === "ADMIN" ? "Administración" : "Secciones";
+              let lastSection: string | null = null;
+
+              return visibleNavItems.map((item, idx) => {
                 const Icon = item.icon;
                 const isDirectActive = isItemActive(item);
+                const itemSection = item.section || defaultSection;
+                const showSectionHeader = itemSection !== lastSection;
+                lastSection = itemSection;
 
                 return (
-                  <SidebarMenuItem key={item.id}>
-                    <SidebarMenuButton asChild isActive={isDirectActive} tooltip={item.label}>
-                      <SidebarNavigationItemLink
-                        href={item.href}
-                        className="flex items-center gap-2.5 group-data-[collapsible=icon]:justify-center"
-                      >
-                        <Icon className="size-4.5 shrink-0" />
-                        <span className="truncate group-data-[collapsible=icon]:hidden font-medium">
-                          {item.label}
-                        </span>
-                      </SidebarNavigationItemLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
+                  <React.Fragment key={item.id}>
+                    {showSectionHeader && (
+                      <div className={cn("px-2 pb-1.5 group-data-[collapsible=icon]:hidden", idx > 0 && "pt-3")}>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70 dark:text-white/50 px-2">
+                          {itemSection}
+                        </p>
+                      </div>
+                    )}
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild isActive={isDirectActive} tooltip={item.label}>
+                        <SidebarNavigationItemLink
+                          href={item.href}
+                          className="flex items-center gap-2.5 group-data-[collapsible=icon]:justify-center"
+                        >
+                          <Icon className="size-4.5 shrink-0" />
+                          <span className="truncate group-data-[collapsible=icon]:hidden font-medium">
+                            {item.label}
+                          </span>
+                        </SidebarNavigationItemLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  </React.Fragment>
                 );
               });
             })()}

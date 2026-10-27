@@ -20,6 +20,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { InteractiveCard } from "@/components/ui/data-display";
+import { ViewModeToggle, type ViewMode } from "@/components/shared/view-mode-toggle";
 import { Search } from "@/components/ui/search";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -63,6 +65,7 @@ export function AccesoConsumoTIView() {
   const [filterEstado, setFilterEstado] = useState<
     "ALL" | "FALLO" | "HABILITADO" | "SUSPENDIDO_REVOCADO"
   >("ALL");
+  const [viewMode, setViewMode] = useState<ViewMode>("table");
   const [solicitudDetalle, setSolicitudDetalle] =
     useState<SolicitudAcceso | null>(null);
   const [credencialModalSolicitud, setCredencialModalSolicitud] =
@@ -213,10 +216,10 @@ export function AccesoConsumoTIView() {
               </Badge>
             </div>
             <h1 className="font-heading text-2xl sm:text-3xl font-bold tracking-tight text-foreground mt-1">
-              Gobierno Técnico de Credenciales, Cuotas y Ciclo de Vida en Apigee
+              Aprovisionar accesos
             </h1>
             <p className="text-sm text-muted-foreground mt-1 max-w-3xl">
-              Creación automática de accesos (`ACC-01`), reintento idempotente ante fallos (`ACC-02`), sustitución de secreto temporal (`ACC-09`), rotación de credenciales con alerta de incidentes (`ACC-05`/`ACC-07`), suspensión o revocación (`ACC-06`) y actualización de cupo/alcance (`ACC-08`).
+              Gestiona la creación de credenciales técnicas, cuotas de consumo, rotación de secretos y estado operativo de los accesos en Apigee.
             </p>
           </div>
         </div>
@@ -324,19 +327,27 @@ export function AccesoConsumoTIView() {
             </div>
           </div>
 
-          <div className="w-full sm:w-72">
-            <Search
-              placeholder="Buscar por código, institución o fuente..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              onClear={() => setSearchTerm("")}
-              className="w-full bg-background"
-            />
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <div className="w-full sm:w-72">
+              <Search
+                placeholder="Buscar por código, institución o fuente..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onClear={() => setSearchTerm("")}
+                className="w-full bg-background"
+              />
+            </div>
+            <ViewModeToggle value={viewMode} onChange={setViewMode} />
           </div>
         </div>
 
         {/* Tabla de Aprovisionamiento y Gobierno Apigee */}
-        <Card className="border border-border bg-surface overflow-hidden shadow-xs">
+        <Card
+          className={cn(
+            "border border-border bg-surface overflow-hidden shadow-xs",
+            viewMode === "table" ? "hidden md:block" : "hidden"
+          )}
+        >
           <Table>
             <TableHeader>
               <TableRow>
@@ -622,6 +633,277 @@ export function AccesoConsumoTIView() {
             </TableBody>
           </Table>
         </Card>
+
+        {/* Vista de Tarjetas (Móvil + Modo Cards) */}
+        <div
+          className={cn(
+            "w-full",
+            viewMode === "cards"
+              ? "grid grid-cols-1 md:grid-cols-2 gap-4"
+              : "block md:hidden space-y-3.5"
+          )}
+        >
+          {filtered.length === 0 ? (
+            <div className="col-span-full rounded-xl border border-dashed border-border bg-surface p-10 text-center flex flex-col items-center justify-center text-muted-foreground gap-2">
+              <Server className="size-8 stroke-1 text-muted-foreground/60" />
+              <p className="text-sm font-medium">
+                No hay registros técnicos en Apigee con estos filtros.
+              </p>
+            </div>
+          ) : (
+            filtered.map((s) => {
+              const prov = s.aprovisionamiento;
+              const creds = s.credenciales;
+              const isFallo = prov?.estado === "ERROR";
+              const isSuspendido =
+                s.estado === "Acceso suspendido" ||
+                s.estado === "Cerrada por reversión" ||
+                creds?.estadoApigee === "SUSPENDIDO";
+              const isRevocado =
+                s.estado === "Acceso revocado" ||
+                creds?.estadoApigee === "REVOCADO";
+              const isHabilitado =
+                !isFallo &&
+                !isSuspendido &&
+                !isRevocado &&
+                (s.estado === "Acceso habilitado" ||
+                  s.estado === "Acceso generado");
+
+              return (
+                <InteractiveCard
+                  key={s.id}
+                  as="div"
+                  className={cn(
+                    "p-4 flex flex-col gap-3 bg-surface border-border",
+                    isFallo && "bg-destructive/5 border-destructive/30"
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-2 w-full">
+                    <div>
+                      <div className="font-semibold text-foreground">{s.id}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {s.institucion} ({s.tipoInstitucion})
+                      </div>
+                    </div>
+                    {isFallo ? (
+                      <Badge
+                        tone="danger"
+                        appearance="soft"
+                        className="gap-1 text-xs font-semibold shrink-0"
+                      >
+                        <AlertTriangle className="size-3" />
+                        Fallo Apigee (ACC-02)
+                      </Badge>
+                    ) : isRevocado ? (
+                      <Badge
+                        tone="danger"
+                        appearance="soft"
+                        className="gap-1 text-xs font-semibold shrink-0"
+                      >
+                        <Ban className="size-3" />
+                        Acceso revocado (ACC-06)
+                      </Badge>
+                    ) : isSuspendido ? (
+                      <Badge
+                        tone="warning"
+                        appearance="soft"
+                        className="gap-1 text-xs font-semibold shrink-0"
+                      >
+                        <Clock className="size-3" />
+                        Acceso suspendido (ACC-06)
+                      </Badge>
+                    ) : isHabilitado ? (
+                      <Badge
+                        tone="success"
+                        appearance="soft"
+                        className="gap-1 text-xs shrink-0"
+                      >
+                        <CheckCircle2 className="size-3" />
+                        Activo en Apigee
+                      </Badge>
+                    ) : (
+                      <Badge
+                        tone="warning"
+                        appearance="soft"
+                        className="gap-1 text-xs shrink-0"
+                      >
+                        <Clock className="size-3" />
+                        En cola
+                      </Badge>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 text-xs w-full pt-2 border-t border-border">
+                    <div>
+                      <span className="text-muted-foreground block text-[11px]">
+                        Política de Cupo Apigee
+                      </span>
+                      <div className="font-semibold text-foreground">
+                        {(
+                          creds?.cupoAutorizadoVigente ?? s.cupo ?? 100000
+                        ).toLocaleString()}{" "}
+                        consultas
+                      </div>
+                      <Badge
+                        tone={s.tipoInstitucion === "Privada" ? "warning" : "info"}
+                        appearance="outline"
+                        className="text-[10px] mt-0.5"
+                      >
+                        {s.tipoInstitucion === "Privada"
+                          ? "BLOQUEANTE_PRIVADA"
+                          : "REFERENCIA_ALERTA_PUBLICA"}
+                      </Badge>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block text-[11px]">
+                        Estado Secreto
+                      </span>
+                      {creds ? (
+                        <div className="space-y-1">
+                          <Badge
+                            tone={creds.esSecretoTemporal ? "warning" : "primary"}
+                            appearance="soft"
+                            className="text-[11px]"
+                          >
+                            {creds.esSecretoTemporal
+                              ? "Secreto Temporal (ACC-09)"
+                              : "Secreto Definitivo"}
+                          </Badge>
+                          <div className="text-[11px] text-muted-foreground">
+                            Rotaciones: {creds.rotacionCount ?? 0}
+                          </div>
+                          {creds.alertaIncidenteSeguridad && (
+                            <div className="text-[11px] text-destructive font-semibold flex items-center gap-1">
+                              <ShieldAlert className="size-3" />
+                              Alerta ACC-07
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">
+                          Pendiente de emisión
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-end gap-1.5 pt-2 border-t border-border w-full">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSolicitudDetalle(s)}
+                      className="text-xs text-muted-foreground hover:text-foreground gap-1"
+                    >
+                      <Eye className="size-3.5" />
+                      Diagnóstico
+                    </Button>
+
+                    {isFallo && (
+                      <Button
+                        size="sm"
+                        variant="primary"
+                        onClick={() => handleReintentar(s.id)}
+                        disabled={reintentandoId === s.id}
+                        className="gap-1.5 text-xs"
+                      >
+                        <RotateCcw
+                          className={cn(
+                            "size-3.5",
+                            reintentandoId === s.id && "animate-spin"
+                          )}
+                        />
+                        Reintentar Apigee (ACC-02)
+                      </Button>
+                    )}
+
+                    {creds && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setCredencialModalSolicitud(s)}
+                        className="gap-1 text-xs"
+                      >
+                        <KeyRound className="size-3.5 text-primary" />
+                        Bóveda / Rotar (ACC-04/05/09)
+                      </Button>
+                    )}
+
+                    {isHabilitado && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setModalCupoApigee(s);
+                          setNuevoCupoValor(
+                            String(
+                              (creds?.cupoAutorizadoVigente ?? s.cupo ?? 100000) +
+                                50000
+                            )
+                          );
+                        }}
+                        className="gap-1 text-xs"
+                      >
+                        <SlidersHorizontal className="size-3.5" />
+                        Cupo (ACC-08)
+                      </Button>
+                    )}
+
+                    {isHabilitado && (
+                      <>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setModalAccionApigee({
+                              solicitud: s,
+                              tipoAccion: "SUSPENDER",
+                            });
+                            setCausaAccionApigee("");
+                          }}
+                          className="gap-1 text-xs text-warning"
+                        >
+                          Suspender (ACC-06)
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setModalAccionApigee({
+                              solicitud: s,
+                              tipoAccion: "REVOCAR",
+                            });
+                            setCausaAccionApigee("");
+                          }}
+                          className="gap-1 text-xs text-destructive"
+                        >
+                          Revocar (ACC-06)
+                        </Button>
+                      </>
+                    )}
+
+                    {isSuspendido && !isRevocado && (
+                      <Button
+                        size="sm"
+                        variant="primary"
+                        onClick={() => {
+                          setModalAccionApigee({
+                            solicitud: s,
+                            tipoAccion: "REACTIVAR",
+                          });
+                          setCausaAccionApigee("");
+                        }}
+                        className="gap-1 text-xs"
+                      >
+                        <Unlock className="size-3.5" />
+                        Reactivar (ACC-06)
+                      </Button>
+                    )}
+                  </div>
+                </InteractiveCard>
+              );
+            })
+          )}
+        </div>
       </div>
 
       {/* Modal Bóveda Credencial Técnica (ACC-03, ACC-04, ACC-05, ACC-07, ACC-09) */}

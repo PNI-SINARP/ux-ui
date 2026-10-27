@@ -1,11 +1,14 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
+import { InteractiveCard } from "@/components/ui/data-display";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { ViewModeToggle, type ViewMode } from "@/components/shared/view-mode-toggle";
+import { cn } from "@/lib/utils";
 import {
   Table,
   TableHeader,
@@ -35,6 +38,7 @@ interface ProyectoSolicitudesCardProps {
 
 export function ProyectoSolicitudesCard({ proyecto }: ProyectoSolicitudesCardProps) {
   const router = useRouter();
+  const [viewMode, setViewMode] = useState<ViewMode>("table");
   const solicitudes = proyecto.solicitudes || [];
   const tieneSolicitudes = solicitudes.length > 0;
 
@@ -105,16 +109,19 @@ export function ProyectoSolicitudesCard({ proyecto }: ProyectoSolicitudesCardPro
         </div>
 
         {tieneSolicitudes && (
-          <Button
-            type="button"
-            variant="primary"
-            size="sm"
-            onClick={handleSolicitarAcceso}
-            leftIcon={<Plus className="size-4" />}
-            rightIcon={<ArrowUpRight className="size-3.5" />}
-          >
-            Solicitar acceso a datos
-          </Button>
+          <div className="flex flex-wrap items-center justify-end gap-2 ml-auto">
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              onClick={handleSolicitarAcceso}
+              leftIcon={<Plus className="size-4" />}
+              rightIcon={<ArrowUpRight className="size-3.5" />}
+            >
+              Solicitar acceso a datos
+            </Button>
+            <ViewModeToggle value={viewMode} onChange={setViewMode} />
+          </div>
         )}
       </div>
 
@@ -155,60 +162,126 @@ export function ProyectoSolicitudesCard({ proyecto }: ProyectoSolicitudesCardPro
         </div>
       ) : (
         <div className="space-y-4">
-          <Table containerClassName="overflow-x-auto w-full">
-            <TableHeader>
-              <TableRow className="border-0">
-                <TableHead className="font-semibold text-white text-xs py-3.5 px-4 pl-6">
-                  Código Solicitud
-                </TableHead>
-                <TableHead className="font-semibold text-white text-xs py-3.5 px-4">
-                  Fuente de Interoperabilidad
-                </TableHead>
-                <TableHead className="font-semibold text-white text-xs py-3.5 px-4">
-                  Servicio / Finalidad
-                </TableHead>
-                <TableHead className="font-semibold text-white text-xs py-3.5 px-4">
-                  Fecha Radicación
-                </TableHead>
-                <TableHead className="font-semibold text-white text-xs py-3.5 px-4">
-                  Estado
-                </TableHead>
-                <TableHead className="font-semibold text-white text-xs py-3.5 px-4 text-right pr-6">
-                  Acción
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {solicitudes.map((sol) => (
-                <TableRow key={sol.id} className="hover:bg-muted/20 transition-colors">
-                  <TableCell className="font-mono text-xs font-semibold text-primary py-3 px-4">
-                    <Link
-                      href={`/acceso-interoperabilidad/solicitudes/${sol.id}`}
-                      className="hover:underline flex items-center gap-1"
-                    >
-                      {sol.id}
-                      <ExternalLink className="size-3 opacity-60" />
-                    </Link>
-                  </TableCell>
-                  <TableCell className="text-xs text-foreground py-3 px-4 font-medium">
-                    <div className="flex items-center gap-1.5">
-                      <Database className="size-3.5 text-primary/70 shrink-0" />
-                      <span>{sol.fuentePrincipal}</span>
+          <div className={cn("w-full", viewMode === "table" ? "hidden md:block" : "hidden")}>
+            <Table containerClassName="overflow-x-auto w-full">
+              <TableHeader>
+                <TableRow className="border-0">
+                  <TableHead className="font-semibold text-white text-xs py-3.5 px-4 pl-6">
+                    Código Solicitud
+                  </TableHead>
+                  <TableHead className="font-semibold text-white text-xs py-3.5 px-4">
+                    Fuente de Interoperabilidad
+                  </TableHead>
+                  <TableHead className="font-semibold text-white text-xs py-3.5 px-4">
+                    Servicio / Finalidad
+                  </TableHead>
+                  <TableHead className="font-semibold text-white text-xs py-3.5 px-4">
+                    Fecha Radicación
+                  </TableHead>
+                  <TableHead className="font-semibold text-white text-xs py-3.5 px-4">
+                    Estado
+                  </TableHead>
+                  <TableHead className="font-semibold text-white text-xs py-3.5 px-4 text-right pr-6">
+                    Acción
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {solicitudes.map((sol) => (
+                  <TableRow key={sol.id} className="hover:bg-muted/20 transition-colors">
+                    <TableCell className="font-mono text-xs font-semibold text-primary py-3 px-4">
+                      <Link
+                        href={`/acceso-interoperabilidad/solicitudes/${sol.id}`}
+                        className="hover:underline flex items-center gap-1"
+                      >
+                        {sol.id}
+                        <ExternalLink className="size-3 opacity-60" />
+                      </Link>
+                    </TableCell>
+                    <TableCell className="text-xs text-foreground py-3 px-4 font-medium">
+                      <div className="flex items-center gap-1.5">
+                        <Database className="size-3.5 text-primary/70 shrink-0" />
+                        <span>{sol.fuentePrincipal}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground py-3 px-4">
+                      {sol.servicioPrincipal}
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground py-3 px-4 whitespace-nowrap">
+                      <div className="flex items-center gap-1.5">
+                        <Calendar className="size-3 text-muted-foreground/70 shrink-0" />
+                        <span>{sol.fecha}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-3 px-4 whitespace-nowrap">
+                      {getBadgePorEstado(sol.estado)}
+                    </TableCell>
+                    <TableCell className="py-3 px-4 text-right">
+                      <Button
+                        asChild
+                        variant="outline"
+                        size="sm"
+                        className="text-xs h-7 px-2.5"
+                      >
+                        <Link href={`/acceso-interoperabilidad/solicitudes/${sol.id}`}>
+                          Ver solicitud
+                        </Link>
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+
+          <div
+            className={cn(
+              "w-full",
+              viewMode === "cards"
+                ? "grid grid-cols-1 md:grid-cols-2 gap-4"
+                : "block md:hidden space-y-3.5"
+            )}
+          >
+            {solicitudes.map((sol) => (
+              <InteractiveCard
+                key={sol.id}
+                color="primary"
+                className="w-full bg-surface border-border/80 shadow-2xs"
+              >
+                <div className="space-y-3 w-full">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="size-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                        <Database className="size-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <Link
+                          href={`/acceso-interoperabilidad/solicitudes/${sol.id}`}
+                          className="font-mono text-xs font-bold text-primary hover:underline flex items-center gap-1"
+                        >
+                          {sol.id}
+                          <ExternalLink className="size-3 opacity-60" />
+                        </Link>
+                        <p className="text-xs font-semibold text-foreground truncate">
+                          {sol.fuentePrincipal}
+                        </p>
+                      </div>
                     </div>
-                  </TableCell>
-                  <TableCell className="text-xs text-muted-foreground py-3 px-4">
+                    <div className="shrink-0">{getBadgePorEstado(sol.estado)}</div>
+                  </div>
+
+                  <div className="p-2.5 rounded-lg bg-muted/20 border border-border/50 text-xs text-muted-foreground">
+                    <span className="font-semibold text-foreground block text-[11px] mb-0.5">
+                      Servicio / Finalidad
+                    </span>
                     {sol.servicioPrincipal}
-                  </TableCell>
-                  <TableCell className="text-xs text-muted-foreground py-3 px-4 whitespace-nowrap">
-                    <div className="flex items-center gap-1.5">
-                      <Calendar className="size-3 text-muted-foreground/70 shrink-0" />
+                  </div>
+
+                  <div className="pt-2 border-t border-border/60 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Calendar className="size-3.5 text-muted-foreground/70" />
                       <span>{sol.fecha}</span>
                     </div>
-                  </TableCell>
-                  <TableCell className="py-3 px-4 whitespace-nowrap">
-                    {getBadgePorEstado(sol.estado)}
-                  </TableCell>
-                  <TableCell className="py-3 px-4 text-right">
                     <Button
                       asChild
                       variant="outline"
@@ -219,11 +292,11 @@ export function ProyectoSolicitudesCard({ proyecto }: ProyectoSolicitudesCardPro
                         Ver solicitud
                       </Link>
                     </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                  </div>
+                </div>
+              </InteractiveCard>
+            ))}
+          </div>
 
           <div className="flex items-center justify-between text-xs text-muted-foreground pt-1 px-1">
             <span>

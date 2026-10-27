@@ -65,6 +65,7 @@ import {
 } from "@/modules/coordinadores/data/coordinadores-store";
 import { ActualizarContactoAccesoDialog } from "@/modules/coordinadores/components/actualizar-contacto-acceso-dialog";
 import { SuspenderReactivarCoordinadorDialog } from "@/modules/coordinadores/components/suspender-reactivar-coordinador-dialog";
+import { ViewModeToggle, type ViewMode } from "@/components/shared/view-mode-toggle";
 
 export function CoordinadoresView() {
   const {
@@ -88,6 +89,7 @@ export function CoordinadoresView() {
   // Paginación (idéntica a Cuentas Internas)
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [viewMode, setViewMode] = useState<ViewMode>("table");
 
   // Modales
   const [dialogContactoOpen, setDialogContactoOpen] = useState(false);
@@ -428,7 +430,7 @@ export function CoordinadoresView() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 w-full">
             <div className="space-y-1 min-w-0 flex-1">
               <h1 className="font-heading font-extrabold text-2xl sm:text-3xl tracking-tight text-primary">
-                Coordinadores institucionales
+                Coordinadores SINARP
               </h1>
               <p className="text-xs sm:text-sm text-muted-foreground w-full max-w-none leading-relaxed font-normal">
                 Gestiona las cuentas personales de Coordinadores SINARP, su contacto, segundo factor y estado de acceso.
@@ -901,6 +903,8 @@ export function CoordinadoresView() {
                     </ComboboxContent>
                   </Combobox>
                 </div>
+
+                <ViewModeToggle value={viewMode} onChange={setViewMode} />
               </div>
             </div>
 
@@ -1076,7 +1080,7 @@ export function CoordinadoresView() {
 
           <TooltipProvider delayDuration={150}>
             {/* Tabla de Coordinadores (Desktop md+) */}
-            <div className="hidden md:block w-full">
+            <div className={cn("w-full", viewMode === "table" ? "hidden md:block" : "hidden")}>
               <Table
                 className="w-full min-w-[1380px]"
                 containerClassName="overflow-x-auto w-full"
@@ -1454,10 +1458,17 @@ export function CoordinadoresView() {
               </Table>
             </div>
 
-            {/* Vista Mobile Cards (<md) con Tarjeta Interactiva del UI Kit */}
-            <div className="block md:hidden w-full space-y-3.5">
+            {/* Vista Cards (<md o cuando viewMode === "cards") con Tarjeta Interactiva del UI Kit */}
+            <div
+              className={cn(
+                "w-full",
+                viewMode === "cards"
+                  ? "grid grid-cols-1 md:grid-cols-2 gap-4"
+                  : "block md:hidden space-y-3.5"
+              )}
+            >
               {paginatedCoordinadores.length === 0 ? (
-                <div className="flex flex-col items-center justify-center p-8 bg-surface border border-border rounded-xl text-center space-y-2">
+                <div className="col-span-full flex flex-col items-center justify-center p-8 bg-surface border border-border rounded-xl text-center space-y-2">
                   <Users className="size-8 stroke-[1.5] text-muted-foreground/60" />
                   <p className="text-sm font-semibold text-foreground">No se encontraron coordinadores</p>
                   <p className="text-xs text-muted-foreground">

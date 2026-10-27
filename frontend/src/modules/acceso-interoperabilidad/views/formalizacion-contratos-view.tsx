@@ -33,6 +33,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { InteractiveCard } from "@/components/ui/data-display";
+import { ViewModeToggle, type ViewMode } from "@/components/shared/view-mode-toggle";
 import { Search } from "@/components/ui/search";
 import {
   Table,
@@ -70,6 +72,7 @@ export function FormalizacionContratosView() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [estadoFilter, setEstadoFilter] = useState("ALL");
+  const [viewMode, setViewMode] = useState<ViewMode>("table");
 
   // Modales
   const [modalGenerar, setModalGenerar] = useState<SolicitudAcceso | null>(null);
@@ -178,10 +181,10 @@ export function FormalizacionContratosView() {
               <span className="text-xs text-muted-foreground">DOC-01 + DOC-02 + DOC-03</span>
             </div>
             <h1 className="font-heading text-2xl sm:text-3xl font-bold tracking-tight text-foreground mt-1">
-              Contratos de Interoperabilidad para Entidades Privadas
+              Contratos de acceso
             </h1>
             <p className="text-sm text-muted-foreground mt-1 max-w-3xl">
-              Generación de instrumentos contractuales bilaterales, control de versiones pre-firma y seguimiento de suscripción electrónica por las partes legalmente acreditadas.
+              Genera los instrumentos contractuales para entidades privadas, controla sus versiones previas a la firma y da seguimiento a la suscripción electrónica.
             </p>
           </div>
 
@@ -248,19 +251,27 @@ export function FormalizacionContratosView() {
             </div>
           </div>
 
-          <div className="w-full sm:w-72">
-            <Search
-              placeholder="Buscar por institución, código o contrato..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              onClear={() => setSearchTerm("")}
-              className="w-full bg-background"
-            />
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <div className="w-full sm:w-72">
+              <Search
+                placeholder="Buscar por institución, código o contrato..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onClear={() => setSearchTerm("")}
+                className="w-full bg-background"
+              />
+            </div>
+            <ViewModeToggle value={viewMode} onChange={setViewMode} />
           </div>
         </div>
 
         {/* Tabla de Contratos */}
-        <Card className="border border-border bg-surface overflow-hidden shadow-xs">
+        <Card
+          className={cn(
+            "border border-border bg-surface overflow-hidden shadow-xs",
+            viewMode === "table" ? "hidden md:block" : "hidden"
+          )}
+        >
           <Table>
             <TableHeader>
               <TableRow>
@@ -477,6 +488,255 @@ export function FormalizacionContratosView() {
             </TableBody>
           </Table>
         </Card>
+
+        {/* Vista de Tarjetas (Móvil + Modo Cards) */}
+        <div
+          className={cn(
+            "w-full",
+            viewMode === "cards"
+              ? "grid grid-cols-1 md:grid-cols-2 gap-4"
+              : "block md:hidden space-y-3.5"
+          )}
+        >
+          {filtered.length === 0 ? (
+            <div className="col-span-full rounded-xl border border-dashed border-border bg-surface p-10 text-center flex flex-col items-center justify-center text-muted-foreground gap-2">
+              <FileSignature className="size-8 stroke-1 text-muted-foreground/60" />
+              <p className="text-sm font-medium">
+                No se encontraron contratos privados bajo este criterio.
+              </p>
+            </div>
+          ) : (
+            filtered.map((s) => {
+              const contrato = s.contratoDetalle;
+              const numeroContrato =
+                contrato?.numero || s.contrato || "Pendiente generar";
+              const estado =
+                contrato?.estado || (s.contrato ? "Firmado" : "Sin instrumento");
+              const version = contrato?.version || (s.contrato ? 1 : 0);
+
+              return (
+                <InteractiveCard
+                  key={s.id}
+                  as="div"
+                  className="p-4 flex flex-col gap-3 bg-surface border-border"
+                >
+                  <div className="flex items-start justify-between gap-2 w-full">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-foreground font-mono text-sm">
+                          {numeroContrato}
+                        </span>
+                        <Badge
+                          tone="neutral"
+                          appearance="soft"
+                          className="font-mono text-xs"
+                        >
+                          v{version}
+                        </Badge>
+                      </div>
+                      <p className="text-xs font-medium text-foreground mt-0.5">
+                        {s.institucion}
+                      </p>
+                    </div>
+                    <Badge
+                      tone={
+                        estado === "Firmado"
+                          ? "success"
+                          : estado === "Pendiente de firmas"
+                          ? "warning"
+                          : "primary"
+                      }
+                      appearance="soft"
+                      className="text-xs shrink-0"
+                    >
+                      {estado}
+                    </Badge>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 text-xs w-full pt-2 border-t border-border">
+                    <div>
+                      <span className="text-muted-foreground block">
+                        Solicitud base
+                      </span>
+                      <Link
+                        href={`/acceso-interoperabilidad/solicitudes/${s.id}`}
+                        className="font-mono hover:underline text-primary"
+                      >
+                        {s.id}
+                      </Link>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block">
+                        Fuente autorizada
+                      </span>
+                      <span className="font-medium text-foreground">
+                        {s.fuentePrincipal || s.fuentes?.[0]?.nombre}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-border w-full">
+                    {s.estado === "Pendiente de plantilla" && (
+                      <Button
+                        size="sm"
+                        variant="primary"
+                        onClick={() => {
+                          simularPendientePlantillaContrato(
+                            s.id,
+                            true,
+                            "Abg. Santiago Valdivieso (Jurídica)"
+                          );
+                          toast.success(
+                            "Plantilla contractual activada (DOC-01 Crit. 3)",
+                            {
+                              description:
+                                "Ya puede generar el borrador del contrato para esta solicitud.",
+                            }
+                          );
+                        }}
+                        className="gap-1.5 text-xs"
+                      >
+                        <CheckCircle2 className="size-3.5" />
+                        Activar plantilla y desbloquear (DOC-01)
+                      </Button>
+                    )}
+
+                    {!contrato &&
+                      !s.contrato &&
+                      s.estado !== "Pendiente de plantilla" && (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              simularPendientePlantillaContrato(
+                                s.id,
+                                false,
+                                "Abg. Santiago Valdivieso (Jurídica)"
+                              );
+                              toast.warning(
+                                "Ausencia de plantilla simulada (DOC-01 Crit. 3)",
+                                {
+                                  description:
+                                    "La solicitud quedó en 'Pendiente de plantilla'.",
+                                }
+                              );
+                            }}
+                            className="gap-1 text-xs"
+                          >
+                            <AlertTriangle className="size-3.5 text-warning" />
+                            Simular Sin Plantilla (DOC-01)
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              setModalGenerar(s);
+                              setCantidadContratada(s.cupo || 50000);
+                            }}
+                            className="gap-1.5 text-xs bg-primary text-primary-foreground font-semibold"
+                          >
+                            <Plus className="size-3.5" />
+                            Generar contrato
+                          </Button>
+                        </>
+                      )}
+
+                    {contrato?.estado === "Borrador" && (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setModalEditar(s);
+                            setCantidadContratada(
+                              contrato.cantidadContratada || 100000
+                            );
+                            setClausulas(contrato.clausulas || "");
+                          }}
+                          className="gap-1.5 text-xs"
+                        >
+                          <Edit className="size-3.5" />
+                          Editar borrador
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => setModalEnviarFirmas(s)}
+                          className="gap-1.5 text-xs bg-primary text-primary-foreground font-semibold"
+                        >
+                          <Send className="size-3.5" />
+                          Enviar a firmas
+                        </Button>
+                      </>
+                    )}
+
+                    {contrato?.estado === "Pendiente de firmas" && (
+                      <>
+                        {!contrato.firmadoCoordinador && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              setModalFirmar({
+                                solicitud: s,
+                                rol: "COORDINADOR_SINARP",
+                              })
+                            }
+                            className="text-xs gap-1 border-primary/40 text-primary hover:bg-primary/5"
+                          >
+                            <FileSignature className="size-3.5" />
+                            Firma Coordinador
+                          </Button>
+                        )}
+                        {!contrato.firmadoMaximaAutoridad && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              setModalFirmar({
+                                solicitud: s,
+                                rol: "MAXIMA_AUTORIDAD",
+                              })
+                            }
+                            className="text-xs gap-1 border-primary/40 text-primary hover:bg-primary/5"
+                          >
+                            <FileSignature className="size-3.5" />
+                            Firma Máxima Autoridad
+                          </Button>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setModalEditar(s);
+                            setCantidadContratada(
+                              contrato.cantidadContratada || 100000
+                            );
+                            setClausulas(contrato.clausulas || "");
+                          }}
+                          className="text-xs text-muted-foreground hover:text-foreground"
+                          title="Editar requerirá re-firmar el contrato"
+                        >
+                          <Edit className="size-3.5" />
+                        </Button>
+                      </>
+                    )}
+
+                    {(estado === "Firmado" || contrato?.estado === "Firmado") && (
+                      <Badge
+                        tone="success"
+                        appearance="soft"
+                        className="gap-1 text-xs"
+                      >
+                        <CheckCircle2 className="size-3" />
+                        Suscrito bilateralmente
+                      </Badge>
+                    )}
+                  </div>
+                </InteractiveCard>
+              );
+            })
+          )}
+        </div>
       </div>
 
       {/* Modal Generar Contrato (DOC-01) */}

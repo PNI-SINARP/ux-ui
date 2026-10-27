@@ -134,18 +134,18 @@ export const ROLES_CONFIG: Record<UserRole, RoleInfo> = {
   },
   DIR_NORMATIVA: {
     id: "DIR_NORMATIVA",
-    name: "Director Área de Normatividad",
-    shortName: "Dir. Normativa",
+    name: "Director de Protección de la Información (DPI)",
+    shortName: "Director DPI",
     badgeTone: "neutral",
-    description: "Recibe solicitudes de Gestión y asigna revisor normativo.",
+    description: "Recibe solicitudes de Gestión y asigna revisor DPI.",
     responsibilities: []
   },
   EQ_NORMATIVA: {
     id: "EQ_NORMATIVA",
-    name: "Equipo de Normatividad",
-    shortName: "Eq. Normativa",
+    name: "Revisor de Protección de la Información (DPI)",
+    shortName: "Revisor DPI",
     badgeTone: "neutral",
-    description: "Genera resolución de ingreso y finaliza trámite.",
+    description: "Evalúa campos confidenciales y elabora informe favorable DPI.",
     responsibilities: []
   },
   REPRESENTANTE_INSTITUCIONAL: {
@@ -247,25 +247,25 @@ export const MOCK_USERS_BY_ROLE: Record<UserRole, MockUser> = {
   },
   DIR_NORMATIVA: {
     id: "U-DIRNORM",
-    name: "Director de Normatividad",
+    name: "Director de Protección de la Información (DPI)",
     role: "DIR_NORMATIVA",
-    roleTitle: "Director de Normatividad",
-    email: "normativa.director@gmail.com",
-    avatar: "DN",
+    roleTitle: "Director de Protección de la Información (DPI)",
+    email: "dpi.director@dinarp.gob.ec",
+    avatar: "DP",
     institution: "DINARP",
     cedula: "2222222222",
-    initials: "DN"
+    initials: "DP"
   },
   EQ_NORMATIVA: {
     id: "U-EQNORM",
-    name: "Personal facultado de Normatividad",
+    name: "Carlos Mora (Revisor DPI)",
     role: "EQ_NORMATIVA",
-    roleTitle: "Revisor de Normatividad",
-    email: "normativa.revisor@gmail.com",
-    avatar: "PN",
+    roleTitle: "Revisor de Protección de la Información (DPI)",
+    email: "dpi.revisor@dinarp.gob.ec",
+    avatar: "CM",
     institution: "DINARP",
     cedula: "3333333333",
-    initials: "PN"
+    initials: "CM"
   },
   COORDINADOR_SINARP: {
     id: "1712345678",

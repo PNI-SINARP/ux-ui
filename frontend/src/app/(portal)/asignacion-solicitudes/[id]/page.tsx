@@ -1,8 +1,7 @@
 import { SolicitudDetalleView } from "@/modules/gestion-solicitudes/views/solicitud-detalle-view";
+import { STATIC_SOLICITUDES_IDS } from "@/modules/gestion-solicitudes/data/static-solicitudes-ids";
 
 export const dynamicParams = false;
-
-import { STATIC_SOLICITUDES_IDS } from "@/modules/gestion-solicitudes/data/static-solicitudes-ids";
 
 export function generateStaticParams() {
   return STATIC_SOLICITUDES_IDS.map((id) => ({ id }));
@@ -18,6 +17,8 @@ export default async function SolicitudDetailPage({ params }: PageProps) {
     <SolicitudDetalleView
       id={id}
       basePath="/asignacion-solicitudes"
+      sectionTitle="Anexo A — Incorporación institucional"
+      activeMenu="asignacion-solicitudes"
       showEnr03={true}
     />
   );

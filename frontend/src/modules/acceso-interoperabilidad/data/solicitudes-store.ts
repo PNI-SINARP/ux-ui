@@ -5,11 +5,17 @@ import { useState, useEffect, useCallback } from "react";
 export interface CampoDetalle {
   id: string;
   nombre: string;
+  nombreCampo?: string;
+  etiquetaFuncional?: string;
+  etiquetaSensibilidad?: string;
   descripcion: string;
   tipo?: string;
   clasificacion: "Accesible" | "Confidencial";
   finalidad: string;
+  finalidadUso?: string;
   fundamento?: string;
+  justificacionConfidencial?: string;
+  adjuntoConfidencialNombre?: string;
   estado?: string;
 }
 
@@ -106,7 +112,7 @@ export interface ObservacionItem {
   descripcion: string;
   fecha: string;
   revisor: string;
-  etapa: "Gestión" | "Normatividad";
+  etapa: "Gestión" | "Normatividad" | "Protección de la Información (DPI)";
 }
 
 export interface AsignacionRegistro {
@@ -231,7 +237,14 @@ export interface SolicitudAcceso {
   fuentePrincipal?: string;
   servicioPrincipal?: string;
   proyectoId?: string;
+  proyectoCodigo?: string;
   proyectoNombre?: string;
+  proyectoObjetivo?: string;
+  justificacionGeneral?: string;
+  documentoSustentoNombre?: string;
+  solicitanteNombre?: string;
+  solicitanteCargo?: string;
+  trazabilidad?: { fecha: string; accion: string; actor: string; detalle?: string }[];
   modalidad?: ModalidadAcceso;
   cupo?: number;
   modalidadAprobada?: ModalidadAcceso;
@@ -297,9 +310,62 @@ export interface SolicitudAcceso {
   historial: TrazabilidadEvento[];
 }
 
-const STORAGE_KEY = "dinarp_solicitudes_v9";
+const STORAGE_KEY = "dinarp_solicitudes_v10";
 
 export const INITIAL_SOLICITUDES: SolicitudAcceso[] = [
+  {
+    id: "SOL-2026-015",
+    institucion: "Ministerio de Inclusión Económica y Social (MIES)",
+    tipoInstitucion: "Pública",
+    coordinador: "Andrea López",
+    proyectoId: "PRJ-2026-001",
+    proyectoNombre: "Sistema Único de Registro y Matrícula Estudiantil",
+    fecha: "2026-09-25 08:15",
+    ultimaActualizacion: "2026-09-25 08:40",
+    estado: "Borrador",
+    responsable: "Coordinador SINARP",
+    versionExpediente: 1,
+    modalidad: "API individual",
+    cupo: 35000,
+    fuentesCount: 1,
+    camposCount: 2,
+    fuentePrincipal: "Registro Civil de Ciudadanos",
+    servicioPrincipal: "Consulta de Datos de Identidad y Hogar",
+    instrumento: "Convenio",
+    fuentes: [
+      {
+        id: "FNT-001",
+        nombre: "Registro Civil de Ciudadanos",
+        institucion: "Dirección General de Registro Civil",
+        campos: [
+          {
+            id: "cmp-01",
+            nombre: "cedulaCiudadania",
+            descripcion: "Número oficial de cédula de ciudadanía.",
+            clasificacion: "Accesible",
+            finalidad: "Validación de identidad del jefe de hogar para focalización de bonos sociales."
+          },
+          {
+            id: "cmp-02",
+            nombre: "estadoCivil",
+            descripcion: "Condición civil actual registrada formalmente ante el Estado.",
+            clasificacion: "Confidencial",
+            finalidad: "Verificación de composición familiar en subsidios de protección social.",
+            fundamento: "Ley Orgánica de Protección de Datos Personales Art. 12 y Acuerdo Ministerial MIES-2026-014."
+          }
+        ]
+      }
+    ],
+    documentos: [],
+    historial: [
+      {
+        fecha: "2026-09-25 08:40",
+        evento: "Solicitud guardada como borrador (SOL-01)",
+        actor: "Andrea López (Coordinadora SINARP)",
+        detalle: "Borrador guardado en el asistente antes de su envío formal a la Dirección de Gestión."
+      }
+    ]
+  },
   {
     id: "SOL-2026-001",
     institucion: "Ministerio de Telecomunicaciones y de la Sociedad de la Información (MINTEL)",
@@ -639,8 +705,8 @@ export const INITIAL_SOLICITUDES: SolicitudAcceso[] = [
     fuentePrincipal: "Registro Civil de Ciudadanos",
     servicioPrincipal: "Consulta de Datos Registrales",
     instrumento: "Convenio",
-    fechaLimiteSubsanacion: "2026-10-12",
-    diasRestantesSubsanacion: 5,
+    fechaLimiteSubsanacion: "2026-09-29",
+    diasRestantesSubsanacion: 3,
     observacionesEstructuradas: [
       {
         id: "obs-1",
@@ -699,7 +765,7 @@ export const INITIAL_SOLICITUDES: SolicitudAcceso[] = [
     historial: [
       { fecha: "2026-09-23 08:00", evento: "Solicitud creada y enviada", actor: "Coordinador SINARP" },
       { fecha: "2026-09-23 10:00", evento: "Revisor asignado", actor: "Director Gestión", detalle: "Asignado a Ana Torres." },
-      { fecha: "2026-09-24 14:00", evento: "Solicitud observada por Gestión", actor: "Ana Torres (Revisor)", detalle: "Se registraron 2 observaciones en finalidad de estado civil y cupo solicitado. Plazo de 5 días hábiles." }
+      { fecha: "2026-09-24 14:00", evento: "Solicitud observada por Gestión (SOL-04 / SOL-06)", actor: "Ana Torres (Revisor)", detalle: "Se registraron 2 observaciones en finalidad de estado civil y cupo solicitado. Plazo inicial de 3 días hábiles (parametrizable según PAR-13 y calendario laboral PAR-10)." }
     ]
   },
   {
@@ -721,7 +787,7 @@ export const INITIAL_SOLICITUDES: SolicitudAcceso[] = [
     fuentePrincipal: "Registro Civil de Ciudadanos",
     servicioPrincipal: "Consulta de Licencias",
     instrumento: "Convenio",
-    fechaLimiteSubsanacion: "2026-08-24",
+    fechaLimiteSubsanacion: "2026-08-15",
     diasRestantesSubsanacion: 0,
     fuentes: [
       {
@@ -742,8 +808,8 @@ export const INITIAL_SOLICITUDES: SolicitudAcceso[] = [
     documentos: [],
     historial: [
       { fecha: "2026-08-10 09:00", evento: "Solicitud creada y enviada", actor: "Coordinador SINARP" },
-      { fecha: "2026-08-12 11:00", evento: "Solicitud observada", actor: "Ana Torres (Revisor)", detalle: "Documento de soporte desactualizado." },
-      { fecha: "2026-08-25 18:00", evento: "Expediente cerrado por vencimiento de plazo", actor: "Sistema DINARP", detalle: "El plazo de subsanación venció sin que el Coordinador reenviara las correcciones requeridas. Se archiva el trámite." }
+      { fecha: "2026-08-12 11:00", evento: "Solicitud observada", actor: "Ana Torres (Revisor)", detalle: "Documento de soporte desactualizado. Plazo inicial de 3 días hábiles (PAR-13 / PAR-10)." },
+      { fecha: "2026-08-25 18:00", evento: "Expediente cerrado por vencimiento de plazo (SOL-06)", actor: "Sistema DINARP", detalle: "El plazo de subsanación (3 días hábiles según PAR-13) venció sin que el Coordinador reenviara las correcciones requeridas. Se archiva el trámite." }
     ]
   },
   {
@@ -756,7 +822,7 @@ export const INITIAL_SOLICITUDES: SolicitudAcceso[] = [
     fecha: "2026-09-20 08:30",
     ultimaActualizacion: "2026-09-23 16:00",
     estado: "Pendiente de asignación en Normatividad",
-    responsable: "Director de Normatividad",
+    responsable: "Director de Protección de la Información (DPI)",
     versionExpediente: 1,
     modalidad: "Ambas",
     cupo: 60000,
@@ -804,7 +870,7 @@ export const INITIAL_SOLICITUDES: SolicitudAcceso[] = [
     historial: [
       { fecha: "2026-09-20 08:30", evento: "Solicitud creada y enviada", actor: "Coordinador SINARP" },
       { fecha: "2026-09-21 10:00", evento: "Revisor de Gestión asignado", actor: "Director Gestión", detalle: "Asignado a Marcos Silva." },
-      { fecha: "2026-09-23 16:00", evento: "Aprobada por Gestión", actor: "Marcos Silva (Revisor)", detalle: "Aprobación funcional emitida. Contiene campos confidenciales: remitida a la Dirección de Normatividad." }
+      { fecha: "2026-09-23 16:00", evento: "Aprobada por Gestión", actor: "Marcos Silva (Revisor)", detalle: "Aprobación funcional emitida. Contiene campos confidenciales: remitida a la Dirección de Protección de la Información (DPI)." }
     ]
   },
   {
@@ -817,8 +883,8 @@ export const INITIAL_SOLICITUDES: SolicitudAcceso[] = [
     fecha: "2026-09-19 11:00",
     ultimaActualizacion: "2026-09-24 09:30",
     estado: "En revisión normativa",
-    responsable: "Carlos Mora (Personal Facultado)",
-    revisorNormativoAsignado: "Carlos Mora (Personal Facultado)",
+    responsable: "Carlos Mora (Revisor DPI)",
+    revisorNormativoAsignado: "Carlos Mora (Revisor DPI)",
     revisorNormativoAsignadoId: "U-EQNORM",
     fechaAsignacionNormativa: "2026-09-24 09:30",
     versionExpediente: 1,
@@ -868,7 +934,165 @@ export const INITIAL_SOLICITUDES: SolicitudAcceso[] = [
     historial: [
       { fecha: "2026-09-19 11:00", evento: "Solicitud creada y enviada", actor: "Coordinador SINARP" },
       { fecha: "2026-09-21 14:00", evento: "Aprobada por Gestión", actor: "Elena Viteri (Revisor)", detalle: "Aprobación funcional emitida." },
-      { fecha: "2026-09-24 09:30", evento: "Revisor de Normatividad asignado", actor: "Director de Normatividad", detalle: "Asignado a Carlos Mora para dictamen jurídico y firma de informe." }
+      { fecha: "2026-09-24 09:30", evento: "Revisor de Protección de la Información (DPI) asignado", actor: "Director de Protección de la Información (DPI)", detalle: "Asignado a Carlos Mora para evaluación de sustento jurídico y emisión de informe DPI (SOL-07)." }
+    ]
+  },
+  {
+    id: "SOL-2026-016",
+    institucion: "Fiscalía General del Estado (FGE)",
+    tipoInstitucion: "Pública",
+    coordinador: "Andrea López",
+    proyectoId: "PRJ-2026-001",
+    proyectoNombre: "Sistema Único de Registro y Matrícula Estudiantil",
+    fecha: "2026-09-20 09:00",
+    ultimaActualizacion: "2026-09-24 14:30",
+    estado: "En revisión normativa",
+    responsable: "Dra. Valentina Paz (Directora DPI)",
+    revisorNormativoAsignado: "Carlos Mora (Revisor DPI)",
+    revisorNormativoAsignadoId: "U-EQNORM",
+    fechaAsignacionNormativa: "2026-09-23 11:00",
+    versionExpediente: 1,
+    modalidad: "API individual",
+    cupo: 55000,
+    modalidadAprobada: "API individual",
+    cupoAprobado: 55000,
+    fuentesCount: 1,
+    camposCount: 2,
+    fuentePrincipal: "Registro Civil de Ciudadanos",
+    servicioPrincipal: "Consulta de Filiación y Datos Registrales",
+    instrumento: "Convenio",
+    informeNormativa: {
+      numero: "INF-DPI-2026-016",
+      titulo: "Informe de Pertinencia Jurídica de Campos Confidenciales (DPI)",
+      fechaEmision: "2026-09-24 14:30",
+      dictamen: "FAVORABLE",
+      fundamento: "Se valida el sustento jurídico conforme al Art. 195 de la Constitución de la República y Art. 12 de la LOPDP para acceso a campos confidenciales solicitados.",
+      revisorNombre: "Carlos Mora (Revisor DPI)",
+      firmadoRevisor: true,
+      fechaFirmaRevisor: "2026-09-24 14:30",
+      directorNombre: "Dra. Valentina Paz (Directora DPI)",
+      firmadoDirector: false,
+      archivoInforme: "Informe_Favorable_DPI_SOL-2026-016.pdf"
+    },
+    fuentes: [
+      {
+        id: "FNT-001",
+        nombre: "Registro Civil de Ciudadanos",
+        institucion: "Dirección General de Registro Civil",
+        campos: [
+          {
+            id: "cmp-01",
+            nombre: "cedulaCiudadania",
+            descripcion: "Número oficial de cédula.",
+            clasificacion: "Accesible",
+            finalidad: "Identificación de sujetos procesales en investigaciones previas."
+          },
+          {
+            id: "cmp-02",
+            nombre: "estadoCivil",
+            descripcion: "Condición civil registrada formalmente.",
+            clasificacion: "Confidencial",
+            finalidad: "Determinación de vínculos de afinidad y parentesco legal en actuaciones fiscales.",
+            fundamento: "Constitución Art. 195, COIP Art. 444 y LOPDP Art. 12."
+          }
+        ]
+      }
+    ],
+    documentos: [
+      {
+        id: "doc-016-1",
+        nombre: "Oficio_FGE_Interoperabilidad_2026.pdf",
+        tipo: "PDF",
+        tamano: "2.3 MB",
+        fechaCarga: "2026-09-20 09:00",
+        categoria: "Oficio Formal"
+      }
+    ],
+    historial: [
+      { fecha: "2026-09-20 09:00", evento: "Solicitud creada y enviada", actor: "Coordinador SINARP" },
+      { fecha: "2026-09-22 10:30", evento: "Aprobada por Gestión", actor: "Ana Torres (Revisor)", detalle: "Aprobación funcional emitida. Derivada a Dirección de Protección de la Información (DPI)." },
+      { fecha: "2026-09-23 11:00", evento: "Revisor DPI asignado", actor: "Dra. Valentina Paz (Directora DPI)", detalle: "Asignado a Carlos Mora (Revisor DPI)." },
+      { fecha: "2026-09-24 14:30", evento: "Informe de Aprobación DPI emitido y firmado por Revisor (SOL-08)", actor: "Carlos Mora (Revisor DPI)", detalle: "Informe INF-DPI-2026-016 suscrito por Revisor DPI. Pendiente de firma electrónica de la Directora de Protección de la Información (DPI)." }
+    ]
+  },
+  {
+    id: "SOL-2026-017",
+    institucion: "Contraloría General del Estado (CGE)",
+    tipoInstitucion: "Pública",
+    coordinador: "Andrea López",
+    proyectoId: "PRJ-2026-001",
+    proyectoNombre: "Sistema Único de Registro y Matrícula Estudiantil",
+    fecha: "2026-09-18 10:00",
+    fechaAprobacion: "2026-09-24",
+    ultimaActualizacion: "2026-09-24 17:00",
+    estado: "Aprobada por Normatividad",
+    responsable: "Coordinador SINARP",
+    revisorNormativoAsignado: "Carlos Mora (Revisor DPI)",
+    revisorNormativoAsignadoId: "U-EQNORM",
+    fechaAsignacionNormativa: "2026-09-21 09:00",
+    versionExpediente: 1,
+    modalidad: "Ambas",
+    cupo: 90000,
+    modalidadAprobada: "Ambas",
+    cupoAprobado: 90000,
+    fuentesCount: 1,
+    camposCount: 2,
+    fuentePrincipal: "Registro Único de Contribuyentes (RUC)",
+    servicioPrincipal: "Verificación Patrimonial y Societaria",
+    instrumento: "Convenio",
+    informeNormativa: {
+      numero: "INF-DPI-2026-017",
+      titulo: "Informe de Aprobación de Protección de la Información (DPI)",
+      fechaEmision: "2026-09-23 15:00",
+      dictamen: "FAVORABLE",
+      fundamento: "Cumple con los principios de legalidad, finalidad y proporcionalidad de la LOPDP y Ley Orgánica de la Contraloría General del Estado Art. 31.",
+      revisorNombre: "Carlos Mora (Revisor DPI)",
+      firmadoRevisor: true,
+      fechaFirmaRevisor: "2026-09-23 15:00",
+      directorNombre: "Dra. Valentina Paz (Directora DPI)",
+      firmadoDirector: true,
+      fechaFirmaDirector: "2026-09-24 17:00",
+      archivoInforme: "Informe_Aprobacion_DPI_SOL-2026-017_Firmado.pdf"
+    },
+    fuentes: [
+      {
+        id: "FNT-002",
+        nombre: "Registro Único de Contribuyentes (RUC)",
+        institucion: "Servicio de Rentas Internas",
+        campos: [
+          {
+            id: "cmp-01",
+            nombre: "estadoContribuyente",
+            descripcion: "Estado de actividad tributaria.",
+            clasificacion: "Accesible",
+            finalidad: "Control de proveedores del Estado."
+          },
+          {
+            id: "cmp-02",
+            nombre: "representanteLegalIdentificacion",
+            descripcion: "Identificación del representante legal.",
+            clasificacion: "Confidencial",
+            finalidad: "Auditoría de declaraciones patrimoniales juradas y cruce de nepotismo.",
+            fundamento: "Ley Orgánica de la Contraloría General del Estado Art. 31 y LOPDP Art. 12."
+          }
+        ]
+      }
+    ],
+    documentos: [
+      {
+        id: "doc-017-1",
+        nombre: "Oficio_CGE_ControlPatrimonial_2026.pdf",
+        tipo: "PDF",
+        tamano: "2.9 MB",
+        fechaCarga: "2026-09-18 10:00",
+        categoria: "Oficio Formal"
+      }
+    ],
+    historial: [
+      { fecha: "2026-09-18 10:00", evento: "Solicitud creada y enviada", actor: "Coordinador SINARP" },
+      { fecha: "2026-09-20 11:00", evento: "Aprobada por Gestión", actor: "Ana Torres (Revisor)" },
+      { fecha: "2026-09-23 15:00", evento: "Informe DPI firmado por Revisor (SOL-08)", actor: "Carlos Mora (Revisor DPI)" },
+      { fecha: "2026-09-24 17:00", evento: "Aprobada por Protección de la Información (DPI) y lista para formalización (SOL-08)", actor: "Dra. Valentina Paz (Directora DPI)", detalle: "Doble firma electrónica completada sobre el informe INF-DPI-2026-017. La solicitud avanza a formalización (BN-08)." }
     ]
   },
   {
@@ -1944,14 +2168,13 @@ export function getStoredSolicitudes(): SolicitudAcceso[] {
     const raw = sessionStorage.getItem(STORAGE_KEY);
     if (!raw) {
       // Limpiar versiones anteriores obsoletas
-      ["dinarp_solicitudes_v1", "dinarp_solicitudes_v2", "dinarp_solicitudes_v3", "dinarp_solicitudes_v4", "dinarp_solicitudes_v5", "dinarp_solicitudes_v6", "dinarp_solicitudes_v7", "dinarp_solicitudes_v8"].forEach(k => {
+      ["dinarp_solicitudes_v1", "dinarp_solicitudes_v2", "dinarp_solicitudes_v3", "dinarp_solicitudes_v4", "dinarp_solicitudes_v5", "dinarp_solicitudes_v6", "dinarp_solicitudes_v7", "dinarp_solicitudes_v8", "dinarp_solicitudes_v9"].forEach(k => {
         try { sessionStorage.removeItem(k); } catch (_) {}
       });
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_SOLICITUDES));
       return INITIAL_SOLICITUDES;
     }
     const parsed: SolicitudAcceso[] = JSON.parse(raw);
-    // Si la sesión no tiene el caso de uso con "Acceso generado", refrescar con INITIAL_SOLICITUDES
     if (!parsed.some(s => s.estado === "Acceso generado")) {
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_SOLICITUDES));
       return INITIAL_SOLICITUDES;
@@ -2099,7 +2322,7 @@ export function useSolicitudesStore() {
   // Compatibilidad con solicitarAjustes previo
   const solicitarAjustes = rechazarSolicitud;
 
-  // Flujo Coordinador: Reenviar solicitud subsanada
+  // Flujo Coordinador: Reenviar solicitud subsanada o enviar borrador inicial
   const reenviarSolicitud = useCallback((id: string, comentarioSubsanacion?: string, nuevasFuentes?: FuenteDetalle[]) => {
     const current = getStoredSolicitudes();
     const now = new Date().toISOString().replace("T", " ").substring(0, 16);
@@ -2107,22 +2330,39 @@ export function useSolicitudesStore() {
 
     const updated = current.map(s => {
       if (s.id === id) {
-        const nextVersion = (s.versionExpediente || 1) + 1;
-        const nuevoHistorial: TrazabilidadEvento[] = [
-          ...s.historial,
-          {
-            fecha: now,
-            evento: `Solicitud subsanada y reenviada (v${nextVersion})`,
-            actor: "Coordinador SINARP",
-            detalle: comentarioSubsanacion || "Se realizaron las correcciones y precisiones solicitadas en el expediente."
-          },
-          {
-            fecha: now,
-            evento: "Pendiente de nueva asignación",
-            actor: "Director de Gestión",
-            detalle: "La solicitud subsanada volvió a la bandeja del Director de Gestión para una nueva asignación."
-          }
-        ];
+        const esBorradorPrevio = s.estado === "Borrador";
+        const nextVersion = esBorradorPrevio ? 1 : (s.versionExpediente || 1) + 1;
+        const nuevoHistorial: TrazabilidadEvento[] = esBorradorPrevio
+          ? [
+              ...s.historial,
+              {
+                fecha: now,
+                evento: "Solicitud enviada formalmente a Dirección de Gestión (v1)",
+                actor: "Coordinador SINARP",
+                detalle: comentarioSubsanacion || "Se completó el borrador y se envió el expediente a la Dirección de Gestión para su primera asignación."
+              },
+              {
+                fecha: now,
+                evento: "Pendiente de asignación en Gestión",
+                actor: "Director de Gestión",
+                detalle: "La solicitud ingresó a la bandeja del Director de Gestión para asignar un revisor técnico."
+              }
+            ]
+          : [
+              ...s.historial,
+              {
+                fecha: now,
+                evento: `Solicitud subsanada y reenviada (v${nextVersion})`,
+                actor: "Coordinador SINARP",
+                detalle: comentarioSubsanacion || "Se realizaron las correcciones y precisiones solicitadas en el expediente."
+              },
+              {
+                fecha: now,
+                evento: "Pendiente de nueva asignación",
+                actor: "Director de Gestión",
+                detalle: "La solicitud subsanada volvió a la bandeja del Director de Gestión para una nueva asignación."
+              }
+            ];
         return {
           ...s,
           versionExpediente: nextVersion,
@@ -2131,11 +2371,11 @@ export function useSolicitudesStore() {
           camposCount: nuevasFuentes
             ? nuevasFuentes.reduce((acc, f) => acc + (f.campos?.length || 0), 0)
             : s.camposCount,
-          estado: "Pendiente de nueva asignación" as const,
+          estado: (esBorradorPrevio ? "Pendiente de asignación en Gestión" : "Pendiente de nueva asignación") as SolicitudAcceso["estado"],
           responsable: "Director de Gestión",
           revisorAsignado: undefined,
           revisorAsignadoId: undefined,
-          detalleSubsanacion: comentarioSubsanacion,
+          detalleSubsanacion: esBorradorPrevio ? undefined : comentarioSubsanacion,
           ultimaActualizacion: dateOnly,
           historial: nuevoHistorial
         };
@@ -2147,12 +2387,17 @@ export function useSolicitudesStore() {
     setSolicitudes(updated);
   }, []);
 
-  // Flujo Coordinador: Crear nueva solicitud y enviar a firmas / asignación
+  // Flujo Coordinador: Crear nueva solicitud (o guardar borrador) y enviar a firmas / asignación
   const crearNuevaSolicitud = useCallback((nueva: Partial<SolicitudAcceso>) => {
     const current = getStoredSolicitudes();
     const now = new Date().toISOString().replace("T", " ").substring(0, 16);
     const dateOnly = now.substring(0, 10);
-    const newId = `SOL-2026-0${current.length + 10}`;
+    const maxNum = current.reduce((max, item) => {
+      const match = item.id.match(/SOL-2026-(\d+)/);
+      return match ? Math.max(max, parseInt(match[1], 10)) : max;
+    }, 34);
+    const newId = `SOL-2026-${String(maxNum + 1).padStart(3, "0")}`;
+    const esBorrador = nueva.estado === "Borrador";
 
     const solicitudCompleta: SolicitudAcceso = {
       id: nueva.id || newId,
@@ -2161,8 +2406,8 @@ export function useSolicitudesStore() {
       coordinador: nueva.coordinador || "Andrea López",
       fecha: now,
       ultimaActualizacion: dateOnly,
-      estado: "Pendiente de asignación en Gestión",
-      responsable: "Director de Gestión",
+      estado: esBorrador ? "Borrador" : "Pendiente de asignación en Gestión",
+      responsable: esBorrador ? "Coordinador SINARP" : "Director de Gestión",
       proyectoId: nueva.proyectoId || "PRJ-2026-001",
       proyectoNombre: nueva.proyectoNombre || "Sistema Único de Registro y Matrícula Estudiantil",
       modalidad: nueva.modalidad || "API individual",
@@ -2175,7 +2420,7 @@ export function useSolicitudesStore() {
       servicioPrincipal: nueva.servicioPrincipal || "Consulta de Datos de Identidad",
       instrumento: nueva.tipoInstitucion === "Privada" ? "Contrato" : "Convenio",
       fuentes: nueva.fuentes || [],
-      documentos: nueva.documentos || [
+      documentos: nueva.documentos || (esBorrador ? [] : [
         {
           id: `doc-${Date.now()}`,
           nombre: "Oficio_Solicitud_Interoperabilidad_Firmado.pdf",
@@ -2184,21 +2429,30 @@ export function useSolicitudesStore() {
           fechaCarga: now,
           categoria: "Oficio de Solicitud"
         }
-      ],
-      historial: [
-        {
-          fecha: now,
-          evento: "Solicitud creada y enviada",
-          actor: "Coordinador SINARP",
-          detalle: "Solicitud registrada mediante el asistente y enviada a la Dirección de Gestión para asignación."
-        },
-        {
-          fecha: now,
-          evento: "Pendiente de asignación en Gestión",
-          actor: "Director de Gestión",
-          detalle: "Expediente disponible en la bandeja exclusiva de asignación de Gestión."
-        }
-      ]
+      ]),
+      historial: esBorrador
+        ? [
+            {
+              fecha: now,
+              evento: "Solicitud guardada como borrador (SOL-01)",
+              actor: "Coordinador SINARP",
+              detalle: "Borrador guardado en el asistente antes del envío formal a la Dirección de Gestión."
+            }
+          ]
+        : [
+            {
+              fecha: now,
+              evento: "Solicitud creada y enviada (SOL-01 / SOL-02)",
+              actor: "Coordinador SINARP",
+              detalle: "Solicitud registrada mediante el asistente y enviada a la Dirección de Gestión para asignación."
+            },
+            {
+              fecha: now,
+              evento: "Pendiente de asignación en Gestión",
+              actor: "Director de Gestión",
+              detalle: "Expediente disponible en la bandeja exclusiva de asignación de Gestión."
+            }
+          ]
     };
 
     const updated = [solicitudCompleta, ...current];
@@ -2241,10 +2495,10 @@ export function useSolicitudesStore() {
           ...s.historial,
           {
             fecha: now,
-            evento: esReasig ? "Reasignación de revisor de Gestión" : "Revisor de Gestión asignado",
+            evento: esReasig ? "Reasignación de revisor de Gestión (SOL-03)" : "Revisor de Gestión asignado (SOL-03)",
             actor: directorNombre,
             detalle: esReasig
-              ? `Revisor anterior: ${revisorAnterior}. Reasignado a ${revisorNombre}.${observacion ? ` Motivo: ${observacion}` : ""}`
+              ? `Revisor anterior: ${revisorAnterior}. Recuperada y reasignada a ${revisorNombre} conservando trazabilidad previa.${observacion ? ` Motivo: ${observacion}` : ""}`
               : `Asignado a ${revisorNombre} para revisión funcional y de interoperabilidad del expediente (versión ${version}).${observacion ? ` Observación: ${observacion}` : ""}`
           }
         ];
@@ -2297,19 +2551,19 @@ export function useSolicitudesStore() {
           : "Aprobada por Gestión";
 
         const nuevoResponsable = tieneConfidencial
-          ? "Director de Normatividad"
+          ? "Director de Protección de la Información (DPI)"
           : (esPrivada ? "Facturación" : "Coordinador SINARP");
 
         const nuevosEventos: TrazabilidadEvento[] = [
           ...s.historial,
           {
             fecha: now,
-            evento: "Aprobada por Gestión",
+            evento: "Aprobada por Gestión (SOL-04)",
             actor: params.revisor,
             detalle: `Revisión funcional aprobada (Expediente v${version}). Modalidad autorizada: ${params.modalidadesAutorizadas}. Cupo aprobado: ${params.cupoAprobado.toLocaleString()} registros. ${
               tieneConfidencial
-                ? "Contiene campos confidenciales: derivada a la Dirección de Normatividad."
-                : "Solo campos accesibles: continúa directamente a formalización."
+                ? "Contiene campos confidenciales: derivada a la Dirección de Protección de la Información (DPI)."
+                : "Solo campos accesibles: continúa directamente a formalización (BN-08)."
             }`
           }
         ];
@@ -2317,9 +2571,9 @@ export function useSolicitudesStore() {
         if (tieneConfidencial) {
           nuevosEventos.push({
             fecha: now,
-            evento: "Pendiente de asignación en Normatividad",
-            actor: "Director de Normatividad",
-            detalle: "Expediente con campos confidenciales remitido a Normatividad para asignación de revisor jurídico."
+            evento: "Pendiente de asignación en Protección de la Información (DPI)",
+            actor: "Director de Protección de la Información (DPI)",
+            detalle: "Expediente con campos confidenciales remitido a la Dirección de Protección de la Información (DPI) para asignación de revisor (SOL-07)."
           });
         }
 
@@ -2355,7 +2609,7 @@ export function useSolicitudesStore() {
     const dateOnly = now.substring(0, 10);
     const dias = params.diasPlazo || 3;
 
-    // Calcular fecha límite
+    // Calcular fecha límite (3 días hábiles según PAR-13 y calendario PAR-10)
     const limitDate = new Date();
     limitDate.setDate(limitDate.getDate() + dias);
     const fechaLimiteStr = limitDate.toISOString().substring(0, 10);
@@ -2368,9 +2622,9 @@ export function useSolicitudesStore() {
           ...s.historial,
           {
             fecha: now,
-            evento: "Solicitud observada por Gestión",
+            evento: "Solicitud observada por Gestión (SOL-04 / SOL-06)",
             actor: params.revisor,
-            detalle: `Se registraron ${params.observaciones.length} observaciones. Plazo de subsanación: ${dias} días hábiles (hasta ${fechaLimiteStr}).`
+            detalle: `Se registraron ${params.observaciones.length} observaciones. Plazo inicial de subsanación: ${dias} días hábiles según PAR-13 y calendario laboral PAR-10 (hasta ${fechaLimiteStr}).`
           }
         ];
 
@@ -2416,7 +2670,7 @@ export function useSolicitudesStore() {
           ...s.historial,
           {
             fecha: now,
-            evento: `Solicitud subsanada y reenviada (v${nextVersion})`,
+            evento: `Solicitud subsanada y reenviada (v${nextVersion}) (SOL-05)`,
             actor: "Coordinador SINARP",
             detalle: params.comentario || "Expediente corregido conforme a las observaciones recibidas."
           },
@@ -2465,9 +2719,9 @@ export function useSolicitudesStore() {
           ...s.historial,
           {
             fecha: now,
-            evento: "Expediente cerrado por vencimiento de plazo",
+            evento: "Expediente cerrado por vencimiento de plazo (SOL-06)",
             actor: "Sistema DINARP",
-            detalle: "El plazo de subsanación venció sin que el Coordinador reenviara las correcciones requeridas. Se archiva el trámite."
+            detalle: "El plazo de subsanación (3 días hábiles según PAR-13 y calendario PAR-10) venció sin que el Coordinador reenviara las correcciones requeridas. Se archiva el trámite."
           }
         ];
 
@@ -2487,12 +2741,13 @@ export function useSolicitudesStore() {
     setSolicitudes(updated);
   }, []);
 
-  // Flujo BN-07 Normatividad: Director de Normatividad asigna revisor
+  // Flujo BN-07 DPI (Protección de la Información): Director DPI asigna o reasigna revisor
   const asignarRevisorNormativa = useCallback((
     id: string,
     revisorId: string,
     revisorNombre: string,
-    directorNombre = "Director de Normatividad"
+    directorNombre = "Director de Protección de la Información (DPI)",
+    observacion?: string
   ) => {
     const current = getStoredSolicitudes();
     const now = new Date().toISOString().replace("T", " ").substring(0, 16);
@@ -2501,14 +2756,18 @@ export function useSolicitudesStore() {
     const updated = current.map(s => {
       if (s.id === id) {
         const version = s.versionExpediente || 1;
+        const esReasignacion = Boolean(s.revisorNormativoAsignado);
+        const revisorAnterior = s.revisorNormativoAsignado;
+
         const nuevaAsignacion: AsignacionRegistro = {
-          id: `asig-norm-${Date.now()}`,
+          id: `asig-dpi-${Date.now()}`,
           director: directorNombre,
           revisorId,
           revisorNombre,
           fecha: now,
           versionExpediente: version,
-          etapa: "Normatividad"
+          etapa: "Normatividad",
+          observacion
         };
 
         const historialAsignacionesNormativa = [
@@ -2520,9 +2779,13 @@ export function useSolicitudesStore() {
           ...s.historial,
           {
             fecha: now,
-            evento: "Revisor de Normatividad asignado",
+            evento: esReasignacion
+              ? "Reasignación de revisor de Protección de la Información (DPI) (SOL-07)"
+              : "Revisor de Protección de la Información (DPI) asignado (SOL-07)",
             actor: directorNombre,
-            detalle: `Asignado a ${revisorNombre} para emisión de dictamen jurídico sobre campos confidenciales (Expediente v${version}).`
+            detalle: esReasignacion
+              ? `Revisor anterior: ${revisorAnterior}. Reasignado a ${revisorNombre} conservando trazabilidad previa.${observacion ? ` Motivo: ${observacion}` : ""}`
+              : `Asignado a ${revisorNombre} para evaluación de sustento jurídico sobre campos confidenciales (Expediente v${version}).${observacion ? ` Observación: ${observacion}` : ""}`
           }
         ];
 
@@ -2545,7 +2808,7 @@ export function useSolicitudesStore() {
     setSolicitudes(updated);
   }, []);
 
-  // Flujo BN-07 Normatividad: Aprobar y generar informe jurídico
+  // Flujo BN-07 DPI: Aprobar y generar informe de aprobación de Protección de la Información
   const aprobarNormativa = useCallback((
     id: string,
     params: {
@@ -2561,11 +2824,11 @@ export function useSolicitudesStore() {
     const updated = current.map(s => {
       if (s.id === id) {
         const informe: InformeNormativa = {
-          numero: `INF-NORM-2026-0${Math.floor(Math.random() * 80 + 10)}`,
-          titulo: "Informe Jurídico de Pertinencia de Campos Confidenciales",
+          numero: `INF-DPI-2026-0${Math.floor(Math.random() * 80 + 10)}`,
+          titulo: "Informe de Pertinencia Jurídica de Campos Confidenciales (DPI)",
           fechaEmision: now,
           dictamen: "FAVORABLE",
-          fundamento: params.fundamento || "Conforme a la Ley Orgánica de Protección de Datos Personales, se valida la pertinencia y fundamento de los campos confidenciales solicitados.",
+          fundamento: params.fundamento || "Conforme a la Ley Orgánica de Protección de Datos Personales, se valida la pertinencia y sustento jurídico de los campos confidenciales solicitados.",
           revisorNombre: params.revisor,
           firmadoRevisor: true,
           fechaFirmaRevisor: now,
@@ -2577,9 +2840,9 @@ export function useSolicitudesStore() {
           ...s.historial,
           {
             fecha: now,
-            evento: "Informe de Aprobación Jurídica emitido",
+            evento: "Informe de Aprobación DPI emitido y firmado por Revisor (SOL-08)",
             actor: params.revisor,
-            detalle: `Informe ${informe.numero} suscrito digitalmente por ${params.revisor}. Pendiente de refrenda por ${params.director}.`
+            detalle: `Informe ${informe.numero} suscrito electrónicamente por ${params.revisor} (Equipo DPI). Pendiente de firma electrónica de refrenda por ${params.director} (Director DPI).`
           }
         ];
 
@@ -2598,7 +2861,7 @@ export function useSolicitudesStore() {
     setSolicitudes(updated);
   }, []);
 
-  // Flujo BN-07 Normatividad: Firmar informe (Revisor o Director)
+  // Flujo BN-07 DPI: Firmar informe de aprobación (Revisor DPI o Director DPI)
   const firmarInformeNormativa = useCallback((
     id: string,
     rol: "REVISOR" | "DIRECTOR",
@@ -2631,11 +2894,11 @@ export function useSolicitudesStore() {
           ...s.historial,
           {
             fecha: now,
-            evento: `Informe suscrito por ${rol === "DIRECTOR" ? "Director de Normatividad" : "Revisor de Normatividad"}`,
+            evento: `Informe suscrito por ${rol === "DIRECTOR" ? "Director de Protección de la Información (DPI)" : "Revisor de Protección de la Información (DPI)"} (SOL-08)`,
             actor: firmante,
             detalle: ambasFirmas
-              ? "Ambas firmas registradas exitosamente. El trámite queda formalmente habilitado para formalización."
-              : "Firma registrada. Pendiente de firma de refrenda."
+              ? "Ambas firmas electrónicas registradas exitosamente en DPI. El trámite queda formalmente aprobado y avanza a formalización (BN-08)."
+              : "Firma electrónica registrada. Pendiente de firma de refrenda del Director DPI."
           }
         ];
 
@@ -2655,7 +2918,7 @@ export function useSolicitudesStore() {
     setSolicitudes(updated);
   }, []);
 
-  // Flujo BN-07 Normatividad: Observar solicitud jurídica
+  // Flujo BN-07 DPI: Observar solicitud jurídica en campos confidenciales
   const observarNormativa = useCallback((
     id: string,
     params: {
@@ -2675,15 +2938,15 @@ export function useSolicitudesStore() {
 
     const updated = current.map(s => {
       if (s.id === id) {
-        const resumenObs = params.observaciones.map(o => `[JURÍDICO - ${o.tipo.toUpperCase()}] ${o.elementoNombre ? o.elementoNombre + ": " : ""}${o.descripcion}`).join(" | ");
+        const resumenObs = params.observaciones.map(o => `[DPI JURÍDICO - ${o.tipo.toUpperCase()}] ${o.elementoNombre ? o.elementoNombre + ": " : ""}${o.descripcion}`).join(" | ");
 
         const nuevosEventos: TrazabilidadEvento[] = [
           ...s.historial,
           {
             fecha: now,
-            evento: "Solicitud observada por Normatividad",
+            evento: "Solicitud observada por Protección de la Información (DPI) (SOL-07 / SOL-06)",
             actor: params.revisor,
-            detalle: `Observaciones jurídicas en campos confidenciales. Plazo de subsanación: ${dias} días hábiles (hasta ${fechaLimiteStr}). Tras subsanar pasará por Gestión antes de Normatividad.`
+            detalle: `Observaciones jurídicas en campos confidenciales registradas por DPI. Plazo inicial de subsanación: ${dias} días hábiles según PAR-13 y calendario PAR-10 (hasta ${fechaLimiteStr}). Tras subsanar volverá a Gestión antes de reingresar a DPI.`
           }
         ];
 

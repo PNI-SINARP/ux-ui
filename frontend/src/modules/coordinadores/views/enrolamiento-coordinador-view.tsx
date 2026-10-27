@@ -58,6 +58,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from "@/components/ui/sheet";
 import { Timeline, type TimelineItem } from "@/components/ui/timeline";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { InteractiveCard } from "@/components/ui/data-display";
+import { ViewModeToggle, type ViewMode } from "@/components/shared/view-mode-toggle";
 
 import { cn, getAssetPath } from "@/lib/utils";
 import {
@@ -120,6 +122,7 @@ function EnrolamientoContent() {
   const [isSubmittedSuccess, setIsSubmittedSuccess] = useState(false);
   const [showDemoToolbar, setShowDemoToolbar] = useState(true);
   const [submittedSolicitudId, setSubmittedSolicitudId] = useState<string>("");
+  const [viewMode, setViewMode] = useState<ViewMode>("table");
 
   // Form State Anexo B
   const [formData, setFormData] = useState<DatosAnexoB>({
@@ -561,11 +564,11 @@ function EnrolamientoContent() {
               </CardBadge>
 
               <CardTitle className="text-lg sm:text-xl font-bold font-heading text-secondary">
-                Anexo B — Acuerdo de Uso y Confidencialidad
+                Registrar enrolamiento
               </CardTitle>
 
               <CardDescription className="text-xs text-secondary-800/80 dark:text-secondary-200/80 font-medium">
-                Suscripción digital para el enrolamiento del Coordinador SINARP.
+                Completa tu registro como coordinador institucional y suscribe electrónicamente el acuerdo de uso y confidencialidad (Anexo B).
               </CardDescription>
 
               <CardDecorativeIcon className="-bottom-10 -right-10 opacity-20 group-hover/card:scale-100">
@@ -2076,13 +2079,18 @@ function EnrolamientoContent() {
             {/* Tabla Bandeja de Solicitudes (Categoría 5: Table) */}
             <div className="bg-surface border border-border rounded-2xl p-4 sm:p-6 space-y-4 shadow-xs">
               <div className="flex items-center justify-between gap-4 flex-wrap border-b border-border/60 pb-4">
-                <h3 className="text-sm font-bold text-foreground">Solicitudes de Coordinadores SINARP</h3>
-                <Badge tone="neutral" appearance="soft" size="sm">
-                  {solicitudes.filter((s) => s.tipoTramite === "PROCESO_B_ENROLAMIENTO_COORDINADOR").length} trámites en catálogo
-                </Badge>
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <h3 className="text-sm font-bold text-foreground">Solicitudes de Coordinadores SINARP</h3>
+                  <Badge tone="neutral" appearance="soft" size="sm">
+                    {solicitudes.filter((s) => s.tipoTramite === "PROCESO_B_ENROLAMIENTO_COORDINADOR").length} trámites en catálogo
+                  </Badge>
+                </div>
+                <div className="flex items-center gap-2.5 ml-auto">
+                  <ViewModeToggle value={viewMode} onChange={setViewMode} />
+                </div>
               </div>
 
-              <div className="rounded-xl border border-border overflow-hidden">
+              <div className={cn("rounded-xl border border-border overflow-hidden", viewMode === "table" ? "hidden md:block" : "hidden")}>
                 <Table>
                   <TableHeader className="bg-muted/50">
                     <TableRow>
@@ -2140,6 +2148,76 @@ function EnrolamientoContent() {
                       })}
                   </TableBody>
                 </Table>
+              </div>
+              <div
+                className={cn(
+                  "w-full",
+                  viewMode === "cards"
+                    ? "grid grid-cols-1 md:grid-cols-2 gap-4"
+                    : "block md:hidden space-y-3.5"
+                )}
+              >
+                {solicitudes
+                  .filter((s) => s.tipoTramite === "PROCESO_B_ENROLAMIENTO_COORDINADOR")
+                  .map((sol) => {
+                    const badgeProps = getEstadoBadgeProps(sol.estado);
+                    return (
+                      <InteractiveCard
+                        key={sol.id}
+                        as="div"
+                        hideChevron
+                        color="primary"
+                        icon={<UserCheck className="size-5" />}
+                        title={sol.nombreCompleto}
+                        subtitle={sol.id}
+                        description={sol.institucion}
+                        meta={
+                          <Badge tone={badgeProps.tone} appearance="soft" size="sm" dot>
+                            {badgeProps.label}
+                          </Badge>
+                        }
+                      >
+                        <div className="space-y-3 pt-1">
+                          <div className="grid grid-cols-2 gap-2.5 text-xs bg-muted/30 p-2.5 rounded-lg border border-border/60">
+                            <div>
+                              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block">
+                                Tipo de trámite
+                              </span>
+                              <span className="font-semibold text-foreground mt-0.5 block">
+                                Anexo B · Activación
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block">
+                                Fecha
+                              </span>
+                              <span className="font-mono text-foreground mt-0.5 block">
+                                {sol.fechaSolicitud}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-end gap-2 pt-1 border-t border-border/60">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedSolicitudDetalle(sol);
+                                setIsSheetDetailOpen(true);
+                              }}
+                              className="text-xs h-8 gap-1.5 cursor-pointer"
+                            >
+                              <Eye className="size-3.5" />
+                              <span>Ver detalle</span>
+                            </Button>
+                          </div>
+                        </div>
+                      </InteractiveCard>
+                    );
+                  })}
+              </div>
+              <div className="hidden">
               </div>
             </div>
 

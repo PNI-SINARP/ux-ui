@@ -80,6 +80,7 @@ import {
   ComboboxEmpty,
 } from "@/components/ui/combobox";
 import { DateField } from "@/components/ui/date-field";
+import { ViewModeToggle, type ViewMode } from "@/components/shared/view-mode-toggle";
 
 import { cn } from "@/lib/utils";
 import {
@@ -201,6 +202,7 @@ function AuditoriaCuentasContent() {
   // Paginación
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(10);
+  const [viewMode, setViewMode] = useState<ViewMode>("table");
 
   // Modal / Drawer de detalle forense
   const [selectedAuditLog, setSelectedAuditLog] = useState<EventoAuditoria | null>(null);
@@ -883,17 +885,20 @@ function AuditoriaCuentasContent() {
               </div>
 
               {/* Botón rápido para limpiar todos los filtros si alguno está activo */}
-              {hasActiveFilters && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleResetFilters}
-                  className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground gap-1.5 cursor-pointer shrink-0"
-                >
-                  <RotateCcw className="size-3.5" />
-                  <span>Limpiar filtros</span>
-                </Button>
-              )}
+              <div className="ml-auto flex items-center justify-end gap-2 shrink-0">
+                {hasActiveFilters && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleResetFilters}
+                    className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground gap-1.5 cursor-pointer shrink-0"
+                  >
+                    <RotateCcw className="size-3.5" />
+                    <span>Limpiar filtros</span>
+                  </Button>
+                )}
+                <ViewModeToggle value={viewMode} onChange={setViewMode} />
+              </div>
             </div>
 
               {/* Mensaje de error de validación de fechas */}
@@ -1024,7 +1029,7 @@ function AuditoriaCuentasContent() {
             {/* Contenedor Principal: Tabla Desktop (hidden lg:block) + Cards Mobile/Tablet (block lg:hidden) */}
             <div className="w-full space-y-4">
               {/* 1. Vista Desktop: Tabla con las 8 Columnas Oficiales (HU ID-05) */}
-              <div className="hidden lg:block w-full">
+              <div className={cn("w-full", viewMode === "table" ? "hidden lg:block" : "hidden")}>
                 <Table containerClassName="overflow-x-auto w-full" className="w-full min-w-[1100px]">
                   <TableHeader>
                     <TableRow className="border-0">
@@ -1264,7 +1269,14 @@ function AuditoriaCuentasContent() {
               </div>
 
               {/* 2. Vista Mobile y Tablet: Cards Responsive según Jerarquía HU ID-05 */}
-              <div className="block lg:hidden w-full space-y-3">
+              <div
+                className={cn(
+                  "w-full",
+                  viewMode === "cards"
+                    ? "grid grid-cols-1 md:grid-cols-2 gap-4"
+                    : "block lg:hidden space-y-3"
+                )}
+              >
                 {paginatedLogs.length > 0 ? (
                   paginatedLogs.map((log) => {
                     const tipoCuenta = getTipoCuenta(log);
@@ -1452,7 +1464,7 @@ function AuditoriaCuentasContent() {
                     );
                   })
                 ) : (
-                  <div className="flex flex-col items-center justify-center p-8 bg-surface border border-border/80 rounded-xl text-center space-y-2.5">
+                  <div className="col-span-full flex flex-col items-center justify-center p-8 bg-surface border border-border/80 rounded-xl text-center space-y-2.5">
                     <div className="size-10 rounded-full bg-muted/70 flex items-center justify-center text-muted-foreground">
                       <SearchIcon className="size-5" />
                     </div>

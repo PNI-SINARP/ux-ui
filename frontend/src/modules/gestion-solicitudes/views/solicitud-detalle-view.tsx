@@ -80,14 +80,14 @@ import {
 } from "@/modules/cambio-coordinador/data/cambio-coordinador-store";
 import { SolicitudAnexoCDetail } from "@/components/shared/solicitudes/solicitud-anexo-c-tabs";
 
-interface SolicitudDetalleViewProps { id: string; basePath?: string; sectionTitle?: string; showEnr03?: boolean; }
+interface SolicitudDetalleViewProps { id: string; basePath?: string; sectionTitle?: string; showEnr03?: boolean; activeMenu?: string; }
 
-export function SolicitudDetalleView({ id, basePath = "/asignacion-solicitudes", sectionTitle, showEnr03 = true }: SolicitudDetalleViewProps) {
+export function SolicitudDetalleView({ id, basePath = "/asignacion-solicitudes", sectionTitle, showEnr03 = true, activeMenu }: SolicitudDetalleViewProps) {
   const router = useRouter();
   const { activeUser } = useAuthStore();
   const isNormativaPath = basePath?.includes("revision-normativa");
   const defaultUser = isNormativaPath ? MOCK_USERS_BY_ROLE.EQ_NORMATIVA : MOCK_USERS_BY_ROLE.DIR_GESTION;
-  const currentUser = (activeUser && (isNormativaPath ? (activeUser.role === "EQ_NORMATIVA" || activeUser.role === "DIR_NORMATIVA") : true)) ? activeUser : defaultUser;
+  const currentUser = (activeUser && (isNormativaPath ? (activeUser.role === "EQ_NORMATIVA" || activeUser.role === "DIR_NORMATIVA") : basePath?.includes("firma-resoluciones") ? activeUser.role === "APROBADOR" : true)) ? activeUser : (basePath?.includes("firma-resoluciones") ? MOCK_USERS_BY_ROLE.APROBADOR : defaultUser);
   const isDirector = currentUser.role === "DIR_GESTION" || currentUser.role === "DIR_NORMATIVA";
   const isRevisor = currentUser.role === "EQ_GESTION" || currentUser.role === "EQ_NORMATIVA";
 
@@ -342,7 +342,7 @@ export function SolicitudDetalleView({ id, basePath = "/asignacion-solicitudes",
 
   if (isLoaded && !solicitud) {
     return (
-      <WireframeDashboardLayout
+      <WireframeDashboardLayout activeMenu={activeMenu}
         breadcrumbs={[
           { label: activeSectionTitle, onClick: () => router.push(basePath) },
           { label: "Trámite no encontrado" },
@@ -372,7 +372,7 @@ export function SolicitudDetalleView({ id, basePath = "/asignacion-solicitudes",
 
   if (!solicitud) {
     return (
-      <WireframeDashboardLayout breadcrumbs={[{ label: activeSectionTitle, onClick: () => router.push(basePath) }, { label: "Cargando..." }]}>
+      <WireframeDashboardLayout activeMenu={activeMenu} breadcrumbs={[{ label: activeSectionTitle, onClick: () => router.push(basePath) }, { label: "Cargando..." }]}>
         <div className="p-8 text-center text-xs text-muted-foreground">Cargando datos del trámite...</div>
       </WireframeDashboardLayout>
     );
@@ -1607,7 +1607,7 @@ export function SolicitudDetalleView({ id, basePath = "/asignacion-solicitudes",
               )}
 
               {/* SI ES PERSONAL DE NORMATIVIDAD (EQ_NORMATIVA) O DIRECTOR DE NORMATIVIDAD: Panel de Resolución Institucional e INS-07 */}
-              {(currentUser.role === "EQ_NORMATIVA" || (currentUser.role === "DIR_NORMATIVA" && (solicitud.estado === "INSTITUCION_ACTIVA" || solicitud.estado === "PENDIENTE_DE_FIRMA" || solicitud.estado === "RESOLUCION_GENERADA"))) && (
+              {(currentUser.role === "EQ_NORMATIVA" || currentUser.role === "APROBADOR" || (currentUser.role === "DIR_NORMATIVA" && (solicitud.estado === "INSTITUCION_ACTIVA" || solicitud.estado === "PENDIENTE_DE_FIRMA" || solicitud.estado === "RESOLUCION_GENERADA"))) && (
                 <ResolucionInstitucionalPanel
                   solicitud={solicitud}
                   currentUserName={currentUser.name}
@@ -1623,7 +1623,8 @@ export function SolicitudDetalleView({ id, basePath = "/asignacion-solicitudes",
                   onCompletarFirmaResolucion={(solId, exitosa, firmante, motivoFallo) => {
                     store.completarFirmaResolucion(solId, exitosa, firmante, motivoFallo);
                   }}
-                  onPreviewDocumento={(titulo, archivo) => {
+                  onPreviewDocumento={(titulo, archivo) => { setPreviewDoc({ titulo, archivo }); }} onRechazarSolicitud={(solId, motivo) => { store.rechazarSolicitud(solId, motivo, currentUser.name); toast.success("Solicitud rechazada"); router.push(basePath); }} /> )} {(currentUser.role === "REPRESENTANTE_INSTITUCIONAL" || currentUser.role === "COORDINADOR_SINARP" || currentUser.role === "ADMIN") && ( <div className="bg-surface border border-border rounded-2xl p-5 shadow-xs space-y-4"> <div className="flex items-center justify-between pb-3 border-b border-border/70"> <div className="flex items-center gap-2"> <ShieldCheck className="size-5 text-primary" /> <div> <h3 className="font-heading font-bold text-sm text-foreground">Estado y Seguimiento del Expediente</h3> <p className="text-[11px] text-muted-foreground">Consulta del proceso correspondiente</p> </div> </div> {renderEstadoBadge(solicitud.estado, solicitud.revisionIniciada)} </div> <div className="p-3.5 bg-muted/30 rounded-xl border border-border text-xs space-y-2.5"> <div className="flex justify-between items-center text-[11px]"><span className="text-muted-foreground">Código de expediente:</span><strong className="font-mono text-foreground">{solicitud.id}</strong></div> <div className="flex justify-between items-center text-[11px]"><span className="text-muted-foreground">Formulario oficial:</span><strong className="font-mono text-foreground">{solicitud.codigoDocumental}</strong></div> <div className="flex justify-between items-center text-[11px]"><span className="text-muted-foreground">Institución:</span><strong className="text-foreground truncate max-w-[200px]">{solicitud.institucion}</strong></div> <div className="flex justify-between items-center text-[11px]"><span className="text-muted-foreground">Fecha de ingreso:</span><strong className="text-foreground">{solicitud.fechaSolicitud}</strong></div> {solicitud.revisor && (<div className="flex justify-between items-center text-[11px]"><span className="text-muted-foreground">Responsable:</span><strong className="text-foreground">{solicitud.revisor}</strong></div>)} {solicitud.resolucion && (<div className="flex justify-between items-center text-[11px] pt-1 border-t border-border/60"><span className="text-muted-foreground">Resolución emitida:</span><strong className="font-mono text-primary">{solicitud.resolucion}</strong></div>)} </div> {solicitud.tipoTramite === "PROCESO_B_ENROLAMIENTO_COORDINADOR" && currentUser.role === "COORDINADOR_SINARP" && (<Button type="button" variant="primary" size="sm" onClick={() => router.push("/enrolamiento-coordinador")} className="w-full text-xs font-semibold gap-2"><FileText className="size-3.5" /><span>Ir a Enrolamiento y Firma Anexo B</span></Button>)} {solicitud.tipoTramite === "PROCESO_C_CAMBIO_COORDINADOR" && (currentUser.role === "REPRESENTANTE_INSTITUCIONAL" || currentUser.role === "COORDINADOR_SINARP") && (<Button type="button" variant="outline" size="sm" onClick={() => router.push("/cambio-coordinador")} className="w-full text-xs font-semibold gap-2"><FileText className="size-3.5" /><span>Nueva Solicitud Anexo C</span></Button>)} </div> )}
+                  {false && solicitud && (<ResolucionInstitucionalPanel solicitud={solicitud!} currentUserName={currentUser.name} onIniciarGeneracion={() => {}} onFalloGeneracion={() => {}} onReintentarGeneracion={() => {}} onCompletarFirmaResolucion={() => {}} onPreviewDocumento={(titulo, archivo) => {
                     setPreviewDoc({ titulo, archivo });
                   }}
                   onRechazarSolicitud={(solId, motivo) => {

@@ -59,6 +59,7 @@ import {
 } from "@/components/ui/combobox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-button";
 import { WireframeDashboardLayout } from "@/components/layout/wireframes/wireframe-dashboard-layout";
+import { MOCK_USERS_BY_ROLE } from "@/modules/catalogo-interoperabilidad/data/catalogo-data";
 import {
   useSolicitudesStore,
   SolicitudAcceso,
@@ -134,7 +135,7 @@ export function RevisionGestionDetailView({ id }: RevisionGestionDetailViewProps
     {
       id: "obs-temp-1",
       tipo: "finalidad",
-      elementoNombre: campos[0]?.nombre || "Campo general",
+      elementoNombre: campos[0]?.nombre || campos[0]?.nombreCampo || "Campo general",
       descripcion: "",
       fecha: new Date().toISOString().substring(0, 10),
       revisor: solicitud?.revisorAsignado || "Ana Torres",
@@ -150,7 +151,7 @@ export function RevisionGestionDetailView({ id }: RevisionGestionDetailViewProps
       {
         id: `obs-temp-${Date.now()}`,
         tipo: "campo",
-        elementoNombre: campos[0]?.nombre || "General",
+        elementoNombre: campos[0]?.nombre || campos[0]?.nombreCampo || "General",
         descripcion: "",
         fecha: new Date().toISOString().substring(0, 10),
         revisor: solicitud?.revisorAsignado || "Ana Torres",
@@ -188,7 +189,7 @@ export function RevisionGestionDetailView({ id }: RevisionGestionDetailViewProps
   // Ejecución de Aprobación Funcional
   const handleConfirmarAprobacion = () => {
     aprobarGestion(solicitud.id, {
-      camposAprobados: campos.map((c) => c.nombre),
+      camposAprobados: campos.map((c) => c.nombre || c.nombreCampo || c.id),
       modalidadesAutorizadas: modalidadAutorizada,
       cupoAprobado: solicitud.cupo || 50000,
       revisor: solicitud.revisorAsignado || "Ana Torres",
@@ -198,11 +199,11 @@ export function RevisionGestionDetailView({ id }: RevisionGestionDetailViewProps
 
     if (tieneConfidenciales) {
       toast.success("Solicitud aprobada funcionalmente", {
-        description: "Contiene campos confidenciales. Ha sido remitida a la Dirección de Normatividad para dictamen jurídico y doble firma digital.",
+        description: "Contiene campos confidenciales. Ha sido remitida a la Dirección de Protección de la Información (DPI) para dictamen jurídico y doble firma electrónica (SOL-07, SOL-08).",
       });
     } else {
       toast.success("Solicitud aprobada funcionalmente", {
-        description: "Contiene exclusivamente campos accesibles. Continuará hacia la etapa de formalización.",
+        description: "Contiene exclusivamente campos accesibles. Continuará hacia la etapa de formalización (BN-08).",
       });
     }
 
@@ -248,13 +249,20 @@ export function RevisionGestionDetailView({ id }: RevisionGestionDetailViewProps
   return (
     <WireframeDashboardLayout
       activeMenu="revision-gestion"
+      currentRole="EQ_GESTION"
+      currentUser={MOCK_USERS_BY_ROLE.EQ_GESTION}
       breadcrumbs={[
+        { label: "Inicio", href: "/" },
         { label: "Acceso a Interoperabilidad", href: "/acceso-interoperabilidad/solicitudes" },
         { label: "Revisión Funcional de Gestión", href: "/revision-gestion" },
         { label: `${solicitud.id} (v${solicitud.versionExpediente || 1})` },
       ]}
     >
-      <div className="layout-container py-6 sm:py-8 space-y-6">
+      <main className="w-full pr-3 pl-2 pb-3 pt-1.5 flex-1 min-h-0 flex flex-col overflow-hidden">
+        <Card
+          className="bg-surface rounded-2xl border border-border shadow-xs flex-1 min-h-0 overflow-hidden flex flex-col my-0"
+          innerClassName="p-4 sm:p-6 lg:p-8 flex flex-col gap-6 overflow-y-auto flex-1 min-h-0 w-full"
+        >
         {/* Navegación y Cabecera */}
         <div className="flex items-center justify-between">
           <Link
@@ -300,7 +308,7 @@ export function RevisionGestionDetailView({ id }: RevisionGestionDetailViewProps
                 {tieneConfidenciales ? (
                   <Badge tone="warning" appearance="soft" size="sm" className="gap-1 text-xs">
                     <Lock className="size-3" />
-                    Requiere dictamen normativo posterior
+                    Requiere dictamen DPI posterior
                   </Badge>
                 ) : (
                   <Badge tone="neutral" appearance="soft" size="sm" className="gap-1 text-xs">
@@ -447,7 +455,10 @@ export function RevisionGestionDetailView({ id }: RevisionGestionDetailViewProps
             </div>
 
             <div className="space-y-3">
-              {campos.map((campo, idx) => (
+              {campos.map((campo, idx) => {
+                const nombreCampo = campo.nombre || campo.nombreCampo || `Campo ${idx + 1}`;
+                const fundamentoCampo = campo.justificacionConfidencial || campo.fundamento;
+                return (
                 <div
                   key={campo.id}
                   className="p-4 rounded-xl border border-border bg-muted/15 space-y-3 text-xs"
@@ -457,8 +468,8 @@ export function RevisionGestionDetailView({ id }: RevisionGestionDetailViewProps
                       <span className="size-5 rounded-full bg-primary/10 text-primary text-[10px] font-bold flex items-center justify-center">
                         {idx + 1}
                       </span>
-                      <span className="font-mono font-bold text-foreground text-sm">{campo.nombre}</span>
-                      <span className="text-muted-foreground text-[11px]">({campo.tipo})</span>
+                      <span className="font-mono font-bold text-foreground text-sm">{nombreCampo}</span>
+                      <span className="text-muted-foreground text-[11px]">({campo.tipo || "String"})</span>
                       {campo.clasificacion === "Confidencial" ? (
                         <Badge tone="warning" appearance="soft" size="sm" className="gap-1 text-[10px]">
                           <Lock className="size-2.5" />
@@ -477,7 +488,7 @@ export function RevisionGestionDetailView({ id }: RevisionGestionDetailViewProps
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleObservarCampoDirecto(campo.nombre, "finalidad")}
+                          onClick={() => handleObservarCampoDirecto(nombreCampo, "finalidad")}
                           className="h-7 text-xs text-warning hover:bg-warning/10 gap-1"
                         >
                           <AlertTriangle className="size-3 text-warning" />
@@ -509,19 +520,20 @@ export function RevisionGestionDetailView({ id }: RevisionGestionDetailViewProps
                           4. Justificación jurídica presentada (Confidencial):
                         </span>
                         <Badge tone="info" appearance="soft" size="sm" className="text-[9px] px-1 py-0">
-                          Dictamen definitivo en Normatividad
+                          Dictamen definitivo en DPI
                         </Badge>
                       </div>
                       <p className="text-xs text-foreground leading-relaxed">
-                        {campo.fundamento || "Base legal conforme Ley Orgánica de Protección de Datos Personales (LOPDP) y atribuciones institucionales."}
+                        {fundamentoCampo || "Base legal conforme Ley Orgánica de Protección de Datos Personales (LOPDP) y atribuciones institucionales."}
                       </p>
                       <p className="text-[10px] text-muted-foreground italic">
-                        * Gestión constata que la justificación esté debidamente diligenciada y sea congruente con el objetivo institucional.
+                        * Gestión constata que la justificación esté debidamente diligenciada y sea congruente con el objetivo institucional antes de derivar a Protección de la Información (DPI).
                       </p>
                     </div>
                   ) : null}
                 </div>
-              ))}
+                );
+              })}
             </div>
           </Card>
 
@@ -761,18 +773,17 @@ export function RevisionGestionDetailView({ id }: RevisionGestionDetailViewProps
 
         {/* MODAL: OBSERVAR SOLICITUD */}
         <Dialog open={isModalObservarOpen} onOpenChange={setIsModalObservarOpen}>
-          <DialogContent size="lg">
+          <DialogContent variant="warning" size="lg">
             <DialogHeader>
-              <DialogTitle className="text-lg font-bold text-foreground flex items-center gap-2">
-                <AlertTriangle className="size-5 text-warning" />
+              <DialogTitle className="text-xl font-bold text-foreground">
                 Observar Solicitud de Acceso
               </DialogTitle>
-              <DialogDescription className="text-xs text-muted-foreground mt-1">
+              <DialogDescription className="text-xs text-muted-foreground mt-2 max-w-[440px]">
                 Detalle claramente qué elementos debe subsanar el Coordinador (campos, finalidades, justificaciones, modalidad, cupo o documentos).
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-4 my-2 text-xs">
+            <div className="w-full text-left space-y-4 my-2 text-xs">
               <div className="flex items-center justify-between pb-2 border-b border-border/70">
                 <span className="font-semibold text-foreground">
                   Lista de observaciones estructuradas ({listaObservaciones.length})
@@ -788,7 +799,7 @@ export function RevisionGestionDetailView({ id }: RevisionGestionDetailViewProps
                 </Button>
               </div>
 
-              <div className="space-y-3 max-h-[360px] overflow-y-auto pr-1">
+              <div className="space-y-3 max-h-[340px] overflow-y-auto pr-1">
                 {listaObservaciones.map((obs, idx) => (
                   <div
                     key={obs.id}
@@ -867,9 +878,9 @@ export function RevisionGestionDetailView({ id }: RevisionGestionDetailViewProps
               {/* Plazo de subsanación */}
               <div className="p-3 rounded-xl bg-muted/30 border border-border flex items-center justify-between">
                 <div>
-                  <span className="font-semibold text-foreground block">Plazo límite de subsanación:</span>
+                  <span className="font-semibold text-foreground block">Plazo límite de subsanación (PAR-13 / PAR-10):</span>
                   <span className="text-[11px] text-muted-foreground">
-                    Tiempo otorgado al Coordinador para reenviar el expediente corregido.
+                    Plazo inicial parametrizado en 3 días hábiles según calendario laboral PAR-10 (SOL-06).
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -878,7 +889,7 @@ export function RevisionGestionDetailView({ id }: RevisionGestionDetailViewProps
                     min={1}
                     max={30}
                     value={plazoSubsanacionDias}
-                    onChange={(e) => setPlazoSubsanacionDias(Math.max(1, parseInt(e.target.value) || 1))}
+                    onChange={(e) => setPlazoSubsanacionDias(Math.max(1, parseInt(e.target.value) || 3))}
                     className="w-16 h-8 text-xs text-center font-mono font-bold"
                   />
                   <span className="text-xs text-muted-foreground">días hábiles</span>
@@ -886,18 +897,17 @@ export function RevisionGestionDetailView({ id }: RevisionGestionDetailViewProps
               </div>
             </div>
 
-            <DialogFooter className="pt-2 border-t border-border/60">
-              <Button variant="outline" size="sm" onClick={() => setIsModalObservarOpen(false)}>
+            <DialogFooter className="w-full flex flex-col sm:flex-row gap-2 pt-2">
+              <Button variant="neutral" size="sm" onClick={() => setIsModalObservarOpen(false)} className="w-full sm:w-1/2">
                 Cancelar
               </Button>
               <Button
-                variant="primary"
+                variant="warning"
                 size="sm"
                 onClick={handleConfirmarObservacion}
-                className="bg-warning hover:bg-warning/90 text-warning-foreground font-semibold gap-1.5"
+                className="w-full sm:w-1/2 font-semibold"
               >
-                <AlertTriangle className="size-4" />
-                <span>Confirmar y notificar observación</span>
+                Confirmar y notificar observación
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -905,18 +915,17 @@ export function RevisionGestionDetailView({ id }: RevisionGestionDetailViewProps
 
         {/* MODAL: APROBAR SOLICITUD */}
         <Dialog open={isModalAprobarOpen} onOpenChange={setIsModalAprobarOpen}>
-          <DialogContent size="default">
+          <DialogContent variant="success" size="lg">
             <DialogHeader>
-              <DialogTitle className="text-lg font-bold text-foreground flex items-center gap-2">
-                <CheckCircle2 className="size-5 text-success" />
+              <DialogTitle className="text-xl font-bold text-foreground">
                 Aprobar Solicitud Funcionalmente
               </DialogTitle>
-              <DialogDescription className="text-xs text-muted-foreground mt-1">
+              <DialogDescription className="text-xs text-muted-foreground mt-2 max-w-[440px]">
                 Confirme los parámetros funcionales autorizados para el expediente. En Gestión no se exige informe técnico PDF ni firma digital.
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-3.5 my-2 text-xs">
+            <div className="w-full text-left space-y-3.5 my-2 text-xs">
               <div className="p-3.5 rounded-xl bg-muted/30 border border-border space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">Expediente:</span>
@@ -948,7 +957,7 @@ export function RevisionGestionDetailView({ id }: RevisionGestionDetailViewProps
                     <span>Contiene campos confidenciales</span>
                   </div>
                   <p className="text-[11px] text-muted-foreground leading-relaxed">
-                    Al confirmar, el expediente pasará al estado <strong>&ldquo;Pendiente de asignación en Normatividad&rdquo;</strong> para la evaluación jurídica especializada del Director y Revisor de Normatividad.
+                    Al confirmar, el expediente pasará a <strong>&ldquo;Pendiente de asignación en DPI&rdquo;</strong> para la evaluación jurídica especializada del Director y Revisor de la Dirección de Protección de la Información (DPI) (SOL-07, SOL-08).
                   </p>
                 </div>
               ) : (
@@ -958,24 +967,23 @@ export function RevisionGestionDetailView({ id }: RevisionGestionDetailViewProps
                     <span>Solo contiene campos accesibles</span>
                   </div>
                   <p className="text-[11px] text-muted-foreground leading-relaxed">
-                    Al confirmar, la solicitud pasará directamente al estado <strong>&ldquo;Aprobada por Gestión&rdquo;</strong> y continuará al flujo de formalización institucional (convenio / habilitación técnica).
+                    Al confirmar, la solicitud pasará directamente al estado <strong>&ldquo;Aprobada por Gestión&rdquo;</strong> y continuará al flujo de formalización institucional (BN-08).
                   </p>
                 </div>
               )}
             </div>
 
-            <DialogFooter className="pt-2 border-t border-border/60">
-              <Button variant="outline" size="sm" onClick={() => setIsModalAprobarOpen(false)}>
+            <DialogFooter className="w-full flex flex-col sm:flex-row gap-2 pt-2">
+              <Button variant="neutral" size="sm" onClick={() => setIsModalAprobarOpen(false)} className="w-full sm:w-1/2">
                 Cancelar
               </Button>
               <Button
-                variant="primary"
+                variant="success"
                 size="sm"
                 onClick={handleConfirmarAprobacion}
-                className="bg-success hover:bg-success/90 text-success-foreground font-semibold gap-1.5 shadow-xs"
+                className="w-full sm:w-1/2 font-semibold"
               >
-                <CheckCircle2 className="size-4" />
-                <span>Confirmar aprobación funcional</span>
+                Confirmar aprobación funcional
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -1013,7 +1021,8 @@ export function RevisionGestionDetailView({ id }: RevisionGestionDetailViewProps
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </div>
+        </Card>
+      </main>
     </WireframeDashboardLayout>
   );
 }

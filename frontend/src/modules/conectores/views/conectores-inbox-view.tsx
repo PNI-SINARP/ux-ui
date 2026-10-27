@@ -72,6 +72,7 @@ import { RegistrarConectorDialog } from "../components/registrar-conector-dialog
 import { ProbarConectorDialog } from "../components/probar-conector-dialog";
 import { RetirarConectorDialog } from "../components/retirar-conector-dialog";
 import { useAuthStore } from "@/modules/gestion-solicitudes/data/auth-store";
+import { ViewModeToggle, type ViewMode } from "@/components/shared/view-mode-toggle";
 
 interface ConectoresInboxViewProps {
   currentUser?: MockUser;
@@ -103,6 +104,7 @@ export function ConectoresInboxView({ currentUser: propUser }: ConectoresInboxVi
 
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
+  const [viewMode, setViewMode] = useState<ViewMode>("table");
 
   // Modales
   const [isRegistrarOpen, setIsRegistrarOpen] = useState(false);
@@ -547,103 +549,107 @@ export function ConectoresInboxView({ currentUser: propUser }: ConectoresInboxVi
                   />
                 </div>
 
-                {/* Filtros Combobox UI Kit */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 w-full xl:w-auto shrink-0">
-                  {/* Filtro Estado */}
-                  <div className="w-full xl:w-[240px] min-w-0">
-                    <Combobox
-                      value={estadoFilter === "ALL" ? null : estadoFilter}
-                      onValueChange={(val) => {
-                        handleSetEstadoFilter(val || "ALL");
-                      }}
-                      inputValue={estadoSearch}
-                      onInputValueChange={(newSearch) => {
-                        const opt = ESTADOS_OPCIONES.find(
-                          (e) =>
-                            e.value.toLowerCase() === newSearch.toLowerCase() ||
-                            e.label.toLowerCase() === newSearch.toLowerCase()
-                        );
-                        if (opt) setEstadoSearch(opt.label);
-                        else if (newSearch === "ALL") setEstadoSearch("");
-                        else setEstadoSearch(newSearch);
-                      }}
-                    >
-                      <ComboboxInput
-                        size="sm"
-                        placeholder="Todos los estados"
-                        showClear={estadoFilter !== "ALL"}
-                        showTrigger={true}
-                        className="w-full"
-                      />
-                      <ComboboxContent className="min-w-[260px] z-[80]">
-                        <ComboboxList>
-                          <ComboboxGroup>
-                            <ComboboxLabel>Filtrar por estado</ComboboxLabel>
-                            {filteredEstadosForFilter.map((opt) => (
-                              <ComboboxItem
-                                key={opt.value}
-                                value={opt.value}
-                                className="text-xs py-1.5 cursor-pointer"
-                              >
-                                {opt.label}
-                              </ComboboxItem>
-                            ))}
-                          </ComboboxGroup>
-                          {filteredEstadosForFilter.length === 0 && (
-                            <ComboboxEmpty>No se encontraron estados.</ComboboxEmpty>
-                          )}
-                        </ComboboxList>
-                      </ComboboxContent>
-                    </Combobox>
+                {/* Filtros Combobox UI Kit + Selector de Vista */}
+                <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 w-full xl:w-auto shrink-0">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 flex-1 sm:flex-none w-full sm:w-auto">
+                    {/* Filtro Estado */}
+                    <div className="w-full xl:w-[240px] min-w-0">
+                      <Combobox
+                        value={estadoFilter === "ALL" ? null : estadoFilter}
+                        onValueChange={(val) => {
+                          handleSetEstadoFilter(val || "ALL");
+                        }}
+                        inputValue={estadoSearch}
+                        onInputValueChange={(newSearch) => {
+                          const opt = ESTADOS_OPCIONES.find(
+                            (e) =>
+                              e.value.toLowerCase() === newSearch.toLowerCase() ||
+                              e.label.toLowerCase() === newSearch.toLowerCase()
+                          );
+                          if (opt) setEstadoSearch(opt.label);
+                          else if (newSearch === "ALL") setEstadoSearch("");
+                          else setEstadoSearch(newSearch);
+                        }}
+                      >
+                        <ComboboxInput
+                          size="sm"
+                          placeholder="Todos los estados"
+                          showClear={estadoFilter !== "ALL"}
+                          showTrigger={true}
+                          className="w-full"
+                        />
+                        <ComboboxContent className="min-w-[260px] z-[80]">
+                          <ComboboxList>
+                            <ComboboxGroup>
+                              <ComboboxLabel>Filtrar por estado</ComboboxLabel>
+                              {filteredEstadosForFilter.map((opt) => (
+                                <ComboboxItem
+                                  key={opt.value}
+                                  value={opt.value}
+                                  className="text-xs py-1.5 cursor-pointer"
+                                >
+                                  {opt.label}
+                                </ComboboxItem>
+                              ))}
+                            </ComboboxGroup>
+                            {filteredEstadosForFilter.length === 0 && (
+                              <ComboboxEmpty>No se encontraron estados.</ComboboxEmpty>
+                            )}
+                          </ComboboxList>
+                        </ComboboxContent>
+                      </Combobox>
+                    </div>
+
+                    {/* Filtro Tipo / Motor */}
+                    <div className="w-full xl:w-[220px] min-w-0">
+                      <Combobox
+                        value={tipoFilter === "ALL" ? null : tipoFilter}
+                        onValueChange={(val) => {
+                          handleSetTipoFilter(val || "ALL");
+                        }}
+                        inputValue={tipoSearch}
+                        onInputValueChange={(newSearch) => {
+                          const opt = TIPOS_OPCIONES.find(
+                            (t) =>
+                              t.value.toLowerCase() === newSearch.toLowerCase() ||
+                              t.label.toLowerCase() === newSearch.toLowerCase()
+                          );
+                          if (opt) setTipoSearch(opt.label);
+                          else if (newSearch === "ALL") setTipoSearch("");
+                          else setTipoSearch(newSearch);
+                        }}
+                      >
+                        <ComboboxInput
+                          size="sm"
+                          placeholder="Todos los motores"
+                          showClear={tipoFilter !== "ALL"}
+                          showTrigger={true}
+                          className="w-full"
+                        />
+                        <ComboboxContent className="min-w-[240px] z-[80]">
+                          <ComboboxList>
+                            <ComboboxGroup>
+                              <ComboboxLabel>Filtrar por motor / tipo</ComboboxLabel>
+                              {filteredTiposForFilter.map((opt) => (
+                                <ComboboxItem
+                                  key={opt.value}
+                                  value={opt.value}
+                                  className="text-xs py-1.5 cursor-pointer"
+                                >
+                                  {opt.label}
+                                </ComboboxItem>
+                              ))}
+                            </ComboboxGroup>
+                            {filteredTiposForFilter.length === 0 && (
+                              <ComboboxEmpty>No se encontraron tipos.</ComboboxEmpty>
+                            )}
+                          </ComboboxList>
+                        </ComboboxContent>
+                      </Combobox>
+                    </div>
                   </div>
 
-                  {/* Filtro Tipo / Motor */}
-                  <div className="w-full xl:w-[220px] min-w-0">
-                    <Combobox
-                      value={tipoFilter === "ALL" ? null : tipoFilter}
-                      onValueChange={(val) => {
-                        handleSetTipoFilter(val || "ALL");
-                      }}
-                      inputValue={tipoSearch}
-                      onInputValueChange={(newSearch) => {
-                        const opt = TIPOS_OPCIONES.find(
-                          (t) =>
-                            t.value.toLowerCase() === newSearch.toLowerCase() ||
-                            t.label.toLowerCase() === newSearch.toLowerCase()
-                        );
-                        if (opt) setTipoSearch(opt.label);
-                        else if (newSearch === "ALL") setTipoSearch("");
-                        else setTipoSearch(newSearch);
-                      }}
-                    >
-                      <ComboboxInput
-                        size="sm"
-                        placeholder="Todos los motores"
-                        showClear={tipoFilter !== "ALL"}
-                        showTrigger={true}
-                        className="w-full"
-                      />
-                      <ComboboxContent className="min-w-[240px] z-[80]">
-                        <ComboboxList>
-                          <ComboboxGroup>
-                            <ComboboxLabel>Filtrar por motor / tipo</ComboboxLabel>
-                            {filteredTiposForFilter.map((opt) => (
-                              <ComboboxItem
-                                key={opt.value}
-                                value={opt.value}
-                                className="text-xs py-1.5 cursor-pointer"
-                              >
-                                {opt.label}
-                              </ComboboxItem>
-                            ))}
-                          </ComboboxGroup>
-                          {filteredTiposForFilter.length === 0 && (
-                            <ComboboxEmpty>No se encontraron tipos.</ComboboxEmpty>
-                          )}
-                        </ComboboxList>
-                      </ComboboxContent>
-                    </Combobox>
-                  </div>
+                  <ViewModeToggle value={viewMode} onChange={setViewMode} />
                 </div>
               </div>
 
@@ -751,7 +757,7 @@ export function ConectoresInboxView({ currentUser: propUser }: ConectoresInboxVi
             </div>
 
             {/* Tabla de Conectores Reutilizables (Desktop) */}
-            <div className="hidden md:block w-full">
+            <div className={cn("w-full", viewMode === "table" ? "hidden md:block" : "hidden")}>
               <Table className="w-full" containerClassName="overflow-x-auto w-full">
                 <TableHeader>
                   <TableRow className="border-0">
@@ -1020,14 +1026,21 @@ export function ConectoresInboxView({ currentUser: propUser }: ConectoresInboxVi
               </Table>
             </div>
 
-            {/* Mobile Cards Layout (<md) */}
-            <div className="block md:hidden w-full space-y-3.5">
+            {/* Cards Layout (<md o cuando viewMode === "cards") */}
+            <div
+              className={cn(
+                "w-full",
+                viewMode === "cards"
+                  ? "grid grid-cols-1 md:grid-cols-2 gap-4"
+                  : "block md:hidden space-y-3.5"
+              )}
+            >
               {!isLoaded ? (
-                <div className="flex flex-col items-center justify-center p-8 bg-surface border border-border rounded-xl text-center space-y-2">
+                <div className="col-span-full flex flex-col items-center justify-center p-8 bg-surface border border-border rounded-xl text-center space-y-2">
                   <p className="text-xs text-muted-foreground">Cargando conectores...</p>
                 </div>
               ) : paginatedConectores.length === 0 ? (
-                <div className="flex flex-col items-center justify-center p-8 bg-surface border border-border rounded-xl text-center space-y-2">
+                <div className="col-span-full flex flex-col items-center justify-center p-8 bg-surface border border-border rounded-xl text-center space-y-2">
                   <Cpu className="size-8 text-muted-foreground/40 mx-auto" />
                   <p className="text-sm font-semibold text-foreground">No se encontraron conectores</p>
                   <p className="text-xs text-muted-foreground">

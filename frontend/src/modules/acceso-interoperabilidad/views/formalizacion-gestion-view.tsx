@@ -25,6 +25,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { InteractiveCard } from "@/components/ui/data-display";
+import { ViewModeToggle, type ViewMode } from "@/components/shared/view-mode-toggle";
 import { Search } from "@/components/ui/search";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -72,6 +74,7 @@ export function FormalizacionGestionView() {
 
   const [activeTab, setActiveTab] = useState<"TODAS" | "PUBLICA" | "PRIVADA">("TODAS");
   const [searchTerm, setSearchTerm] = useState("");
+  const [viewMode, setViewMode] = useState<ViewMode>("table");
   const [selectedSolicitud, setSelectedSolicitud] = useState<SolicitudAcceso | null>(null);
 
   // Modal Aprobación Final (SOL-10 + ACC-01/02)
@@ -264,10 +267,10 @@ export function FormalizacionGestionView() {
               </Badge>
             </div>
             <h1 className="font-heading text-2xl sm:text-3xl font-bold tracking-tight text-foreground mt-1">
-              Bandeja de Formalización, Aprobación Final y Control de Vigencia
+              Formalizar accesos
             </h1>
             <p className="text-sm text-muted-foreground mt-1 max-w-3xl">
-              Integra expedientes públicos (`SOL-09`), valida requisitos contractuales y pago automático de pasarela para privados (`DOC-03` + `PAG-02`), ejecuta la Aprobación Final (`SOL-10`) o devolución al área, y gestiona reversión de pagos (`PAG-04`) o actualización de cupos (`ACC-08`).
+              Verifica el cumplimiento de los requisitos técnicos, normativos, contractuales y financieros para ejecutar la aprobación final de acceso a interoperabilidad.
             </p>
           </div>
 
@@ -372,19 +375,27 @@ export function FormalizacionGestionView() {
             </div>
           </div>
 
-          <div className="w-full sm:w-72">
-            <Search
-              placeholder="Buscar por código, institución o proyecto..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              onClear={() => setSearchTerm("")}
-              className="w-full bg-background"
-            />
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <div className="w-full sm:w-72">
+              <Search
+                placeholder="Buscar por código, institución o proyecto..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onClear={() => setSearchTerm("")}
+                className="w-full bg-background"
+              />
+            </div>
+            <ViewModeToggle value={viewMode} onChange={setViewMode} />
           </div>
         </div>
 
         {/* Tabla Principal */}
-        <Card className="border border-border bg-surface overflow-hidden shadow-xs">
+        <Card
+          className={cn(
+            "border border-border bg-surface overflow-hidden shadow-xs",
+            viewMode === "table" ? "hidden md:block" : "hidden"
+          )}
+        >
           <Table>
             <TableHeader>
               <TableRow>
@@ -589,6 +600,221 @@ export function FormalizacionGestionView() {
             </TableBody>
           </Table>
         </Card>
+
+        {/* Vista de Tarjetas (Móvil + Modo Cards) */}
+        <div
+          className={cn(
+            "w-full",
+            viewMode === "cards"
+              ? "grid grid-cols-1 md:grid-cols-2 gap-4"
+              : "block md:hidden space-y-3.5"
+          )}
+        >
+          {filteredSolicitudes.length === 0 ? (
+            <div className="col-span-full rounded-xl border border-dashed border-border bg-surface p-10 text-center flex flex-col items-center justify-center text-muted-foreground gap-2">
+              <FileCheck2 className="size-8 stroke-1 text-muted-foreground/60" />
+              <p className="text-sm font-medium">
+                No hay solicitudes en esta bandeja con los filtros seleccionados.
+              </p>
+            </div>
+          ) : (
+            filteredSolicitudes.map((s) => {
+              const isPublic = s.tipoInstitucion === "Pública";
+              const isPendienteIntegracion =
+                s.estado === "Pendiente de integración";
+              const isReadyForApprovalPublic =
+                isPublic &&
+                (s.estado === "Aprobada por Gestión" ||
+                  s.estado === "Aprobada por Normatividad" ||
+                  s.estado === "En formalización" ||
+                  s.estado === "Aprobación final");
+              const isReadyForApprovalPrivate =
+                !isPublic &&
+                (s.estado === "Pago verificado" || s.estado === "Pago validado");
+              const isAlreadyApproved =
+                s.estado ===
+                  "Solicitud aprobada — habilitación técnica pendiente" ||
+                s.estado === "Habilitación técnica" ||
+                s.estado === "Acceso habilitado" ||
+                s.estado === "Acceso generado";
+              const canRevertPayment =
+                !isPublic &&
+                (s.estado === "Pago verificado" ||
+                  s.estado === "Pago validado" ||
+                  s.estado === "Acceso habilitado" ||
+                  s.estado === "Acceso generado");
+
+              return (
+                <InteractiveCard
+                  key={s.id}
+                  as="div"
+                  className="p-4 flex flex-col gap-3 bg-surface border-border"
+                >
+                  <div className="flex items-start justify-between gap-2 w-full">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-foreground text-sm">
+                          {s.id}
+                        </span>
+                        <Badge
+                          tone={isPublic ? "info" : "warning"}
+                          appearance="soft"
+                          className="text-xs"
+                        >
+                          {s.tipoInstitucion}
+                        </Badge>
+                      </div>
+                      <p className="text-xs font-medium text-foreground mt-0.5">
+                        {s.institucion}
+                      </p>
+                    </div>
+                    <Badge
+                      tone={
+                        isAlreadyApproved
+                          ? "success"
+                          : isPendienteIntegracion ||
+                            s.estado === "Divergencia de facturación" ||
+                            s.estado === "Pago bloqueado por intentos" ||
+                            s.estado === "Cerrada por reversión"
+                          ? "danger"
+                          : isReadyForApprovalPublic || isReadyForApprovalPrivate
+                          ? "primary"
+                          : "warning"
+                      }
+                      appearance="soft"
+                      className="text-xs shrink-0"
+                    >
+                      {s.estado}
+                    </Badge>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 text-xs w-full pt-2 border-t border-border">
+                    <div>
+                      <span className="text-muted-foreground block">
+                        Proyecto / Paquete
+                      </span>
+                      <span className="font-medium text-foreground">
+                        {s.proyectoNombre || s.fuentePrincipal}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block">
+                        Fuente principal
+                      </span>
+                      <span className="font-medium text-foreground">
+                        {s.fuentePrincipal || s.fuentes?.[0]?.nombre || "—"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-end gap-1.5 pt-2 border-t border-border w-full">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSelectedSolicitud(s)}
+                      className="gap-1 text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      <Eye className="size-3.5" />
+                      Expediente
+                    </Button>
+
+                    {isPendienteIntegracion && (
+                      <Button
+                        size="sm"
+                        variant="primary"
+                        onClick={() => {
+                          reintentarIntegracionExpedientePublico(
+                            s.id,
+                            "Dr. Roberto Andrade (Director de Gestión)"
+                          );
+                          toast.success(
+                            "Expediente público integrado exitosamente (SOL-09 Crit. 3)",
+                            {
+                              description:
+                                "Reintento idempotente completado sin duplicar registros. Listo para Aprobación Final (SOL-10).",
+                            }
+                          );
+                        }}
+                        className="gap-1.5 text-xs"
+                      >
+                        <RefreshCw className="size-3.5" />
+                        Reintentar Integración (SOL-09)
+                      </Button>
+                    )}
+
+                    {(isReadyForApprovalPublic || isReadyForApprovalPrivate) && (
+                      <>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setModalDevolucion(s);
+                            setObservacionDevolucion("");
+                          }}
+                          className="gap-1 text-xs"
+                        >
+                          <RotateCcw className="size-3.5" />
+                          Observar / Devolver
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="primary"
+                          onClick={() => {
+                            setResolucionAdmin(
+                              `RESOLUCION-DINARP-DIR-2026-${s.id.replace(
+                                "SOL-2026-",
+                                ""
+                              )}`
+                            );
+                            setSimularFalloApigee(false);
+                            setModalAprobacion(s);
+                          }}
+                          className="gap-1.5 text-xs"
+                        >
+                          <FileCheck2 className="size-3.5" />
+                          Aprobar Final (SOL-10)
+                        </Button>
+                      </>
+                    )}
+
+                    {(s.estado === "Acceso habilitado" ||
+                      s.estado === "Acceso generado") && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setModalActualizarCupo(s);
+                          setNuevoCupoApigee(
+                            String((s.cupo || 100000) + 50000)
+                          );
+                        }}
+                        className="gap-1 text-xs"
+                      >
+                        <SlidersHorizontal className="size-3.5" />
+                        Actualizar Cupo (ACC-08)
+                      </Button>
+                    )}
+
+                    {canRevertPayment && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setModalReversionPago(s);
+                          setMotivoReversionPago("");
+                        }}
+                        className="gap-1 text-xs text-destructive"
+                      >
+                        <Ban className="size-3.5" />
+                        Revertir Pago (PAG-04)
+                      </Button>
+                    )}
+                  </div>
+                </InteractiveCard>
+              );
+            })
+          )}
+        </div>
       </div>
 
       {/* Drawer Amplio: Expediente de Autorización (Pública) o Checklist (Privada) */}

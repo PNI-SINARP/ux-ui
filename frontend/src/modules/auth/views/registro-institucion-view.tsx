@@ -683,16 +683,16 @@ export function RegistroInstitucionView() {
             >
               <div className="flex items-center gap-2">
                 <CardBadge className="bg-primary/20 text-primary text-[10px] uppercase font-bold tracking-wider px-2.5 py-0.5 border-0">
-                  FORMULARIO OFICIAL ARP-R01
+                  ANEXO A · FORMULARIO OFICIAL ARP-R01
                 </CardBadge>
               </div>
 
               <CardTitle className="text-lg sm:text-xl font-bold font-heading text-primary">
-                Anexo A — Solicitud de Acceso al Sistema Nacional de Registros Públicos
+                Solicitar incorporación
               </CardTitle>
 
               <CardDescription className="text-xs text-primary-800/80 dark:text-primary-200/80 font-medium">
-                Proceso A · Enrolamiento institucional al SINARP
+                Registra los datos de tu institución, designa a los coordinadores y suscribe electrónicamente la solicitud de incorporación institucional (Anexo A).
               </CardDescription>
 
               <CardDecorativeIcon className="-bottom-10 -right-10 opacity-20 group-hover/card:scale-100 hidden sm:block">

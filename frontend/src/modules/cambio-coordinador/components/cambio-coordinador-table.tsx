@@ -14,6 +14,9 @@ import {
 import { InputGroup, InputGroupInput } from "@/components/ui/input-group";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { InteractiveCard } from "@/components/ui/data-display";
+import { ViewModeToggle, type ViewMode } from "@/components/shared/view-mode-toggle";
+import { cn } from "@/lib/utils";
 import {
   DocumentoStatusBadge,
   TramiteStatusBadge
@@ -31,6 +34,7 @@ export function CambioCoordinadorTable({
 }: CambioCoordinadorTableProps) {
   const [busqueda, setBusqueda] = useState("");
   const [filtroEstado, setFiltroEstado] = useState<string>("TODOS");
+  const [viewMode, setViewMode] = useState<ViewMode>("table");
 
   const tramitesFiltrados = tramites.filter((t) => {
     const term = busqueda.toLowerCase().trim();
@@ -92,11 +96,12 @@ export function CambioCoordinadorTable({
           >
             Aplicados
           </Button>
+          <ViewModeToggle value={viewMode} onChange={setViewMode} />
         </div>
       </div>
 
       {/* Tabla */}
-      <div className="overflow-x-auto">
+      <div className={cn("overflow-x-auto", viewMode === "table" ? "hidden md:block" : "hidden")}>
         <table className="w-full text-body-sm text-left border-collapse">
           <thead>
             <tr className="bg-muted/40 border-b border-border text-caption text-muted-foreground uppercase font-semibold">
@@ -166,6 +171,80 @@ export function CambioCoordinadorTable({
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Vista de Tarjetas (Móvil + Modo Cards) */}
+      <div
+        className={cn(
+          "w-full p-4",
+          viewMode === "cards"
+            ? "grid grid-cols-1 md:grid-cols-2 gap-4"
+            : "block md:hidden space-y-3.5"
+        )}
+      >
+        {tramitesFiltrados.length === 0 ? (
+          <div className="col-span-full py-8 text-center text-muted-foreground text-body-sm">
+            No se encontraron trámites de cambio de coordinador con los criterios seleccionados.
+          </div>
+        ) : (
+          tramitesFiltrados.map((t) => (
+            <InteractiveCard
+              key={t.id}
+              as="div"
+              className="p-4 flex flex-col gap-3 bg-surface border-border"
+            >
+              <div className="flex items-start justify-between gap-2 w-full">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-mono font-semibold text-primary text-body-sm">
+                    {t.numeroTramite}
+                  </span>
+                  <Badge
+                    tone={t.caracter === "TITULAR" ? "primary" : "neutral"}
+                    appearance="soft"
+                    size="sm"
+                    className="border border-border font-medium"
+                  >
+                    {t.caracter === "TITULAR" ? "Titular" : "Suplente"}
+                  </Badge>
+                </div>
+                <TramiteStatusBadge status={t.estadoTramite} size="sm" />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 text-caption w-full">
+                <div>
+                  <span className="text-muted-foreground block">Coordinador Saliente</span>
+                  <span className="font-medium text-foreground block">{t.coordinadorSaliente.nombreCompleto}</span>
+                  <span className="text-muted-foreground font-mono">{t.coordinadorSaliente.cedula}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block">Coordinador Entrante</span>
+                  <span className="font-semibold text-foreground block">{t.coordinadorEntrante.nombreCompleto}</span>
+                  <span className="text-muted-foreground font-mono">{t.coordinadorEntrante.cedula}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block">Fecha</span>
+                  <span className="text-foreground font-medium">{t.fechaSolicitud}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block mb-0.5">Estado Documento</span>
+                  <DocumentoStatusBadge status={t.estadoDocumento} size="sm" />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end pt-2 border-t border-border w-full">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 hover:bg-primary/5 hover:text-primary hover:border-primary/40"
+                  onClick={() => onVerDetalle(t)}
+                >
+                  <Eye className="h-3.5 w-3.5" />
+                  <span>Detalle</span>
+                </Button>
+              </div>
+            </InteractiveCard>
+          ))
+        )}
       </div>
     </div>
   );

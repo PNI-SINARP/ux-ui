@@ -20,6 +20,7 @@ import {
   type AutorizacionDelegado,
   type ValidacionFirmaECAnexoC
 } from "../data/cambio-coordinador-store";
+import { useAuthStore } from "@/modules/gestion-solicitudes/data/auth-store";
 import { Card, CardTitle, CardDescription, CardDecorativeIcon, CardBadge } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -41,6 +42,7 @@ import { cn } from "@/lib/utils";
 type VistaEstado = "INICIAL" | "WIZARD" | "DETALLE";
 
 export function CambioCoordinadorView() {
+  const { activeUser } = useAuthStore();
   const {
     institucion,
     crearSolicitud,
@@ -237,11 +239,11 @@ export function CambioCoordinadorView() {
             </div>
 
             <CardTitle className="text-lg sm:text-xl font-bold font-heading text-primary">
-              Cambio de coordinador
+              Solicitar cambio
             </CardTitle>
 
             <CardDescription className="text-xs text-primary-800/80 dark:text-primary-200/80 font-medium">
-              Gestiona la sustitución del Coordinador titular o suplente de tu institución mediante el Anexo C.
+              Registra y gestiona la solicitud de sustitución del coordinador institucional titular o suplente (Anexo C).
             </CardDescription>
 
             <CardDecorativeIcon className="-bottom-10 -right-10 opacity-20 group-hover/card:scale-100 hidden sm:block">

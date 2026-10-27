@@ -43,6 +43,7 @@ import {
 import { WireframeDashboardLayout } from "@/components/layout/wireframes/wireframe-dashboard-layout";
 import { Card } from "@/components/ui/card";
 import { InteractiveCard } from "@/components/ui/data-display";
+import { ViewModeToggle, type ViewMode } from "@/components/shared/view-mode-toggle";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Search } from "@/components/ui/search";
@@ -191,6 +192,7 @@ export function CuentasInternasView() {
   // Paginación
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [viewMode, setViewMode] = useState<ViewMode>("table");
 
   // Modales de acciones de ciclo de vida (ID-03 e ID-04)
   const [accionCuentaTipo, setAccionCuentaTipo] = useState<TipoAccionCuenta | null>(null);
@@ -1148,6 +1150,10 @@ export function CuentasInternasView() {
                   </Combobox>
                 </div>
               </div>
+
+              <div className="flex items-center justify-end shrink-0">
+                <ViewModeToggle value={viewMode} onChange={setViewMode} />
+              </div>
             </div>
 
             {/* Badges / Píldoras de Filtros Activos (UI Kit) */}
@@ -1300,7 +1306,7 @@ export function CuentasInternasView() {
 
         <TooltipProvider delayDuration={150}>
           {/* Tabla de Cuentas Internas (Desktop md+) */}
-          <div className="hidden md:block w-full">
+          <div className={cn("w-full", viewMode === "table" ? "hidden md:block" : "hidden")}>
               <Table
                 className="w-full min-w-[1380px]"
                 containerClassName="overflow-x-auto w-full"
@@ -1620,10 +1626,17 @@ export function CuentasInternasView() {
             </Table>
           </div>
 
-          {/* Vista Mobile Cards (<md) con Tarjeta Interactiva del UI Kit */}
-          <div className="block md:hidden w-full space-y-3.5">
+          {/* Vista Cards con Tarjeta Interactiva del UI Kit */}
+          <div
+            className={cn(
+              "w-full",
+              viewMode === "cards"
+                ? "grid grid-cols-1 md:grid-cols-2 gap-4"
+                : "block md:hidden space-y-3.5"
+            )}
+          >
             {paginatedUsuarios.length === 0 ? (
-              <div className="flex flex-col items-center justify-center p-8 bg-surface border border-border rounded-xl text-center space-y-2">
+              <div className="col-span-full flex flex-col items-center justify-center p-8 bg-surface border border-border rounded-xl text-center space-y-2">
                 <Users className="size-8 stroke-[1.5] text-muted-foreground/60" />
                 <p className="text-sm font-semibold text-foreground">No se encontraron cuentas internas</p>
                 <p className="text-xs text-muted-foreground">

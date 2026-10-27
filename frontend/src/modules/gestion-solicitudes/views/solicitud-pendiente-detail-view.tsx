@@ -81,9 +81,9 @@ import {
 } from "@/modules/cambio-coordinador/data/cambio-coordinador-store";
 import { SolicitudAnexoCDetail } from "@/components/shared/solicitudes/solicitud-anexo-c-tabs";
 
-interface SolicitudPendienteDetailViewProps { id: string; }
+interface SolicitudPendienteDetailViewProps { id: string; basePath?: string; sectionTitle?: string; activeMenu?: string; }
 
-export function SolicitudPendienteDetailView({ id }: SolicitudPendienteDetailViewProps) {
+export function SolicitudPendienteDetailView({ id, basePath = "/solicitudes-pendientes", sectionTitle, activeMenu }: SolicitudPendienteDetailViewProps) {
   const router = useRouter();
   const { activeUser } = useAuthStore();
   const currentUser = activeUser || MOCK_USERS_BY_ROLE.EQ_GESTION;
@@ -224,6 +224,7 @@ export function SolicitudPendienteDetailView({ id }: SolicitudPendienteDetailVie
   } | null>(null);
 
   const activeSectionTitle = useMemo(() => {
+    if (sectionTitle) return sectionTitle;
     if (currentUser.role === "DIR_GESTION" || currentUser.role === "DIR_NORMATIVA") {
       return "Asignación de solicitudes de enrolamiento";
     }
@@ -234,7 +235,7 @@ export function SolicitudPendienteDetailView({ id }: SolicitudPendienteDetailVie
       return "Solicitudes pendientes";
     }
     return "Gestión de ingresos";
-  }, [currentUser.role]);
+  }, [currentUser.role, sectionTitle]);
 
   const handleConfirmAsignacion = (
     solicitudId: string,
@@ -358,8 +359,9 @@ export function SolicitudPendienteDetailView({ id }: SolicitudPendienteDetailVie
   if (isLoaded && !solicitud) {
     return (
       <WireframeDashboardLayout
+        activeMenu={activeMenu}
         breadcrumbs={[
-          { label: activeSectionTitle, onClick: () => router.push("/solicitudes-pendientes") },
+          { label: activeSectionTitle, onClick: () => router.push(basePath) },
           { label: "Trámite no encontrado" },
         ]}
       >
@@ -374,7 +376,7 @@ export function SolicitudPendienteDetailView({ id }: SolicitudPendienteDetailVie
           <Button
             type="button"
             variant="outline"
-            onClick={() => router.push("/solicitudes-pendientes")}
+            onClick={() => router.push(basePath)}
             className="h-10 px-4 text-xs font-semibold gap-1.5"
           >
             <ArrowLeft className="size-4" />
@@ -387,7 +389,7 @@ export function SolicitudPendienteDetailView({ id }: SolicitudPendienteDetailVie
 
   if (!solicitud) {
     return (
-      <WireframeDashboardLayout breadcrumbs={[{ label: activeSectionTitle, onClick: () => router.push("/solicitudes-pendientes") }, { label: "Cargando..." }]}>
+      <WireframeDashboardLayout activeMenu={activeMenu} breadcrumbs={[{ label: activeSectionTitle, onClick: () => router.push(basePath) }, { label: "Cargando..." }]}>
         <div className="p-8 text-center text-xs text-muted-foreground">Cargando datos del trámite...</div>
       </WireframeDashboardLayout>
     );
@@ -395,12 +397,13 @@ export function SolicitudPendienteDetailView({ id }: SolicitudPendienteDetailVie
 
   return (
     <WireframeDashboardLayout
+      activeMenu={activeMenu}
       breadcrumbs={[
         {
           label: activeSectionTitle,
           onClick: (e: React.MouseEvent) => {
             e.preventDefault();
-            router.push("/solicitudes-pendientes");
+            router.push(basePath);
           },
         },
         { label: `Detalle solicitud` },
@@ -416,7 +419,7 @@ export function SolicitudPendienteDetailView({ id }: SolicitudPendienteDetailVie
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => router.push("/solicitudes-pendientes")}
+                onClick={() => router.push(basePath)}
                 className="h-8 px-2.5 text-xs font-semibold gap-1.5 rounded-xl border-border text-foreground hover:bg-muted shrink-0"
                 title="Volver a la bandeja"
               >

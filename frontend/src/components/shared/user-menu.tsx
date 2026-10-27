@@ -16,6 +16,8 @@ import {
   ChevronDown,
   ChevronLeft,
   Building2,
+  UserCheck,
+  ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -27,6 +29,51 @@ import {
   MOCK_USERS_BY_ROLE,
   type UserRole,
 } from "@/modules/catalogo-interoperabilidad/data/catalogo-data";
+
+const BN07_ROLES: { role: UserRole; label: string; subtitle: string; route: string }[] = [
+  {
+    role: "COORDINADOR_SINARP",
+    label: "1. Coordinador SINARP",
+    subtitle: "Anexos B/C e Interoperabilidad · Enrolamiento y expedientes",
+    route: "/expedientes-anexo-b",
+  },
+  {
+    role: "REPRESENTANTE_INSTITUCIONAL",
+    label: "2. Representante Institucional",
+    subtitle: "Anexos A/B/C · Incorporación, coordinadores y seguimiento",
+    route: "/expedientes-anexo-a",
+  },
+  {
+    role: "DIR_GESTION",
+    label: "3. Director de Gestión",
+    subtitle: "Anexos A/B/C y SOL-03 · Asignación de solicitudes por anexo",
+    route: "/asignacion-solicitudes",
+  },
+  {
+    role: "EQ_GESTION",
+    label: "4. Revisor de Gestión",
+    subtitle: "Anexos A/B/C y SOL-04 · Revisión de solicitudes por anexo",
+    route: "/solicitudes-pendientes",
+  },
+  {
+    role: "DIR_NORMATIVA",
+    label: "5. Director Normativa / DPI",
+    subtitle: "Anexo A y SOL-07 · Asignación de resoluciones e informes",
+    route: "/revision-normativa",
+  },
+  {
+    role: "EQ_NORMATIVA",
+    label: "6. Revisor Normativa / DPI",
+    subtitle: "Anexo A y SOL-07 · Resoluciones de incorporación e informes",
+    route: "/revision-normativa",
+  },
+  {
+    role: "APROBADOR",
+    label: "7. Máxima Autoridad",
+    subtitle: "Anexo A (INS-07) · Firma de resoluciones de incorporación",
+    route: "/firma-resoluciones",
+  },
+];
 
 export interface UserMenuProps {
   user?: {
@@ -50,8 +97,23 @@ export function UserMenu({ user: userProp, onRoleChange, onLogout }: UserMenuPro
   const [open, setOpen] = useState(false);
 
   // Read auth store for reactive session state
-  const { activeUser, logout: authLogout } = useAuthStore();
+  const { activeUser, setRole: setStoreRole, logout: authLogout } = useAuthStore();
   const effectiveUser = userProp || activeUser || MOCK_USERS_BY_ROLE.COORDINADOR_SINARP;
+
+  const handleSelectBn07Role = (targetRole: UserRole, route: string) => {
+    setOpen(false);
+    try {
+      setStoreRole(targetRole);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("dinarp_simulated_role_v2", targetRole);
+        window.dispatchEvent(new Event("role-changed"));
+      }
+    } catch {}
+    if (onRoleChange) {
+      onRoleChange(targetRole);
+    }
+    router.push(route);
+  };
 
   const isWireframe2 = pathname.startsWith("/");
   const isWireframe = pathname.startsWith("/wireframes");
@@ -184,6 +246,27 @@ export function UserMenu({ user: userProp, onRoleChange, onLogout }: UserMenuPro
               </div>
             </div>
 
+            {/* Selector rápido de Roles BN-07 */}
+            <div className="space-y-1.5 pt-2 border-t border-border/60">
+              <span className="px-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <ShieldCheck className="size-3.5 text-primary" />
+                Cambiar Rol (Flujo BN-07)
+              </span>
+              {BN07_ROLES.map((item) => {
+                const isCurrent = effectiveUser?.role === item.role;
+                return (
+                  <MobileMenuItem
+                    key={item.role}
+                    icon={UserCheck}
+                    label={item.label}
+                    isActive={isCurrent}
+                    badge={isCurrent ? "Activo" : undefined}
+                    onClick={() => handleSelectBn07Role(item.role, item.route)}
+                  />
+                );
+              })}
+            </div>
+
             {/* Logout */}
             <div className="pt-2 border-t border-border/60">
               <MobileMenuItem
@@ -249,6 +332,29 @@ export function UserMenu({ user: userProp, onRoleChange, onLogout }: UserMenuPro
               )}
             </div>
           </div>
+        </div>
+
+        <DropdownMenuSeparator className="my-1 bg-border/60" />
+
+        {/* Selector rápido de Roles BN-07 */}
+        <div className="flex flex-col gap-0.5 py-1">
+          <span className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+            <ShieldCheck className="size-3.5 text-primary" />
+            Cambiar Rol (Flujo BN-07)
+          </span>
+          {BN07_ROLES.map((item) => {
+            const isCurrent = effectiveUser?.role === item.role;
+            return (
+              <DesktopMenuItem
+                key={item.role}
+                icon={UserCheck}
+                label={item.label}
+                isActive={isCurrent}
+                badge={isCurrent ? "Activo" : undefined}
+                onClick={() => handleSelectBn07Role(item.role, item.route)}
+              />
+            );
+          })}
         </div>
 
         <DropdownMenuSeparator className="my-1 bg-border/60" />

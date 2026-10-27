@@ -55,6 +55,7 @@ import {
   PaginationLast,
 } from "@/components/ui/pagination";
 import { WireframeDashboardLayout } from "@/components/layout/wireframes/wireframe-dashboard-layout";
+import { ViewModeToggle, type ViewMode } from "@/components/shared/view-mode-toggle";
 import {
   useSuplenciasStore,
   type SuplenciaInstitucional,
@@ -96,6 +97,7 @@ export function GestionSuplenciasView() {
   // Paginación
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [viewMode, setViewMode] = useState<ViewMode>("table");
 
   // Diálogos de acción
   const [suplenciaActivar, setSuplenciaActivar] = useState<SuplenciaInstitucional | null>(null);
@@ -331,7 +333,7 @@ export function GestionSuplenciasView() {
               </div>
 
               {/* Filtros Combobox UI Kit */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 w-full xl:w-auto shrink-0">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full xl:w-auto shrink-0">
                 {/* Filtro Estado */}
                 <div className="w-full xl:w-[220px] min-w-0">
                   <Combobox
@@ -423,6 +425,7 @@ export function GestionSuplenciasView() {
                     </ComboboxContent>
                   </Combobox>
                 </div>
+                <ViewModeToggle value={viewMode} onChange={setViewMode} />
               </div>
             </div>
 
@@ -538,7 +541,7 @@ export function GestionSuplenciasView() {
           {/* ──────────────────────────────────────────────────────────── */}
           <TooltipProvider delayDuration={150}>
             {/* Desktop Table (md+) */}
-            <div className="hidden md:block w-full">
+            <div className={cn("w-full", viewMode === "table" ? "hidden md:block" : "hidden")}>
               <Table
                 className="w-full min-w-[1240px]"
                 containerClassName="overflow-x-auto w-full"
@@ -807,9 +810,9 @@ export function GestionSuplenciasView() {
             </div>
 
             {/* Mobile Cards (<md) */}
-            <div className="block md:hidden w-full space-y-3.5">
+            <div className={cn("w-full", viewMode === "cards" ? "grid grid-cols-1 md:grid-cols-2 gap-4" : "block md:hidden space-y-3.5")}>
               {paginatedLista.length === 0 ? (
-                <div className="flex flex-col items-center justify-center p-8 bg-surface border border-border rounded-xl text-center space-y-2">
+                <div className="col-span-full flex flex-col items-center justify-center p-8 bg-surface border border-border rounded-xl text-center space-y-2">
                   <Users className="size-8 stroke-[1.5] text-muted-foreground/60" />
                   <p className="text-sm font-semibold text-foreground">No se encontraron coordinaciones</p>
                   <p className="text-xs text-muted-foreground">

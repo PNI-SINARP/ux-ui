@@ -53,6 +53,7 @@ import {
   ComboboxLabel,
 } from "@/components/ui/combobox";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
+import { ViewModeToggle, type ViewMode } from "@/components/shared/view-mode-toggle";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { MOCK_USERS_BY_ROLE } from "@/modules/catalogo-interoperabilidad/data/catalogo-data";
@@ -112,6 +113,7 @@ export function GestionRecuperacionesView() {
   // Paginación
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [viewMode, setViewMode] = useState<ViewMode>("table");
 
   // Modales de acción rápida o desde simulador
   const [modalAutorizarOpen, setModalAutorizarOpen] = useState(false);
@@ -697,6 +699,7 @@ export function GestionRecuperacionesView() {
                         </ComboboxContent>
                       </Combobox>
                     </div>
+                    <ViewModeToggle value={viewMode} onChange={setViewMode} />
                   </div>
                 </div>
 
@@ -813,7 +816,7 @@ export function GestionRecuperacionesView() {
 
               {/* TABLA PRINCIPAL DE CASOS (Desktop & Tablet) */}
               <TooltipProvider delayDuration={150}>
-                <div className="hidden md:block w-full">
+                <div className={cn("w-full", viewMode === "table" ? "hidden md:block" : "hidden")}>
                   <Table
                     className="w-full min-w-[1380px]"
                     containerClassName="overflow-x-auto w-full [scrollbar-width:thin]"
@@ -999,9 +1002,9 @@ export function GestionRecuperacionesView() {
                 </div>
 
                 {/* VISTA MÓVIL EN CARDS (< md) */}
-                <div className="md:hidden space-y-3 w-full">
+                <div className={cn("w-full", viewMode === "cards" ? "grid grid-cols-1 md:grid-cols-2 gap-4" : "md:hidden space-y-3")}>
                   {paginatedCasos.length === 0 ? (
-                    <div className="text-center py-10 border border-dashed border-border rounded-xl">
+                    <div className="col-span-full text-center py-10 border border-dashed border-border rounded-xl">
                       <Inbox className="size-8 mx-auto text-muted-foreground/60 mb-2 stroke-[1.5]" />
                       <p className="text-xs font-semibold text-foreground">
                         No se encontraron casos de recuperación

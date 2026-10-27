@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, use } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   ArrowRight,
@@ -55,6 +56,7 @@ import {
 import { FileUpload as AdvancedFileUpload, type FileItemData } from "@/components/ui/file-input";
 import { WireframeDashboardLayout } from "@/components/layout/wireframes/wireframe-dashboard-layout";
 import { useSimulatedRole } from "@/modules/catalogo-interoperabilidad/hooks/use-simulated-role";
+import { useAuthStore } from "@/modules/gestion-solicitudes/data/auth-store";
 import { MOCK_USERS_BY_ROLE, type UserRole } from "@/modules/catalogo-interoperabilidad/data/catalogo-data";
 import { useSolicitudesStore, INITIAL_SOLICITUDES, SolicitudAcceso } from "@/modules/acceso-interoperabilidad/data/solicitudes-store";
 import { CorregirSolicitudFlow } from "@/modules/acceso-interoperabilidad/components/corregir-solicitud-flow";
@@ -76,15 +78,21 @@ interface PageProps {
 }
 
 const roleOptions = [
-  { value: "COORDINADOR_SINARP", label: "Coordinador SINARP" },
-  { value: "APROBADOR", label: "Aprobador" },
-  { value: "FACTURACION", label: "Facturación" },
+  { value: "COORDINADOR_SINARP", label: "1. Coordinador SINARP", route: "" },
+  { value: "DIR_GESTION", label: "2. Director de Gestión", route: "/acceso-interoperabilidad/asignacion" },
+  { value: "EQ_GESTION", label: "3. Revisor de Gestión", route: "/revision-gestion" },
+  { value: "DIR_NORMATIVA", label: "4. Director DPI", route: "/revision-normativa/asignacion" },
+  { value: "EQ_NORMATIVA", label: "5. Revisor DPI", route: "/revision-normativa/fuentes" },
+  { value: "APROBADOR", label: "Aprobador (Entidad Emisora)", route: "" },
+  { value: "FACTURACION", label: "Facturación (DINARP)", route: "" },
 ];
 
 export function AccesoSolicitudDetailView({ params, searchParams }: PageProps) {
+  const router = useRouter();
   const resolvedParams = use(params);
   const resolvedSearchParams = searchParams ? use(searchParams) : undefined;
 
+  const { setRole: setStoreRole } = useAuthStore();
   const [role, setRole] = useSimulatedRole("COORDINADOR_SINARP");
   const {
     solicitudes,
@@ -95,6 +103,7 @@ export function AccesoSolicitudDetailView({ params, searchParams }: PageProps) {
     simularPagoRealizado,
     validarPagoConCur,
     subsanarYReenviar,
+    cerrarPorVencimiento,
     firmarContrato
   } = useSolicitudesStore();
 
@@ -349,6 +358,7 @@ export function AccesoSolicitudDetailView({ params, searchParams }: PageProps) {
       currentRole={role}
       onRoleChange={(r) => setRole(r)}
       breadcrumbs={[
+        { label: "Inicio", href: "/" },
         { label: "Acceso a Interoperabilidad", href: "/acceso-interoperabilidad/solicitudes" },
         { label: getBreadcrumbTitle(), href: "/acceso-interoperabilidad/solicitudes" },
         {
@@ -357,62 +367,58 @@ export function AccesoSolicitudDetailView({ params, searchParams }: PageProps) {
         },
         ...(modoCorreccion && isRechazada ? [{ label: "Corregir solicitud" }] : [])
       ]}
-      headerSlot={
-        <div className="flex items-center gap-2">
-          <Combobox
-            items={roleOptions}
-            value={roleOptions.find((opt) => opt.value === role) || roleOptions[0]}
-            onValueChange={(val) => {
-              if (val) setRole(val.value as UserRole);
-            }}
-          >
-            <ComboboxSelectTrigger className="h-8 text-xs min-w-[185px]" />
-            <ComboboxContent align="start" className="min-w-[200px]">
-              <ComboboxList>
-                {roleOptions.map((opt) => (
-                  <ComboboxItem key={opt.value} value={opt}>
-                    {opt.label}
-                  </ComboboxItem>
-                ))}
-              </ComboboxList>
-            </ComboboxContent>
-          </Combobox>
-        </div>
-      }
     >
-      {modoCorreccion && role === "COORDINADOR_SINARP" && isRechazada ? (
+      {modoCorreccion && role === "COORDINADOR_SINARP" && (isRechazada || solicitud.estado === "Borrador") ? (
         <CorregirSolicitudFlow
           solicitud={solicitud}
           initialStep={correctionStep}
           onCancel={() => setModoCorreccion(false)}
           onReenviar={(comentario: string, nuevasFuentes: any) => {
-            reenviarSolicitud(solicitud.id, comentario, nuevasFuentes);
+            if (solicitud.estado === "Borrador") {
+              reenviarSolicitud(solicitud.id, comentario || "Solicitud completada y enviada a Dirección de Gestión (SOL-01).", nuevasFuentes);
+            } else {
+              subsanarYReenviar(solicitud.id, {
+                comentario: comentario || "Expediente subsanado dentro del plazo de 3 días hábiles (PAR-13 / PAR-10).",
+                fuentesActualizadas: nuevasFuentes,
+              });
+            }
             setModoCorreccion(false);
             setFeedbackMessage({
               tipo: "success",
-              texto: "Solicitud subsanada y reenviada exitosamente. Vuelve a estar en la bandeja del Director de Gestión."
+              texto:
+                solicitud.estado === "Borrador"
+                  ? "Borrador enviado exitosamente a la Dirección de Gestión (SOL-01)."
+                  : "Solicitud subsanada y reenviada exitosamente (SOL-05). Vuelve a estar en la bandeja del Director de Gestión para nueva asignación."
             });
-            toast.success("Solicitud corregida y reenviada para aprobación");
+            toast.success(
+              solicitud.estado === "Borrador"
+                ? "Solicitud enviada a Gestión"
+                : "Solicitud subsanada y reenviada a Gestión (v" + ((solicitud.versionExpediente || 1) + 1) + ")"
+            );
           }}
         />
       ) : (
-        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-6">
-          {/* Barra superior de navegación */}
-          <div className="flex items-center justify-between">
-            <Link
-              href="/acceso-interoperabilidad/solicitudes"
-              className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors font-medium"
-            >
-              <ArrowLeft className="size-4" />
-              Volver a la bandeja de solicitudes
-            </Link>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">Rol activo:</span>
-              <Badge tone="neutral" appearance="outline" className="font-semibold text-xs">
-                {role === "COORDINADOR_SINARP" ? "Coordinador SINARP" : role === "APROBADOR" ? "Aprobador" : "Facturación"}
-              </Badge>
+        <main className="w-full pr-3 pl-2 pb-3 pt-1.5 flex-1 min-h-0 flex flex-col overflow-hidden">
+          <Card
+            className="bg-surface rounded-2xl border border-border shadow-xs flex-1 min-h-0 overflow-hidden flex flex-col my-0"
+            innerClassName="p-4 sm:p-6 lg:p-8 flex flex-col gap-6 overflow-y-auto flex-1 min-h-0 w-full"
+          >
+            {/* Barra superior de navegación */}
+            <div className="flex items-center justify-between">
+              <Link
+                href="/acceso-interoperabilidad/solicitudes"
+                className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors font-medium"
+              >
+                <ArrowLeft className="size-4" />
+                Volver a la bandeja de solicitudes
+              </Link>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">Rol activo:</span>
+                <Badge tone="neutral" appearance="outline" className="font-semibold text-xs">
+                  {role === "COORDINADOR_SINARP" ? "Coordinador SINARP" : role === "APROBADOR" ? "Aprobador" : "Facturación"}
+                </Badge>
+              </div>
             </div>
-          </div>
 
           {/* Mensaje de feedback si ocurrió una acción */}
           {feedbackMessage && (
@@ -420,8 +426,8 @@ export function AccesoSolicitudDetailView({ params, searchParams }: PageProps) {
               className={cn(
                 "p-4 rounded-xl border flex items-center gap-3 animate-in fade-in-50 duration-200",
                 feedbackMessage.tipo === "success"
-                  ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300"
-                  : "bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-300"
+                  ? "bg-success/10 border-success/30 text-success"
+                  : "bg-warning/10 border-warning/30 text-warning"
               )}
             >
               {feedbackMessage.tipo === "success" ? (
@@ -433,7 +439,56 @@ export function AccesoSolicitudDetailView({ params, searchParams }: PageProps) {
             </div>
           )}
 
-          {/* Banner de Observaciones SOL-05 (para Coordinador SINARP) */}
+          {/* Banner de Borrador SOL-01 */}
+          {solicitud.estado === "Borrador" && (
+            <div className="p-4 sm:p-5 rounded-2xl border border-warning/40 bg-warning/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <Edit className="size-5 text-warning shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-sm font-bold text-foreground">
+                      Solicitud en estado Borrador (SOL-01)
+                    </p>
+                    <Badge tone="warning" appearance="soft" className="text-[11px] font-semibold">
+                      No enviada a Gestión
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Esta solicitud fue guardada como borrador y aún no es visible en las bandejas de la Dirección de Gestión ni de Protección de la Información (DPI). Puedes continuar editándola o enviarla formalmente.
+                  </p>
+                </div>
+              </div>
+              {role === "COORDINADOR_SINARP" && (
+                <div className="flex items-center gap-2 shrink-0">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setCorrectionStep(1);
+                      setModoCorreccion(true);
+                    }}
+                    className="gap-1.5 font-semibold"
+                  >
+                    <Edit className="size-3.5" />
+                    Editar borrador
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      reenviarSolicitud(solicitud.id, "Borrador completado y enviado formalmente a la Dirección de Gestión (SOL-01).", solicitud.fuentes);
+                      toast.success("Solicitud enviada a la Dirección de Gestión");
+                    }}
+                    className="gap-1.5 shadow-sm bg-primary text-primary-foreground font-semibold"
+                  >
+                    <Send className="size-3.5" />
+                    Enviar a Gestión
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Banner de Observaciones SOL-05 y Plazo SOL-06 (para Coordinador SINARP) */}
           {(isRechazada || solicitud.estado === "Requiere corrección" || solicitud.estado === "Observada") && (
             <div className="p-4 sm:p-5 rounded-2xl border border-destructive/40 bg-destructive/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-start gap-3">
@@ -441,69 +496,88 @@ export function AccesoSolicitudDetailView({ params, searchParams }: PageProps) {
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="text-sm font-bold text-foreground">
-                      Tu solicitud requiere correcciones antes del {solicitud.fechaLimiteSubsanacion || "29/09/2026"}.
+                      Tu solicitud requiere subsanación antes del {solicitud.fechaLimiteSubsanacion || "29/09/2026"}.
                     </p>
                     <Badge tone="warning" appearance="soft" className="text-[11px] font-semibold">
-                      {solicitud.diasRestantesSubsanacion ?? 5} días hábiles disponibles
+                      {solicitud.diasRestantesSubsanacion ?? 3} días hábiles disponibles (PAR-13 / PAR-10)
                     </Badge>
                   </div>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    <strong className="text-foreground">Observaciones recibidas: </strong>
-                    {solicitud.motivoRechazo || solicitud.observaciones || "Se requiere ajustar la justificación jurídica o retirar campos sin amparo legal expreso."}
+                    <strong className="text-foreground">Responsable de la observación: </strong>
+                    {solicitud.revisorNormativoAsignado
+                      ? `${solicitud.revisorNormativoAsignado} — Dirección de Protección de la Información (DPI)`
+                      : `${solicitud.revisorAsignado || "Equipo Revisor"} — Dirección de Gestión`}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    <strong className="text-foreground">Motivo y observaciones recibidas: </strong>
+                    {solicitud.motivoRechazo || solicitud.observaciones || "Se requiere ajustar la finalidad de uso o justificación jurídica en campos observados."}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    <strong className="text-foreground">Qué debe corregirse: </strong>
-                    Actualizar los fundamentos jurídicos habilitantes en el formulario o desmarcar campos confidenciales que no cuenten con norma habilitante.
+                    <strong className="text-foreground">Plazo reglamentario (SOL-06): </strong>
+                    Plazo inicial de 3 días hábiles (parametrizable según PAR-13 y calendario laboral PAR-10). Si vence sin subsanación, la solicitud se cerrará automáticamente.
                   </p>
                 </div>
               </div>
-              {role === "COORDINADOR_SINARP" && (
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
                 <Button
+                  variant="outline"
                   size="sm"
                   onClick={() => {
-                    setCorrectionStep(targetCorrectionStep);
-                    setModoCorreccion(true);
+                    cerrarPorVencimiento(solicitud.id);
+                    toast.warning("Plazo de 3 días hábiles vencido (SOL-06): Solicitud cerrada por vencimiento.");
                   }}
-                  className="shrink-0 gap-1.5 shadow-sm bg-primary text-primary-foreground font-semibold"
+                  className="text-xs border-destructive/40 text-destructive hover:bg-destructive/10"
                 >
-                  <Edit className="size-3.5" />
-                  Corregir solicitud
+                  Simular vencimiento (SOL-06)
                 </Button>
-              )}
+                {role === "COORDINADOR_SINARP" && (
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      setCorrectionStep(targetCorrectionStep);
+                      setModoCorreccion(true);
+                    }}
+                    className="shrink-0 gap-1.5 shadow-sm bg-primary text-primary-foreground font-semibold"
+                  >
+                    <Edit className="size-3.5" />
+                    Subsanar solicitud
+                  </Button>
+                )}
+              </div>
             </div>
           )}
 
           {/* Banner de Solicitud Cerrada por Vencimiento SOL-06 */}
-          {(solicitud.estado === "Cerrada por vencimiento" || (solicitud.estado === "Cerrada" && solicitud.subsanable === false)) && (
+          {(solicitud.estado === "Cerrada por vencimiento" || (solicitud.estado === "Cerrada" && solicitud.subsanable === false) || solicitud.estado === "Cerrada") && (
             <div className="p-4 sm:p-5 rounded-2xl border border-border bg-muted/40 flex items-start gap-3">
               <AlertTriangle className="size-5 text-muted-foreground shrink-0 mt-0.5" />
               <div className="space-y-1 text-xs">
                 <p className="text-sm font-bold text-foreground">
-                  La solicitud fue cerrada porque terminó el plazo de corrección.
+                  La solicitud fue cerrada por vencimiento del plazo de subsanación (SOL-06).
                 </p>
                 <p className="text-muted-foreground leading-relaxed">
-                  El plazo legal de 5 días hábiles establecido para subsanar las observaciones finalizó sin recibir respuesta. Para solicitar acceso a esta fuente, deberás iniciar una nueva solicitud.
+                  El plazo inicial de 3 días hábiles (parametrizable según PAR-13 y calendario laboral PAR-10) establecido para subsanar las observaciones finalizó sin recibir respuesta. El expediente no admite edición ni reenvío; para requerir acceso a esta fuente, deberás iniciar una nueva solicitud.
                 </p>
               </div>
             </div>
           )}
 
           {/* Banner de Solicitud Reenviada tras Subsanación */}
-          {(estadoStr === "Reenviada" || estadoStr === "Reenviada para aprobación") && (
-            <div className="p-4 rounded-xl border border-blue-500/40 bg-blue-500/10 flex items-start gap-3">
-              <CheckCircle2 className="size-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+          {(estadoStr === "Reenviada" || estadoStr === "Reenviada para aprobación" || estadoStr === "Pendiente de nueva asignación" || estadoStr === "Subsanada - Pendiente de asignación") && (
+            <div className="p-4 rounded-xl border border-info/40 bg-info/10 flex items-start gap-3">
+              <CheckCircle2 className="size-5 text-info shrink-0 mt-0.5" />
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <p className="text-sm font-bold text-foreground">Corrección enviada. La solicitud volverá a ser asignada para revisión.</p>
+                  <p className="text-sm font-bold text-foreground">Subsanación enviada (v{solicitud.versionExpediente || 2}). Pendiente de nueva asignación en Dirección de Gestión.</p>
                   <Badge tone="info" appearance="soft" className="text-[11px] font-semibold">
-                    En reasignación técnica
+                    En reasignación por Gestión
                   </Badge>
                 </div>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Las subsanaciones y justificaciones corregidas fueron remitidas al equipo de gestión.
-                  {solicitud.observaciones && (
+                  Las subsanaciones fueron remitidas a la Dirección de Gestión para asignación manual (incluso si la observación provino de DPI, Gestión valida primero antes de reingresar a DPI).
+                  {(solicitud.detalleSubsanacion || solicitud.observaciones) && (
                     <span className="block mt-1 font-medium text-foreground">
-                      Nota de subsanación: {solicitud.observaciones}
+                      Nota de subsanación: {solicitud.detalleSubsanacion || solicitud.observaciones}
                     </span>
                   )}
                 </p>
@@ -513,10 +587,10 @@ export function AccesoSolicitudDetailView({ params, searchParams }: PageProps) {
 
           {/* Banner SIGEF para Rol Facturación cuando está en "Pendiente de validación de pago" */}
           {role === "FACTURACION" && (solicitud.estado === "Pendiente de validación de pago" || solicitud.estado === "Pago en validación") && (
-            <div className="p-4 rounded-xl border border-amber-500/40 bg-amber-500/10 flex items-start gap-3">
-              <AlertTriangle className="size-5 text-amber-600 shrink-0 mt-0.5" />
+            <div className="p-4 rounded-xl border border-warning/40 bg-warning/10 flex items-start gap-3">
+              <AlertTriangle className="size-5 text-warning shrink-0 mt-0.5" />
               <div className="text-xs space-y-1">
-                <p className="font-bold text-amber-900 dark:text-amber-300">
+                <p className="font-bold text-foreground">
                   Validación externa requerida en SIGEF
                 </p>
                 <p className="text-muted-foreground leading-relaxed">
@@ -1230,7 +1304,8 @@ export function AccesoSolicitudDetailView({ params, searchParams }: PageProps) {
               )}
             </div>
           </div>
-        </div>
+          </Card>
+        </main>
       )}
 
       {/* â”€â”€â”€ MODAL 1: APROBAR SOLICITUD (ROL APROBADOR - CARGA DE INFORME) â”€â”€â”€ */}

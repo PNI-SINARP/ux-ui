@@ -5,6 +5,9 @@ import Link from "next/link";
 import { Search, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { InteractiveCard } from "@/components/ui/data-display";
+import { ViewModeToggle, type ViewMode } from "@/components/shared/view-mode-toggle";
+import { cn } from "@/lib/utils";
 import {
   Table,
   TableHeader,
@@ -70,6 +73,7 @@ const mockPaquetes = [
 export function AccesoPaquetesView() {
   const [role, setRole] = useSimulatedRole("COORDINADOR_SINARP");
   const [searchTerm, setSearchTerm] = useState("");
+  const [viewMode, setViewMode] = useState<ViewMode>("table");
 
   const filteredPaquetes = mockPaquetes.filter(
     (p) =>
@@ -126,13 +130,21 @@ export function AccesoPaquetesView() {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <span className="text-xs text-muted-foreground">
-              Mostrando <strong className="text-foreground font-semibold">{filteredPaquetes.length}</strong> de{" "}
-              <strong className="text-foreground font-semibold">{mockPaquetes.length}</strong> paquetes
-            </span>
+            <div className="flex items-center justify-between sm:justify-end gap-3">
+              <span className="text-xs text-muted-foreground">
+                Mostrando <strong className="text-foreground font-semibold">{filteredPaquetes.length}</strong> de{" "}
+                <strong className="text-foreground font-semibold">{mockPaquetes.length}</strong> paquetes
+              </span>
+              <ViewModeToggle value={viewMode} onChange={setViewMode} />
+            </div>
           </div>
 
-          <div className="overflow-x-auto border-y border-border bg-card mt-2">
+          <div
+            className={cn(
+              "overflow-x-auto border-y border-border bg-card mt-2",
+              viewMode === "table" ? "hidden md:block" : "hidden"
+            )}
+          >
             <Table>
               <TableHeader>
                 <TableRow>
@@ -191,6 +203,71 @@ export function AccesoPaquetesView() {
                 )}
               </TableBody>
             </Table>
+          </div>
+
+          {/* Vista de Tarjetas (Móvil + Modo Cards) */}
+          <div
+            className={cn(
+              "w-full",
+              viewMode === "cards"
+                ? "grid grid-cols-1 md:grid-cols-2 gap-4"
+                : "block md:hidden space-y-3.5"
+            )}
+          >
+            {filteredPaquetes.length === 0 ? (
+              <div className="col-span-full py-12 text-center text-muted-foreground border border-dashed border-border rounded-xl">
+                No se encontraron paquetes.
+              </div>
+            ) : (
+              filteredPaquetes.map((p) => (
+                <InteractiveCard
+                  key={p.id}
+                  as="div"
+                  className="p-4 flex flex-col gap-3 bg-surface border-border"
+                >
+                  <div className="flex items-start justify-between gap-2 w-full">
+                    <div>
+                      <span className="font-semibold text-foreground text-sm block">{p.id}</span>
+                      <span className="text-xs text-muted-foreground">Solicitud: {p.solicitud}</span>
+                    </div>
+                    <Badge tone="success" appearance="soft" size="sm">
+                      {p.estado}
+                    </Badge>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 text-xs w-full pt-2 border-t border-border">
+                    <div>
+                      <span className="text-muted-foreground block">Institución</span>
+                      <span className="font-medium text-foreground">{p.institucion}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block">Fuente</span>
+                      <span className="font-medium text-foreground">{p.fuente}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block">Campos</span>
+                      <span className="font-medium text-foreground">{p.campos}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block">Responsable actual</span>
+                      <span className="font-medium text-foreground">{p.responsable}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2 border-t border-border w-full text-xs">
+                    <span className="text-muted-foreground">
+                      Actualizado: {p.ultimaActualizacion}
+                    </span>
+                    <Button asChild variant="outline" size="sm" className="gap-1.5">
+                      <Link href={`/acceso-interoperabilidad/paquetes/${p.id}`}>
+                        <Eye className="size-3.5" />
+                        <span>Ver detalle</span>
+                      </Link>
+                    </Button>
+                  </div>
+                </InteractiveCard>
+              ))
+            )}
           </div>
         </div>
       </div>
