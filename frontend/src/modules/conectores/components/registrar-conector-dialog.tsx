@@ -324,7 +324,7 @@ export function RegistrarConectorDialog({
           <DialogFooter className="gap-3 sm:gap-3 pt-3 shrink-0">
             <Button
               type="button"
-              variant="outline"
+              variant="neutral"
               size="sm"
               onClick={() => onOpenChange(false)}
             >

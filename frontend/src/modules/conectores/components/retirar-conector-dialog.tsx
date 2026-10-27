@@ -170,7 +170,7 @@ export function RetirarConectorDialog({
           <DialogFooter className="gap-2 sm:gap-2 pt-2 shrink-0">
             <Button
               type="button"
-              variant="outline"
+              variant="neutral"
               size="sm"
               onClick={() => onOpenChange(false)}
             >

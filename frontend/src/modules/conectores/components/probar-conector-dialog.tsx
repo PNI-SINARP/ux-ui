@@ -192,7 +192,7 @@ export function ProbarConectorDialog({
         <DialogFooter className="p-4 border-t border-border gap-2 shrink-0">
           <Button
             type="button"
-            variant="outline"
+            variant="neutral"
             size="sm"
             onClick={() => onOpenChange(false)}
           >

@@ -6,7 +6,6 @@ import { WireframeDashboardLayout, MockUser } from "@/components/layout/wirefram
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { Search } from "@/components/ui/search";
 import {
@@ -60,15 +59,13 @@ import {
   AlertTriangle,
   RotateCw,
   MoreHorizontal,
-  ShieldCheck,
   Ban,
   Activity,
   Layers,
-  Sparkles,
   X,
   Server,
-  Network,
-  Wrench,
+  ShieldCheck,
+  Eye,
 } from "lucide-react";
 import { useConectoresStore, ConectorDefinicion, EstadoConector } from "../data/conectores-store";
 import { RegistrarConectorDialog } from "../components/registrar-conector-dialog";
@@ -101,8 +98,11 @@ export function ConectoresInboxView({ currentUser: propUser }: ConectoresInboxVi
   const [searchTerm, setSearchTerm] = useState("");
   const [estadoFilter, setEstadoFilter] = useState<string>("ALL");
   const [estadoSearch, setEstadoSearch] = useState("");
+  const [tipoFilter, setTipoFilter] = useState<string>("ALL");
+  const [tipoSearch, setTipoSearch] = useState("");
+
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 8;
+  const [pageSize, setPageSize] = useState(5);
 
   // Modales
   const [isRegistrarOpen, setIsRegistrarOpen] = useState(false);
@@ -126,21 +126,48 @@ export function ConectoresInboxView({ currentUser: propUser }: ConectoresInboxVi
     return { total, habilitados, enPruebas, retirados };
   }, [conectores]);
 
-  // Filtro
-  const ESTADOS_OPCIONES = [
-    { value: "ALL", label: "Todos los estados" },
-    { value: "HABILITADO", label: "Habilitado (Producción)" },
-    { value: "EN_PRUEBAS", label: "En pruebas (Laboratorio)" },
-    { value: "RETIRADO", label: "Retirado / En transición" },
-  ];
+  // Filtro de Estados
+  const ESTADOS_OPCIONES = useMemo(
+    () => [
+      { value: "ALL", label: "Todos los estados" },
+      { value: "HABILITADO", label: "Habilitado (Producción)" },
+      { value: "EN_PRUEBAS", label: "En pruebas (Laboratorio)" },
+      { value: "RETIRADO", label: "Retirado / En transición" },
+    ],
+    []
+  );
 
   const filteredEstadosForFilter = useMemo(() => {
     if (!estadoSearch.trim()) return ESTADOS_OPCIONES;
     return ESTADOS_OPCIONES.filter((e) =>
       e.label.toLowerCase().includes(estadoSearch.toLowerCase().trim())
     );
-  }, [estadoSearch]);
+  }, [estadoSearch, ESTADOS_OPCIONES]);
 
+  // Lista única de Tipos / Motores
+  const tiposDisponibles = useMemo(() => {
+    const set = new Set<string>();
+    conectores.forEach((c) => {
+      if (c.tipo) set.add(c.tipo);
+    });
+    return Array.from(set).sort();
+  }, [conectores]);
+
+  const TIPOS_OPCIONES = useMemo(() => {
+    return [
+      { value: "ALL", label: "Todos los tipos / motores" },
+      ...tiposDisponibles.map((t) => ({ value: t, label: t })),
+    ];
+  }, [tiposDisponibles]);
+
+  const filteredTiposForFilter = useMemo(() => {
+    if (!tipoSearch.trim()) return TIPOS_OPCIONES;
+    return TIPOS_OPCIONES.filter((t) =>
+      t.label.toLowerCase().includes(tipoSearch.toLowerCase().trim())
+    );
+  }, [tipoSearch, TIPOS_OPCIONES]);
+
+  // Filtrado
   const conectoresFiltrados = useMemo(() => {
     return conectores.filter((c) => {
       const q = searchTerm.toLowerCase().trim();
@@ -150,22 +177,90 @@ export function ConectoresInboxView({ currentUser: propUser }: ConectoresInboxVi
         c.id.toLowerCase().includes(q) ||
         c.tipo.toLowerCase().includes(q) ||
         c.protocolo.toLowerCase().includes(q) ||
-        c.descripcion.toLowerCase().includes(q);
+        c.descripcion.toLowerCase().includes(q) ||
+        (c.driverJar && c.driverJar.toLowerCase().includes(q));
 
       const matchesEstado = estadoFilter === "ALL" || c.estado === estadoFilter;
-      return matchesSearch && matchesEstado;
+      const matchesTipo = tipoFilter === "ALL" || c.tipo === tipoFilter;
+
+      return matchesSearch && matchesEstado && matchesTipo;
     });
-  }, [conectores, searchTerm, estadoFilter]);
+  }, [conectores, searchTerm, estadoFilter, tipoFilter]);
 
-  // Paginación
-  const totalPages = Math.max(1, Math.ceil(conectoresFiltrados.length / itemsPerPage));
+  // Paginación segura
+  const totalPages = Math.max(1, Math.ceil(conectoresFiltrados.length / pageSize));
   const safeCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
-  const paginatedConectores = useMemo(() => {
-    const start = (safeCurrentPage - 1) * itemsPerPage;
-    return conectoresFiltrados.slice(start, start + itemsPerPage);
-  }, [conectoresFiltrados, safeCurrentPage, itemsPerPage]);
 
-  const hasActiveFilters = searchTerm.trim() !== "" || estadoFilter !== "ALL";
+  const paginatedConectores = useMemo(() => {
+    const start = (safeCurrentPage - 1) * pageSize;
+    return conectoresFiltrados.slice(start, start + pageSize);
+  }, [conectoresFiltrados, safeCurrentPage, pageSize]);
+
+  const hasActiveFilters =
+    searchTerm.trim() !== "" || estadoFilter !== "ALL" || tipoFilter !== "ALL";
+
+  const handleClearAllFilters = () => {
+    setSearchTerm("");
+    setEstadoFilter("ALL");
+    setEstadoSearch("");
+    setTipoFilter("ALL");
+    setTipoSearch("");
+    setCurrentPage(1);
+  };
+
+  const handleSetEstadoFilter = (nuevo: string) => {
+    setEstadoFilter(nuevo);
+    setCurrentPage(1);
+  };
+
+  const handleSetTipoFilter = (nuevo: string) => {
+    setTipoFilter(nuevo);
+    setCurrentPage(1);
+  };
+
+  const getEstadoBadge = (estado: EstadoConector) => {
+    switch (estado) {
+      case "HABILITADO":
+        return (
+          <Badge
+            tone="success"
+            appearance="soft"
+            size="sm"
+            className="font-semibold whitespace-nowrap px-2.5 py-0.5 text-xs h-6 inline-flex items-center"
+          >
+            Habilitado
+          </Badge>
+        );
+      case "EN_PRUEBAS":
+        return (
+          <Badge
+            tone="warning"
+            appearance="soft"
+            size="sm"
+            className="font-semibold whitespace-nowrap px-2.5 py-0.5 text-xs h-6 inline-flex items-center"
+          >
+            En pruebas
+          </Badge>
+        );
+      case "RETIRADO":
+        return (
+          <Badge
+            tone="danger"
+            appearance="soft"
+            size="sm"
+            className="font-semibold whitespace-nowrap px-2.5 py-0.5 text-xs h-6 inline-flex items-center"
+          >
+            Retirado
+          </Badge>
+        );
+      default:
+        return (
+          <Badge tone="neutral" appearance="soft" size="sm">
+            {estado}
+          </Badge>
+        );
+    }
+  };
 
   if (!isAuthorizedRole) {
     return (
@@ -226,7 +321,7 @@ export function ConectoresInboxView({ currentUser: propUser }: ConectoresInboxVi
                   </h1>
                 </div>
                 <p className="text-xs sm:text-sm text-muted-foreground w-full max-w-none leading-relaxed font-normal">
-                  Registra, configura, prueba y habilita los tipos de conectores necesarios para integrar las fuentes de datos institucionales.
+                  Registra, configura, prueba y habilita los tipos de conectores necesarios para integrar las fuentes de datos institucionales (CNX-01 / CNX-02).
                 </p>
               </div>
 
@@ -244,18 +339,18 @@ export function ConectoresInboxView({ currentUser: propUser }: ConectoresInboxVi
               </div>
             </div>
 
-            {/* KPI Cards Interactivas */}
+            {/* KPI Cards Interactivas (Estilo Cuentas Internas / Fuentes) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 w-full">
               {/* Total Conectores */}
               <Card
                 variant="featured"
                 role="button"
                 tabIndex={0}
-                onClick={() => setEstadoFilter("ALL")}
+                onClick={() => handleSetEstadoFilter("ALL")}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
-                    setEstadoFilter("ALL");
+                    handleSetEstadoFilter("ALL");
                   }
                 }}
                 className={cn(
@@ -274,7 +369,7 @@ export function ConectoresInboxView({ currentUser: propUser }: ConectoresInboxVi
                         "size-10 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200",
                         estadoFilter === "ALL"
                           ? "bg-primary text-white shadow-xs"
-                          : "bg-primary/10 text-primary group-hover:scale-105"
+                          : "bg-primary/10 text-primary group-hover:scale-105 group-hover:bg-primary group-hover:text-white"
                       )}
                     >
                       <Layers className="size-5" />
@@ -297,11 +392,11 @@ export function ConectoresInboxView({ currentUser: propUser }: ConectoresInboxVi
                 variant="featured"
                 role="button"
                 tabIndex={0}
-                onClick={() => setEstadoFilter("HABILITADO")}
+                onClick={() => handleSetEstadoFilter(estadoFilter === "HABILITADO" ? "ALL" : "HABILITADO")}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
-                    setEstadoFilter("HABILITADO");
+                    handleSetEstadoFilter(estadoFilter === "HABILITADO" ? "ALL" : "HABILITADO");
                   }
                 }}
                 className={cn(
@@ -320,7 +415,7 @@ export function ConectoresInboxView({ currentUser: propUser }: ConectoresInboxVi
                         "size-10 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200",
                         estadoFilter === "HABILITADO"
                           ? "bg-success text-white shadow-xs"
-                          : "bg-success/15 text-success group-hover:scale-105"
+                          : "bg-success/15 text-success group-hover:scale-105 group-hover:bg-success group-hover:text-white"
                       )}
                     >
                       <CheckCircle2 className="size-5" />
@@ -343,11 +438,11 @@ export function ConectoresInboxView({ currentUser: propUser }: ConectoresInboxVi
                 variant="featured"
                 role="button"
                 tabIndex={0}
-                onClick={() => setEstadoFilter("EN_PRUEBAS")}
+                onClick={() => handleSetEstadoFilter(estadoFilter === "EN_PRUEBAS" ? "ALL" : "EN_PRUEBAS")}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
-                    setEstadoFilter("EN_PRUEBAS");
+                    handleSetEstadoFilter(estadoFilter === "EN_PRUEBAS" ? "ALL" : "EN_PRUEBAS");
                   }
                 }}
                 className={cn(
@@ -366,7 +461,7 @@ export function ConectoresInboxView({ currentUser: propUser }: ConectoresInboxVi
                         "size-10 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200",
                         estadoFilter === "EN_PRUEBAS"
                           ? "bg-warning text-white shadow-xs"
-                          : "bg-warning/15 text-warning group-hover:scale-105"
+                          : "bg-warning/15 text-warning group-hover:scale-105 group-hover:bg-warning group-hover:text-white"
                       )}
                     >
                       <Clock className="size-5" />
@@ -389,11 +484,11 @@ export function ConectoresInboxView({ currentUser: propUser }: ConectoresInboxVi
                 variant="featured"
                 role="button"
                 tabIndex={0}
-                onClick={() => setEstadoFilter("RETIRADO")}
+                onClick={() => handleSetEstadoFilter(estadoFilter === "RETIRADO" ? "ALL" : "RETIRADO")}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
-                    setEstadoFilter("RETIRADO");
+                    handleSetEstadoFilter(estadoFilter === "RETIRADO" ? "ALL" : "RETIRADO");
                   }
                 }}
                 className={cn(
@@ -412,7 +507,7 @@ export function ConectoresInboxView({ currentUser: propUser }: ConectoresInboxVi
                         "size-10 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200",
                         estadoFilter === "RETIRADO"
                           ? "bg-danger text-white shadow-xs"
-                          : "bg-danger/15 text-danger group-hover:scale-105"
+                          : "bg-danger/15 text-danger group-hover:scale-105 group-hover:bg-danger group-hover:text-white"
                       )}
                     >
                       <AlertTriangle className="size-5" />
@@ -431,203 +526,361 @@ export function ConectoresInboxView({ currentUser: propUser }: ConectoresInboxVi
               </Card>
             </div>
 
-            {/* Filtros y Búsqueda */}
-            <div className="flex flex-col gap-3">
-              <div className="flex flex-col xl:flex-row gap-3 items-stretch xl:items-center justify-between w-full">
-                {/* Search */}
-                <div className="w-full xl:max-w-md">
+            {/* Filtros y Búsqueda con UI Kit Oficial (Estilo Cuentas Internas) */}
+            <div className="space-y-3 w-full">
+              <div className="flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-3 w-full">
+                {/* Buscador UI Kit */}
+                <div className="flex-1 min-w-0">
                   <Search
                     size="sm"
-                    placeholder="Buscar por conector, protocolo, motor, ID..."
+                    placeholder="Buscar por conector, protocolo, motor, ID o driver..."
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    onClear={() => setSearchTerm("")}
+                    onChange={(e) => {
+                      setSearchTerm(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    onClear={() => {
+                      setSearchTerm("");
+                      setCurrentPage(1);
+                    }}
                     className="w-full"
                   />
                 </div>
 
-                {/* Combobox Estado */}
-                <div className="w-full xl:w-[260px]">
-                  <Combobox
-                    value={estadoFilter === "ALL" ? null : estadoFilter}
-                    onValueChange={(val) => setEstadoFilter(val || "ALL")}
-                    inputValue={estadoSearch}
-                    onInputValueChange={(newSearch) => {
-                      const opt = ESTADOS_OPCIONES.find(
-                        (e) =>
-                          e.value.toLowerCase() === newSearch.toLowerCase() ||
-                          e.label.toLowerCase() === newSearch.toLowerCase()
-                      );
-                      if (opt) setEstadoSearch(opt.label);
-                      else if (newSearch === "ALL") setEstadoSearch("");
-                      else setEstadoSearch(newSearch);
-                    }}
-                  >
-                    <ComboboxInput
-                      size="sm"
-                      placeholder="Todos los estados"
-                      showClear={estadoFilter !== "ALL"}
-                      showTrigger={true}
-                      className="w-full"
-                    />
-                    <ComboboxContent className="min-w-[260px] z-[80]">
-                      <ComboboxList>
-                        <ComboboxGroup>
-                          <ComboboxLabel>Filtrar por estado</ComboboxLabel>
-                          {filteredEstadosForFilter.map((opt) => (
-                            <ComboboxItem
-                              key={opt.value}
-                              value={opt.value}
-                              className="text-xs py-1.5 cursor-pointer"
-                            >
-                              {opt.label}
-                            </ComboboxItem>
-                          ))}
-                        </ComboboxGroup>
-                        {filteredEstadosForFilter.length === 0 && (
-                          <ComboboxEmpty>No se encontraron estados.</ComboboxEmpty>
-                        )}
-                      </ComboboxList>
-                    </ComboboxContent>
-                  </Combobox>
+                {/* Filtros Combobox UI Kit */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 w-full xl:w-auto shrink-0">
+                  {/* Filtro Estado */}
+                  <div className="w-full xl:w-[240px] min-w-0">
+                    <Combobox
+                      value={estadoFilter === "ALL" ? null : estadoFilter}
+                      onValueChange={(val) => {
+                        handleSetEstadoFilter(val || "ALL");
+                      }}
+                      inputValue={estadoSearch}
+                      onInputValueChange={(newSearch) => {
+                        const opt = ESTADOS_OPCIONES.find(
+                          (e) =>
+                            e.value.toLowerCase() === newSearch.toLowerCase() ||
+                            e.label.toLowerCase() === newSearch.toLowerCase()
+                        );
+                        if (opt) setEstadoSearch(opt.label);
+                        else if (newSearch === "ALL") setEstadoSearch("");
+                        else setEstadoSearch(newSearch);
+                      }}
+                    >
+                      <ComboboxInput
+                        size="sm"
+                        placeholder="Todos los estados"
+                        showClear={estadoFilter !== "ALL"}
+                        showTrigger={true}
+                        className="w-full"
+                      />
+                      <ComboboxContent className="min-w-[260px] z-[80]">
+                        <ComboboxList>
+                          <ComboboxGroup>
+                            <ComboboxLabel>Filtrar por estado</ComboboxLabel>
+                            {filteredEstadosForFilter.map((opt) => (
+                              <ComboboxItem
+                                key={opt.value}
+                                value={opt.value}
+                                className="text-xs py-1.5 cursor-pointer"
+                              >
+                                {opt.label}
+                              </ComboboxItem>
+                            ))}
+                          </ComboboxGroup>
+                          {filteredEstadosForFilter.length === 0 && (
+                            <ComboboxEmpty>No se encontraron estados.</ComboboxEmpty>
+                          )}
+                        </ComboboxList>
+                      </ComboboxContent>
+                    </Combobox>
+                  </div>
+
+                  {/* Filtro Tipo / Motor */}
+                  <div className="w-full xl:w-[220px] min-w-0">
+                    <Combobox
+                      value={tipoFilter === "ALL" ? null : tipoFilter}
+                      onValueChange={(val) => {
+                        handleSetTipoFilter(val || "ALL");
+                      }}
+                      inputValue={tipoSearch}
+                      onInputValueChange={(newSearch) => {
+                        const opt = TIPOS_OPCIONES.find(
+                          (t) =>
+                            t.value.toLowerCase() === newSearch.toLowerCase() ||
+                            t.label.toLowerCase() === newSearch.toLowerCase()
+                        );
+                        if (opt) setTipoSearch(opt.label);
+                        else if (newSearch === "ALL") setTipoSearch("");
+                        else setTipoSearch(newSearch);
+                      }}
+                    >
+                      <ComboboxInput
+                        size="sm"
+                        placeholder="Todos los motores"
+                        showClear={tipoFilter !== "ALL"}
+                        showTrigger={true}
+                        className="w-full"
+                      />
+                      <ComboboxContent className="min-w-[240px] z-[80]">
+                        <ComboboxList>
+                          <ComboboxGroup>
+                            <ComboboxLabel>Filtrar por motor / tipo</ComboboxLabel>
+                            {filteredTiposForFilter.map((opt) => (
+                              <ComboboxItem
+                                key={opt.value}
+                                value={opt.value}
+                                className="text-xs py-1.5 cursor-pointer"
+                              >
+                                {opt.label}
+                              </ComboboxItem>
+                            ))}
+                          </ComboboxGroup>
+                          {filteredTiposForFilter.length === 0 && (
+                            <ComboboxEmpty>No se encontraron tipos.</ComboboxEmpty>
+                          )}
+                        </ComboboxList>
+                      </ComboboxContent>
+                    </Combobox>
+                  </div>
                 </div>
               </div>
 
-              {/* Filtros Activos */}
+              {/* Badges / Píldoras de Filtros Activos (UI Kit) */}
               {hasActiveFilters && (
                 <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border/60">
                   <span className="text-xs font-semibold text-muted-foreground mr-1">
                     Filtros activos:
                   </span>
+
                   {searchTerm.trim() !== "" && (
                     <Badge
                       tone="neutral"
                       appearance="soft"
-                      className="pl-3 pr-1 py-1 rounded-full text-xs h-7 gap-1 font-semibold bg-muted text-foreground border border-border"
+                      className="pl-3 pr-1 py-1 rounded-full text-xs h-7 gap-1 font-semibold bg-muted text-foreground border border-border max-w-full"
                     >
-                      <span>Búsqueda: &ldquo;{searchTerm}&rdquo;</span>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="max-w-[180px] sm:max-w-[260px] truncate cursor-help">
+                            Búsqueda: &ldquo;{searchTerm}&rdquo;
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="text-xs max-w-xs z-[100]">
+                          Búsqueda: &ldquo;{searchTerm}&rdquo;
+                        </TooltipContent>
+                      </Tooltip>
                       <button
                         type="button"
-                        onClick={() => setSearchTerm("")}
-                        className="p-0.5 rounded-full hover:bg-foreground/10 text-muted-foreground transition-colors"
+                        onClick={() => {
+                          setSearchTerm("");
+                          setCurrentPage(1);
+                        }}
+                        className="p-0.5 rounded-full hover:bg-foreground/10 text-muted-foreground transition-colors cursor-pointer shrink-0"
+                        aria-label="Eliminar filtro de búsqueda"
                       >
                         <X className="size-3" />
                       </button>
                     </Badge>
                   )}
+
                   {estadoFilter !== "ALL" && (
                     <Badge
                       tone="primary"
                       appearance="soft"
-                      className="pl-3 pr-1 py-1 rounded-full text-xs h-7 gap-1 font-semibold bg-primary/10 text-primary border border-primary/25"
+                      className="pl-3 pr-1 py-1 rounded-full text-xs h-7 gap-1 font-semibold bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary-300 border border-primary/25 max-w-full"
                     >
-                      <span>Estado: {ESTADOS_OPCIONES.find((e) => e.value === estadoFilter)?.label || estadoFilter}</span>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="max-w-[180px] sm:max-w-[260px] truncate cursor-help">
+                            Estado: {ESTADOS_OPCIONES.find((e) => e.value === estadoFilter)?.label || estadoFilter}
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="text-xs max-w-xs z-[100]">
+                          Estado: {ESTADOS_OPCIONES.find((e) => e.value === estadoFilter)?.label || estadoFilter}
+                        </TooltipContent>
+                      </Tooltip>
                       <button
                         type="button"
-                        onClick={() => setEstadoFilter("ALL")}
-                        className="p-0.5 rounded-full hover:bg-primary/20 text-primary transition-colors"
+                        onClick={() => handleSetEstadoFilter("ALL")}
+                        className="p-0.5 rounded-full hover:bg-primary/20 text-primary transition-colors cursor-pointer shrink-0"
+                        aria-label="Eliminar filtro de estado"
                       >
                         <X className="size-3" />
                       </button>
                     </Badge>
                   )}
+
+                  {tipoFilter !== "ALL" && (
+                    <Badge
+                      tone="primary"
+                      appearance="soft"
+                      className="pl-3 pr-1 py-1 rounded-full text-xs h-7 gap-1 font-semibold bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary-300 border border-primary/25 max-w-full"
+                    >
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="max-w-[180px] sm:max-w-[260px] truncate cursor-help">
+                            Motor: {tipoFilter}
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="text-xs max-w-xs z-[100]">
+                          Motor: {tipoFilter}
+                        </TooltipContent>
+                      </Tooltip>
+                      <button
+                        type="button"
+                        onClick={() => handleSetTipoFilter("ALL")}
+                        className="p-0.5 rounded-full hover:bg-primary/20 text-primary transition-colors cursor-pointer shrink-0"
+                        aria-label="Eliminar filtro de motor"
+                      >
+                        <X className="size-3" />
+                      </button>
+                    </Badge>
+                  )}
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleClearAllFilters}
+                    className="h-7 text-xs text-muted-foreground hover:text-foreground cursor-pointer px-2.5 rounded-full"
+                  >
+                    Limpiar filtros
+                  </Button>
                 </div>
               )}
             </div>
 
-            {/* Tabla de Conectores Reutilizables */}
-            <div className="rounded-xl border border-border overflow-hidden bg-surface">
-              <Table>
-                <TableHeader className="bg-muted/40">
-                  <TableRow>
-                    <TableHead className="text-xs font-bold text-foreground">Conector / Motor</TableHead>
-                    <TableHead className="text-xs font-bold text-foreground">Versión & Driver</TableHead>
-                    <TableHead className="text-xs font-bold text-foreground">Protocolo & Seguridad</TableHead>
-                    <TableHead className="text-xs font-bold text-foreground">Fuentes en Uso</TableHead>
-                    <TableHead className="text-xs font-bold text-foreground">Estado</TableHead>
-                    <TableHead className="text-xs font-bold text-foreground">Última Prueba (CNX-02)</TableHead>
-                    <TableHead className="text-xs font-bold text-foreground text-right w-[150px]">Acciones</TableHead>
+            {/* Tabla de Conectores Reutilizables (Desktop) */}
+            <div className="hidden md:block w-full">
+              <Table className="w-full" containerClassName="overflow-x-auto w-full">
+                <TableHeader>
+                  <TableRow className="border-0">
+                    <TableHead className="w-[125px] min-w-[120px] text-xs font-bold text-white pl-6">
+                      ID / CÓDIGO
+                    </TableHead>
+                    <TableHead className="min-w-[240px] text-xs font-bold text-white">
+                      CONECTOR / MOTOR
+                    </TableHead>
+                    <TableHead className="w-[170px] min-w-[160px] text-xs font-bold text-white">
+                      VERSIÓN & DRIVER
+                    </TableHead>
+                    <TableHead className="w-[210px] min-w-[200px] text-xs font-bold text-white">
+                      PROTOCOLO & SEGURIDAD
+                    </TableHead>
+                    <TableHead className="w-[120px] min-w-[110px] text-xs font-bold text-white text-center">
+                      FUENTES EN USO
+                    </TableHead>
+                    <TableHead className="w-[130px] min-w-[120px] text-xs font-bold text-white">
+                      ESTADO
+                    </TableHead>
+                    <TableHead className="w-[170px] min-w-[160px] text-xs font-bold text-white">
+                      ÚLTIMA PRUEBA (CNX-02)
+                    </TableHead>
+                    <TableHead className="w-[130px] min-w-[120px] text-right text-xs font-bold text-white pr-6">
+                      ACCIONES
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paginatedConectores.length === 0 ? (
+                  {!isLoaded ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="py-12 text-center text-xs text-muted-foreground">
-                        No se encontraron tipos de conectores con los filtros aplicados.
+                      <TableCell colSpan={8} className="py-12 text-center text-xs text-muted-foreground">
+                        Cargando conectores de interoperabilidad...
+                      </TableCell>
+                    </TableRow>
+                  ) : paginatedConectores.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="py-12 text-center space-y-2">
+                        <Cpu className="size-8 text-muted-foreground/40 mx-auto" />
+                        <p className="text-xs font-medium text-foreground">
+                          No se encontraron tipos de conectores
+                        </p>
+                        <p className="text-[11px] text-muted-foreground">
+                          Ajusta los filtros de búsqueda o registra un nuevo tipo de conector institucional.
+                        </p>
                       </TableCell>
                     </TableRow>
                   ) : (
                     paginatedConectores.map((conector) => {
                       const test = conector.ultimaPrueba;
                       return (
-                        <TableRow key={conector.id} className="hover:bg-muted/30 transition-colors">
-                          <TableCell className="align-top py-3.5">
+                        <TableRow key={conector.id} className="transition-colors hover:bg-muted/40">
+                          {/* ID / Código */}
+                          <TableCell className="w-[125px] min-w-[120px] text-left align-middle pl-6">
+                            <div className="space-y-0.5">
+                              <span className="font-mono text-xs font-bold text-primary block">
+                                {conector.id}
+                              </span>
+                              <span className="text-[10px] text-muted-foreground font-mono block">
+                                {conector.codigo}
+                              </span>
+                            </div>
+                          </TableCell>
+
+                          {/* Conector / Motor */}
+                          <TableCell className="min-w-[240px] text-left align-middle">
                             <div className="space-y-0.5">
                               <p className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                                <Cpu className="size-3.5 text-primary" />
-                                {conector.nombre}
+                                <Cpu className="size-3.5 text-primary shrink-0" />
+                                <span className="truncate">{conector.nombre}</span>
                               </p>
                               <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                                <span className="font-mono">{conector.id}</span>
+                                <span className="font-semibold text-foreground/80">{conector.tipo}</span>
                                 <span>·</span>
-                                <span className="font-semibold">{conector.tipo}</span>
+                                <span className="line-clamp-1 max-w-[220px]" title={conector.descripcion}>
+                                  {conector.descripcion}
+                                </span>
                               </div>
                             </div>
                           </TableCell>
 
-                          <TableCell className="align-top py-3.5">
+                          {/* Versión & Driver */}
+                          <TableCell className="w-[170px] min-w-[160px] text-left align-middle">
                             <div className="space-y-0.5 text-xs">
-                              <span className="font-mono font-bold text-foreground">{conector.version}</span>
-                              {conector.driverJar && (
-                                <p className="text-[11px] font-mono text-muted-foreground truncate max-w-[160px]">
+                              <span className="font-mono font-bold text-foreground">
+                                {conector.version}
+                              </span>
+                              {conector.driverJar ? (
+                                <p className="text-[11px] font-mono text-muted-foreground truncate max-w-[150px]" title={conector.driverJar}>
                                   {conector.driverJar}
                                 </p>
+                              ) : (
+                                <p className="text-[11px] text-muted-foreground italic">Driver nativo</p>
                               )}
                             </div>
                           </TableCell>
 
-                          <TableCell className="align-top py-3.5">
+                          {/* Protocolo & Seguridad */}
+                          <TableCell className="w-[210px] min-w-[200px] text-left align-middle">
                             <div className="space-y-0.5 text-xs">
-                              <p className="text-foreground font-medium">{conector.protocolo}</p>
-                              <p className="text-[11px] text-muted-foreground">
+                              <p className="text-foreground font-medium truncate" title={conector.protocolo}>
+                                {conector.protocolo}
+                              </p>
+                              <p className="text-[11px] text-muted-foreground truncate" title={conector.tipoAutenticacion}>
                                 {conector.tipoAutenticacion}
                               </p>
                             </div>
                           </TableCell>
 
-                          <TableCell className="align-top py-3.5">
+                          {/* Fuentes en uso */}
+                          <TableCell className="w-[120px] min-w-[110px] text-center align-middle">
                             <Badge
                               tone={conector.fuentesAsociadasCount > 0 ? "neutral" : "neutral"}
                               appearance="soft"
                               size="sm"
                               className="font-mono font-semibold"
                             >
-                              {conector.fuentesAsociadasCount} fuentes
+                              {conector.fuentesAsociadasCount} {conector.fuentesAsociadasCount === 1 ? "fuente" : "fuentes"}
                             </Badge>
                           </TableCell>
 
-                          <TableCell className="align-top py-3.5">
-                            <Badge
-                              tone={
-                                conector.estado === "HABILITADO"
-                                  ? "success"
-                                  : conector.estado === "EN_PRUEBAS"
-                                  ? "warning"
-                                  : "danger"
-                              }
-                              appearance="soft"
-                              size="sm"
-                              className="font-semibold text-[11px]"
-                            >
-                              {conector.estado === "HABILITADO"
-                                ? "Habilitado"
-                                : conector.estado === "EN_PRUEBAS"
-                                ? "En pruebas"
-                                : "Retirado"}
-                            </Badge>
+                          {/* Estado */}
+                          <TableCell className="w-[130px] min-w-[120px] text-left align-middle">
+                            {getEstadoBadge(conector.estado)}
                           </TableCell>
 
-                          <TableCell className="align-top py-3.5">
+                          {/* Última Prueba (CNX-02) */}
+                          <TableCell className="w-[170px] min-w-[160px] text-left align-middle">
                             {test ? (
                               <div className="space-y-0.5 text-xs">
                                 <div className="flex items-center gap-1.5 font-medium">
@@ -655,62 +908,63 @@ export function ConectoresInboxView({ currentUser: propUser }: ConectoresInboxVi
                           </TableCell>
 
                           {/* Acciones */}
-                          <TableCell className="align-top py-3.5 text-right">
-                            <div className="flex items-center justify-end gap-1">
-                              {/* Acción Principal: Probar Conector (CNX-02) */}
+                          <TableCell className="w-[130px] min-w-[120px] pr-6 text-right align-middle">
+                            <div className="inline-flex items-center gap-1 justify-end w-full">
+                              {/* 1. Probar Conector (CNX-02) */}
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <Button
                                     variant="ghost"
-                                    size="icon-xs"
+                                    size="icon-sm"
                                     onClick={() => {
                                       setConectorParaProbar(conector);
                                       setIsProbarOpen(true);
                                     }}
-                                    className="text-info hover:text-info hover:bg-info/10"
-                                    aria-label="Probar conector en sandbox"
+                                    className="text-info hover:text-info hover:bg-info/10 cursor-pointer"
+                                    aria-label={`Probar ${conector.nombre} en sandbox`}
                                   >
                                     <Zap className="size-4" />
                                   </Button>
                                 </TooltipTrigger>
-                                <TooltipContent side="top">
-                                  Probar conector en sandbox (CNX-02)
-                                </TooltipContent>
+                                <TooltipContent side="top">Probar conector (CNX-02)</TooltipContent>
                               </Tooltip>
 
-                              {/* Habilitar directo si está en pruebas */}
+                              {/* 2. Habilitar directo si está en pruebas */}
                               {conector.estado === "EN_PRUEBAS" && (
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                     <Button
                                       variant="ghost"
-                                      size="icon-xs"
+                                      size="icon-sm"
                                       onClick={() => cambiarEstadoConector(conector.id, "HABILITADO")}
-                                      className="text-success hover:text-success hover:bg-success/10"
-                                      aria-label="Habilitar conector"
+                                      className="text-success hover:text-success hover:bg-success/10 cursor-pointer"
+                                      aria-label={`Habilitar ${conector.nombre}`}
                                     >
                                       <CheckCircle2 className="size-4" />
                                     </Button>
                                   </TooltipTrigger>
-                                  <TooltipContent side="top">
-                                    Habilitar en Catálogo (CNX-02)
-                                  </TooltipContent>
+                                  <TooltipContent side="top">Habilitar en Catálogo</TooltipContent>
                                 </Tooltip>
                               )}
 
-                              {/* Menú Tres Puntos Horizontales (···) */}
+                              {/* 3. Menú contextual Tres Puntos (···) */}
                               <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon-xs"
-                                    className="text-muted-foreground hover:text-foreground"
-                                    aria-label="Opciones del conector"
-                                  >
-                                    <MoreHorizontal className="size-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="w-52">
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon-sm"
+                                        className="text-muted-foreground hover:text-foreground cursor-pointer"
+                                        aria-label={`Más opciones para ${conector.nombre}`}
+                                      >
+                                        <MoreHorizontal className="size-4" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top">Más opciones</TooltipContent>
+                                </Tooltip>
+                                <DropdownMenuContent align="end" className="w-56">
                                   <DropdownMenuItem
                                     onClick={() => {
                                       setConectorParaProbar(conector);
@@ -766,41 +1020,219 @@ export function ConectoresInboxView({ currentUser: propUser }: ConectoresInboxVi
               </Table>
             </div>
 
-            {/* Paginación */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-between pt-2">
+            {/* Mobile Cards Layout (<md) */}
+            <div className="block md:hidden w-full space-y-3.5">
+              {!isLoaded ? (
+                <div className="flex flex-col items-center justify-center p-8 bg-surface border border-border rounded-xl text-center space-y-2">
+                  <p className="text-xs text-muted-foreground">Cargando conectores...</p>
+                </div>
+              ) : paginatedConectores.length === 0 ? (
+                <div className="flex flex-col items-center justify-center p-8 bg-surface border border-border rounded-xl text-center space-y-2">
+                  <Cpu className="size-8 text-muted-foreground/40 mx-auto" />
+                  <p className="text-sm font-semibold text-foreground">No se encontraron conectores</p>
+                  <p className="text-xs text-muted-foreground">
+                    Ajusta los filtros o registra un nuevo tipo de conector.
+                  </p>
+                </div>
+              ) : (
+                paginatedConectores.map((conector) => {
+                  const test = conector.ultimaPrueba;
+                  return (
+                    <Card
+                      key={conector.id}
+                      className="p-4 bg-surface border border-border rounded-xl space-y-3 shadow-2xs"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="space-y-0.5">
+                          <span className="font-mono text-xs font-bold text-primary block">
+                            {conector.id} · {conector.codigo}
+                          </span>
+                          <h3 className="text-sm font-bold text-foreground">
+                            {conector.nombre}
+                          </h3>
+                          <p className="text-xs text-muted-foreground font-medium">
+                            Motor: {conector.tipo} · Versión: {conector.version}
+                          </p>
+                        </div>
+                        <div>{getEstadoBadge(conector.estado)}</div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/50 text-xs">
+                        <div>
+                          <span className="text-[10px] text-muted-foreground block font-medium">Protocolo:</span>
+                          <span className="font-mono text-[11px] text-foreground truncate block">
+                            {conector.protocolo}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-muted-foreground block font-medium">Fuentes en uso:</span>
+                          <span className="font-mono text-[11px] text-foreground block">
+                            {conector.fuentesAsociadasCount} fuentes
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="pt-2 border-t border-border/50 flex items-center justify-between text-xs">
+                        <div className="text-[11px] text-muted-foreground">
+                          {test ? (
+                            <span className={test.resultado === "EXITOSO" ? "text-success font-medium" : "text-danger font-medium"}>
+                              Test: {test.latenciaMs}ms ({test.fecha.split(" ")[0]})
+                            </span>
+                          ) : (
+                            <span className="italic">Sin pruebas</span>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => {
+                              setConectorParaProbar(conector);
+                              setIsProbarOpen(true);
+                            }}
+                            className="text-info hover:text-info hover:bg-info/10 cursor-pointer"
+                            aria-label={`Probar conector ${conector.nombre}`}
+                          >
+                            <Zap className="size-4" />
+                          </Button>
+
+                          {conector.estado === "EN_PRUEBAS" && (
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              onClick={() => cambiarEstadoConector(conector.id, "HABILITADO")}
+                              className="text-success hover:text-success hover:bg-success/10 cursor-pointer"
+                              aria-label={`Habilitar conector ${conector.nombre}`}
+                            >
+                              <CheckCircle2 className="size-4" />
+                            </Button>
+                          )}
+
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => {
+                              setConectorParaRetirar(conector);
+                              setIsRetirarOpen(true);
+                            }}
+                            className="text-danger hover:text-danger hover:bg-danger/10 cursor-pointer"
+                            aria-label={`Retirar conector ${conector.nombre}`}
+                          >
+                            <Ban className="size-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </Card>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Paginación Estandarizada (Estilo Cuentas Internas / Fuentes) */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-border/80 w-full">
+              <div className="flex flex-wrap items-center gap-4 order-2 sm:order-1">
                 <p className="text-xs text-muted-foreground">
-                  Mostrando {paginatedConectores.length} de {conectoresFiltrados.length} tipos de conectores
+                  Mostrando{" "}
+                  <span className="font-semibold text-foreground">
+                    {conectoresFiltrados.length === 0 ? 0 : (safeCurrentPage - 1) * pageSize + 1}
+                  </span>{" "}
+                  a{" "}
+                  <span className="font-semibold text-foreground">
+                    {Math.min(safeCurrentPage * pageSize, conectoresFiltrados.length)}
+                  </span>{" "}
+                  de <span className="font-semibold text-foreground">{conectoresFiltrados.length}</span> tipos de conectores
                 </p>
+
+                {/* Selector de filas por página: 5, 10, 15 */}
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span>Filas:</span>
+                  <div className="inline-flex rounded-full border border-border/80 p-0.5 bg-surface shadow-2xs">
+                    {[5, 10, 15].map((size) => (
+                      <button
+                        key={size}
+                        type="button"
+                        onClick={() => {
+                          setPageSize(size);
+                          setCurrentPage(1);
+                        }}
+                        className={cn(
+                          "px-2.5 py-0.5 text-xs font-semibold rounded-full transition-all cursor-pointer",
+                          pageSize === size
+                            ? "bg-surface text-primary shadow-2xs font-bold border border-border/80"
+                            : "text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        {size}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="order-1 sm:order-2">
                 <Pagination>
                   <PaginationContent>
                     <PaginationItem>
-                      <PaginationPrevious
-                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                        className={cn(safeCurrentPage <= 1 && "pointer-events-none opacity-50 cursor-not-allowed")}
+                      <PaginationFirst
+                        onClick={() => setCurrentPage(1)}
+                        className={cn(safeCurrentPage === 1 && "pointer-events-none opacity-50 cursor-not-allowed")}
                       />
                     </PaginationItem>
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                      <PaginationItem key={page}>
-                        <PaginationLink
-                          isActive={page === safeCurrentPage}
-                          onClick={() => setCurrentPage(page)}
-                          className="cursor-pointer"
-                        >
-                          {page}
-                        </PaginationLink>
-                      </PaginationItem>
-                    ))}
+                    <PaginationItem>
+                      <PaginationPrevious
+                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                        className={cn(safeCurrentPage === 1 && "pointer-events-none opacity-50 cursor-not-allowed")}
+                      />
+                    </PaginationItem>
+
+                    {Array.from({ length: totalPages }).map((_, i) => {
+                      const page = i + 1;
+                      if (
+                        page === 1 ||
+                        page === totalPages ||
+                        (page >= safeCurrentPage - 1 && page <= safeCurrentPage + 1)
+                      ) {
+                        return (
+                          <PaginationItem key={page}>
+                            <PaginationLink
+                              isActive={page === safeCurrentPage}
+                              onClick={() => setCurrentPage(page)}
+                            >
+                              {page}
+                            </PaginationLink>
+                          </PaginationItem>
+                        );
+                      }
+                      if (
+                        (page === safeCurrentPage - 2 && page > 1) ||
+                        (page === safeCurrentPage + 2 && page < totalPages)
+                      ) {
+                        return (
+                          <PaginationItem key={page}>
+                            <PaginationEllipsis />
+                          </PaginationItem>
+                        );
+                      }
+                      return null;
+                    })}
+
                     <PaginationItem>
                       <PaginationNext
                         onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                        className={cn(safeCurrentPage >= totalPages && "pointer-events-none opacity-50 cursor-not-allowed")}
+                        className={cn(safeCurrentPage === totalPages && "pointer-events-none opacity-50 cursor-not-allowed")}
+                      />
+                    </PaginationItem>
+                    <PaginationItem>
+                      <PaginationLast
+                        onClick={() => setCurrentPage(totalPages)}
+                        className={cn(safeCurrentPage === totalPages && "pointer-events-none opacity-50 cursor-not-allowed")}
                       />
                     </PaginationItem>
                   </PaginationContent>
                 </Pagination>
               </div>
-            )}
+            </div>
           </Card>
         </main>
 
