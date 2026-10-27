@@ -271,7 +271,10 @@ export function AccesoAsignacionGestionView() {
   };
 
   return (
-    <WireframeDashboardLayout activeMenu="acceso-interoperabilidad-asignacion">
+    <WireframeDashboardLayout
+      activeMenu="acceso-interoperabilidad-asignacion"
+      currentRole="DIR_GESTION"
+    >
       <main className="w-full pr-3 pl-2 pb-3 pt-1.5 flex-1 min-h-0 flex flex-col overflow-hidden">
         <Card
           className="bg-surface rounded-2xl border border-border shadow-xs flex-1 min-h-0 overflow-hidden flex flex-col my-0"

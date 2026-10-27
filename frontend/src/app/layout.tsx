@@ -1,10 +1,10 @@
 import { Montserrat } from "next/font/google";
-import Script from "next/script";
 import "./globals.css";
 
 import { cn } from "@/lib/utils";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
+import { ThemeInitializer } from "@/components/theme-toggle";
 
 import { NextIntlClientProvider } from "next-intl";
 import messages from "../../messages/es.json";
@@ -69,36 +69,7 @@ export default async function RootLayout({
       </head>
 
       <body>
-        <Script
-          id="theme-script"
-          strategy="beforeInteractive"
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function() {
-                try {
-                  const storedTheme = localStorage.getItem("glocation-theme");
-                  const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-                  const theme = storedTheme || systemTheme;
-                  document.documentElement.setAttribute("data-theme", theme);
-                  if (theme === "dark") {
-                    document.documentElement.classList.add("dark");
-                    document.documentElement.classList.remove("light");
-                  } else {
-                    document.documentElement.classList.add("light");
-                    document.documentElement.classList.remove("dark");
-                  }
-                  if (!document.cookie.includes("glocation-theme=")) {
-                    setTimeout(function() {
-                      try {
-                        document.cookie = "glocation-theme=" + theme + "; path=/; max-age=31536000; SameSite=Lax";
-                      } catch (e) {}
-                    }, 0);
-                  }
-                } catch (error) {}
-              })();
-            `,
-          }}
-        />
+        <ThemeInitializer />
         <NextIntlClientProvider
           locale="es"
           messages={messages}

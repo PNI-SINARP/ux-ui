@@ -315,7 +315,7 @@ export const DINARP_TEST_USERS_MAP: Record<string, MockUser> = {
 };
 
 export function useAuthStore() {
-  const [activeUser, setActiveUserInternal] = useState<MockUser | null>(getInitialUser);
+  const [activeUser, setActiveUserInternal] = useState<MockUser | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
