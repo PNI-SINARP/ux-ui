@@ -26,6 +26,9 @@ import {
   Paperclip,
   UploadCloud,
   Trash2,
+  Eye,
+  EyeOff,
+  Clock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -632,76 +635,222 @@ export function AccesoSolicitudNuevaView() {
                       const selectedInInst = selectedCamposDetails.filter(d => d.fuenteId === institucion.id).length;
 
                       return (
-                        <div key={institucion.id} className="border border-border rounded-xl bg-card overflow-hidden">
+                        <div key={institucion.id} className="border border-border rounded-2xl bg-card overflow-hidden shadow-xs w-full">
                           <div
                             onClick={() => toggleInstitucion(institucion.id)}
-                            className="p-4 bg-muted/20 hover:bg-muted/40 cursor-pointer flex items-center justify-between"
+                            role="button"
+                            tabIndex={0}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault();
+                                toggleInstitucion(institucion.id);
+                              }
+                            }}
+                            className="bg-primary/5 hover:bg-primary/10 transition-colors cursor-pointer border-b border-border p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 select-none w-full"
                           >
-                            <div className="flex items-center gap-3 min-w-0">
-                              <Building2 className="size-5 text-muted-foreground shrink-0" />
-                              <div className="flex items-center gap-2.5 flex-wrap">
-                                <h2 className="font-bold text-foreground text-sm sm:text-base">{institucion.nombre}</h2>
-                                {isCurrentActiveFuente && (
-                                  <Badge tone="neutral" appearance="soft" size="sm" className="gap-1 border-primary/30 text-primary bg-primary/10 text-[10px]">
-                                    <Check className="size-2.5" /> Fuente en uso
-                                  </Badge>
-                                )}
-                                {isDifferentFromActive && (
-                                  <Badge tone="neutral" appearance="soft" size="sm" className="gap-1 text-muted-foreground border-dashed text-[10px]">
-                                    <Lock className="size-2.5 text-muted-foreground" /> Solicitud independiente requerida
-                                  </Badge>
-                                )}
+                            <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                              <div className="size-11 rounded-xl bg-primary/15 text-primary flex items-center justify-center shrink-0 shadow-2xs">
+                                <Building2 className="size-5 text-primary" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <h2 className="font-heading text-base sm:text-lg font-bold text-primary leading-snug">
+                                    {institucion.nombre}
+                                  </h2>
+                                  {institucion.sigla && (
+                                    <Badge
+                                      tone="primary"
+                                      appearance="solid"
+                                      size="sm"
+                                      className="font-bold text-[10px] tracking-wider !text-white rounded-full px-2.5 py-0.5 shadow-2xs"
+                                    >
+                                      {institucion.sigla}
+                                    </Badge>
+                                  )}
+                                  {isCurrentActiveFuente && (
+                                    <Badge tone="primary" appearance="soft" size="sm" className="gap-1 font-semibold">
+                                      <Check className="size-3" /> Fuente en uso ({selectedInInst})
+                                    </Badge>
+                                  )}
+                                  {isDifferentFromActive && (
+                                    <Badge tone="neutral" appearance="soft" size="sm" className="gap-1 text-muted-foreground border-dashed">
+                                      <Lock className="size-3 text-muted-foreground" /> Solicitud independiente requerida
+                                    </Badge>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5 flex-wrap">
+                                  {institucion.sector && <span>{institucion.sector}</span>}
+                                  {institucion.codigoInstitucion && (
+                                    <>
+                                      <span className="text-muted-foreground/40">•</span>
+                                      <span className="font-mono text-[11px]">RUC: {institucion.codigoInstitucion}</span>
+                                    </>
+                                  )}
+                                </div>
                               </div>
                             </div>
-                            <ChevronDown className={`size-5 transition-transform ${isInstExpanded ? "rotate-180" : ""}`} />
+
+                            <div className="flex items-center gap-3 shrink-0 self-end sm:self-center">
+                              <Badge tone="primary" appearance="soft" size="sm" className="font-semibold px-2.5 py-0.5">
+                                {institucion.fuentes.length} {institucion.fuentes.length === 1 ? "fuente disponible" : "fuentes disponibles"}
+                              </Badge>
+                              <div className="size-8 rounded-lg bg-surface/80 border border-border/60 flex items-center justify-center text-muted-foreground hover:text-foreground">
+                                {isInstExpanded ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
+                              </div>
+                            </div>
                           </div>
 
                           {isInstExpanded && (
-                            <div className="p-4 flex flex-col gap-4 border-t border-border">
+                            <div className="p-4 sm:p-6 flex flex-col gap-6 bg-card w-full">
                               {institucion.fuentes.map(servicio => {
                                 const isServicioExpanded = expandedFuentes[servicio.id] ?? false;
                                 const selectedInServicio = selectedCamposDetails.filter(d => d.servicioId === servicio.id).length;
+                                const camposAccesibles = servicio.campos.filter((c) => c.clasificacion === "Accesible").length;
+                                const camposConfidenciales = servicio.campos.filter((c) => c.clasificacion === "Confidencial").length;
 
                                 return (
                                   <div
                                     key={servicio.id}
-                                    className={`border rounded-lg p-4 transition-all ${
+                                    className={cn(
+                                      "border rounded-xl bg-surface overflow-hidden shadow-2xs transition-all hover:border-primary/40 w-full",
                                       selectedInServicio > 0
-                                        ? "border-primary/50 bg-primary/5"
+                                        ? "border-primary/50"
                                         : isDifferentFromActive
-                                        ? "border-border/60 bg-surface/60 opacity-80"
-                                        : "border-border/80 bg-surface"
-                                    }`}
+                                        ? "border-border/60 opacity-80"
+                                        : "border-border"
+                                    )}
                                   >
-                                    <div className="flex items-center justify-between gap-3">
-                                      <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 flex-wrap">
+                                    {/* Encabezado de la Fuente (Estilo Catálogo de Interoperabilidad) */}
+                                    <div
+                                      className={cn(
+                                        "p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 bg-muted/10 w-full",
+                                        isServicioExpanded && "border-b border-border"
+                                      )}
+                                    >
+                                      <div className="flex flex-col gap-1.5 flex-1 min-w-0">
+                                        <div className="flex items-center gap-2.5 flex-wrap">
                                           <Badge tone="neutral" appearance="outline" size="sm" className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                                             Fuente
                                           </Badge>
-                                          <h3 className="font-bold text-sm text-foreground">{servicio.nombre}</h3>
+                                          <h3 className="font-heading text-base font-bold text-foreground">
+                                            {servicio.nombre}
+                                          </h3>
+                                          {servicio.codigoServicio && (
+                                            <span className="text-xs text-muted-foreground font-mono bg-muted/60 px-2 py-0.5 rounded">
+                                              {servicio.codigoServicio}
+                                            </span>
+                                          )}
                                           {selectedInServicio > 0 && (
-                                            <Badge tone="neutral" appearance="soft" size="sm" className="gap-1 text-[10px] text-primary bg-primary/10 border-primary/20">
-                                              <Check className="size-2.5" /> {selectedInServicio} campo(s) seleccionado(s)
+                                            <Badge tone="primary" appearance="soft" size="sm" className="gap-1 font-semibold">
+                                              <Check className="size-3" /> {selectedInServicio} CAMPO(S) SELECCIONADO(S)
                                             </Badge>
                                           )}
                                         </div>
-                                        <p className="text-xs text-muted-foreground mt-1">{servicio.descripcion}</p>
+
+                                        <p className="text-xs text-muted-foreground leading-relaxed">
+                                          {servicio.descripcion}
+                                        </p>
+
+                                        {(servicio.baseLegal || servicio.ultimaActualizacion) && (
+                                          <div className="text-[11px] text-muted-foreground flex items-center gap-3 pt-0.5 flex-wrap">
+                                            {servicio.baseLegal && (
+                                              <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                  <span className="flex items-center gap-1 cursor-help hover:text-foreground">
+                                                    <Scale className="size-3 text-primary" />
+                                                    <span>Base Legal: {servicio.baseLegal}</span>
+                                                  </span>
+                                                </TooltipTrigger>
+                                                <TooltipContent side="top" className="text-xs max-w-sm">
+                                                  Marco legal que ampara el intercambio de información
+                                                </TooltipContent>
+                                              </Tooltip>
+                                            )}
+                                            {servicio.baseLegal && servicio.ultimaActualizacion && <span>•</span>}
+                                            {servicio.ultimaActualizacion && (
+                                              <span className="flex items-center gap-1">
+                                                <Clock className="size-3 text-muted-foreground" />
+                                                <span>Actualizado: {servicio.ultimaActualizacion}</span>
+                                              </span>
+                                            )}
+                                          </div>
+                                        )}
                                       </div>
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => toggleFuente(servicio.id)}
-                                      >
-                                        {isServicioExpanded ? "Ocultar campos" : "Ver campos"}
-                                      </Button>
+
+                                      <div className="flex items-center gap-3 shrink-0 flex-wrap sm:flex-nowrap">
+                                        {/* Badges con Colores Unificados: Verde (Success) para Accesibles y Ámbar (Warning) para Confidenciales */}
+                                        <div className="flex items-center gap-2.5 bg-muted/30 px-3 py-1.5 rounded-lg border border-border/50 text-xs">
+                                          <Tooltip>
+                                            <TooltipTrigger asChild>
+                                              <span
+                                                tabIndex={0}
+                                                aria-label={`${camposAccesibles} accesibles: Requieren únicamente finalidad de uso`}
+                                                className="cursor-help inline-flex items-center gap-1 rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none group/acc"
+                                              >
+                                                <Badge tone="success" appearance="soft" size="sm" className="gap-1 inline-flex font-semibold">
+                                                  <Unlock className="size-3" />
+                                                  <span>{camposAccesibles} ACCESIBLES</span>
+                                                </Badge>
+                                                <Info className="size-3.5 text-muted-foreground group-hover/acc:text-success transition-colors shrink-0" />
+                                              </span>
+                                            </TooltipTrigger>
+                                            <TooltipContent side="top" className="text-xs">
+                                              Requieren únicamente finalidad de uso
+                                            </TooltipContent>
+                                          </Tooltip>
+
+                                          <span className="text-muted-foreground/40">•</span>
+
+                                          <Tooltip>
+                                            <TooltipTrigger asChild>
+                                              <span
+                                                tabIndex={0}
+                                                aria-label={`${camposConfidenciales} confidenciales: Requieren finalidad de uso y justificación jurídica`}
+                                                className="cursor-help inline-flex items-center gap-1 rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none group/conf"
+                                              >
+                                                <Badge tone="warning" appearance="soft" size="sm" className="gap-1 inline-flex font-semibold">
+                                                  <Lock className="size-3" />
+                                                  <span>{camposConfidenciales} CONFIDENCIALES</span>
+                                                </Badge>
+                                                <Info className="size-3.5 text-muted-foreground group-hover/conf:text-warning transition-colors shrink-0" />
+                                              </span>
+                                            </TooltipTrigger>
+                                            <TooltipContent side="top" className="text-xs">
+                                              Requieren finalidad de uso y justificación jurídica
+                                            </TooltipContent>
+                                          </Tooltip>
+                                        </div>
+
+                                        {/* Botón Solo Icono para Ver/Ocultar Datos con Tooltip (igual a Catálogo) */}
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <Button
+                                              variant="outline"
+                                              size="icon"
+                                              onClick={() => toggleFuente(servicio.id)}
+                                              className="size-9 rounded-lg border-border hover:bg-muted text-muted-foreground hover:text-foreground shrink-0 transition-colors"
+                                              aria-label={isServicioExpanded ? "Ocultar campos" : "Ver campos"}
+                                            >
+                                              {isServicioExpanded ? (
+                                                <EyeOff className="size-4" />
+                                              ) : (
+                                                <Eye className="size-4 text-primary" />
+                                              )}
+                                            </Button>
+                                          </TooltipTrigger>
+                                          <TooltipContent side="top" className="text-xs">
+                                            {isServicioExpanded ? "Ocultar campos" : "Ver campos disponibles"}
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </div>
                                     </div>
 
                                     {isServicioExpanded && (
-                                      <div className="mt-4 pt-4 border-t border-border grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                                      <div className="p-4 sm:p-5 grid grid-cols-1 md:grid-cols-2 gap-3 bg-card">
                                         {servicio.campos.map(campo => {
                                           const isSelected = !!selectedCampos[campo.id];
                                           const isBlocked = isDifferentFromActive;
+                                          const esAccesible = campo.clasificacion === "Accesible";
 
                                           return (
                                             <div
@@ -709,13 +858,14 @@ export function AccesoSolicitudNuevaView() {
                                               onClick={() => {
                                                 handleSelectCampo(campo.id, !isSelected, institucion.id, institucion.nombre);
                                               }}
-                                              className={`flex items-start gap-3 p-3 border rounded-xl cursor-pointer transition-colors ${
+                                              className={cn(
+                                                "flex items-start gap-3 p-3.5 border rounded-xl cursor-pointer transition-colors",
                                                 isSelected
                                                   ? "bg-primary/5 border-primary/40 shadow-2xs"
                                                   : isBlocked
                                                   ? "bg-muted/10 border-border/40 opacity-70 hover:border-warning/50 hover:bg-warning/5"
-                                                  : "bg-muted/20 hover:bg-muted/40 border-border/50"
-                                              }`}
+                                                  : "bg-surface hover:bg-muted/30 border-border/70"
+                                              )}
                                             >
                                               <div className="pt-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
                                                 <Checkbox
@@ -729,53 +879,56 @@ export function AccesoSolicitudNuevaView() {
                                               </div>
                                               <div className="flex-1 min-w-0">
                                                 <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                                  <span className="font-medium text-sm text-foreground">{campo.nombre}</span>
-                                                  {campo.clasificacion === "Accesible" ? (
-                                                    <Badge
-                                                      tone="neutral"
-                                                      appearance="soft"
-                                                      size="sm"
-                                                      className="text-[11px] font-medium gap-1 bg-muted/80 text-foreground border border-border"
-                                                    >
-                                                      <Check className="size-2.5 text-muted-foreground" />
-                                                      <span>Accesible</span>
-                                                    </Badge>
+                                                  <span className="font-mono font-semibold text-xs sm:text-sm text-foreground">{campo.nombre}</span>
+                                                  {esAccesible ? (
+                                                    <Tooltip>
+                                                      <TooltipTrigger asChild>
+                                                        <span
+                                                          tabIndex={0}
+                                                          aria-label="Accesible: Requiere solo finalidad de uso"
+                                                          onClick={(e) => {
+                                                            e.preventDefault();
+                                                            e.stopPropagation();
+                                                          }}
+                                                          className="inline-flex items-center gap-1.5 cursor-help rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none group/req"
+                                                        >
+                                                          <Badge tone="success" appearance="soft" size="sm" className="gap-1 inline-flex font-semibold">
+                                                            <Unlock className="size-3" />
+                                                            ACCESIBLE
+                                                          </Badge>
+                                                          <Info className="size-3.5 text-muted-foreground group-hover/req:text-success transition-colors shrink-0" />
+                                                        </span>
+                                                      </TooltipTrigger>
+                                                      <TooltipContent side="top" className="text-xs">
+                                                        Requiere: Solo finalidad de uso
+                                                      </TooltipContent>
+                                                    </Tooltip>
                                                   ) : (
-                                                    <Badge
-                                                      tone="neutral"
-                                                      appearance="soft"
-                                                      size="sm"
-                                                      className="text-[11px] font-medium gap-1 bg-muted/80 text-foreground border border-border"
-                                                    >
-                                                      <Lock className="size-2.5 text-muted-foreground" />
-                                                      <span>Confidencial</span>
-                                                    </Badge>
+                                                    <Tooltip>
+                                                      <TooltipTrigger asChild>
+                                                        <span
+                                                          tabIndex={0}
+                                                          aria-label="Confidencial: Requiere finalidad y justificación jurídica"
+                                                          onClick={(e) => {
+                                                            e.preventDefault();
+                                                            e.stopPropagation();
+                                                          }}
+                                                          className="inline-flex items-center gap-1.5 cursor-help rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none group/req"
+                                                        >
+                                                          <Badge tone="warning" appearance="soft" size="sm" className="gap-1 inline-flex font-semibold">
+                                                            <Lock className="size-3" />
+                                                            CONFIDENCIAL
+                                                          </Badge>
+                                                          <Info className="size-3.5 text-muted-foreground group-hover/req:text-warning transition-colors shrink-0" />
+                                                        </span>
+                                                      </TooltipTrigger>
+                                                      <TooltipContent side="top" className="text-xs">
+                                                        Requiere: Finalidad de uso y justificación jurídica
+                                                      </TooltipContent>
+                                                    </Tooltip>
                                                   )}
-                                                  <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                      <span
-                                                        role="button"
-                                                        tabIndex={0}
-                                                        onClick={(e) => {
-                                                          e.preventDefault();
-                                                          e.stopPropagation();
-                                                        }}
-                                                        className="inline-flex items-center text-muted-foreground hover:text-primary transition-colors cursor-help p-0.5 rounded-full hover:bg-muted ml-0.5"
-                                                        aria-label="Información de requisitos"
-                                                      >
-                                                        <Info className="size-3.5" />
-                                                      </span>
-                                                    </TooltipTrigger>
-                                                    <TooltipContent side="top">
-                                                      <span>
-                                                        {campo.clasificacion === "Confidencial"
-                                                          ? "Requiere: Finalidad de uso y justificación jurídica"
-                                                          : "Requiere: Solo finalidad de uso"}
-                                                      </span>
-                                                    </TooltipContent>
-                                                  </Tooltip>
                                                 </div>
-                                                <p className="text-xs text-muted-foreground line-clamp-2">{campo.descripcion}</p>
+                                                <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{campo.descripcion}</p>
                                               </div>
                                             </div>
                                           );
@@ -793,8 +946,11 @@ export function AccesoSolicitudNuevaView() {
                   )}
                 </div>
 
-                {/* Barra inferior */}
-                <div className="sticky bottom-0 bg-card border border-border p-4 flex items-center justify-between rounded-xl shadow-lg mt-4 z-10">
+                {/* Barra inferior flotante */}
+                <div
+                  data-theme="dark"
+                  className="sticky bottom-4 bg-surface text-foreground border border-border p-4 flex items-center justify-between gap-4 rounded-xl shadow-lg mt-4 z-10"
+                >
                   <div className="flex items-center gap-3 flex-wrap">
                     <span className="font-bold text-foreground text-sm">
                       Campos seleccionados: {selectedCount}
@@ -805,13 +961,13 @@ export function AccesoSolicitudNuevaView() {
                       </span>
                     )}
                     {activeFuente && (
-                      <Badge tone="neutral" appearance="soft" size="sm" className="hidden sm:inline-flex text-xs gap-1 bg-muted/80 text-foreground border border-border">
+                      <Badge tone="neutral" appearance="soft" size="sm" className="hidden sm:inline-flex text-xs gap-1.5 bg-muted text-foreground border border-border">
                         <Database className="size-3 text-muted-foreground" />
                         <span>Fuente: {activeFuente.nombre}</span>
                       </Badge>
                     )}
                   </div>
-                  <Button onClick={nextStep} disabled={selectedCount === 0} size="sm">
+                  <Button onClick={nextStep} disabled={selectedCount === 0} size="sm" className="shrink-0">
                     Continuar con la justificación
                   </Button>
                 </div>
@@ -933,21 +1089,21 @@ export function AccesoSolicitudNuevaView() {
                                       <span className="font-mono font-bold text-sm text-foreground">{item.campo.nombre}</span>
                                       {item.campo.clasificacion === "Accesible" ? (
                                         <Badge
-                                          tone="neutral"
-                                          appearance="outline"
+                                          tone="success"
+                                          appearance="soft"
                                           size="sm"
-                                          className="gap-1 uppercase tracking-wider text-[10px] font-semibold bg-background"
+                                          className="gap-1 inline-flex font-semibold"
                                         >
-                                          <Check className="size-2.5 text-muted-foreground" /> ACCESIBLE
+                                          <Unlock className="size-3" /> ACCESIBLE
                                         </Badge>
                                       ) : (
                                         <Badge
-                                          tone="neutral"
-                                          appearance="outline"
+                                          tone="warning"
+                                          appearance="soft"
                                           size="sm"
-                                          className="gap-1 uppercase tracking-wider text-[10px] font-semibold bg-background"
+                                          className="gap-1 inline-flex font-semibold"
                                         >
-                                          <Lock className="size-2.5 text-muted-foreground" /> CONFIDENCIAL
+                                          <Lock className="size-3" /> CONFIDENCIAL
                                         </Badge>
                                       )}
                                       <Tooltip>
@@ -1043,7 +1199,7 @@ export function AccesoSolicitudNuevaView() {
                                             Justificación jurídica requerida <span className="text-destructive">*</span>
                                           </label>
                                           <Textarea
-                                            className="w-full rounded-xl min-h-[95px] text-xs sm:text-sm bg-background border-amber-500/40"
+                                            className="w-full rounded-xl min-h-[95px] text-xs sm:text-sm bg-background border-warning/40"
                                             placeholder="Indique el fundamento legal o norma jurídica que autoriza el acceso a este campo confidencial..."
                                             value={justificaciones[item.campo.id]?.fundamento || ""}
                                             onChange={(e) =>
@@ -1209,21 +1365,17 @@ export function AccesoSolicitudNuevaView() {
                             </p>
                           </div>
                           <Badge
-                            tone="neutral"
-                            appearance="outline"
-                            className={cn(
-                              "text-[10px] font-semibold uppercase tracking-wider shrink-0",
-                              item.campo.clasificacion === "Confidencial"
-                                ? "border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-300"
-                                : "border-border bg-muted/60 text-muted-foreground"
-                            )}
+                            tone={item.campo.clasificacion === "Confidencial" ? "warning" : "success"}
+                            appearance="soft"
+                            size="sm"
+                            className="gap-1 inline-flex font-semibold shrink-0"
                           >
                             {item.campo.clasificacion === "Confidencial" ? (
-                              <Lock className="size-2.5 mr-1 inline" />
+                              <Lock className="size-3" />
                             ) : (
-                              <Check className="size-2.5 mr-1 inline" />
+                              <Unlock className="size-3" />
                             )}
-                            {item.campo.clasificacion}
+                            {item.campo.clasificacion.toUpperCase()}
                           </Badge>
                         </div>
                       ))}
@@ -1268,21 +1420,17 @@ export function AccesoSolicitudNuevaView() {
                             </span>
                           </div>
                           <Badge
-                            tone="neutral"
-                            appearance="outline"
-                            className={cn(
-                              "text-[10px] font-semibold uppercase tracking-wider shrink-0",
-                              item.campo.clasificacion === "Confidencial"
-                                ? "border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-300"
-                                : "border-border bg-muted/60 text-muted-foreground"
-                            )}
+                            tone={item.campo.clasificacion === "Confidencial" ? "warning" : "success"}
+                            appearance="soft"
+                            size="sm"
+                            className="gap-1 inline-flex font-semibold shrink-0"
                           >
                             {item.campo.clasificacion === "Confidencial" ? (
-                              <Lock className="size-2.5 mr-1 inline" />
+                              <Lock className="size-3" />
                             ) : (
-                              <Check className="size-2.5 mr-1 inline" />
+                              <Unlock className="size-3" />
                             )}
-                            {item.campo.clasificacion}
+                            {item.campo.clasificacion.toUpperCase()}
                           </Badge>
                         </div>
 
@@ -1307,12 +1455,12 @@ export function AccesoSolicitudNuevaView() {
                           {item.campo.clasificacion === "Confidencial" && (
                             <div className="space-y-1.5 w-full">
                               <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
-                                <Scale className="size-3.5 text-amber-600 dark:text-amber-400" />
+                                <Scale className="size-3.5 text-warning" />
                                 Justificación jurídica requerida
                               </label>
                               <Textarea
                                 disabled
-                                className="w-full rounded-xl min-h-[75px] text-xs sm:text-sm bg-background border-amber-500/30 opacity-90 cursor-not-allowed"
+                                className="w-full rounded-xl min-h-[75px] text-xs sm:text-sm bg-background border-warning/30 opacity-90 cursor-not-allowed"
                                 value={justificaciones[item.campo.id]?.fundamento || "Art. 89 del Código Orgánico de la Economía Social de los Conocimientos y Ley Orgánica de Protección de Datos Personales."}
                               />
                             </div>
@@ -1332,21 +1480,21 @@ export function AccesoSolicitudNuevaView() {
                     variant="primary"
                     size="sm"
                     onClick={() => setIsModalConfirmacionOpen(true)}
-                    id="btn-enviar-firmas"
+                    id="btn-enviar-solicitud"
                     className="gap-2 font-semibold shadow-sm"
                   >
                     <Send className="size-4" />
-                    <span>Enviar a firmas</span>
+                    <span>Crear y enviar solicitud</span>
                   </Button>
                 </div>
 
-                {/* MODAL DE CONFIRMACIÓN: ENVÍO A FIRMAS */}
+                {/* MODAL DE CONFIRMACIÓN: ENVÍO DE SOLICITUD */}
                 <Dialog open={isModalConfirmacionOpen} onOpenChange={setIsModalConfirmacionOpen}>
                   <DialogContent size="sm">
                     <DialogHeader>
                       <DialogTitle className="text-lg font-bold text-foreground flex items-center gap-2">
-                        <Check className="size-5 text-emerald-600" />
-                        Solicitud enviada correctamente
+                        <Check className="size-5 text-success" />
+                        Solicitud creada y enviada correctamente
                       </DialogTitle>
                       <DialogDescription className="text-xs text-muted-foreground mt-2 leading-relaxed">
                         Tu solicitud fue enviada correctamente y continuará con el proceso de revisión y firma por parte del Aprobador.
@@ -1411,7 +1559,7 @@ export function AccesoSolicitudNuevaView() {
                             ]
                           });
                           setIsModalConfirmacionOpen(false);
-                          toast.success("Solicitud radicada y enviada a firmas exitosamente");
+                          toast.success("Solicitud creada y enviada exitosamente");
                           router.push('/acceso-interoperabilidad/solicitudes');
                         }}
                         className="w-full bg-primary text-primary-foreground font-semibold"

@@ -17,6 +17,10 @@ import {
   Scale,
   Info,
   X,
+  Unlock,
+  Eye,
+  EyeOff,
+  Clock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -650,73 +654,192 @@ export function CorregirSolicitudFlow({
                   const selectedInInst = selectedCamposDetails.filter((d) => d.fuenteId === institucion.id).length;
 
                   return (
-                    <div key={institucion.id} className="border border-border rounded-xl bg-card overflow-hidden">
+                    <div key={institucion.id} className="border border-border rounded-xl bg-card overflow-hidden shadow-xs">
                       <div
                         onClick={() => toggleInstitucion(institucion.id)}
-                        className="p-4 bg-muted/20 hover:bg-muted/40 cursor-pointer flex items-center justify-between"
+                        className="p-4 sm:p-5 bg-muted/20 hover:bg-muted/40 transition-colors cursor-pointer flex items-center justify-between select-none"
                       >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <Building2 className="size-5 text-muted-foreground shrink-0" />
-                          <div className="flex items-center gap-2.5 flex-wrap">
-                            <h2 className="font-bold text-foreground text-sm sm:text-base">{institucion.nombre}</h2>
-                            {isCurrentActiveFuente && (
-                              <Badge tone="neutral" appearance="soft" size="sm" className="gap-1 border-primary/30 text-primary bg-primary/10 text-[10px]">
-                                <Check className="size-2.5" /> Fuente en uso
+                        <div className="flex items-center gap-3.5 min-w-0">
+                          <div className="size-10 rounded-lg bg-surface border border-border flex items-center justify-center shrink-0 shadow-2xs">
+                            <Building2 className="size-5 text-foreground" />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2.5 flex-wrap">
+                              <h2 className="font-heading text-base font-bold text-foreground">{institucion.nombre}</h2>
+                              <Badge tone="neutral" appearance="outline" size="sm">
+                                {institucion.sector}
                               </Badge>
-                            )}
-                            {isDifferentFromActive && (
-                              <Badge tone="neutral" appearance="soft" size="sm" className="gap-1 text-muted-foreground border-dashed text-[10px]">
-                                <Lock className="size-2.5 text-muted-foreground" /> Solicitud independiente requerida
-                              </Badge>
-                            )}
+                              {isCurrentActiveFuente && (
+                                <Badge tone="primary" appearance="soft" size="sm" className="gap-1 font-semibold">
+                                  <Check className="size-3" /> Fuente en uso ({selectedInInst} seleccionados)
+                                </Badge>
+                              )}
+                              {isDifferentFromActive && (
+                                <Badge tone="neutral" appearance="soft" size="sm" className="gap-1 text-muted-foreground border-dashed">
+                                  <Lock className="size-3 text-muted-foreground" /> Solicitud independiente requerida
+                                </Badge>
+                              )}
+                            </div>
+                            <span className="text-xs text-muted-foreground block mt-0.5">
+                              {institucion.fuentes.length} {institucion.fuentes.length === 1 ? "fuente disponible" : "fuentes disponibles"}
+                            </span>
                           </div>
                         </div>
-                        <ChevronDown className={`size-5 transition-transform ${isInstExpanded ? "rotate-180" : ""}`} />
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs font-medium text-muted-foreground hidden sm:inline-block">
+                            {isInstExpanded ? "Ocultar fuentes" : "Ver fuentes"}
+                          </span>
+                          <ChevronDown className={`size-5 text-muted-foreground transition-transform duration-200 ${isInstExpanded ? "rotate-180" : ""}`} />
+                        </div>
                       </div>
 
                       {isInstExpanded && (
-                        <div className="p-4 flex flex-col gap-4 border-t border-border">
+                        <div className="p-4 sm:p-5 flex flex-col gap-4 bg-card border-t border-border">
                           {institucion.fuentes.map((servicio) => {
                             const isServicioExpanded = expandedFuentes[servicio.id] ?? true;
                             const selectedInServicio = selectedCamposDetails.filter((d) => d.servicioId === servicio.id).length;
+                            const camposAccesibles = servicio.campos.filter((c) => c.clasificacion === "Accesible").length;
+                            const camposConfidenciales = servicio.campos.filter((c) => c.clasificacion === "Confidencial").length;
 
                             return (
                               <div
                                 key={servicio.id}
                                 className={`border rounded-lg p-4 transition-all ${
                                   selectedInServicio > 0
-                                    ? "border-primary/50 bg-primary/5"
+                                    ? "border-primary/50 bg-primary/5 shadow-xs"
                                     : isDifferentFromActive
                                     ? "border-border/60 bg-surface/60 opacity-80"
                                     : "border-border/80 bg-surface"
                                 }`}
                               >
-                                <div className="flex items-center justify-between gap-3">
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2 flex-wrap">
+                                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2.5 flex-wrap">
                                       <Badge tone="neutral" appearance="outline" size="sm" className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                                         Fuente
                                       </Badge>
-                                      <h3 className="font-bold text-sm text-foreground">{servicio.nombre}</h3>
+                                      <h3 className="font-heading text-sm sm:text-base font-bold text-foreground flex items-center gap-2">
+                                        <Database className="size-4 text-primary" />
+                                        {servicio.nombre}
+                                      </h3>
                                       {selectedInServicio > 0 && (
-                                        <Badge tone="neutral" appearance="soft" size="sm" className="gap-1 text-[10px] text-primary bg-primary/10 border-primary/20">
-                                          <Check className="size-2.5" /> {selectedInServicio} campo(s) seleccionado(s)
+                                        <Badge tone="primary" appearance="soft" size="sm" className="gap-1 font-semibold">
+                                          <Check className="size-3" /> {selectedInServicio} campo(s) seleccionado(s)
                                         </Badge>
                                       )}
                                     </div>
-                                    <p className="text-xs text-muted-foreground mt-1">{servicio.descripcion}</p>
+                                    <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                                      {servicio.descripcion}
+                                    </p>
+
+                                    <div className="flex flex-wrap items-center gap-2.5 mt-3 pt-2.5 border-t border-border/50 text-xs text-muted-foreground">
+                                      {servicio.codigoServicio && (
+                                        <span className="inline-flex items-center gap-1.5 font-mono text-[11px] bg-muted/60 px-2 py-0.5 rounded border border-border/60 text-foreground">
+                                          <span className="text-muted-foreground font-sans">Cód:</span> {servicio.codigoServicio}
+                                        </span>
+                                      )}
+                                      {servicio.baseLegal && (
+                                        <span className="inline-flex items-center gap-1 text-[11px]">
+                                          <Scale className="size-3 text-primary/80 shrink-0" />
+                                          <strong className="font-semibold text-foreground/90">Base legal:</strong> {servicio.baseLegal}
+                                        </span>
+                                      )}
+                                      {servicio.ultimaActualizacion && (
+                                        <span className="inline-flex items-center gap-1 text-[11px] ml-auto">
+                                          <Clock className="size-3 text-muted-foreground shrink-0" />
+                                          Actualizado: {servicio.ultimaActualizacion}
+                                        </span>
+                                      )}
+                                    </div>
                                   </div>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => toggleFuente(servicio.id)}
-                                  >
-                                    {isServicioExpanded ? "Ocultar campos" : "Ver campos"}
-                                  </Button>
+
+                                  <div className="flex items-center gap-2 self-start shrink-0">
+                                    <div className="flex items-center gap-2.5 bg-muted/30 px-3 py-1.5 rounded-lg border border-border/50 text-xs">
+                                      <div className="flex items-center gap-1.5" title="Campos Accesibles">
+                                        <Badge
+                                          tone="success"
+                                          appearance="soft"
+                                          size="sm"
+                                          className="gap-1 inline-flex font-semibold"
+                                        >
+                                          <Unlock className="size-3" />
+                                          <span>{camposAccesibles} ACCESIBLES</span>
+                                        </Badge>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <span
+                                              role="button"
+                                              tabIndex={0}
+                                              onClick={(e) => e.stopPropagation()}
+                                              className="inline-flex items-center text-muted-foreground hover:text-primary transition-colors cursor-help p-0.5 rounded-full hover:bg-muted"
+                                              aria-label="Requisitos de campos accesibles"
+                                            >
+                                              <Info className="size-3.5" />
+                                            </span>
+                                          </TooltipTrigger>
+                                          <TooltipContent side="top">
+                                            <span>Requiere: Solo finalidad de uso</span>
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </div>
+                                      <div className="w-px h-3.5 bg-border" />
+                                      <div className="flex items-center gap-1.5" title="Campos Confidenciales">
+                                        <Badge
+                                          tone="warning"
+                                          appearance="soft"
+                                          size="sm"
+                                          className="gap-1 inline-flex font-semibold"
+                                        >
+                                          <Lock className="size-3" />
+                                          <span>{camposConfidenciales} CONFIDENCIALES</span>
+                                        </Badge>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <span
+                                              role="button"
+                                              tabIndex={0}
+                                              onClick={(e) => e.stopPropagation()}
+                                              className="inline-flex items-center text-muted-foreground hover:text-primary transition-colors cursor-help p-0.5 rounded-full hover:bg-muted"
+                                              aria-label="Requisitos de campos confidenciales"
+                                            >
+                                              <Info className="size-3.5" />
+                                            </span>
+                                          </TooltipTrigger>
+                                          <TooltipContent side="top">
+                                            <span>Requiere: Finalidad de uso y justificación jurídica</span>
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </div>
+                                    </div>
+
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button
+                                          variant="outline"
+                                          size="icon"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            toggleFuente(servicio.id);
+                                          }}
+                                          className="size-9 rounded-lg border-border hover:bg-muted text-muted-foreground hover:text-foreground shrink-0 transition-colors"
+                                          aria-label={isServicioExpanded ? "Ocultar campos de la fuente" : "Ver campos de la fuente"}
+                                        >
+                                          {isServicioExpanded ? (
+                                            <EyeOff className="size-4" />
+                                          ) : (
+                                            <Eye className="size-4 text-primary" />
+                                          )}
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent side="top">
+                                        <span>{isServicioExpanded ? "Ocultar campos de la fuente" : "Ver campos de la fuente"}</span>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </div>
                                 </div>
 
                                 {isServicioExpanded && (
-                                  <div className="mt-4 pt-4 border-t border-border grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                                  <div className="mt-4 pt-4 border-t border-border grid grid-cols-1 md:grid-cols-2 gap-3">
                                     {servicio.campos.map((campo) => {
                                       const isSelected = !!selectedCampos[campo.id];
                                       const isBlocked = isDifferentFromActive;
@@ -727,12 +850,12 @@ export function CorregirSolicitudFlow({
                                           onClick={() => {
                                             handleSelectCampo(campo.id, !isSelected, institucion.id, institucion.nombre);
                                           }}
-                                          className={`flex items-start gap-3 p-3 border rounded-xl cursor-pointer transition-colors ${
+                                          className={`flex items-start gap-3.5 p-3.5 border rounded-xl cursor-pointer transition-colors ${
                                             isSelected
                                               ? "bg-primary/5 border-primary/40 shadow-2xs"
                                               : isBlocked
                                               ? "bg-muted/10 border-border/40 opacity-70"
-                                              : "bg-muted/20 hover:bg-muted/40 border-border/50"
+                                              : "bg-muted/20 hover:bg-muted/40 border-border/60"
                                           }`}
                                         >
                                           <div className="pt-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
@@ -747,28 +870,48 @@ export function CorregirSolicitudFlow({
                                           </div>
                                           <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                              <span className="font-medium text-sm text-foreground">{campo.nombre}</span>
+                                              <span className="font-mono font-semibold text-sm text-foreground">{campo.nombre}</span>
                                               {campo.clasificacion === "Accesible" ? (
                                                 <Badge
-                                                  tone="neutral"
+                                                  tone="success"
                                                   appearance="soft"
                                                   size="sm"
-                                                  className="text-[11px] font-medium gap-1 bg-muted/80 text-foreground border border-border"
+                                                  className="gap-1 inline-flex font-semibold"
                                                 >
-                                                  <Check className="size-2.5 text-muted-foreground" />
-                                                  <span>Accesible</span>
+                                                  <Unlock className="size-3" />
+                                                  <span>ACCESIBLE</span>
                                                 </Badge>
                                               ) : (
                                                 <Badge
-                                                  tone="neutral"
+                                                  tone="warning"
                                                   appearance="soft"
                                                   size="sm"
-                                                  className="text-[11px] font-medium gap-1 bg-muted/80 text-foreground border border-border"
+                                                  className="gap-1 inline-flex font-semibold"
                                                 >
-                                                  <Lock className="size-2.5 text-muted-foreground" />
-                                                  <span>Confidencial</span>
+                                                  <Lock className="size-3" />
+                                                  <span>CONFIDENCIAL</span>
                                                 </Badge>
                                               )}
+                                              <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                  <span
+                                                    role="button"
+                                                    tabIndex={0}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    className="inline-flex items-center text-muted-foreground hover:text-primary transition-colors cursor-help p-0.5 rounded-full hover:bg-muted"
+                                                    aria-label="Información de requisitos"
+                                                  >
+                                                    <Info className="size-3.5" />
+                                                  </span>
+                                                </TooltipTrigger>
+                                                <TooltipContent side="top">
+                                                  <span>
+                                                    {campo.clasificacion === "Confidencial"
+                                                      ? "Requiere: Finalidad de uso y justificación jurídica"
+                                                      : "Requiere: Solo finalidad de uso"}
+                                                  </span>
+                                                </TooltipContent>
+                                              </Tooltip>
                                             </div>
                                             <p className="text-xs text-muted-foreground line-clamp-2">{campo.descripcion}</p>
                                           </div>
@@ -787,8 +930,11 @@ export function CorregirSolicitudFlow({
                 })}
               </div>
 
-              {/* Barra inferior */}
-              <div className="sticky bottom-0 bg-card border border-border p-4 flex items-center justify-between rounded-xl shadow-lg mt-4 z-10">
+              {/* Barra inferior flotante */}
+              <div
+                data-theme="dark"
+                className="sticky bottom-4 bg-surface text-foreground border border-border p-4 flex items-center justify-between gap-4 rounded-xl shadow-lg mt-4 z-10"
+              >
                 <div className="flex items-center gap-3 flex-wrap">
                   <span className="font-bold text-foreground text-sm">
                     Campos seleccionados: {selectedCount}
@@ -798,8 +944,14 @@ export function CorregirSolicitudFlow({
                       ({selectedCamposDetails.filter((c) => c.campo.clasificacion === "Accesible").length} accesibles · {selectedCamposDetails.filter((c) => c.campo.clasificacion === "Confidencial").length} confidenciales)
                     </span>
                   )}
+                  {activeFuente && (
+                    <Badge tone="neutral" appearance="soft" size="sm" className="hidden sm:inline-flex text-xs gap-1.5 bg-muted text-foreground border border-border">
+                      <Database className="size-3 text-muted-foreground" />
+                      <span>Fuente: {activeFuente.nombre}</span>
+                    </Badge>
+                  )}
                 </div>
-                <Button onClick={nextStep} disabled={selectedCount === 0} size="sm">
+                <Button onClick={nextStep} disabled={selectedCount === 0} size="sm" className="shrink-0">
                   Continuar con la justificación
                 </Button>
               </div>
@@ -819,9 +971,9 @@ export function CorregirSolicitudFlow({
                 </p>
               </div>
               {/* Recordatorio de la observación en Paso 2 */}
-              <div className="p-4 rounded-xl border border-amber-500/40 bg-amber-500/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-2xs">
+              <div className="p-4 rounded-xl border border-warning/40 bg-warning/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-2xs">
                 <div className="flex items-start gap-2.5">
-                  <AlertTriangle className="size-4.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                  <AlertTriangle className="size-4.5 text-warning shrink-0 mt-0.5" />
                   <div className="space-y-0.5">
                     <p className="font-bold text-foreground text-xs sm:text-sm">
                       Observación del Aprobador a subsanar:
@@ -923,21 +1075,21 @@ export function CorregirSolicitudFlow({
                                     <span className="font-mono font-bold text-sm text-foreground">{item.campo.nombre}</span>
                                     {item.campo.clasificacion === "Accesible" ? (
                                       <Badge
-                                        tone="neutral"
-                                        appearance="outline"
+                                        tone="success"
+                                        appearance="soft"
                                         size="sm"
-                                        className="gap-1 uppercase tracking-wider text-[10px] font-semibold bg-background"
+                                        className="gap-1 inline-flex font-semibold"
                                       >
-                                        <Check className="size-2.5 text-muted-foreground" /> ACCESIBLE
+                                        <Unlock className="size-3" /> ACCESIBLE
                                       </Badge>
                                     ) : (
                                       <Badge
-                                        tone="neutral"
-                                        appearance="outline"
+                                        tone="warning"
+                                        appearance="soft"
                                         size="sm"
-                                        className="gap-1 uppercase tracking-wider text-[10px] font-semibold bg-background"
+                                        className="gap-1 inline-flex font-semibold"
                                       >
-                                        <Lock className="size-2.5 text-muted-foreground" /> CONFIDENCIAL
+                                        <Lock className="size-3" /> CONFIDENCIAL
                                       </Badge>
                                     )}
                                     <span className="text-xs text-muted-foreground line-clamp-1">— {item.campo.descripcion}</span>
@@ -987,7 +1139,7 @@ export function CorregirSolicitudFlow({
                                     {item.campo.clasificacion === "Confidencial" && (
                                       <div className="space-y-1.5">
                                         <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                                          <Scale className="size-3.5 text-amber-600 dark:text-amber-400" />
+                                          <Scale className="size-3.5 text-warning" />
                                           Justificación jurídica (Requerido para datos confidenciales)
                                           <span className="text-destructive">*</span>
                                         </label>
@@ -1004,7 +1156,7 @@ export function CorregirSolicitudFlow({
                                               },
                                             }))
                                           }
-                                          className="text-xs sm:text-sm bg-background border-amber-500/30"
+                                          className="text-xs sm:text-sm bg-background border-warning/30"
                                         />
                                       </div>
                                     )}
@@ -1094,16 +1246,17 @@ export function CorregirSolicitudFlow({
                           </p>
                         </div>
                         <Badge
-                          tone="neutral"
-                          appearance="outline"
-                          className={cn(
-                            "text-[10px] font-semibold uppercase tracking-wider shrink-0",
-                            item.campo.clasificacion === "Confidencial"
-                              ? "border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-300"
-                              : "border-border bg-muted/60 text-muted-foreground"
-                          )}
+                          tone={item.campo.clasificacion === "Confidencial" ? "warning" : "success"}
+                          appearance="soft"
+                          size="sm"
+                          className="gap-1 inline-flex font-semibold shrink-0"
                         >
-                          {item.campo.clasificacion}
+                          {item.campo.clasificacion === "Confidencial" ? (
+                            <Lock className="size-3" />
+                          ) : (
+                            <Unlock className="size-3" />
+                          )}
+                          {item.campo.clasificacion.toUpperCase()}
                         </Badge>
                       </div>
                     ))}
@@ -1143,11 +1296,17 @@ export function CorregirSolicitudFlow({
                           {item.campo.nombre}
                         </span>
                         <Badge
-                          tone="neutral"
-                          appearance="outline"
-                          className="text-[10px] font-semibold uppercase"
+                          tone={item.campo.clasificacion === "Confidencial" ? "warning" : "success"}
+                          appearance="soft"
+                          size="sm"
+                          className="gap-1 inline-flex font-semibold shrink-0"
                         >
-                          {item.campo.clasificacion}
+                          {item.campo.clasificacion === "Confidencial" ? (
+                            <Lock className="size-3" />
+                          ) : (
+                            <Unlock className="size-3" />
+                          )}
+                          {item.campo.clasificacion.toUpperCase()}
                         </Badge>
                       </div>
 
@@ -1161,7 +1320,7 @@ export function CorregirSolicitudFlow({
                         {item.campo.clasificacion === "Confidencial" && (
                           <div className="space-y-1">
                             <span className="font-semibold text-muted-foreground">Justificación jurídica:</span>
-                            <p className="p-2 rounded-lg bg-background border border-amber-500/30 text-foreground">
+                            <p className="p-2 rounded-lg bg-background border border-warning/30 text-foreground">
                               {justificaciones[item.campo.id]?.fundamento || "Sin justificación jurídica"}
                             </p>
                           </div>

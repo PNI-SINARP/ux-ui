@@ -102,18 +102,18 @@ export function PrepararNuevaVersionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent size="xl" className="max-w-2xl max-h-[90vh] flex flex-col p-6 overflow-hidden">
-        <DialogHeader className="space-y-1 shrink-0">
+      <DialogContent size="3xl" className="max-w-3xl max-h-[90vh] flex flex-col p-6 overflow-hidden">
+        <DialogHeader className="space-y-1.5 shrink-0 border-b border-border pb-4">
           <div className="flex items-center justify-between gap-3 flex-wrap">
-            <div className="flex items-center gap-2">
-              <div className="size-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+            <div className="flex items-center gap-3">
+              <div className="size-10 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0 mt-0.5">
                 <GitFork className="size-5" />
               </div>
               <div>
-                <DialogTitle className="font-heading font-bold text-lg text-foreground">
-                  FUE-06 / FUE-07 — Preparar nueva versión de fuente
+                <DialogTitle className="font-heading font-extrabold text-base sm:text-lg text-foreground">
+                  Preparar nueva versión de fuente
                 </DialogTitle>
-                <DialogDescription className="text-xs text-muted-foreground">
+                <DialogDescription className="text-xs text-muted-foreground mt-0.5">
                   Declaración de cambios semánticos y configuración de contrato de interoperabilidad.
                 </DialogDescription>
               </div>
@@ -394,12 +394,13 @@ export function PrepararNuevaVersionDialog({
             </p>
           </div>
 
-          <DialogFooter className="gap-3 sm:gap-3 pt-2 shrink-0">
+          <DialogFooter className="gap-3 sm:gap-3 pt-4 border-t border-border shrink-0">
             <Button
               type="button"
-              variant="outline"
+              variant="neutral"
               size="sm"
               onClick={() => onOpenChange(false)}
+              className="text-xs cursor-pointer"
             >
               Cancelar
             </Button>
@@ -407,7 +408,7 @@ export function PrepararNuevaVersionDialog({
               type="submit"
               variant="primary"
               size="sm"
-              className="gap-2 shadow-xs"
+              className="gap-2 shadow-xs text-xs cursor-pointer"
             >
               <span>Continuar a configurar cambios</span>
               <ArrowRight className="size-3.5" />

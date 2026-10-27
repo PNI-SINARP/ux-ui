@@ -253,6 +253,7 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
       { label: "Subsanar Observación (v1)", route: "/acceso-interoperabilidad/solicitudes/SOL-2026-0092", huBadge: "Subsanar" },
       { label: "Explorar Catálogo", route: "/catalogo-interoperabilidad", huBadge: "CAT-01" },
       { label: "Bandeja de Proyectos", route: "/proyectos", huBadge: "PRJ-01" },
+      { label: "Crear borrador de fuente (FUE-01)", route: "/proveedor/fuentes", huBadge: "FUE-01" },
     ]
   },
   {
@@ -285,13 +286,14 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     roleName: "Coordinador Proveedor (Entidad Emisora)",
     userName: "Carlos Mendoza (Registro Civil)",
     cedula: "1720304050",
-    description: "Coordinador de la institución proveedora activa (Registro Civil). Registra datos básicos y SLA (Paso 1: FUE-01), prueba la conexión de lectura por VPN (Paso 2: FUE-02), selecciona los campos y conversiones (Paso 3: FUE-03), y envía a revisión (Paso 4: FUE-01..03). Publica versiones una vez aprobadas (FUE-05).",
-    access: "Asistente de Nueva Fuente (/proveedor/fuentes/nueva) y Mis Fuentes (/proveedor/fuentes).",
-    storiesBadge: "BN-06 · FUE-01..03, 05",
-    flows: ["fuentes"],
+    description: "Coordinador de la institución proveedora activa (Dirección General de Registro Civil, Identificación y Cedulación). Administra fuentes de información institucional, gestiona pruebas técnicas de conexión VPN (FUE-02), esquemas canónicos (FUE-03), publicación de fuentes (FUE-05) y atiende solicitudes de interoperabilidad.",
+    access: "Gestión de Fuentes (/proveedor/fuentes), Solicitudes de Acceso (/acceso-interoperabilidad/solicitudes) y Catálogo (/catalogo-interoperabilidad).",
+    storiesBadge: "BN-06 · FUE-01..05 · BN-07",
+    flows: ["fuentes", "interoperabilidad"],
     actions: [
-      { label: "Registrar Nueva Fuente", route: "/proveedor/fuentes/nueva", huBadge: "Paso 1 a 4" },
-      { label: "Mis Fuentes", route: "/proveedor/fuentes", huBadge: "Bandeja" },
+      { label: "Mis Fuentes de Datos", route: "/proveedor/fuentes", huBadge: "FUE-01..05" },
+      { label: "Solicitudes de Acceso", route: "/acceso-interoperabilidad/solicitudes", huBadge: "BN-07" },
+      { label: "Catálogo de Interoperabilidad", route: "/catalogo-interoperabilidad", huBadge: "CAT-01" },
     ]
   },
   {

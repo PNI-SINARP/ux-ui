@@ -65,9 +65,12 @@ import { useAuthStore } from "@/modules/gestion-solicitudes/data/auth-store";
 
 interface FuenteDetailViewProps {
   currentUser?: {
+    id?: string;
     name?: string;
     role?: string;
+    roleTitle?: string;
     institution?: string;
+    cedula?: string;
   };
 }
 
@@ -77,9 +80,18 @@ export function FuenteDetailView({ currentUser: propUser }: FuenteDetailViewProp
   const id = params?.id as string;
 
   const { activeUser } = useAuthStore();
+  const effectiveUser = propUser || activeUser;
+  const roleTitle = (effectiveUser?.roleTitle || "").toLowerCase();
+  const roleName = (effectiveUser?.role || "").toLowerCase();
+  const isCoordinadorConsumidor =
+    roleTitle.includes("consumidor") ||
+    roleTitle.includes("requirente") ||
+    roleName.includes("consumidor") ||
+    effectiveUser?.cedula === "1712345678";
+
   const currentUser = propUser || (activeUser ? {
     name: activeUser.name,
-    role: activeUser.role,
+    role: activeUser.roleTitle || activeUser.role,
     institution: activeUser.institution,
   } : {
     name: "Carlos Mendoza",
@@ -321,7 +333,7 @@ export function FuenteDetailView({ currentUser: propUser }: FuenteDetailViewProp
                     setFormInitialStep(0);
                     setIsFormModalOpen(true);
                   }}
-                  className="h-8 px-3 text-xs font-semibold gap-1.5 rounded-xl border-border text-foreground hover:bg-muted"
+                  className="h-8 px-3 text-xs font-semibold gap-1.5 rounded-xl border-border text-foreground hover:bg-muted cursor-pointer"
                 >
                   <Edit className="size-3.5" />
                   <span>Editar borrador</span>
@@ -334,46 +346,46 @@ export function FuenteDetailView({ currentUser: propUser }: FuenteDetailViewProp
                   variant="warning"
                   size="sm"
                   onClick={handleOpenCorregir}
-                  className="h-8 px-3 text-xs font-semibold gap-1.5 rounded-xl shadow-xs"
+                  className="h-8 px-3 text-xs font-semibold gap-1.5 rounded-xl shadow-xs cursor-pointer"
                 >
                   <Edit className="size-3.5" />
                   <span>Corregir observaciones</span>
                 </Button>
               )}
 
-              {fuente.estado === "APROBADA" && (
+              {!isCoordinadorConsumidor && fuente.estado === "APROBADA" && (
                 <Button
                   type="button"
                   variant="primary"
                   size="sm"
                   onClick={() => setShowPublicarDialog(true)}
-                  className="h-8 px-3 text-xs font-semibold gap-1.5 rounded-xl shadow-xs"
+                  className="h-8 px-3 text-xs font-semibold gap-1.5 rounded-xl shadow-xs cursor-pointer"
                 >
                   <Globe className="size-3.5" />
                   <span>Publicar versión</span>
                 </Button>
               )}
 
-              {fuente.estado === "PUBLICACION_PENDIENTE" && (
+              {!isCoordinadorConsumidor && fuente.estado === "PUBLICACION_PENDIENTE" && (
                 <Button
                   type="button"
                   variant="warning"
                   size="sm"
                   onClick={() => setShowPublicarDialog(true)}
-                  className="h-8 px-3 text-xs font-semibold gap-1.5 rounded-xl shadow-xs"
+                  className="h-8 px-3 text-xs font-semibold gap-1.5 rounded-xl shadow-xs cursor-pointer"
                 >
                   <RotateCcw className="size-3.5" />
                   <span>Reintentar publicación</span>
                 </Button>
               )}
 
-              {fuente.estado === "PENDIENTE_HOMOLOGACION" && (
+              {!isCoordinadorConsumidor && fuente.estado === "PENDIENTE_HOMOLOGACION" && (
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   asChild
-                  className="h-8 px-3 text-xs font-semibold gap-1.5 rounded-xl border-border"
+                  className="h-8 px-3 text-xs font-semibold gap-1.5 rounded-xl border-border cursor-pointer"
                 >
                   <Link href="/homologacion-fuentes">
                     <Cpu className="size-3.5 text-warning" />
@@ -382,14 +394,14 @@ export function FuenteDetailView({ currentUser: propUser }: FuenteDetailViewProp
                 </Button>
               )}
 
-              {fuente.estado === "PUBLICADA" && (
+              {!isCoordinadorConsumidor && fuente.estado === "PUBLICADA" && (
                 <>
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
                     onClick={() => setIsNuevaVersionOpen(true)}
-                    className="h-8 px-3 text-xs font-semibold gap-1.5 rounded-xl border-border text-foreground hover:bg-muted"
+                    className="h-8 px-3 text-xs font-semibold gap-1.5 rounded-xl border-border text-foreground hover:bg-muted cursor-pointer"
                   >
                     <GitFork className="size-3.5" />
                     <span>Preparar nueva versión</span>
@@ -399,7 +411,7 @@ export function FuenteDetailView({ currentUser: propUser }: FuenteDetailViewProp
                     variant="outline"
                     size="sm"
                     onClick={() => setIsBajaOpen(true)}
-                    className="h-8 px-3 text-xs font-semibold gap-1.5 rounded-xl border-danger/30 text-danger hover:bg-danger/10"
+                    className="h-8 px-3 text-xs font-semibold gap-1.5 rounded-xl border-danger/30 text-danger hover:bg-danger/10 cursor-pointer"
                   >
                     <AlertOctagon className="size-3.5" />
                     <span>Solicitar baja</span>
@@ -485,16 +497,18 @@ export function FuenteDetailView({ currentUser: propUser }: FuenteDetailViewProp
                   </p>
                 </div>
               </div>
-              <Button
-                type="button"
-                variant="primary"
-                size="sm"
-                onClick={() => setShowPublicarDialog(true)}
-                className="gap-2 shrink-0 shadow-xs"
-              >
-                <RotateCcw className="size-3.5" />
-                <span>Reintentar</span>
-              </Button>
+              {!isCoordinadorConsumidor && (
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  onClick={() => setShowPublicarDialog(true)}
+                  className="gap-2 shrink-0 shadow-xs cursor-pointer"
+                >
+                  <RotateCcw className="size-3.5" />
+                  <span>Reintentar</span>
+                </Button>
+              )}
             </div>
           )}
 
@@ -1133,13 +1147,20 @@ export function FuenteDetailView({ currentUser: propUser }: FuenteDetailViewProp
       {/* Modal para Corregir Fuente Devuelta */}
       <Dialog open={showCorregirDialog} onOpenChange={setShowCorregirDialog}>
         <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="font-heading text-base">
-              Corregir y Reenviar Fuente a Revisión
-            </DialogTitle>
-            <DialogDescription className="text-xs">
-              Modifique los parámetros observados por Gestión antes de reenviar la fuente.
-            </DialogDescription>
+          <DialogHeader className="space-y-1.5 pb-2">
+            <div className="flex items-center gap-3">
+              <div className="size-10 rounded-2xl bg-warning/10 border border-warning/20 flex items-center justify-center text-warning shrink-0">
+                <FileEdit className="size-5" />
+              </div>
+              <div>
+                <DialogTitle className="font-heading font-extrabold text-base sm:text-lg text-foreground">
+                  Corregir y reenviar fuente a revisión
+                </DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+                  Modifique los parámetros observados por Gestión antes de reenviar la fuente.
+                </DialogDescription>
+              </div>
+            </div>
           </DialogHeader>
 
           <div className="space-y-4 py-2 text-xs">
@@ -1217,7 +1238,7 @@ export function FuenteDetailView({ currentUser: propUser }: FuenteDetailViewProp
           <DialogFooter className="gap-2">
             <Button
               type="button"
-              variant="outline"
+              variant="neutral"
               size="sm"
               onClick={() => setShowCorregirDialog(false)}
             >

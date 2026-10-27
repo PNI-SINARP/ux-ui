@@ -43,6 +43,8 @@ export interface InfoFormData {
   formato_respuesta: "application/json" | "application/xml";
   tipo_dato_pruebas: TipoDatoPruebas;
   parametros_consulta: ParametroConsulta[];
+  endpoint_pruebas?: string;
+  endpoint_produccion?: string;
 }
 
 interface FuenteStepperInfoProps {
@@ -51,6 +53,7 @@ interface FuenteStepperInfoProps {
   institucionPrecargada: string;
   coordinadorNombre?: string;
   coordinadorId?: string;
+  isCoordinadorConsumidor?: boolean;
 }
 
 export function FuenteStepperInfo({
@@ -59,6 +62,7 @@ export function FuenteStepperInfo({
   institucionPrecargada,
   coordinadorNombre,
   coordinadorId,
+  isCoordinadorConsumidor = false,
 }: FuenteStepperInfoProps) {
   const [nuevoParametro, setNuevoParametro] = useState<Partial<ParametroConsulta>>({
     nombre: "",
@@ -79,9 +83,18 @@ export function FuenteStepperInfo({
       tipo: nuevoParametro.tipo || "Texto",
       obligatorio: nuevoParametro.obligatorio ?? true,
       es_identificador_persona: nuevoParametro.es_identificador_persona ?? false,
-      operadores_permitidos: nuevoParametro.operadores_permitidos || ["Igual"],
-      restriccion: nuevoParametro.restriccion?.patron
-        ? { patron: nuevoParametro.restriccion.patron.trim() }
+      operadores_permitidos:
+        nuevoParametro.operadores_permitidos && nuevoParametro.operadores_permitidos.length > 0
+          ? nuevoParametro.operadores_permitidos
+          : ["Igual"],
+      restriccion: (nuevoParametro.restriccion?.patron ||
+        nuevoParametro.restriccion?.valor_min !== undefined ||
+        nuevoParametro.restriccion?.valor_max !== undefined)
+        ? {
+            patron: nuevoParametro.restriccion.patron?.trim() || undefined,
+            valor_min: nuevoParametro.restriccion.valor_min || undefined,
+            valor_max: nuevoParametro.restriccion.valor_max || undefined,
+          }
         : undefined,
     };
 
@@ -122,7 +135,7 @@ export function FuenteStepperInfo({
           </div>
           <div className="min-w-0 space-y-0.5">
             <span className="text-[10px] sm:text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">
-              Institución proveedora (Precargada por sesión)
+              {isCoordinadorConsumidor ? "Institución requirente (Precargada por sesión)" : "Institución proveedora (Precargada por sesión)"}
             </span>
             <span className="font-heading font-extrabold text-sm sm:text-base text-foreground block truncate">
               {institucionPrecargada}
@@ -143,10 +156,10 @@ export function FuenteStepperInfo({
             size="sm"
             className="font-bold text-[10px] sm:text-[11px] uppercase tracking-wider px-3 py-1 rounded-full border border-primary/25"
           >
-            Capacidad Proveedora Activa
+            {isCoordinadorConsumidor ? "Entidad Requirente" : "Capacidad Proveedora Activa"}
           </Badge>
           <Badge tone="neutral" appearance="outline" size="sm" className="font-semibold text-[10px] sm:text-[11px]">
-            Coordinador Proveedor
+            {isCoordinadorConsumidor ? "Coordinador Consumidor" : "Coordinador Proveedor"}
           </Badge>
           <Badge tone="neutral" appearance="outline" size="sm" className="font-medium text-[10px] sm:text-[11px]">
             Borrador
@@ -184,13 +197,18 @@ export function FuenteStepperInfo({
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="descripcion" className="text-xs font-semibold text-foreground">
-          Descripción funcional de la fuente <span className="text-danger">*</span>
-        </Label>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="descripcion" className="text-xs font-semibold text-foreground">
+            Descripción funcional de la fuente <span className="text-danger">*</span>
+          </Label>
+          <span className="text-[11px] text-muted-foreground">
+            Texto según estándar TEC-00/PAR-07 ({formData.descripcion_fuente.length} caracteres)
+          </span>
+        </div>
         <Textarea
           id="descripcion"
           rows={3}
-          placeholder="Describa el propósito de la fuente, qué tipo de registros expone, frecuencia de actualización y base legal..."
+          placeholder="Describa el propósito de la fuente, qué tipo de registros expone, frecuencia de actualización y base legal según TEC-00/PAR-07..."
           value={formData.descripcion_fuente}
           onChange={(e) => onChange({ descripcion_fuente: e.target.value })}
           className="text-xs"
@@ -327,6 +345,35 @@ export function FuenteStepperInfo({
             )}
           </div>
         </div>
+
+        {/* Endpoints de Entornos (Pruebas y Producción) */}
+        <div className="pt-2 border-t border-border grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="endpoint-pruebas" className="text-xs font-medium text-muted-foreground">
+              Endpoint entorno de Pruebas (URL base)
+            </Label>
+            <Input
+              id="endpoint-pruebas"
+              placeholder="https://pruebas-api.institucion.gob.ec/v1"
+              value={formData.endpoint_pruebas || ""}
+              onChange={(e) => onChange({ endpoint_pruebas: e.target.value })}
+              className="text-xs font-mono"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="endpoint-produccion" className="text-xs font-medium text-muted-foreground">
+              Endpoint entorno de Producción (URL base)
+            </Label>
+            <Input
+              id="endpoint-produccion"
+              placeholder="https://api.institucion.gob.ec/v1"
+              value={formData.endpoint_produccion || ""}
+              onChange={(e) => onChange({ endpoint_produccion: e.target.value })}
+              className="text-xs font-mono"
+            />
+          </div>
+        </div>
       </div>
 
       {/* Parámetros de consulta (FUE-01) */}
@@ -371,6 +418,16 @@ export function FuenteStepperInfo({
                   {p.restriccion?.patron && (
                     <code className="text-[10px] font-mono bg-muted/60 px-1.5 py-0.5 rounded text-muted-foreground">
                       Regex: {p.restriccion.patron}
+                    </code>
+                  )}
+                  {p.restriccion?.valor_min !== undefined && p.restriccion?.valor_min !== "" && (
+                    <code className="text-[10px] font-mono bg-muted/60 px-1.5 py-0.5 rounded text-muted-foreground">
+                      Mín: {p.restriccion.valor_min}
+                    </code>
+                  )}
+                  {p.restriccion?.valor_max !== undefined && p.restriccion?.valor_max !== "" && (
+                    <code className="text-[10px] font-mono bg-muted/60 px-1.5 py-0.5 rounded text-muted-foreground">
+                      Máx: {p.restriccion.valor_max}
                     </code>
                   )}
                 </div>

@@ -811,15 +811,20 @@ export function CatalogoConsultaView() {
 
                                   <div className="flex items-center gap-3 shrink-0 flex-wrap sm:flex-nowrap">
                                     {/* Badges con Colores Unificados: Verde (Success) para Accesibles y Ámbar (Warning) para Confidenciales */}
-                                    <div className="flex items-center gap-2 bg-muted/30 px-3 py-1.5 rounded-lg border border-border/50 text-xs">
+                                    <div className="flex items-center gap-2.5 bg-muted/30 px-3 py-1.5 rounded-lg border border-border/50 text-xs">
                                       <Tooltip>
                                         <TooltipTrigger asChild>
-                                          <div className="cursor-help flex items-center gap-1.5">
+                                          <span
+                                            tabIndex={0}
+                                            aria-label={`${camposAccesibles} accesibles: Requieren únicamente finalidad de uso`}
+                                            className="cursor-help inline-flex items-center gap-1 rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none group/acc"
+                                          >
                                             <Badge tone="success" appearance="soft" size="sm" className="gap-1 inline-flex font-semibold">
                                               <Unlock className="size-3" />
-                                              <span>{camposAccesibles} accesibles</span>
+                                              <span>{camposAccesibles} ACCESIBLES</span>
                                             </Badge>
-                                          </div>
+                                            <Info className="size-3.5 text-muted-foreground group-hover/acc:text-success transition-colors shrink-0" />
+                                          </span>
                                         </TooltipTrigger>
                                         <TooltipContent side="top" className="text-xs">
                                           Requieren únicamente finalidad de uso
@@ -830,12 +835,17 @@ export function CatalogoConsultaView() {
 
                                       <Tooltip>
                                         <TooltipTrigger asChild>
-                                          <div className="cursor-help flex items-center gap-1.5">
+                                          <span
+                                            tabIndex={0}
+                                            aria-label={`${camposConfidenciales} confidenciales: Requieren finalidad de uso y justificación jurídica`}
+                                            className="cursor-help inline-flex items-center gap-1 rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none group/conf"
+                                          >
                                             <Badge tone="warning" appearance="soft" size="sm" className="gap-1 inline-flex font-semibold">
                                               <Lock className="size-3" />
-                                              <span>{camposConfidenciales} confidenciales</span>
+                                              <span>{camposConfidenciales} CONFIDENCIALES</span>
                                             </Badge>
-                                          </div>
+                                            <Info className="size-3.5 text-muted-foreground group-hover/conf:text-warning transition-colors shrink-0" />
+                                          </span>
                                         </TooltipTrigger>
                                         <TooltipContent side="top" className="text-xs">
                                           Requieren finalidad de uso y justificación jurídica
@@ -898,8 +908,8 @@ export function CatalogoConsultaView() {
                                         <thead className="bg-muted/40 border-b border-border text-muted-foreground uppercase text-[10px] tracking-wider font-semibold">
                                           <tr>
                                             <th className="py-2.5 px-4 w-[28%]">Nombre del Dato</th>
-                                            <th className="py-2.5 px-4 w-[42%]">Qué Información Contiene</th>
-                                            <th className="py-2.5 px-4 w-[30%]">Requisito para Solicitar</th>
+                                            <th className="py-2.5 px-4 w-[50%]">Qué Información Contiene</th>
+                                            <th className="py-2.5 px-4 w-[22%]">Requisito para Solicitar</th>
                                           </tr>
                                         </thead>
                                         <tbody className="divide-y divide-border">
@@ -916,25 +926,43 @@ export function CatalogoConsultaView() {
                                                 </td>
                                                 <td className="py-3 px-4">
                                                   {esAccesible ? (
-                                                    <div className="flex items-center gap-2">
-                                                      <Badge tone="success" appearance="soft" size="sm" className="gap-1 inline-flex font-semibold">
-                                                        <Unlock className="size-3" />
-                                                        Accesible
-                                                      </Badge>
-                                                      <span className="text-[11px] text-muted-foreground">
-                                                        Solo finalidad de uso
-                                                      </span>
-                                                    </div>
+                                                    <Tooltip>
+                                                      <TooltipTrigger asChild>
+                                                        <span
+                                                          tabIndex={0}
+                                                          aria-label="Accesible: Requiere solo finalidad de uso"
+                                                          className="inline-flex items-center gap-1.5 cursor-help rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none group/req"
+                                                        >
+                                                          <Badge tone="success" appearance="soft" size="sm" className="gap-1 inline-flex font-semibold">
+                                                            <Unlock className="size-3" />
+                                                            ACCESIBLE
+                                                          </Badge>
+                                                          <Info className="size-3.5 text-muted-foreground group-hover/req:text-success transition-colors shrink-0" />
+                                                        </span>
+                                                      </TooltipTrigger>
+                                                      <TooltipContent side="top" className="text-xs">
+                                                        Requiere: Solo finalidad de uso
+                                                      </TooltipContent>
+                                                    </Tooltip>
                                                   ) : (
-                                                    <div className="flex items-center gap-2">
-                                                      <Badge tone="warning" appearance="soft" size="sm" className="gap-1 inline-flex font-semibold">
-                                                        <Lock className="size-3" />
-                                                        Confidencial
-                                                      </Badge>
-                                                      <span className="text-[11px] text-warning font-medium">
-                                                        Finalidad y justificación jurídica
-                                                      </span>
-                                                    </div>
+                                                    <Tooltip>
+                                                      <TooltipTrigger asChild>
+                                                        <span
+                                                          tabIndex={0}
+                                                          aria-label="Confidencial: Requiere finalidad y justificación jurídica"
+                                                          className="inline-flex items-center gap-1.5 cursor-help rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none group/req"
+                                                        >
+                                                          <Badge tone="warning" appearance="soft" size="sm" className="gap-1 inline-flex font-semibold">
+                                                            <Lock className="size-3" />
+                                                            CONFIDENCIAL
+                                                          </Badge>
+                                                          <Info className="size-3.5 text-muted-foreground group-hover/req:text-warning transition-colors shrink-0" />
+                                                        </span>
+                                                      </TooltipTrigger>
+                                                      <TooltipContent side="top" className="text-xs">
+                                                        Requiere: Finalidad de uso y justificación jurídica
+                                                      </TooltipContent>
+                                                    </Tooltip>
                                                   )}
                                                 </td>
                                               </tr>

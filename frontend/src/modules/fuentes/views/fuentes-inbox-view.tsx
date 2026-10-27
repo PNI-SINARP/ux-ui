@@ -67,6 +67,7 @@ import {
   ReglaConversion,
 } from "../data/fuentes-data";
 import { toast } from "sonner";
+import { useAuthStore } from "@/modules/gestion-solicitudes/data/auth-store";
 import {
   Server,
   Plus,
@@ -91,13 +92,17 @@ import {
   Plug,
   GitFork,
   AlertOctagon,
+  Network,
 } from "lucide-react";
 
 interface FuentesInboxViewProps {
   currentUser?: {
+    id?: string;
     name?: string;
     role?: string;
+    roleTitle?: string;
     institution?: string;
+    cedula?: string;
   };
   openNuevaOnInit?: boolean;
 }
@@ -105,11 +110,21 @@ interface FuentesInboxViewProps {
 export function FuentesInboxView({ currentUser, openNuevaOnInit = false }: FuentesInboxViewProps) {
   const router = useRouter();
   const { fuentes, isLoaded, restablecerDatosDemo, crearFuente, actualizarFuente } = useFuentesStore();
+  const { activeUser } = useAuthStore();
+  const effectiveUser = currentUser || activeUser;
+  const roleTitle = (effectiveUser?.roleTitle || "").toLowerCase();
+  const roleName = (effectiveUser?.role || "").toLowerCase();
+  const isCoordinadorConsumidor =
+    roleTitle.includes("consumidor") ||
+    roleTitle.includes("requirente") ||
+    roleName.includes("consumidor") ||
+    effectiveUser?.cedula === "1712345678";
 
-  const userRole = (currentUser?.role || "").toUpperCase();
+  const userRole = (effectiveUser?.role || "").toUpperCase();
   const esRolProveedorOAdmin =
-    !currentUser ||
-    !currentUser.role ||
+    !effectiveUser ||
+    !effectiveUser.role ||
+    isCoordinadorConsumidor ||
     userRole === "COORDINADOR_SINARP" ||
     userRole === "ADMIN" ||
     userRole.includes("COORDINADOR") ||
@@ -474,9 +489,16 @@ export function FuentesInboxView({ currentUser, openNuevaOnInit = false }: Fuent
   return (
     <WireframeDashboardLayout
       activeMenu="fuentes-proveedor"
-      currentUser={currentUser}
+      currentUser={effectiveUser || undefined}
       breadcrumbs={[
-        { label: "Mis fuentes", href: "/proveedor/fuentes" },
+        {
+          label: isCoordinadorConsumidor ? "Entidad Requirente" : "Entidad Emisora",
+          href: "/proveedor/fuentes",
+        },
+        {
+          label: isCoordinadorConsumidor ? "Borradores de Fuentes" : "Mis fuentes de datos",
+          href: "/proveedor/fuentes",
+        },
       ]}
     >
       <main className="w-full pr-3 pl-2 pb-3 pt-1.5 flex-1 min-h-0 flex flex-col overflow-hidden">
@@ -515,26 +537,42 @@ export function FuentesInboxView({ currentUser, openNuevaOnInit = false }: Fuent
                 <div className="flex items-center gap-2">
                   <Server className="size-6 text-primary shrink-0" />
                   <h1 className="font-heading font-extrabold text-2xl sm:text-3xl tracking-tight text-primary">
-                    Mis fuentes
+                    {isCoordinadorConsumidor ? "Borradores de Fuentes" : "Mis fuentes de datos"}
                   </h1>
                 </div>
                 <p className="text-xs sm:text-sm text-muted-foreground w-full max-w-none leading-relaxed font-normal">
-                  Registra, configura y administra las fuentes de datos de tu institución para su revisión y publicación en el catálogo de interoperabilidad.
+                  {isCoordinadorConsumidor
+                    ? "Registra y prepara propuestas de fuentes de datos (FUE-01) con responsable, SLA y parámetros requeridos."
+                    : "Gestión, configuración técnica, pruebas de conectividad y publicación de fuentes de información institucional para interoperabilidad nacional (FUE-01 a FUE-05)."}
                 </p>
               </div>
 
               <div className="flex items-center gap-2 shrink-0">
+                {!isCoordinadorConsumidor && (
+                  <Button
+                    asChild
+                    variant="neutral"
+                    size="sm"
+                    className="text-xs gap-1.5 h-9 cursor-pointer"
+                  >
+                    <Link href="/acceso-interoperabilidad/solicitudes">
+                      <Network className="size-4" />
+                      <span>Solicitudes de acceso</span>
+                    </Link>
+                  </Button>
+                )}
                 <Button
                   variant="primary"
                   size="sm"
                   onClick={() => {
                     setFuenteAEditar(null);
+                    setInitialStepForModal(0);
                     setIsFormModalOpen(true);
                   }}
                   className="text-xs gap-2 shadow-xs h-9 cursor-pointer"
                 >
                   <Plus className="size-4" />
-                  <span>Nueva fuente</span>
+                  <span>{isCoordinadorConsumidor ? "Crear borrador de fuente" : "Nueva fuente"}</span>
                 </Button>
               </div>
             </div>
@@ -1123,30 +1161,35 @@ export function FuentesInboxView({ currentUser, openNuevaOnInit = false }: Fuent
                         </TableCell>
                         <TableCell className="text-right pr-6">
                           <div className="inline-flex items-center gap-1 justify-end">
-                            <TooltipProvider delayDuration={100}>
-                              {/* 1. Borrador (FUE-01/FUE-02): Configurar conexión */}
-                              {isBorrador && (
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon-sm"
-                                      onClick={() => {
-                                        setFuenteAConectar(fuente);
-                                      }}
-                                      className="text-primary hover:text-primary hover:bg-primary/10 cursor-pointer"
-                                      aria-label={`Configurar conexión de ${fuente.nombre}`}
-                                    >
-                                      <Plug className="size-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="top">FUE-02: Configurar y probar conexión</TooltipContent>
-                                </Tooltip>
-                              )}
-
-                              {/* 2. Conexión fallida (FUE-02): Corregir configuración y Reintentar prueba */}
-                              {isConexionFallida && (
-                                <>
+                            {isCoordinadorConsumidor ? (
+                              ["BORRADOR", "DEVUELTA", "CONFIGURACION"].includes(fuente.estado) ? (
+                                <TooltipProvider delayDuration={100}>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon-sm"
+                                        onClick={() => {
+                                          setFuenteAEditar(fuente);
+                                          setInitialStepForModal(0);
+                                          setIsFormModalOpen(true);
+                                        }}
+                                        className="text-primary hover:text-primary hover:bg-primary/10 cursor-pointer"
+                                        aria-label={`Editar borrador de ${fuente.nombre}`}
+                                      >
+                                        <FileEdit className="size-4" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top">FUE-01: Editar borrador de fuente</TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              ) : (
+                                <span className="text-[11px] text-muted-foreground italic px-2">Solo lectura</span>
+                              )
+                            ) : (
+                              <TooltipProvider delayDuration={100}>
+                                {/* 1. Borrador (FUE-01/FUE-02): Configurar conexión */}
+                                {isBorrador && (
                                   <Tooltip>
                                     <TooltipTrigger asChild>
                                       <Button
@@ -1155,55 +1198,55 @@ export function FuentesInboxView({ currentUser, openNuevaOnInit = false }: Fuent
                                         onClick={() => {
                                           setFuenteAConectar(fuente);
                                         }}
-                                        className="text-warning hover:text-warning hover:bg-warning/10 cursor-pointer"
-                                        aria-label={`Corregir configuración de ${fuente.nombre}`}
-                                      >
-                                        <Wrench className="size-4" />
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent side="top">FUE-02: Corregir configuración de conexión</TooltipContent>
-                                  </Tooltip>
-
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button
-                                        variant="ghost"
-                                        size="icon-sm"
-                                        onClick={() => handleReintentarPruebaConexion(fuente)}
                                         className="text-primary hover:text-primary hover:bg-primary/10 cursor-pointer"
-                                        aria-label={`Reintentar prueba de conexión de ${fuente.nombre}`}
+                                        aria-label={`Configurar conexión de ${fuente.nombre}`}
                                       >
-                                        <RotateCw className="size-4" />
+                                        <Plug className="size-4" />
                                       </Button>
                                     </TooltipTrigger>
-                                    <TooltipContent side="top">FUE-02: Reintentar prueba de conexión</TooltipContent>
+                                    <TooltipContent side="top">FUE-02: Configurar y probar conexión</TooltipContent>
                                   </Tooltip>
-                                </>
-                              )}
+                                )}
 
-                              {/* 3. Conexión verificada (FUE-03): Definir esquema y campos */}
-                              {isConexionVerificada && (
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon-sm"
-                                      onClick={() => {
-                                        setFuenteAEsquema(fuente);
-                                      }}
-                                      className="text-primary hover:text-primary hover:bg-primary/10 cursor-pointer"
-                                      aria-label={`Definir esquema y campos de ${fuente.nombre}`}
-                                    >
-                                      <Layers className="size-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="top">FUE-03: Definir esquema y normalización</TooltipContent>
-                                </Tooltip>
-                              )}
+                                {/* 2. Conexión fallida (FUE-02): Corregir configuración y Reintentar prueba */}
+                                {isConexionFallida && (
+                                  <>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon-sm"
+                                          onClick={() => {
+                                            setFuenteAConectar(fuente);
+                                          }}
+                                          className="text-warning hover:text-warning hover:bg-warning/10 cursor-pointer"
+                                          aria-label={`Corregir configuración de ${fuente.nombre}`}
+                                        >
+                                          <Wrench className="size-4" />
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent side="top">FUE-02: Corregir configuración de conexión</TooltipContent>
+                                    </Tooltip>
 
-                              {/* 4. Esquema pendiente de corrección (FUE-03): Corregir esquema y Volver a probar */}
-                              {isEsquemaPendiente && (
-                                <>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon-sm"
+                                          onClick={() => handleReintentarPruebaConexion(fuente)}
+                                          className="text-primary hover:text-primary hover:bg-primary/10 cursor-pointer"
+                                          aria-label={`Reintentar prueba de conexión de ${fuente.nombre}`}
+                                        >
+                                          <RotateCw className="size-4" />
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent side="top">FUE-02: Reintentar prueba de conexión</TooltipContent>
+                                    </Tooltip>
+                                  </>
+                                )}
+
+                                {/* 3. Conexión verificada (FUE-03): Definir esquema y campos */}
+                                {isConexionVerificada && (
                                   <Tooltip>
                                     <TooltipTrigger asChild>
                                       <Button
@@ -1212,174 +1255,196 @@ export function FuentesInboxView({ currentUser, openNuevaOnInit = false }: Fuent
                                         onClick={() => {
                                           setFuenteAEsquema(fuente);
                                         }}
-                                        className="text-warning hover:text-warning hover:bg-warning/10 cursor-pointer"
-                                        aria-label={`Corregir esquema de ${fuente.nombre}`}
+                                        className="text-primary hover:text-primary hover:bg-primary/10 cursor-pointer"
+                                        aria-label={`Definir esquema y campos de ${fuente.nombre}`}
                                       >
                                         <Layers className="size-4" />
                                       </Button>
                                     </TooltipTrigger>
-                                    <TooltipContent side="top">FUE-03: Corregir esquema y normalización</TooltipContent>
+                                    <TooltipContent side="top">FUE-03: Definir esquema y normalización</TooltipContent>
                                   </Tooltip>
+                                )}
 
+                                {/* 4. Esquema pendiente de corrección (FUE-03): Corregir esquema y Volver a probar */}
+                                {isEsquemaPendiente && (
+                                  <>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon-sm"
+                                          onClick={() => {
+                                            setFuenteAEsquema(fuente);
+                                          }}
+                                          className="text-warning hover:text-warning hover:bg-warning/10 cursor-pointer"
+                                          aria-label={`Corregir esquema de ${fuente.nombre}`}
+                                        >
+                                          <Layers className="size-4" />
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent side="top">FUE-03: Corregir esquema y normalización</TooltipContent>
+                                    </Tooltip>
+
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon-sm"
+                                          onClick={() => handleVolverAProbarEsquema(fuente)}
+                                          className="text-primary hover:text-primary hover:bg-primary/10 cursor-pointer"
+                                          aria-label={`Volver a probar esquema de ${fuente.nombre}`}
+                                        >
+                                          <RotateCw className="size-4" />
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent side="top">FUE-03: Volver a probar esquema</TooltipContent>
+                                    </Tooltip>
+                                  </>
+                                )}
+
+                                {/* 5. En revisión (FUE-04): Sin acciones interactivas para coordinador (revisión de Gestión) */}
+                                {isEnRevision && (
                                   <Tooltip>
                                     <TooltipTrigger asChild>
                                       <Button
                                         variant="ghost"
                                         size="icon-sm"
-                                        onClick={() => handleVolverAProbarEsquema(fuente)}
-                                        className="text-primary hover:text-primary hover:bg-primary/10 cursor-pointer"
-                                        aria-label={`Volver a probar esquema de ${fuente.nombre}`}
+                                        disabled
+                                        className="text-muted-foreground/60 cursor-not-allowed opacity-75"
+                                        aria-label="En revisión por Gestión"
                                       >
-                                        <RotateCw className="size-4" />
+                                        <Clock className="size-4" />
                                       </Button>
                                     </TooltipTrigger>
-                                    <TooltipContent side="top">FUE-03: Volver a probar esquema</TooltipContent>
+                                    <TooltipContent side="top">FUE-04: En revisión por Dirección de Gestión</TooltipContent>
                                   </Tooltip>
-                                </>
-                              )}
+                                )}
 
-                              {/* 5. En revisión (FUE-04): Sin acciones interactivas para coordinador (revisión de Gestión) */}
-                              {isEnRevision && (
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon-sm"
-                                      disabled
-                                      className="text-muted-foreground/60 cursor-not-allowed opacity-75"
-                                      aria-label="En revisión por Gestión"
-                                    >
-                                      <Clock className="size-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="top">FUE-04: En revisión por Dirección de Gestión</TooltipContent>
-                                </Tooltip>
-                              )}
-
-                              {/* 6. Devuelta con observaciones (FUE-04): Continuar corrección de borrador */}
-                              {isDevuelta && (
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon-sm"
-                                      onClick={() => {
-                                        setFuenteAEditar(fuente);
-                                        setInitialStepForModal(0);
-                                        setIsFormModalOpen(true);
-                                      }}
-                                      className="text-danger hover:text-danger hover:bg-danger/10 cursor-pointer"
-                                      aria-label={`Continuar corrección de ${fuente.nombre}`}
-                                    >
-                                      <FileEdit className="size-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="top">FUE-04: Continuar corrección de borrador devuelto</TooltipContent>
-                                </Tooltip>
-                              )}
-
-                              {/* 7. Aprobada por Gestión (FUE-05): Publicar versión */}
-                              {isAprobada && (
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon-sm"
-                                      onClick={() => setFuenteAPublicar(fuente)}
-                                      className="text-primary hover:text-primary hover:bg-primary/10 cursor-pointer"
-                                      aria-label={`Publicar versión de ${fuente.nombre}`}
-                                    >
-                                      <Rocket className="size-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="top">FUE-05: Publicar versión en API Gateway</TooltipContent>
-                                </Tooltip>
-                              )}
-
-                              {/* 8. Fallo de despliegue en Gateway Apigee: Reintentar despliegue */}
-                              {isFallidaGateway && (
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon-sm"
-                                      onClick={() => setFuenteAPublicar(fuente)}
-                                      className="text-warning hover:text-warning hover:bg-warning/10 cursor-pointer"
-                                      aria-label={`Reintentar despliegue de ${fuente.nombre}`}
-                                    >
-                                      <RotateCcw className="size-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="top">FUE-05: Reintentar despliegue en API Gateway</TooltipContent>
-                                </Tooltip>
-                              )}
-
-                              {/* 9. Pendiente de homologación técnica (FUE-12) */}
-                              {isHomologacion && (
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon-sm"
-                                      disabled
-                                      className="text-warning/80 cursor-default opacity-85"
-                                      aria-label={`En proceso de homologación técnica por TI: ${fuente.nombre}`}
-                                    >
-                                      <Cpu className="size-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="top">FUE-12: En proceso de homologación por TI</TooltipContent>
-                                </Tooltip>
-                              )}
-
-                              {/* 10. Publicada (FUE-06/FUE-08): Menú de tres puntos (···) */}
-                              {isPublicada && (
-                                <DropdownMenu>
+                                {/* 6. Devuelta con observaciones (FUE-04): Continuar corrección de borrador */}
+                                {isDevuelta && (
                                   <Tooltip>
                                     <TooltipTrigger asChild>
-                                      <DropdownMenuTrigger asChild>
-                                        <Button
-                                          variant="ghost"
-                                          size="icon-sm"
-                                          className="text-muted-foreground hover:text-foreground cursor-pointer"
-                                          aria-label={`Más opciones para ${fuente.nombre}`}
-                                        >
-                                          <MoreHorizontal className="size-4" />
-                                        </Button>
-                                      </DropdownMenuTrigger>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon-sm"
+                                        onClick={() => {
+                                          setFuenteAEditar(fuente);
+                                          setInitialStepForModal(0);
+                                          setIsFormModalOpen(true);
+                                        }}
+                                        className="text-danger hover:text-danger hover:bg-danger/10 cursor-pointer"
+                                        aria-label={`Continuar corrección de ${fuente.nombre}`}
+                                      >
+                                        <FileEdit className="size-4" />
+                                      </Button>
                                     </TooltipTrigger>
-                                    <TooltipContent side="top">Más opciones</TooltipContent>
+                                    <TooltipContent side="top">FUE-04: Continuar corrección de borrador devuelto</TooltipContent>
                                   </Tooltip>
-                                  <DropdownMenuContent align="end" className="w-56">
-                                    <DropdownMenuItem
-                                      onClick={() => {
-                                        setFuenteParaNuevaVersion(fuente);
-                                        setIsNuevaVersionModalOpen(true);
-                                      }}
-                                      className="cursor-pointer gap-2 text-xs"
-                                    >
-                                      <GitFork className="size-4 text-primary" />
-                                      <span>FUE-06: Preparar nueva versión</span>
-                                    </DropdownMenuItem>
-                                    {responsableAutorizado && (
-                                      <>
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuItem
-                                          onClick={() => {
-                                            setFuenteParaBaja(fuente);
-                                            setIsBajaModalOpen(true);
-                                          }}
-                                          className="cursor-pointer gap-2 text-xs text-danger focus:text-danger focus:bg-danger/10"
-                                        >
-                                          <AlertOctagon className="size-4 text-danger" />
-                                          <span>FUE-08: Solicitar baja de fuente</span>
-                                        </DropdownMenuItem>
-                                      </>
-                                    )}
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              )}
-                            </TooltipProvider>
+                                )}
+
+                                {/* 7. Aprobada por Gestión (FUE-05): Publicar versión */}
+                                {isAprobada && (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon-sm"
+                                        onClick={() => setFuenteAPublicar(fuente)}
+                                        className="text-primary hover:text-primary hover:bg-primary/10 cursor-pointer"
+                                        aria-label={`Publicar versión de ${fuente.nombre}`}
+                                      >
+                                        <Rocket className="size-4" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top">FUE-05: Publicar versión en API Gateway</TooltipContent>
+                                  </Tooltip>
+                                )}
+
+                                {/* 8. Fallo de despliegue en Gateway Apigee: Reintentar despliegue */}
+                                {isFallidaGateway && (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon-sm"
+                                        onClick={() => setFuenteAPublicar(fuente)}
+                                        className="text-warning hover:text-warning hover:bg-warning/10 cursor-pointer"
+                                        aria-label={`Reintentar despliegue de ${fuente.nombre}`}
+                                      >
+                                        <RotateCcw className="size-4" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top">FUE-05: Reintentar despliegue en API Gateway</TooltipContent>
+                                  </Tooltip>
+                                )}
+
+                                {/* 9. Pendiente de homologación técnica (FUE-12) */}
+                                {isHomologacion && (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon-sm"
+                                        disabled
+                                        className="text-warning/80 cursor-default opacity-85"
+                                        aria-label={`En proceso de homologación técnica por TI: ${fuente.nombre}`}
+                                      >
+                                        <Cpu className="size-4" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top">FUE-12: En proceso de homologación por TI</TooltipContent>
+                                  </Tooltip>
+                                )}
+
+                                {/* 10. Publicada (FUE-06/FUE-08): Menú de tres puntos (···) */}
+                                {isPublicada && (
+                                  <DropdownMenu>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <DropdownMenuTrigger asChild>
+                                          <Button
+                                            variant="ghost"
+                                            size="icon-sm"
+                                            className="text-muted-foreground hover:text-foreground cursor-pointer"
+                                            aria-label={`Más opciones para ${fuente.nombre}`}
+                                          >
+                                            <MoreHorizontal className="size-4" />
+                                          </Button>
+                                        </DropdownMenuTrigger>
+                                      </TooltipTrigger>
+                                      <TooltipContent side="top">Más opciones</TooltipContent>
+                                    </Tooltip>
+                                    <DropdownMenuContent align="end" className="w-56">
+                                      <DropdownMenuItem
+                                        onClick={() => {
+                                          setFuenteParaNuevaVersion(fuente);
+                                          setIsNuevaVersionModalOpen(true);
+                                        }}
+                                        className="cursor-pointer gap-2 text-xs"
+                                      >
+                                        <GitFork className="size-4 text-primary" />
+                                        <span>FUE-06: Preparar nueva versión</span>
+                                      </DropdownMenuItem>
+                                      {responsableAutorizado && (
+                                        <>
+                                          <DropdownMenuSeparator />
+                                          <DropdownMenuItem
+                                            onClick={() => {
+                                              setFuenteParaBaja(fuente);
+                                              setIsBajaModalOpen(true);
+                                            }}
+                                            className="cursor-pointer gap-2 text-xs text-danger focus:text-danger focus:bg-danger/10"
+                                          >
+                                            <AlertOctagon className="size-4 text-danger" />
+                                            <span>FUE-08: Solicitar baja de fuente</span>
+                                          </DropdownMenuItem>
+                                        </>
+                                      )}
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                )}
+                              </TooltipProvider>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -1553,7 +1618,15 @@ export function FuentesInboxView({ currentUser, openNuevaOnInit = false }: Fuent
         }}
         fuenteAEditar={fuenteAEditar}
         initialStep={initialStepForModal}
-        currentUser={currentUser}
+        currentUser={
+          effectiveUser
+            ? {
+                name: effectiveUser.name,
+                role: effectiveUser.roleTitle || effectiveUser.role,
+                institution: effectiveUser.institution,
+              }
+            : currentUser
+        }
         onSuccess={() => {
           setIsFormModalOpen(false);
           setFuenteAEditar(null);

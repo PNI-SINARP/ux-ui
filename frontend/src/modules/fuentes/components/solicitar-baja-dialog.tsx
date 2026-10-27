@@ -31,6 +31,7 @@ import {
   Loader2,
   ShieldAlert,
   AlertTriangle,
+  Database,
 } from "lucide-react";
 import { FuenteDatos } from "../data/fuentes-data";
 import { toast } from "sonner";
@@ -88,17 +89,17 @@ export function SolicitarBajaDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent size="lg" className="max-w-xl max-h-[90vh] flex flex-col p-6 overflow-hidden">
-        <DialogHeader className="space-y-1 shrink-0">
+        <DialogHeader className="space-y-1.5 shrink-0 border-b border-border pb-4">
           <div className="flex items-center justify-between gap-3 flex-wrap">
-            <div className="flex items-center gap-2">
-              <div className="size-9 rounded-xl bg-danger/10 border border-danger/20 flex items-center justify-center text-danger">
+            <div className="flex items-center gap-3">
+              <div className="size-10 rounded-2xl bg-danger/10 border border-danger/20 flex items-center justify-center text-danger shrink-0 mt-0.5">
                 <AlertOctagon className="size-5" />
               </div>
               <div>
-                <DialogTitle className="font-heading font-bold text-lg text-foreground">
-                  FUE-08 — Solicitar baja de fuente de datos
+                <DialogTitle className="font-heading font-extrabold text-base sm:text-lg text-foreground">
+                  Solicitar baja de fuente de datos
                 </DialogTitle>
-                <DialogDescription className="text-xs text-muted-foreground">
+                <DialogDescription className="text-xs text-muted-foreground mt-0.5">
                   Trámite formal del responsable institucional ante la Dirección de Gestión para el cese del servicio.
                 </DialogDescription>
               </div>
@@ -115,18 +116,28 @@ export function SolicitarBajaDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 py-2 overflow-y-auto flex-1 min-h-0 pr-1">
-          {/* Ficha Resumen */}
-          <Card className="p-3 bg-surface-subtle/50 border border-border">
-            <div className="flex items-center justify-between gap-2 flex-wrap">
-              <div>
-                <p className="text-xs font-bold text-foreground">{fuente.nombre}</p>
-                <p className="text-[11px] text-muted-foreground font-mono">
-                  ID: {fuente.id} · Coordinador responsable: {fuente.coordinador_nombre}
-                </p>
+          {/* Ficha Resumen con Ícono */}
+          <Card className="p-3.5 bg-surface-subtle/50 border border-border rounded-xl">
+            <div className="flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="size-10 rounded-xl bg-danger/15 border border-danger/25 text-danger flex items-center justify-center shrink-0 shadow-xs">
+                  <Database className="size-5" />
+                </div>
+                <div className="min-w-0 space-y-0.5">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
+                    Fuente institucional sujeta a retiro
+                  </span>
+                  <p className="text-xs font-bold text-foreground truncate">{fuente.nombre}</p>
+                  <p className="text-[11px] text-muted-foreground font-mono truncate">
+                    ID: {fuente.id} · Coordinador responsable: {fuente.coordinador_nombre}
+                  </p>
+                </div>
               </div>
-              <Badge tone="danger" appearance="soft" size="sm">
-                Baja regulada
-              </Badge>
+              <div className="flex items-center gap-2 shrink-0">
+                <Badge tone="danger" appearance="soft" size="sm">
+                  Baja regulada
+                </Badge>
+              </div>
             </div>
           </Card>
 
@@ -228,7 +239,7 @@ export function SolicitarBajaDialog({
           <DialogFooter className="gap-2 pt-2 shrink-0">
             <Button
               type="button"
-              variant="outline"
+              variant="neutral"
               size="sm"
               disabled={enviando}
               onClick={() => onOpenChange(false)}

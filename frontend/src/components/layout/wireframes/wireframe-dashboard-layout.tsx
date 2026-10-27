@@ -448,6 +448,58 @@ export function WireframeDashboardLayout({
     activeUserRole === "EQ_GESTION" ||
     activeUserRole === "EQ_NORMATIVA";
 
+  const isProvider =
+    isProviderInstitution(resolvedUser?.institution) ||
+    (resolvedUser?.roleTitle?.toLowerCase().includes("proveedor") ?? false) ||
+    (resolvedUser?.roleTitle?.toLowerCase().includes("emisor") ?? false);
+
+  const isCoordinadorConsumidor =
+    !isProvider &&
+    (activeUserRole === "COORDINADOR_SINARP" ||
+      (resolvedUser?.roleTitle?.toLowerCase().includes("consumidor") ?? false) ||
+      (resolvedUser?.roleTitle?.toLowerCase().includes("requirente") ?? false));
+
+  let sectionTitle = "Secciones";
+  let sectionSubtitle: string | null = null;
+
+  if (activeUserRole === "ADMIN") {
+    sectionTitle = "Administración del Sistema";
+    sectionSubtitle = "Control global y configuración";
+  } else if (isProvider) {
+    sectionTitle = "Entidad Emisora · Proveedor";
+    sectionSubtitle = "Gestión y publicación de fuentes";
+  } else if (isCoordinadorConsumidor) {
+    sectionTitle = "Entidad Requirente · Consumidor";
+    sectionSubtitle = "Solicitudes e interoperabilidad";
+  } else if (activeUserRole === "DIR_GESTION") {
+    sectionTitle = "Dirección de Gestión";
+    sectionSubtitle = "Asignación y formalización";
+  } else if (activeUserRole === "EQ_GESTION") {
+    sectionTitle = "Equipo de Gestión";
+    sectionSubtitle = "Revisión técnica y funcional";
+  } else if (activeUserRole === "DIR_NORMATIVA") {
+    sectionTitle = "Dirección de Normatividad";
+    sectionSubtitle = "Supervisión jurídica y regulatoria";
+  } else if (activeUserRole === "EQ_NORMATIVA") {
+    sectionTitle = "Equipo de Normatividad";
+    sectionSubtitle = "Evaluación legal y confidencialidad";
+  } else if (activeUserRole === "DGR") {
+    sectionTitle = "Gestión y Registro";
+    sectionSubtitle = "Viabilidad funcional de fuentes";
+  } else if (activeUserRole === "DPI") {
+    sectionTitle = "Protección de Información";
+    sectionSubtitle = "Clasificación y privacidad LOPDP";
+  } else if (activeUserRole === "DTD") {
+    sectionTitle = "Tecnologías de la Información";
+    sectionSubtitle = "Conectores y despliegue técnico";
+  } else if (activeUserRole === "FACTURACION") {
+    sectionTitle = "Gestión Financiera";
+    sectionSubtitle = "Validación de comprobantes y pagos";
+  } else if (activeUserRole === "JURIDICA") {
+    sectionTitle = "Asesoría Jurídica";
+    sectionSubtitle = "Contratos e instrumentos jurídicos";
+  }
+
   const handleRoleChange = (role: UserRole) => {
     setRole(role);
     if (onRoleChange) {
@@ -541,21 +593,51 @@ export function WireframeDashboardLayout({
         {/* Sidebar Content */}
         <SidebarContent className="flex-1 overflow-y-auto py-3 px-2 group-data-[collapsible=icon]:px-2 space-y-1">
           <div className="px-2 pb-1.5 group-data-[collapsible=icon]:hidden">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70 dark:text-white/50 px-2">
-              {activeUserRole === "ADMIN" ? "Administración" : "Secciones"}
-            </p>
+            <div className="px-2 py-1.5 rounded-lg bg-muted/40 dark:bg-white/5 border border-border/40">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-primary truncate">
+                {sectionTitle}
+              </p>
+              {sectionSubtitle && (
+                <p className="text-[10px] text-muted-foreground leading-tight mt-0.5 truncate">
+                  {sectionSubtitle}
+                </p>
+              )}
+            </div>
           </div>
           <SidebarMenu>
             {(() => {
-              const visibleNavItems = navItems.filter((item) => {
+              const baseNavItems = navItems.filter((item) => {
                 if (item.allowedRoles && (!activeUserRole || !item.allowedRoles.includes(activeUserRole))) {
                   return false;
                 }
-                if (item.providerOnly && !isProviderInstitution(resolvedUser?.institution)) {
+                if (item.providerOnly && !isProvider) {
                   return false;
                 }
                 return true;
               });
+
+              let visibleNavItems = baseNavItems;
+              if (isProvider) {
+                const priorityOrder: Record<string, number> = {
+                  "fuentes-proveedor": 1,
+                  "mis-solicitudes": 2,
+                  "catalogo-interoperabilidad": 3,
+                  "proyectos": 4,
+                  "cambio-coordinador": 5,
+                  "mi-suplencia": 6,
+                };
+                visibleNavItems = [...baseNavItems]
+                  .sort((a, b) => (priorityOrder[a.id] || 99) - (priorityOrder[b.id] || 99))
+                  .map((item) => {
+                    if (item.id === "fuentes-proveedor") {
+                      return { ...item, label: "Mis fuentes de datos" };
+                    }
+                    if (item.id === "mis-solicitudes") {
+                      return { ...item, label: "Solicitudes de acceso" };
+                    }
+                    return item;
+                  });
+              }
 
               return visibleNavItems.map((item) => {
                 const Icon = item.icon;

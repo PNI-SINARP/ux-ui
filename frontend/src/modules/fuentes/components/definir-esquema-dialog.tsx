@@ -120,16 +120,19 @@ export function DefinirEsquemaDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent size="xl" className="max-w-5xl max-h-[92vh] flex flex-col p-6 overflow-hidden">
+      <DialogContent
+        size="7xl"
+        className="w-[96vw] max-w-7xl 2xl:max-w-[1480px] max-h-[92vh] flex flex-col p-6 overflow-hidden"
+      >
         <DialogHeader className="space-y-1.5 shrink-0 border-b border-border pb-4">
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <div className="flex items-center gap-3">
-              <div className="size-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0">
+              <div className="size-10 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0 mt-0.5">
                 <Layers className="size-5" />
               </div>
               <div>
-                <DialogTitle className="font-heading font-bold text-lg text-foreground">
-                  FUE-03 — Definir esquema y normalización de fuente
+                <DialogTitle className="font-heading font-extrabold text-base sm:text-lg text-foreground">
+                  Definir esquema y normalización de fuente
                 </DialogTitle>
                 <DialogDescription className="text-xs text-muted-foreground mt-0.5">
                   Mapea los atributos de origen, define los tipos canónicos de interoperabilidad y valida la coherencia de las reglas de conversión.
@@ -147,17 +150,24 @@ export function DefinirEsquemaDialog({
             </div>
           </div>
 
-          {/* Ficha rápida de fuente */}
-          <div className="flex items-center justify-between gap-3 pt-2 text-xs text-muted-foreground flex-wrap">
-            <div className="flex items-center gap-2">
-              <span className="font-semibold text-foreground">{fuente.nombre}</span>
-              <span className="text-muted-foreground font-mono">({fuente.id})</span>
+          {/* Ficha rápida de fuente en Card institucional con ícono */}
+          <div className="bg-surface border border-border rounded-xl p-3.5 shadow-2xs flex items-center justify-between gap-3 flex-wrap mt-3">
+            <div className="flex items-center gap-3">
+              <div className="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                <Database className="size-4 text-primary" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-foreground text-xs">{fuente.nombre}</span>
+                  <span className="text-muted-foreground font-mono text-[11px]">({fuente.id})</span>
+                </div>
+                <p className="text-[11px] text-muted-foreground font-mono">
+                  Conector: {fuente.conexion.tipo_conector} ({fuente.conexion.host}:{fuente.conexion.puerto})
+                </p>
+              </div>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-[11px] text-muted-foreground font-mono">
-                Conector: {fuente.conexion.tipo_conector} ({fuente.conexion.host}:{fuente.conexion.puerto})
-              </span>
-              <Badge tone="neutral" appearance="soft" size="sm" className="text-[10px]">
+              <Badge tone="primary" appearance="soft" size="sm" className="text-[10px] font-semibold">
                 {camposVisibles} campos configurados
               </Badge>
             </div>
@@ -197,21 +207,22 @@ export function DefinirEsquemaDialog({
           <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
             <Button
               type="button"
-              variant="outline"
+              variant="neutral"
               size="sm"
               onClick={() => onOpenChange(false)}
               disabled={guardando}
+              className="text-xs cursor-pointer"
             >
               Cancelar
             </Button>
 
             <Button
               type="button"
-              variant="outline"
+              variant="secondary"
               size="sm"
               onClick={() => handleGuardarEsquema(false)}
               disabled={guardando}
-              className="gap-1.5"
+              className="text-xs gap-1.5 cursor-pointer shadow-xs"
             >
               <Save className="size-3.5" />
               Guardar borrador
@@ -223,7 +234,7 @@ export function DefinirEsquemaDialog({
               size="sm"
               onClick={() => handleGuardarEsquema(true)}
               disabled={guardando || !puedeEnviar}
-              className="gap-1.5"
+              className="text-xs gap-1.5 cursor-pointer shadow-xs"
             >
               <Send className="size-3.5" />
               <span>Enviar a revisión (FUE-04)</span>

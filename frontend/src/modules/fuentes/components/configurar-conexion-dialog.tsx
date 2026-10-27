@@ -127,17 +127,17 @@ export function ConfigurarConexionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent size="xl" className="max-w-4xl max-h-[90vh] flex flex-col p-6 overflow-hidden">
+      <DialogContent size="5xl" className="w-[96vw] max-w-5xl max-h-[90vh] flex flex-col p-6 overflow-hidden">
         <DialogHeader className="space-y-1.5 shrink-0 border-b border-border pb-4">
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <div className="flex items-center gap-3">
-              <div className="size-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0">
+              <div className="size-10 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0 mt-0.5">
                 <Plug className="size-5" />
               </div>
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <DialogTitle className="font-heading font-bold text-lg text-foreground">
-                    FUE-02 — Configurar y probar conexión de fuente
+                  <DialogTitle className="font-heading font-extrabold text-base sm:text-lg text-foreground">
+                    Configurar y probar conexión de fuente
                   </DialogTitle>
                 </div>
                 <DialogDescription className="text-xs text-muted-foreground mt-0.5">
@@ -156,14 +156,21 @@ export function ConfigurarConexionDialog({
             </div>
           </div>
 
-          {/* Ficha rápida de fuente */}
-          <div className="flex items-center justify-between gap-3 pt-2 text-xs text-muted-foreground flex-wrap">
-            <div className="flex items-center gap-2">
-              <span className="font-semibold text-foreground">{fuente.nombre}</span>
-              <span className="text-muted-foreground font-mono">({fuente.id})</span>
+          {/* Ficha rápida de fuente en Card institucional con ícono */}
+          <div className="bg-surface border border-border rounded-xl p-3.5 shadow-2xs flex items-center justify-between gap-3 flex-wrap mt-3">
+            <div className="flex items-center gap-3">
+              <div className="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                <Database className="size-4 text-primary" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-foreground text-xs">{fuente.nombre}</span>
+                  <span className="text-muted-foreground font-mono text-[11px]">({fuente.id})</span>
+                </div>
+                <p className="text-[11px] text-muted-foreground">{fuente.institucion_proveedora_nombre}</p>
+              </div>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-[11px] text-muted-foreground">{fuente.institucion_proveedora_nombre}</span>
               <Badge
                 tone={
                   tienePruebaExitosa
@@ -174,7 +181,7 @@ export function ConfigurarConexionDialog({
                 }
                 appearance="soft"
                 size="sm"
-                className="text-[10px]"
+                className="text-[10px] font-semibold"
               >
                 {tienePruebaExitosa
                   ? "Conexión Verificada"
@@ -218,21 +225,22 @@ export function ConfigurarConexionDialog({
           <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
             <Button
               type="button"
-              variant="outline"
+              variant="neutral"
               size="sm"
               onClick={() => onOpenChange(false)}
               disabled={guardando}
+              className="text-xs cursor-pointer"
             >
               Cancelar
             </Button>
 
             <Button
               type="button"
-              variant="outline"
+              variant="secondary"
               size="sm"
               onClick={() => handleGuardarConfiguracion(false)}
               disabled={guardando}
-              className="gap-1.5"
+              className="text-xs gap-1.5 cursor-pointer shadow-xs"
             >
               <Save className="size-3.5" />
               Guardar configuración
@@ -245,7 +253,7 @@ export function ConfigurarConexionDialog({
                 size="sm"
                 onClick={() => handleGuardarConfiguracion(true)}
                 disabled={guardando}
-                className="gap-1.5"
+                className="text-xs gap-1.5 cursor-pointer shadow-xs"
               >
                 <span>Avanzar a Esquema (FUE-03)</span>
                 <ArrowRight className="size-3.5" />

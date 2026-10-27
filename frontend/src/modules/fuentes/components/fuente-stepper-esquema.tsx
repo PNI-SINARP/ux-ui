@@ -231,7 +231,7 @@ export function FuenteStepperEsquema({
                       value={campo.nombre_publicado}
                       onChange={(e) => updateCampo(campo.id_campo, { nombre_publicado: e.target.value })}
                       onBlur={(e) => handleNormalizarNombre(campo.id_campo, e.target.value)}
-                      className="h-8 text-xs font-mono min-w-[130px] max-w-[200px]"
+                      className="h-8 text-xs font-mono min-w-[140px] max-w-[240px]"
                       placeholder="nombre_campo"
                     />
                   </TableCell>
@@ -352,7 +352,7 @@ export function FuenteStepperEsquema({
                         updateCampo(campo.id_campo, { descripcion: e.target.value })
                       }
                       placeholder="Propósito del dato en el catálogo..."
-                      className="h-8 text-xs min-w-[180px]"
+                      className="h-8 text-xs min-w-[200px] w-full"
                     />
                   </TableCell>
                 </TableRow>

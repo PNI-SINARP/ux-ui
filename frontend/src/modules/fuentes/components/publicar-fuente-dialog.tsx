@@ -135,15 +135,20 @@ export function PublicarFuenteDialog({
       <DialogContent className="max-w-lg max-h-[90vh] flex flex-col p-6 overflow-hidden">
         {step === "confirm" && (
           <>
-            <DialogHeader className="shrink-0">
-              <div className="flex items-center justify-between gap-3 flex-wrap mb-1">
-                <div className="flex items-center gap-2">
-                  <div className="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
-                    <Globe className="size-4" />
+            <DialogHeader className="space-y-1.5 shrink-0 border-b border-border pb-4">
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex items-center gap-3">
+                  <div className="size-10 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0 mt-0.5">
+                    <Globe className="size-5" />
                   </div>
-                  <DialogTitle className="font-heading text-lg">
-                    FUE-05 — Publicar versión aprobada en API Gateway
-                  </DialogTitle>
+                  <div>
+                    <DialogTitle className="font-heading font-extrabold text-base sm:text-lg text-foreground">
+                      Publicar versión aprobada en API Gateway
+                    </DialogTitle>
+                    <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+                      La fuente ha sido aprobada por Gestión y está lista para su despliegue y puesta a disposición en el Catálogo Nacional.
+                    </DialogDescription>
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge tone="primary" appearance="soft" size="sm" className="font-mono text-[10px] font-bold">
@@ -154,9 +159,6 @@ export function PublicarFuenteDialog({
                   </Badge>
                 </div>
               </div>
-              <DialogDescription className="text-xs">
-                La fuente ha sido aprobada por Gestión y está lista para su despliegue y puesta a disposición en el Catálogo Nacional.
-              </DialogDescription>
             </DialogHeader>
 
             <div className="space-y-3 py-2 text-xs overflow-y-auto flex-1 min-h-0 pr-1">
@@ -217,11 +219,11 @@ export function PublicarFuenteDialog({
               </div>
             </div>
 
-            <DialogFooter className="gap-3 sm:gap-3 shrink-0">
-              <Button variant="outline" size="sm" onClick={handleClose}>
+            <DialogFooter className="gap-3 sm:gap-3 pt-4 border-t border-border shrink-0">
+              <Button variant="neutral" size="sm" onClick={handleClose} className="text-xs cursor-pointer">
                 Cancelar
               </Button>
-              <Button variant="primary" size="sm" onClick={handleIniciarPublicacion} className="gap-2 shadow-xs">
+              <Button variant="primary" size="sm" onClick={handleIniciarPublicacion} className="gap-2 shadow-xs text-xs cursor-pointer">
                 <Globe className="size-3.5" />
                 <span>Confirmar y desplegar</span>
               </Button>
@@ -391,7 +393,7 @@ export function PublicarFuenteDialog({
             </div>
 
             <DialogFooter className="gap-3 sm:gap-3 shrink-0">
-              <Button variant="outline" size="sm" onClick={handleClose}>
+              <Button variant="neutral" size="sm" onClick={handleClose} className="text-xs cursor-pointer">
                 Cerrar
               </Button>
               <Button
@@ -401,7 +403,7 @@ export function PublicarFuenteDialog({
                   setSimularFallo(false);
                   handleIniciarPublicacion();
                 }}
-                className="gap-2"
+                className="gap-2 text-xs cursor-pointer"
               >
                 <RotateCcw className="size-3.5" />
                 <span>Reintentar publicación</span>

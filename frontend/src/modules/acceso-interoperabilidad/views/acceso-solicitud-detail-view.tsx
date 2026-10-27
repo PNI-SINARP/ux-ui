@@ -958,21 +958,17 @@ export function AccesoSolicitudDetailView({ params, searchParams }: PageProps) {
                               </p>
                             </div>
                             <Badge
-                              tone="neutral"
-                              appearance="outline"
-                              className={cn(
-                                "text-[10px] font-semibold uppercase tracking-wider shrink-0",
-                                item.clasificacion === "Confidencial"
-                                  ? "border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-300"
-                                  : "border-border bg-muted/60 text-muted-foreground"
-                              )}
+                              tone={item.clasificacion === "Confidencial" ? "warning" : "success"}
+                              appearance="soft"
+                              size="sm"
+                              className="gap-1 inline-flex font-semibold shrink-0"
                             >
                               {item.clasificacion === "Confidencial" ? (
-                                <Lock className="size-2.5 mr-1 inline" />
+                                <Lock className="size-3" />
                               ) : (
-                                <Check className="size-2.5 mr-1 inline" />
+                                <Unlock className="size-3" />
                               )}
-                              {item.clasificacion}
+                              {item.clasificacion.toUpperCase()}
                             </Badge>
                           </div>
                         ))}
@@ -1033,21 +1029,17 @@ export function AccesoSolicitudDetailView({ params, searchParams }: PageProps) {
                               </span>
                             </div>
                             <Badge
-                              tone="neutral"
-                              appearance="outline"
-                              className={cn(
-                                "text-[10px] font-semibold uppercase tracking-wider shrink-0",
-                                item.clasificacion === "Confidencial"
-                                  ? "border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-300"
-                                  : "border-border bg-muted/60 text-muted-foreground"
-                              )}
+                              tone={item.clasificacion === "Confidencial" ? "warning" : "success"}
+                              appearance="soft"
+                              size="sm"
+                              className="gap-1 inline-flex font-semibold shrink-0"
                             >
                               {item.clasificacion === "Confidencial" ? (
-                                <Lock className="size-2.5 mr-1 inline" />
+                                <Lock className="size-3" />
                               ) : (
-                                <Check className="size-2.5 mr-1 inline" />
+                                <Unlock className="size-3" />
                               )}
-                              {item.clasificacion}
+                              {item.clasificacion.toUpperCase()}
                             </Badge>
                           </div>
 

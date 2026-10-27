@@ -52,9 +52,12 @@ interface FuenteFormDialogProps {
   fuenteAEditar?: FuenteDatos | null;
   initialStep?: number;
   currentUser?: {
+    id?: string;
     name?: string;
     role?: string;
+    roleTitle?: string;
     institution?: string;
+    cedula?: string;
   };
   onSuccess?: (fuenteId: string) => void;
 }
@@ -84,19 +87,28 @@ export function FuenteFormDialog({
   const isEditing = !!fuenteAEditar;
   const { crearFuente, actualizarFuente } = useFuentesStore();
   const { activeUser } = useAuthStore();
+  const effectiveUser = currentUser || activeUser;
+  const roleTitle = (effectiveUser?.roleTitle || "").toLowerCase();
+  const roleName = (effectiveUser?.role || "").toLowerCase();
+  const isCoordinadorConsumidor =
+    roleTitle.includes("consumidor") ||
+    roleTitle.includes("requirente") ||
+    roleName.includes("consumidor") ||
+    effectiveUser?.cedula === "1712345678";
 
   const institucionPrecargada =
-    currentUser?.institution ||
-    activeUser?.institution ||
+    effectiveUser?.institution ||
     fuenteAEditar?.institucion_proveedora_nombre ||
-    "Dirección General de Registro Civil";
+    (isCoordinadorConsumidor ? "Ministerio de Educación" : "Dirección General de Registro Civil");
   const coordinadorNombre =
-    currentUser?.name ||
-    activeUser?.name ||
+    effectiveUser?.name ||
     fuenteAEditar?.coordinador_nombre ||
-    "Carlos Mendoza";
+    (isCoordinadorConsumidor ? "Andrea López (MinEduc)" : "Carlos Mendoza");
   const coordinadorId =
-    fuenteAEditar?.id_coordinador_registrador || activeUser?.id || "USR-COORD-001";
+    fuenteAEditar?.id_coordinador_registrador ||
+    effectiveUser?.id ||
+    effectiveUser?.cedula ||
+    (isCoordinadorConsumidor ? "1712345678" : "USR-COORD-001");
 
   const [activeStep, setActiveStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
@@ -288,12 +300,12 @@ export function FuenteFormDialog({
           usuario: "usr_dinarp_read",
         });
         setCamposData(ESQUEMA_MOCK_REGISTRO_CIVIL);
-        setActiveStep(initialStep ?? 0);
+        setActiveStep(isCoordinadorConsumidor ? 0 : (initialStep ?? 0));
       }
       setCasoHomologacion(null);
       setHasIncompatibilities(false);
     }
-  }, [open, fuenteAEditar, initialStep]);
+  }, [open, fuenteAEditar, initialStep, isCoordinadorConsumidor]);
 
   // Validaciones
   const canProceedFromStep1 =
@@ -441,6 +453,15 @@ export function FuenteFormDialog({
 
         if (ok) {
           marcarModificado();
+          if (isCoordinadorConsumidor) {
+            toast.success("Borrador actualizado", {
+              description: `ID: ${targetId} — Siguiente paso: FUE-02.`,
+            });
+            onOpenChange(false);
+            if (onSuccess) onSuccess(targetId);
+            return;
+          }
+
           if (enviarInmediato) {
             toast.success("Fuente incorporada y enviada a revisión", {
               description: `Expediente ${targetId} remitido al equipo de Gestión.`,
@@ -461,17 +482,19 @@ export function FuenteFormDialog({
         // Crear nuevo borrador (FUE-01)
         try {
           let estadoInicial: any = undefined;
-          if (casoHomologacion && casoHomologacion.estado !== "Homologado") {
-            estadoInicial = "PENDIENTE_HOMOLOGACION";
-          } else if (hasIncompatibilities) {
-            estadoInicial = "ESQUEMA_PENDIENTE_CORRECCION";
+          if (!isCoordinadorConsumidor) {
+            if (casoHomologacion && casoHomologacion.estado !== "Homologado") {
+              estadoInicial = "PENDIENTE_HOMOLOGACION";
+            } else if (hasIncompatibilities) {
+              estadoInicial = "ESQUEMA_PENDIENTE_CORRECCION";
+            }
           }
 
           const nueva = crearFuente({
             nombre: infoData.nombre.trim(),
             descripcion_fuente: infoData.descripcion_fuente.trim(),
             version_propuesta: infoData.version_propuesta.trim() || "v1.0.0",
-            id_institucion_proveedora: "INST-DGRC-001",
+            id_institucion_proveedora: isCoordinadorConsumidor ? "INST-MINEDUC-002" : "INST-DGRC-001",
             institucion_proveedora_nombre: institucionPrecargada,
             id_coordinador_registrador: coordinadorId,
             coordinador_nombre: coordinadorNombre,
@@ -483,12 +506,23 @@ export function FuenteFormDialog({
             parametros_consulta: infoData.parametros_consulta,
             conexion: conexionData,
             campos: camposData,
-            enviarInmediato: enviarInmediato && !hasIncompatibilities,
+            enviarInmediato: !isCoordinadorConsumidor && enviarInmediato && !hasIncompatibilities,
           });
 
           setSavedId(nueva.id);
           marcarModificado();
           setSubmitting(false);
+
+          if (isCoordinadorConsumidor) {
+            // Criterio exacto FUE-01:
+            // "Tras guardar muestra «Borrador creado» con ID y siguiente paso FUE-02."
+            toast.success("Borrador creado", {
+              description: `ID: ${nueva.id} — Siguiente paso: FUE-02.`,
+            });
+            onOpenChange(false);
+            if (onSuccess) onSuccess(nueva.id);
+            return;
+          }
 
           if (enviarInmediato && !hasIncompatibilities) {
             toast.success("Fuente incorporada y enviada a revisión", {
@@ -497,8 +531,6 @@ export function FuenteFormDialog({
             onOpenChange(false);
             if (onSuccess) onSuccess(nueva.id);
           } else {
-            // Criterio exacto FUE-01:
-            // "Tras guardar muestra «Borrador creado» con ID y siguiente paso FUE-02."
             toast.success("Borrador creado", {
               description: `ID: ${nueva.id} — Siguiente paso: Configurar y probar conexión.`,
             });
@@ -545,19 +577,16 @@ export function FuenteFormDialog({
             <div className="space-y-1">
               <div className="flex items-center gap-2 flex-wrap">
                 <DialogTitle className="font-heading font-extrabold text-base sm:text-lg text-foreground">
-                  {isEditing
-                    ? `FUE-01 — Editar fuente: ${fuenteAEditar.nombre}`
+                  {isCoordinadorConsumidor
+                    ? isEditing
+                      ? `Editar borrador de fuente: ${fuenteAEditar.nombre}`
+                      : "Crear borrador de fuente"
+                    : isEditing
+                    ? `Editar fuente: ${fuenteAEditar.nombre}`
                     : savedId
-                    ? `FUE-01 — Borrador en curso: ${infoData.nombre || "Nueva fuente"}`
-                    : "FUE-01 — Incorporar y registrar borrador de fuente"}
+                    ? `Borrador en curso: ${infoData.nombre || "Nueva fuente"}`
+                    : "Incorporar y registrar fuente"}
                 </DialogTitle>
-
-                <Badge tone="primary" appearance="soft" size="sm" className="font-mono text-[10px] font-bold">
-                  HU: FUE-01
-                </Badge>
-                <Badge tone="neutral" appearance="outline" size="sm" className="text-[10px]">
-                  BPM: Incorporación de Fuente
-                </Badge>
 
                 {/* Badge Dinámico de Borrador (FUE-01) */}
                 {borradorEstado === "borrador" ? (
@@ -595,7 +624,9 @@ export function FuenteFormDialog({
               </div>
 
               <DialogDescription className="text-xs text-muted-foreground">
-                {savedId || isEditing
+                {isCoordinadorConsumidor
+                  ? `Institución requirente: ${institucionPrecargada} · Registro de responsable, descripción, SLA, versión y campos propuestos.`
+                  : savedId || isEditing
                   ? `Expediente: ${savedId || fuenteAEditar?.id} · Coordinador: ${coordinadorNombre} · Versión: ${infoData.version_propuesta} · Borrador técnico de interoperabilidad`
                   : `Institución proveedora: ${institucionPrecargada} · Registro de responsable, descripción, SLA, versión y campos propuestos.`}
               </DialogDescription>
@@ -603,26 +634,67 @@ export function FuenteFormDialog({
           </div>
         </div>
 
-        {/* Stepper Oficial UI Kit dentro de Contenedor Redondeado (no cuadrado, Anexo A) */}
+        {/* Stepper Oficial UI Kit / Banner FUE-01 */}
         <div className="px-4 sm:px-6 pt-4 pb-1 shrink-0">
-          <div className="bg-surface border border-border rounded-2xl p-4 sm:p-5 shadow-xs overflow-x-auto">
-            <Stepper
-              steps={PASOS_MODAL_STEPS}
-              activeStep={activeStep}
-              variant="default"
-              stepPrefix="PASO"
-              showBadge={true}
-              className="min-w-[500px] sm:min-w-0"
-              onStepClick={(index) => {
-                setActiveStep(index);
-              }}
-            />
-          </div>
+          {isCoordinadorConsumidor ? (
+            <div className="bg-surface border border-border rounded-2xl p-4 sm:p-5 shadow-xs flex items-center justify-between gap-4 flex-wrap">
+              <div className="flex items-center gap-3">
+                <div className="size-10 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-bold text-xs shrink-0">
+                  <Server className="size-5" />
+                </div>
+                <div>
+                  <h3 className="font-heading font-bold text-sm text-foreground">
+                    Registro y preparación de borrador de fuente
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    Registro de responsable, descripción técnica, SLA versionado y parámetros de consulta para la Entidad Requirente.
+                  </p>
+                </div>
+              </div>
+              <Badge tone="info" appearance="soft" size="sm" className="font-semibold">
+                Entidad Requirente
+              </Badge>
+            </div>
+          ) : (
+            <div className="bg-surface border border-border rounded-2xl p-4 sm:p-5 shadow-xs space-y-4">
+              <div className="flex items-center justify-between gap-4 flex-wrap pb-2 border-b border-border/50">
+                <div className="flex items-center gap-3">
+                  <div className="size-10 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-bold text-xs shrink-0">
+                    <Server className="size-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-heading font-bold text-sm text-foreground">
+                      {isEditing ? `Edición técnica: ${fuenteAEditar?.nombre}` : "Incorporación técnica de fuente de datos"}
+                    </h3>
+                    <p className="text-xs text-muted-foreground">
+                      {PASOS_MODAL_STEPS[activeStep]?.description || "Flujo técnico de interoperabilidad institucional."}
+                    </p>
+                  </div>
+                </div>
+                <Badge tone="primary" appearance="soft" size="sm" className="font-semibold">
+                  Entidad Emisora (Proveedor)
+                </Badge>
+              </div>
+              <div className="overflow-x-auto">
+                <Stepper
+                  steps={PASOS_MODAL_STEPS}
+                  activeStep={activeStep}
+                  variant="default"
+                  stepPrefix="PASO"
+                  showBadge={true}
+                  className="min-w-[500px] sm:min-w-0"
+                  onStepClick={(index) => {
+                    setActiveStep(index);
+                  }}
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Cuerpo del Formulario con Scroll Suave */}
         <div className="p-5 sm:p-6 overflow-y-auto flex-1 min-h-0 space-y-4">
-          {activeStep === 0 && (
+          {(isCoordinadorConsumidor || activeStep === 0) && (
             <div className="space-y-4 animate-in fade-in duration-200">
               <FuenteStepperInfo
                 formData={infoData}
@@ -633,11 +705,12 @@ export function FuenteFormDialog({
                 institucionPrecargada={institucionPrecargada}
                 coordinadorNombre={coordinadorNombre}
                 coordinadorId={coordinadorId}
+                isCoordinadorConsumidor={isCoordinadorConsumidor}
               />
             </div>
           )}
 
-          {activeStep === 1 && (
+          {!isCoordinadorConsumidor && activeStep === 1 && (
             <div className="space-y-4 animate-in fade-in duration-200">
               <FuenteStepperConexion
                 conexion={conexionData}
@@ -662,7 +735,7 @@ export function FuenteFormDialog({
             </div>
           )}
 
-          {activeStep === 2 && (
+          {!isCoordinadorConsumidor && activeStep === 2 && (
             <div className="space-y-4 animate-in fade-in duration-200">
               <FuenteStepperEsquema
                 campos={camposData}
@@ -678,7 +751,7 @@ export function FuenteFormDialog({
             </div>
           )}
 
-          {activeStep === 3 && (
+          {!isCoordinadorConsumidor && activeStep === 3 && (
             <div className="space-y-4 animate-in fade-in duration-200">
               <FuenteStepperResumen
                 info={infoData}
@@ -693,79 +766,110 @@ export function FuenteFormDialog({
 
         {/* Pie de Acciones / CTAs */}
         <DialogFooter className="p-4 sm:p-5 border-t border-border bg-surface-subtle/40 flex flex-col sm:flex-row items-center justify-between gap-2.5 shrink-0">
-          <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-start">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => onOpenChange(false)}
-              className="text-xs cursor-pointer"
-            >
-              Cancelar
-            </Button>
-
-            {activeStep > 0 && (
+          {isCoordinadorConsumidor ? (
+            <div className="flex items-center gap-2 w-full justify-between sm:justify-end">
               <Button
                 type="button"
-                variant="ghost"
+                variant="neutral"
                 size="sm"
-                onClick={handleBack}
-                className="text-xs gap-1.5 cursor-pointer"
+                onClick={() => onOpenChange(false)}
+                className="text-xs cursor-pointer"
               >
-                <ArrowLeft className="size-3.5" />
-                <span>Anterior</span>
+                Cancelar
               </Button>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2 w-full sm:w-auto justify-end flex-wrap">
-            {/* Guardar borrador / cambios intermedios */}
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              disabled={submitting}
-              onClick={() => handleGuardar(false)}
-              className="text-xs gap-1.5 cursor-pointer shadow-xs"
-            >
-              {submitting ? (
-                <Loader2 className="size-3.5 animate-spin" />
-              ) : (
-                <Save className="size-3.5" />
-              )}
-              <span>{isEditing ? "Guardar cambios" : "Guardar borrador"}</span>
-            </Button>
-
-            {/* Siguiente o Enviar a revisión */}
-            {activeStep < PASOS_MODAL.length - 1 ? (
               <Button
                 type="button"
                 variant="primary"
                 size="sm"
-                onClick={handleNext}
+                disabled={submitting}
+                onClick={() => handleGuardar(false)}
                 className="text-xs gap-1.5 cursor-pointer shadow-xs"
-              >
-                <span>Siguiente</span>
-                <ArrowRight className="size-3.5" />
-              </Button>
-            ) : (
-              <Button
-                type="button"
-                variant="primary"
-                size="sm"
-                disabled={submitting || hasIncompatibilities || isStep2BlockedByHomologation}
-                onClick={() => handleGuardar(true)}
-                className="text-xs gap-2 cursor-pointer shadow-xs"
               >
                 {submitting ? (
                   <Loader2 className="size-3.5 animate-spin" />
                 ) : (
-                  <Send className="size-3.5" />
+                  <Save className="size-3.5" />
                 )}
-                <span>Enviar a revisión de Gestión</span>
+                <span>{isEditing ? "Guardar cambios en borrador" : "Guardar borrador"}</span>
               </Button>
-            )}
-          </div>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-start">
+                <Button
+                  type="button"
+                  variant="neutral"
+                  size="sm"
+                  onClick={() => onOpenChange(false)}
+                  className="text-xs cursor-pointer"
+                >
+                  Cancelar
+                </Button>
+
+                {activeStep > 0 && (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={handleBack}
+                    className="text-xs gap-1.5 cursor-pointer"
+                  >
+                    <ArrowLeft className="size-3.5" />
+                    <span>Anterior</span>
+                  </Button>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2 w-full sm:w-auto justify-end flex-wrap">
+                {/* Guardar borrador / cambios intermedios */}
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  disabled={submitting}
+                  onClick={() => handleGuardar(false)}
+                  className="text-xs gap-1.5 cursor-pointer shadow-xs"
+                >
+                  {submitting ? (
+                    <Loader2 className="size-3.5 animate-spin" />
+                  ) : (
+                    <Save className="size-3.5" />
+                  )}
+                  <span>{isEditing ? "Guardar cambios" : "Guardar borrador"}</span>
+                </Button>
+
+                {/* Siguiente o Enviar a revisión */}
+                {activeStep < PASOS_MODAL.length - 1 ? (
+                  <Button
+                    type="button"
+                    variant="primary"
+                    size="sm"
+                    onClick={handleNext}
+                    className="text-xs gap-1.5 cursor-pointer shadow-xs"
+                  >
+                    <span>Siguiente</span>
+                    <ArrowRight className="size-3.5" />
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="primary"
+                    size="sm"
+                    disabled={submitting || hasIncompatibilities || isStep2BlockedByHomologation}
+                    onClick={() => handleGuardar(true)}
+                    className="text-xs gap-2 cursor-pointer shadow-xs"
+                  >
+                    {submitting ? (
+                      <Loader2 className="size-3.5 animate-spin" />
+                    ) : (
+                      <Send className="size-3.5" />
+                    )}
+                    <span>Enviar a revisión de Gestión</span>
+                  </Button>
+                )}
+              </div>
+            </>
+          )}
         </DialogFooter>
       </DialogContent>
 
