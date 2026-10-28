@@ -16,6 +16,9 @@ function getInitialUser(): MockUser | null {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         memoryUser = JSON.parse(stored);
+        if (memoryUser?.roleTitle) {
+          memoryUser.roleTitle = memoryUser.roleTitle.replace(/\s*[—-]\s*.*$/, "");
+        }
       } else {
         // Default demo session: Andrea López (Coordinador SINARP)
         memoryUser = MOCK_USERS_BY_ROLE.COORDINADOR_SINARP;
@@ -158,6 +161,30 @@ export const DINARP_TEST_USERS_MAP: Record<string, MockUser> = {
     cedula: "3333333333",
     initials: "RN",
   },
+  // Director DPI (BN-07)
+  "4444444444": {
+    id: "U-DIRDPI",
+    name: "Director DPI",
+    role: "DIR_DPI",
+    roleTitle: "Director de Protección de la Información (DPI)",
+    email: "dpi.director@dinarp.gob.ec",
+    avatar: "DP",
+    institution: "DINARP",
+    cedula: "4444444444",
+    initials: "DP",
+  },
+  // Revisor DPI (BN-07)
+  "5555555555": {
+    id: "U-EQDPI",
+    name: "Carlos Mora (Revisor DPI)",
+    role: "EQ_DPI",
+    roleTitle: "Revisor de Protección de la Información (DPI)",
+    email: "dpi.revisor@dinarp.gob.ec",
+    avatar: "CM",
+    institution: "DINARP",
+    cedula: "5555555555",
+    initials: "CM",
+  },
   // Roberto Dávila (MSP - BN-02 / Anexo B)
   "1715489621": {
     id: "USR-CRD-MSP",
@@ -211,7 +238,7 @@ export const DINARP_TEST_USERS_MAP: Record<string, MockUser> = {
     id: "1712345678",
     name: "Andrea López (MinEduc)",
     role: "COORDINADOR_SINARP",
-    roleTitle: "Coordinador Consumidor (Entidad Requirente)",
+    roleTitle: "Coordinador SINARP",
     email: "coordinador@educacion.gob.ec",
     institution: "Ministerio de Educación",
     cedula: "1712345678",

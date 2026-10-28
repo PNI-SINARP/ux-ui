@@ -1,843 +1,1681 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
-  FileSignature,
+  Database,
   CheckCircle2,
   AlertTriangle,
-  Clock,
-  ShieldCheck,
-  Building2,
-  Briefcase,
-  Database,
+  FileText,
+  Download,
+  Eye,
   Lock,
   Unlock,
-  Calendar,
-  FileText,
-  ExternalLink,
+  Clock,
+  Building2,
+  User,
+  Layers,
   History,
-  Info,
   Check,
-  X,
   Plus,
   Trash2,
-  UserCheck,
-  ChevronRight,
   Sparkles,
-  Layers,
+  UserCheck,
+  Activity,
+  Info,
+  ShieldCheck,
+  FolderKanban,
+  Server,
+  Mail,
 } from "lucide-react";
+import { WireframeDashboardLayout } from "@/components/layout/wireframes/wireframe-dashboard-layout";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
 import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableHead,
-  TableRow,
-  TableCell,
-} from "@/components/ui/table";
+  Card,
+  CardTitle,
+  CardDescription,
+  CardBadge,
+  CardDecorativeIcon,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { InputGroup, InputGroupInput } from "@/components/ui/input-group";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Alert } from "@/components/ui/alert";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogDescription,
   DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import {
   Combobox,
-  ComboboxSelectTrigger,
   ComboboxContent,
-  ComboboxList,
   ComboboxItem,
+  ComboboxList,
+  ComboboxSelectTrigger,
 } from "@/components/ui/combobox";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-button";
-import { WireframeDashboardLayout } from "@/components/layout/wireframes/wireframe-dashboard-layout";
-import { MOCK_USERS_BY_ROLE } from "@/modules/catalogo-interoperabilidad/data/catalogo-data";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { toast } from "sonner";
 import {
   useSolicitudesStore,
-  SolicitudAcceso,
-  TipoElementoObservado,
-  ObservacionItem,
+  type SolicitudEstado,
+  type ModalidadAcceso,
+  type ObservacionItem,
+  type TipoElementoObservado,
 } from "@/modules/acceso-interoperabilidad/data/solicitudes-store";
-import { toast } from "sonner";
-import { cn } from "@/lib/utils";
 
 interface RevisionGestionDetailViewProps {
-  id: string;
+  id?: string;
+  solicitudId?: string;
 }
 
-export function RevisionGestionDetailView({ id }: RevisionGestionDetailViewProps) {
+export function RevisionGestionDetailView({
+  id,
+  solicitudId,
+}: RevisionGestionDetailViewProps) {
   const router = useRouter();
-  const { solicitudes, aprobarGestion, observarGestion } = useSolicitudesStore();
+  const targetId = id || solicitudId || "";
 
-  const solicitud = useMemo(() => {
-    return solicitudes.find((s) => s.id === id);
-  }, [solicitudes, id]);
+  const {
+    solicitudes,
+    aprobarGestion,
+    observarGestion,
+  } = useSolicitudesStore();
 
-  // Si no se encuentra la solicitud
+  const solicitud = useMemo(
+    () =>
+      solicitudes.find((s) => s.id.toLowerCase() === targetId.toLowerCase()) ||
+      null,
+    [solicitudes, targetId]
+  );
+
+  // Sub-pestaña activa del expediente (0: Institución y Fuente, 1: Campos y Finalidades, 2: Modalidad y Cupo, 3: Documentos)
+  const [detailTab, setDetailTab] = useState<number>(0);
+
+  // Estado local de modalidad autorizada
+  const [modalidadAutorizada, setModalidadAutorizada] = useState<ModalidadAcceso>(
+    solicitud?.modalidadAprobada || solicitud?.modalidad || "API individual"
+  );
+
+  // Modal Aprobar Solicitud Funcionalmente
+  const [isModalAprobarOpen, setIsModalAprobarOpen] = useState(false);
+
+  // Modal Observar Solicitud (SOL-06)
+  const [isModalObservarOpen, setIsModalObservarOpen] = useState(false);
+  const [plazoSubsanacionDias, setPlazoSubsanacionDias] = useState(3);
+  const [listaObservaciones, setListaObservaciones] = useState<
+    Array<{
+      id: string;
+      tipo: TipoElementoObservado;
+      elementoNombre: string;
+      descripcion: string;
+    }>
+  >([
+    {
+      id: "OBS-INIT-1",
+      tipo: "finalidad",
+      elementoNombre: "",
+      descripcion: "",
+    },
+  ]);
+
+  // Modal Visor de Documento de Soporte
+  const [selectedDocPreview, setSelectedDocPreview] = useState<{
+    nombre: string;
+    fechaCarga: string;
+  } | null>(null);
+
   if (!solicitud) {
     return (
       <WireframeDashboardLayout
         activeMenu="revision-gestion"
         breadcrumbs={[
-          { label: "Acceso a Interoperabilidad", href: "/acceso-interoperabilidad/solicitudes" },
-          { label: "Revisión Funcional", href: "/revision-gestion" },
-          { label: id },
+          {
+            label: "Revisar solicitudes de acceso",
+            onClick: () => router.push("/revision-gestion"),
+          },
+          { label: "Solicitud no encontrada" },
         ]}
       >
-        <div className="layout-container py-16 text-center space-y-4">
-          <AlertTriangle className="size-12 text-warning mx-auto" />
-          <h2 className="text-xl font-bold text-foreground">Solicitud no encontrada</h2>
-          <p className="text-sm text-muted-foreground">
-            No se encontró el expediente con identificador <strong>{id}</strong>.
+        <div className="bg-surface border border-border rounded-2xl p-8 text-center space-y-4 my-8 mx-4">
+          <div className="size-12 rounded-full bg-muted/50 text-muted-foreground flex items-center justify-center mx-auto">
+            <Database className="size-6" />
+          </div>
+          <h2 className="text-xl font-bold font-heading text-foreground">
+            Solicitud no encontrada
+          </h2>
+          <p className="text-xs text-muted-foreground max-w-md mx-auto">
+            No se encontró ninguna solicitud de acceso con el código{" "}
+            <code className="font-mono bg-muted px-1.5 py-0.5 rounded">
+              {targetId}
+            </code>
+            .
           </p>
-          <Link href="/revision-gestion">
-            <Button variant="outline" size="sm">
-              <ArrowLeft className="size-4 mr-1.5" />
-              Volver a la bandeja de revisión
-            </Button>
-          </Link>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => router.push("/revision-gestion")}
+            className="gap-1.5"
+          >
+            <ArrowLeft className="size-4" />
+            <span>Volver a la bandeja</span>
+          </Button>
         </div>
       </WireframeDashboardLayout>
     );
   }
 
-  // Lista de campos planos
-  const campos = useMemo(() => {
-    return solicitud.fuentes?.[0]?.campos || [];
-  }, [solicitud]);
-
-  // Indicador de confidenciales
-  const tieneConfidenciales = useMemo(() => {
-    return campos.some((c) => c.clasificacion === "Confidencial");
-  }, [campos]);
-
-  // Modalidad autorizada en revisión (por defecto la solicitada)
-  const [modalidadAutorizada, setModalidadAutorizada] = useState<"API individual" | "API masiva" | "Ambas">(
-    solicitud.modalidad || "API individual"
+  const campos = solicitud.fuentes.flatMap((fuente) =>
+    (fuente.campos || []).map((c) => ({
+      id: c.id,
+      nombre: c.nombre,
+      descripcion: c.descripcion,
+      clasificacion: c.clasificacion,
+      esSensible: c.esSensible,
+      finalidad: c.finalidad,
+      fuenteNombre: fuente.nombre,
+    }))
   );
 
-  // Estados de modales de decisión
-  const [isModalAprobarOpen, setIsModalAprobarOpen] = useState(false);
-  const [isModalObservarOpen, setIsModalObservarOpen] = useState(false);
-  const [isDocPreviewOpen, setIsDocPreviewOpen] = useState(false);
-  const [selectedDocPreview, setSelectedDocPreview] = useState<{ nombre: string; tipo: string; fechaCarga: string } | null>(null);
+  const confidencialesCount = campos.filter(
+    (c) => c.clasificacion === "Confidencial"
+  ).length;
+  const accesiblesCount = campos.length - confidencialesCount;
+  const tieneConfidenciales = confidencialesCount > 0;
 
-  // Estado para modal de observaciones estructuradas
-  const [listaObservaciones, setListaObservaciones] = useState<ObservacionItem[]>([
-    {
-      id: "obs-temp-1",
-      tipo: "finalidad",
-      elementoNombre: campos[0]?.nombre || campos[0]?.nombreCampo || "Campo general",
-      descripcion: "",
-      fecha: new Date().toISOString().substring(0, 10),
-      revisor: solicitud?.revisorAsignado || "Ana Torres",
-      etapa: "Gestión",
-    },
-  ]);
-  const [plazoSubsanacionDias, setPlazoSubsanacionDias] = useState<number>(3);
+  const docs =
+    solicitud.documentos && solicitud.documentos.length > 0
+      ? solicitud.documentos
+      : [
+          {
+            id: "DOC-1",
+            nombre: solicitud.documentoSustentoNombre || "Oficio_Solicitud_Firmado.pdf",
+            tipo: "PDF",
+            tamano: "1.4 MB",
+            fechaCarga: solicitud.fecha,
+            categoria: "Oficio de Solicitud",
+          },
+        ];
 
-  // Helper para agregar una nueva observación en el modal
+  const fuenteNombre =
+    solicitud.fuentePrincipal ||
+    solicitud.fuentes?.[0]?.nombre ||
+    "Fuente de Interoperabilidad";
+  const institucionProveedora =
+    solicitud.fuentes?.[0]?.institucion ||
+    "Dirección General de Registro Civil";
+  const codigoPaquete =
+    solicitud.proyectoCodigo || solicitud.fuentes?.[0]?.id || "PAQ-SINARP-01";
+  const proyectoNombre =
+    solicitud.proyectoNombre || "Proyecto de Interoperabilidad Institucional";
+  const justificacionGeneral =
+    solicitud.justificacionGeneral ||
+    solicitud.proyectoObjetivo ||
+    campos[0]?.finalidad ||
+    "Intercambio seguro de información en el marco del Sistema Nacional de Registros Públicos (SINARP).";
+
+  const enEvaluacion =
+    solicitud.estado === "Asignada a revisión de Gestión" ||
+    solicitud.estado === "En revisión de Gestión" ||
+    solicitud.estado === "En revisión" ||
+    solicitud.estado === "Por revisar" ||
+    solicitud.estado === "Reenviada";
+
+  const modalidadOptions: { value: ModalidadAcceso; label: string }[] = [
+    { value: "API individual", label: "API individual (Consulta puntual)" },
+    { value: "API masiva", label: "API masiva (Procesamiento por lotes)" },
+    { value: "Ambas", label: "Ambas modalidades (API individual + masiva)" },
+  ];
+
+  const tipoOptions: { value: TipoElementoObservado; label: string }[] = [
+    { value: "finalidad", label: "Finalidad por campo" },
+    { value: "campo", label: "Campo solicitado" },
+    { value: "documento", label: "Documento de soporte" },
+    { value: "cupo", label: "Cupo estimado" },
+    { value: "modalidad", label: "Modalidad de consumo" },
+    { value: "justificacion", label: "Justificación general" },
+  ];
+
+  const renderEstadoBadge = (estado: SolicitudEstado) => {
+    switch (estado) {
+      case "Asignada a revisión de Gestión":
+      case "En revisión de Gestión":
+      case "En revisión":
+      case "Por revisar":
+        return (
+          <Badge tone="warning" appearance="soft" size="sm" dot>
+            Pendiente por revisar
+          </Badge>
+        );
+      case "Reenviada":
+        return (
+          <Badge tone="info" appearance="soft" size="sm" dot>
+            Subsanada · Pendiente por revisar
+          </Badge>
+        );
+      case "Observada":
+      case "Requiere corrección":
+      case "Con observaciones":
+        return (
+          <Badge tone="warning" appearance="soft" size="sm" dot>
+            Observada por Gestión
+          </Badge>
+        );
+      case "Aprobada por Gestión":
+        return (
+          <Badge tone="success" appearance="soft" size="sm" dot>
+            Aprobada por Gestión
+          </Badge>
+        );
+      case "Pendiente de asignación en Normatividad":
+      case "En revisión normativa":
+      case "En revisión jurídica":
+        return (
+          <Badge tone="info" appearance="soft" size="sm" dot>
+            Derivada a DPI
+          </Badge>
+        );
+      case "Cerrada":
+      case "Cerrada por vencimiento":
+        return (
+          <Badge tone="danger" appearance="soft" size="sm" dot>
+            Cerrada (Plazo vencido)
+          </Badge>
+        );
+      default:
+        return (
+          <Badge tone="neutral" appearance="soft" size="sm" dot>
+            {estado}
+          </Badge>
+        );
+    }
+  };
+
+  const handleOpenModalObservar = () => {
+    setListaObservaciones([
+      {
+        id: `OBS-${Date.now()}`,
+        tipo: "finalidad",
+        elementoNombre: campos[0]?.nombre || "Finalidad específica",
+        descripcion: "",
+      },
+    ]);
+    setPlazoSubsanacionDias(3);
+    setIsModalObservarOpen(true);
+  };
+
   const handleAddObservacionItem = () => {
     setListaObservaciones((prev) => [
       ...prev,
       {
-        id: `obs-temp-${Date.now()}`,
-        tipo: "campo",
-        elementoNombre: campos[0]?.nombre || campos[0]?.nombreCampo || "General",
+        id: `OBS-${Date.now()}-${prev.length + 1}`,
+        tipo: "finalidad",
+        elementoNombre: "",
         descripcion: "",
-        fecha: new Date().toISOString().substring(0, 10),
-        revisor: solicitud?.revisorAsignado || "Ana Torres",
-        etapa: "Gestión",
       },
     ]);
   };
 
   const handleRemoveObservacionItem = (obsId: string) => {
-    setListaObservaciones((prev) => prev.filter((o) => o.id !== obsId));
+    if (listaObservaciones.length <= 1) return;
+    setListaObservaciones((prev) => prev.filter((item) => item.id !== obsId));
   };
 
-  const handleUpdateObservacionItem = (obsId: string, patch: Partial<ObservacionItem>) => {
+  const handleUpdateObservacionItem = (
+    obsId: string,
+    patch: Partial<{
+      tipo: TipoElementoObservado;
+      elementoNombre: string;
+      descripcion: string;
+    }>
+  ) => {
     setListaObservaciones((prev) =>
-      prev.map((o) => (o.id === obsId ? { ...o, ...patch } : o))
+      prev.map((item) => (item.id === obsId ? { ...item, ...patch } : item))
     );
   };
 
-  // Observar campo puntual directamente desde la tabla de campos
-  const handleObservarCampoDirecto = (campoNombre: string, tipo: TipoElementoObservado = "campo") => {
-    setListaObservaciones([
-      {
-        id: `obs-direct-${Date.now()}`,
-        tipo,
-        elementoNombre: campoNombre,
-        descripcion: "",
-        fecha: new Date().toISOString().substring(0, 10),
-        revisor: solicitud?.revisorAsignado || "Ana Torres",
-        etapa: "Gestión",
-      },
-    ]);
-    setIsModalObservarOpen(true);
-  };
-
-  // Ejecución de Aprobación Funcional
-  const handleConfirmarAprobacion = () => {
-    aprobarGestion(solicitud.id, {
-      camposAprobados: campos.map((c) => c.nombre || c.nombreCampo || c.id),
-      modalidadesAutorizadas: modalidadAutorizada,
-      cupoAprobado: solicitud.cupo || 50000,
-      revisor: solicitud.revisorAsignado || "Ana Torres",
-    });
-
-    setIsModalAprobarOpen(false);
-
-    if (tieneConfidenciales) {
-      toast.success("Solicitud aprobada funcionalmente", {
-        description: "Contiene campos confidenciales. Ha sido remitida a la Dirección de Protección de la Información (DPI) para dictamen jurídico y doble firma electrónica (SOL-07, SOL-08).",
-      });
-    } else {
-      toast.success("Solicitud aprobada funcionalmente", {
-        description: "Contiene exclusivamente campos accesibles. Continuará hacia la etapa de formalización (BN-08).",
-      });
-    }
-
-    router.push("/revision-gestion");
-  };
-
-  // Ejecución de Observación Funcional
   const handleConfirmarObservacion = () => {
-    const validas = listaObservaciones.filter((o) => o.descripcion.trim().length > 0);
-    if (validas.length === 0) {
-      toast.error("Debe ingresar al menos una observación detallada");
+    const invalid = listaObservaciones.some(
+      (o) => !o.elementoNombre.trim() || !o.descripcion.trim()
+    );
+    if (invalid) {
+      toast.error("Completa todos los campos de las observaciones", {
+        description:
+          "Cada observación requiere indicar el elemento afectado y el detalle de la corrección solicitada.",
+      });
       return;
     }
 
+    const nowStr = new Date().toISOString().substring(0, 10);
+    const revisorNombre = solicitud.revisorAsignado || "Ing. Sofía Viteri";
+
+    const items: ObservacionItem[] = listaObservaciones.map((o) => ({
+      id: o.id,
+      tipo: o.tipo,
+      elementoNombre: o.elementoNombre.trim(),
+      descripcion: o.descripcion.trim(),
+      fecha: nowStr,
+      revisor: revisorNombre,
+      etapa: "Gestión",
+    }));
+
     observarGestion(solicitud.id, {
-      revisor: solicitud.revisorAsignado || "Ana Torres",
-      observaciones: validas,
+      revisor: revisorNombre,
+      observaciones: items,
       diasPlazo: plazoSubsanacionDias,
     });
-
     setIsModalObservarOpen(false);
-    toast.warning("Solicitud observada formalmente", {
-      description: `El Coordinador tiene ${plazoSubsanacionDias} días hábiles para subsanar los ${validas.length} hallazgo(s).`,
+    toast.warning(`Solicitud ${solicitud.id} observada`, {
+      description: `Se notificó al Coordinador solicitante con un plazo de ${plazoSubsanacionDias} días hábiles para subsanar.`,
     });
-
-    router.push("/revision-gestion");
   };
 
-  const isEvaluable =
-    solicitud.estado === "Asignada a revisión de Gestión" ||
-    solicitud.estado === "En revisión de Gestión";
+  const handleConfirmarAprobacion = () => {
+    const revisorNombre = solicitud.revisorAsignado || "Ing. Sofía Viteri";
+    aprobarGestion(solicitud.id, {
+      revisor: revisorNombre,
+      camposAprobados: campos.map((c) => c.id),
+      modalidadesAutorizadas: modalidadAutorizada,
+      cupoAprobado: solicitud.cupo || 50000,
+    });
+    setIsModalAprobarOpen(false);
 
-  const tipoOptions = [
-    { value: "campo", label: "Campo específico" },
-    { value: "finalidad", label: "Finalidad de uso" },
-    { value: "justificacion", label: "Justificación jurídica" },
-    { value: "modalidad", label: "Modalidad" },
-    { value: "cupo", label: "Cupo de registros" },
-    { value: "documento", label: "Documento de soporte" },
-    { value: "general", label: "Observación general" },
-  ];
+    if (tieneConfidenciales) {
+      toast.success(`Evaluación de Gestión aprobada (${solicitud.id})`, {
+        description:
+          "Por contener campos confidenciales, el expediente fue derivado a la Dirección de Protección de la Información (DPI).",
+      });
+    } else {
+      toast.success(`Solicitud ${solicitud.id} aprobada por Gestión`, {
+        description:
+          "Solo contiene campos accesibles. La solicitud quedó aprobada y pasa a formalización.",
+      });
+    }
+  };
 
   return (
     <WireframeDashboardLayout
       activeMenu="revision-gestion"
-      currentRole="EQ_GESTION"
-      currentUser={MOCK_USERS_BY_ROLE.EQ_GESTION}
       breadcrumbs={[
-        { label: "Inicio", href: "/" },
-        { label: "Acceso a Interoperabilidad", href: "/acceso-interoperabilidad/solicitudes" },
-        { label: "Revisión Funcional de Gestión", href: "/revision-gestion" },
-        { label: `${solicitud.id} (v${solicitud.versionExpediente || 1})` },
+        {
+          label: "Revisar solicitudes de acceso",
+          onClick: () => router.push("/revision-gestion"),
+        },
+        { label: `Expediente ${solicitud.id}` },
       ]}
     >
-      <main className="w-full pr-3 pl-2 pb-3 pt-1.5 flex-1 min-h-0 flex flex-col overflow-hidden">
-        <Card
-          className="bg-surface rounded-2xl border border-border shadow-xs flex-1 min-h-0 overflow-hidden flex flex-col my-0"
-          innerClassName="p-4 sm:p-6 lg:p-8 flex flex-col gap-6 overflow-y-auto flex-1 min-h-0 w-full"
-        >
-        {/* Navegación y Cabecera */}
-        <div className="flex items-center justify-between">
-          <Link
-            href="/revision-gestion"
-            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors font-medium"
-          >
-            <ArrowLeft className="size-4" />
-            Volver a bandeja de revisión funcional
-          </Link>
-
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">Estado del trámite:</span>
-            <Badge
-              tone={
-                isEvaluable
-                  ? "warning"
-                  : solicitud.estado.includes("Aprobada")
-                  ? "success"
-                  : solicitud.estado === "Observada"
-                  ? "danger"
-                  : "info"
-              }
-              appearance="soft"
-              size="md"
-              className="font-semibold text-xs"
-            >
-              {solicitud.estado}
-            </Badge>
-          </div>
-        </div>
-
-        {/* Banner de Identificación del Expediente */}
-        <Card className="p-6 bg-surface border-border shadow-xs rounded-2xl space-y-4">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-border/70">
+      <main className="w-full px-2.5 sm:px-4 md:px-6 pb-4 pt-1 flex-1 min-h-0 flex flex-col overflow-hidden">
+        {/* Contenedor blanco principal (Mismo layout que SolicitudPendienteDetailView de Anexos A y B) */}
+        <div className="bg-surface border border-border rounded-xl sm:rounded-3xl p-3.5 sm:p-6 md:p-8 shadow-xs space-y-6 flex-1 min-h-0 overflow-y-auto">
+          {/* Cabecera interna del trámite con botón Volver */}
+          <div className="pb-4 border-b border-border/80 space-y-3">
             <div>
-              <div className="flex items-center gap-2.5">
-                <span className="font-mono text-xl sm:text-2xl font-bold text-foreground">
-                  {solicitud.id}
-                </span>
-                <Badge tone="info" appearance="outline" size="sm" className="font-mono text-xs">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => router.push("/revision-gestion")}
+                className="h-8 px-2.5 text-xs font-semibold gap-1.5 rounded-xl border-border text-foreground hover:bg-muted shrink-0"
+                title="Volver a la bandeja"
+              >
+                <ArrowLeft className="size-3.5" />
+                <span>Volver</span>
+              </Button>
+            </div>
+
+            <div className="min-w-0 space-y-1">
+              <div>
+                <Badge
+                  tone="primary"
+                  appearance="soft"
+                  size="sm"
+                  className="font-semibold text-[11px]"
+                >
+                  Acceso a fuentes · Solicitudes de acceso
+                </Badge>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="font-heading font-extrabold text-lg sm:text-2xl text-foreground">
+                  Trámite {solicitud.id}
+                </h1>
+                <Badge
+                  tone={
+                    solicitud.versionExpediente && solicitud.versionExpediente > 1
+                      ? "info"
+                      : "neutral"
+                  }
+                  appearance="soft"
+                  size="sm"
+                  className="font-mono text-xs"
+                >
                   Versión v{solicitud.versionExpediente || 1}
                 </Badge>
-                {tieneConfidenciales ? (
-                  <Badge tone="warning" appearance="soft" size="sm" className="gap-1 text-xs">
-                    <Lock className="size-3" />
-                    Requiere dictamen DPI posterior
-                  </Badge>
-                ) : (
-                  <Badge tone="neutral" appearance="soft" size="sm" className="gap-1 text-xs">
-                    <Unlock className="size-3" />
-                    Solo campos accesibles
-                  </Badge>
-                )}
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Expediente BN-07 asignado a: <strong>{solicitud.revisorAsignado || "Ana Torres"}</strong> · Fecha asignación: {solicitud.fechaAsignacion || solicitud.fecha.substring(0, 10)}
+              <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2 sm:line-clamp-1">
+                {fuenteNombre} ({codigoPaquete}) · Registrado el {solicitud.fecha} ·{" "}
+                {solicitud.institucion}
               </p>
             </div>
-
-            {/* Acciones principales de decisión fijas */}
-            {isEvaluable && (
-              <div className="flex items-center gap-2.5 self-start lg:self-center">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsModalObservarOpen(true)}
-                  className="border-warning/40 text-warning hover:bg-warning/10 font-semibold gap-1.5"
-                >
-                  <AlertTriangle className="size-4 text-warning" />
-                  <span>Observar solicitud</span>
-                </Button>
-
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={() => setIsModalAprobarOpen(true)}
-                  className="bg-success hover:bg-success/90 text-success-foreground font-semibold gap-1.5 shadow-xs"
-                >
-                  <CheckCircle2 className="size-4" />
-                  <span>Aprobar funcionalmente</span>
-                </Button>
-              </div>
-            )}
           </div>
 
-          {/* Ficha Resumen de Requerimiento */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
-            <div className="p-3 rounded-xl bg-muted/30 border border-border">
-              <span className="text-muted-foreground block text-[11px] mb-0.5">Institución Solicitante:</span>
-              <strong className="text-foreground text-sm block truncate" title={solicitud.institucion}>
-                {solicitud.institucion}
-              </strong>
-              <span className="text-[10px] text-muted-foreground">{solicitud.tipoInstitucion}</span>
-            </div>
+          {/* DISTRIBUCIÓN EN 2 COLUMNAS (Igual a Anexos A y B): IZQUIERDA EXPEDIENTE/TRAZABILIDAD (7 cols), DERECHA PANEL DE DECISIÓN (5 cols) */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            {/* COLUMNA IZQUIERDA (7 cols): EXPEDIENTE ORGANIZADO POR SECCIONES Y TRAZABILIDAD */}
+            <div className="lg:col-span-7 xl:col-span-7 space-y-6">
+              <Tabs defaultValue="resumen" className="w-full space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/80 pb-3">
+                  <div className="overflow-x-auto w-full sm:w-auto -mx-1 px-1">
+                    <TabsList className="h-auto p-1 rounded-full bg-background border border-border/40 inline-flex gap-1 w-max sm:w-auto justify-start flex-nowrap">
+                      <TabsTrigger
+                        value="resumen"
+                        className="px-3.5 sm:px-5 py-1.5 sm:py-2 text-xs font-bold gap-1.5 sm:gap-2 shrink-0"
+                      >
+                        <Database className="size-3.5 sm:size-4 shrink-0" />
+                        <span>Expediente de Acceso a Fuente</span>
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="trazabilidad"
+                        className="px-3.5 sm:px-5 py-1.5 sm:py-2 text-xs font-bold gap-1.5 sm:gap-2 shrink-0"
+                      >
+                        <History className="size-3.5 sm:size-4 shrink-0" />
+                        <span>Trazabilidad</span>
+                      </TabsTrigger>
+                    </TabsList>
+                  </div>
 
-            <div className="p-3 rounded-xl bg-muted/30 border border-border">
-              <span className="text-muted-foreground block text-[11px] mb-0.5">Proyecto Institucional:</span>
-              <strong className="text-foreground text-sm block truncate" title={solicitud.proyectoNombre}>
-                {solicitud.proyectoNombre || "Proyecto institucional"}
-              </strong>
-              <span className="text-[10px] font-mono text-muted-foreground">{solicitud.proyectoId || "PRJ-2026-001"}</span>
-            </div>
-
-            <div className="p-3 rounded-xl bg-muted/30 border border-border">
-              <span className="text-muted-foreground block text-[11px] mb-0.5">Modalidad Solicitada:</span>
-              <strong className="text-primary text-sm block">
-                {solicitud.modalidad || "API individual"}
-              </strong>
-              <span className="text-[10px] text-muted-foreground">Tipo de canal interoperable</span>
-            </div>
-
-            <div className="p-3 rounded-xl bg-muted/30 border border-border">
-              <span className="text-muted-foreground block text-[11px] mb-0.5">Cupo Solicitado:</span>
-              <strong className="text-foreground text-sm block font-mono">
-                {(solicitud.cupo || 50000).toLocaleString()} registros
-              </strong>
-              <span className="text-[10px] text-muted-foreground">Volumen anual estimado</span>
-            </div>
-          </div>
-        </Card>
-
-        {/* 8 PUNTOS DE REVISIÓN FUNCIONAL */}
-        <div className="space-y-6">
-          {/* PUNTO 1: FUENTE */}
-          <Card className="p-6 bg-surface border-border shadow-xs rounded-2xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-border/70">
-              <div className="flex items-center gap-2">
-                <div className="size-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">
-                  1
+                  <div className="text-xs text-muted-foreground flex items-center gap-2 self-start sm:self-auto flex-wrap">
+                    <span>Paquete de datos:</span>
+                    <Badge
+                      tone="neutral"
+                      appearance="soft"
+                      size="sm"
+                      className="font-mono border border-border"
+                    >
+                      {codigoPaquete}
+                    </Badge>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            className="inline-flex items-center justify-center size-5 rounded-full bg-muted/60 text-muted-foreground hover:text-foreground transition-colors cursor-help focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            aria-label="Información del Paquete de Interoperabilidad"
+                          >
+                            <Info className="size-3.5" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent
+                          side="top"
+                          variant="primary"
+                          className="max-w-xs text-xs leading-relaxed"
+                        >
+                          Solicitud formal de acceso a paquete de interoperabilidad del Catálogo de Fuentes del SINARP.
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
                 </div>
-                <h2 className="text-base font-bold text-foreground">
-                  Validación de Fuente de Datos
-                </h2>
-              </div>
-              <Badge tone="success" appearance="soft" size="sm" className="gap-1 font-semibold text-xs">
-                <Check className="size-3" />
-                Fuente Única Vigente
-              </Badge>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-              <div className="p-3.5 rounded-xl border border-border bg-background space-y-1">
-                <span className="text-muted-foreground text-[11px] block">Fuente solicitada:</span>
-                <strong className="text-foreground text-sm block">{solicitud.fuentePrincipal}</strong>
-                <span className="text-[11px] text-muted-foreground block">
-                  Servicio: {solicitud.servicioPrincipal}
-                </span>
-              </div>
-
-              <div className="p-3.5 rounded-xl border border-border bg-background space-y-1">
-                <span className="text-muted-foreground text-[11px] block">Estado en Catálogo Nacional:</span>
-                <div className="flex items-center gap-1.5 text-success font-semibold">
-                  <CheckCircle2 className="size-4" />
-                  <span>Publicada, vigente y homologada</span>
-                </div>
-                <span className="text-[11px] text-muted-foreground block">
-                  Cumple con el estándar de interoperabilidad
-                </span>
-              </div>
-
-              <div className="p-3.5 rounded-xl border border-border bg-background space-y-1">
-                <span className="text-muted-foreground text-[11px] block">Regla de unicidad de fuente:</span>
-                <strong className="text-foreground text-sm block">1 sola fuente utilizada</strong>
-                <span className="text-[11px] text-muted-foreground block">
-                  La solicitud no mezcla múltiples fuentes proveedoras
-                </span>
-              </div>
-            </div>
-          </Card>
-
-          {/* PUNTO 2, 3 y 4: CAMPOS, FINALIDAD Y JUSTIFICACIÓN JURÍDICA */}
-          <Card className="p-6 bg-surface border-border shadow-xs rounded-2xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-border/70">
-              <div className="flex items-center gap-2">
-                <div className="size-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">
-                  2-4
-                </div>
-                <div>
-                  <h2 className="text-base font-bold text-foreground">
-                    Evaluación de Campos, Finalidad de Uso y Justificación Jurídica
-                  </h2>
-                  <p className="text-xs text-muted-foreground">
-                    Revise que cada campo solicitado corresponda a la necesidad planteada y que la finalidad no sea insuficiente. En campos confidenciales se exhibe la justificación jurídica para verificar completitud.
-                  </p>
-                </div>
-              </div>
-              <Badge tone="neutral" appearance="outline" size="sm" className="font-semibold text-xs">
-                {campos.length} campos en evaluación
-              </Badge>
-            </div>
-
-            <div className="space-y-3">
-              {campos.map((campo, idx) => {
-                const nombreCampo = campo.nombre || campo.nombreCampo || `Campo ${idx + 1}`;
-                const fundamentoCampo = campo.justificacionConfidencial || campo.fundamento;
-                return (
-                <div
-                  key={campo.id}
-                  className="p-4 rounded-xl border border-border bg-muted/15 space-y-3 text-xs"
+                {/* TAB 1: RESUMEN DEL EXPEDIENTE DE ACCESO */}
+                <TabsContent
+                  value="resumen"
+                  className="space-y-6 animate-in fade-in duration-200"
                 >
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className="size-5 rounded-full bg-primary/10 text-primary text-[10px] font-bold flex items-center justify-center">
-                        {idx + 1}
-                      </span>
-                      <span className="font-mono font-bold text-foreground text-sm">{nombreCampo}</span>
-                      <span className="text-muted-foreground text-[11px]">({campo.tipo || "String"})</span>
-                      {campo.clasificacion === "Confidencial" ? (
-                        <Badge tone="warning" appearance="soft" size="sm" className="gap-1 text-[10px]">
-                          <Lock className="size-2.5" />
-                          Confidencial
+                  {/* Card Featured del Expediente (Estilo UI Kit idéntico a Anexo A/B) */}
+                  <Card
+                    variant="featured"
+                    disableHover={true}
+                    className="bg-primary-100/30 dark:bg-primary-900/20 border-0 shadow-none hover:shadow-none hover:translate-y-0 mb-4 relative overflow-hidden"
+                  >
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <CardBadge className="bg-primary/20 text-primary text-[10px] uppercase font-bold tracking-wider px-2.5 py-0.5 border-0">
+                        PAQUETE DE INTEROPERABILIDAD · {codigoPaquete}
+                      </CardBadge>
+                      {tieneConfidenciales ? (
+                        <Badge
+                          tone="warning"
+                          appearance="soft"
+                          size="sm"
+                          className="gap-1 text-[10px]"
+                        >
+                          <Lock className="size-3" />
+                          <span>Contiene campos confidenciales (Requiere DPI)</span>
                         </Badge>
                       ) : (
-                        <Badge tone="neutral" appearance="soft" size="sm" className="gap-1 text-[10px]">
-                          <Unlock className="size-2.5" />
-                          Accesible
+                        <Badge
+                          tone="success"
+                          appearance="soft"
+                          size="sm"
+                          className="gap-1 text-[10px]"
+                        >
+                          <Unlock className="size-3" />
+                          <span>Solo campos accesibles</span>
                         </Badge>
                       )}
                     </div>
 
-                    {isEvaluable && (
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleObservarCampoDirecto(nombreCampo, "finalidad")}
-                          className="h-7 text-xs text-warning hover:bg-warning/10 gap-1"
+                    <CardTitle className="text-lg sm:text-xl font-bold font-heading text-primary">
+                      {fuenteNombre}
+                    </CardTitle>
+
+                    <CardDescription className="text-xs text-primary-800/80 dark:text-primary-200/80 font-medium">
+                      Proveedor: {institucionProveedora} · Proyecto: {proyectoNombre}
+                    </CardDescription>
+
+                    <CardDecorativeIcon className="-bottom-10 -right-10 opacity-20 group-hover/card:scale-100">
+                      <Database className="size-32 text-primary" />
+                    </CardDecorativeIcon>
+                  </Card>
+
+                  {/* Pestañas Cápsula para navegar las 4 secciones del expediente (Igual que Anexo A) */}
+                  <div className="overflow-x-auto py-1 -mx-1 px-1">
+                    <Tabs
+                      defaultValue="tab-0"
+                      value={`tab-${detailTab}`}
+                      onValueChange={(val) =>
+                        setDetailTab(Number(val.replace("tab-", "")))
+                      }
+                      className="w-full"
+                    >
+                      <TabsList className="h-auto p-1 rounded-full bg-background border border-border/40 inline-flex gap-1 flex-nowrap w-max sm:w-auto justify-start">
+                        <TabsTrigger
+                          value="tab-0"
+                          className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs font-bold gap-1.5 sm:gap-2 whitespace-nowrap data-[state=active]:bg-primary-300 data-[state=active]:text-white data-[state=active]:[&_svg]:text-white dark:data-[state=active]:bg-primary-300 dark:data-[state=active]:text-white dark:data-[state=active]:[&_svg]:text-white"
                         >
-                          <AlertTriangle className="size-3 text-warning" />
-                          <span>Observar finalidad</span>
-                        </Button>
-                      </div>
-                    )}
+                          <Building2 className="size-3.5 shrink-0" />
+                          <span>1. Institución y Fuente</span>
+                        </TabsTrigger>
+                        <TabsTrigger
+                          value="tab-1"
+                          className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs font-bold gap-1.5 sm:gap-2 whitespace-nowrap data-[state=active]:bg-primary-300 data-[state=active]:text-white data-[state=active]:[&_svg]:text-white dark:data-[state=active]:bg-primary-300 dark:data-[state=active]:text-white dark:data-[state=active]:[&_svg]:text-white"
+                        >
+                          <Layers className="size-3.5 shrink-0" />
+                          <span>2. Campos y Finalidades ({campos.length})</span>
+                        </TabsTrigger>
+                        <TabsTrigger
+                          value="tab-2"
+                          className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs font-bold gap-1.5 sm:gap-2 whitespace-nowrap data-[state=active]:bg-primary-300 data-[state=active]:text-white data-[state=active]:[&_svg]:text-white dark:data-[state=active]:bg-primary-300 dark:data-[state=active]:text-white dark:data-[state=active]:[&_svg]:text-white"
+                        >
+                          <Server className="size-3.5 shrink-0" />
+                          <span>3. Modalidad y Cupo</span>
+                        </TabsTrigger>
+                        <TabsTrigger
+                          value="tab-3"
+                          className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs font-bold gap-1.5 sm:gap-2 whitespace-nowrap data-[state=active]:bg-primary-300 data-[state=active]:text-white data-[state=active]:[&_svg]:text-white dark:data-[state=active]:bg-primary-300 dark:data-[state=active]:text-white dark:data-[state=active]:[&_svg]:text-white"
+                        >
+                          <FileText className="size-3.5 shrink-0" />
+                          <span>4. Documentos ({docs.length})</span>
+                        </TabsTrigger>
+                      </TabsList>
+                    </Tabs>
                   </div>
 
-                  {campo.descripcion && (
-                    <p className="text-[11px] text-muted-foreground">{campo.descripcion}</p>
-                  )}
-
-                  {/* Bloque 3: Finalidad de Uso */}
-                  <div className="p-3 rounded-lg bg-background border border-border/70 space-y-1">
-                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
-                      3. Finalidad de uso declarada para este campo:
-                    </span>
-                    <p className="text-xs text-foreground leading-relaxed">
-                      {campo.finalidad || "Finalidad obligatoria requerida para la verificación de identidad del ciudadano."}
-                    </p>
-                  </div>
-
-                  {/* Bloque 4: Justificación Jurídica (Solo confidenciales) */}
-                  {campo.clasificacion === "Confidencial" ? (
-                    <div className="p-3 rounded-lg bg-warning/5 border border-warning/30 space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-bold text-warning uppercase tracking-wider block">
-                          4. Justificación jurídica presentada (Confidencial):
-                        </span>
-                        <Badge tone="info" appearance="soft" size="sm" className="text-[9px] px-1 py-0">
-                          Dictamen definitivo en DPI
+                  {/* SECCIÓN 0: INSTITUCIÓN SOLICITANTE, PROYECTO Y FUENTE */}
+                  {detailTab === 0 && (
+                    <div className="bg-surface border border-border rounded-2xl p-4 sm:p-6 space-y-6 shadow-xs animate-in fade-in duration-200">
+                      <div className="bg-primary-100/20 dark:bg-black/35 border-b border-primary dark:border-primary/40 p-3.5 mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-t-lg">
+                        <div>
+                          <h2 className="text-sm font-bold font-heading text-primary dark:text-primary-300 flex items-center gap-2">
+                            <Building2 className="size-4 text-primary dark:text-primary-300 shrink-0" />
+                            <span>
+                              Sección I — Institución Solicitante, Proyecto y Fuente Requerida
+                            </span>
+                          </h2>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            Identificación de la entidad consumidora, proyecto vinculado y justificación general de necesidad funcional.
+                          </p>
+                        </div>
+                        <Badge
+                          tone="primary"
+                          appearance="solid"
+                          size="sm"
+                          className="font-bold shrink-0 !text-white shadow-xs"
+                        >
+                          {solicitud.tipoInstitucion.toUpperCase()}
                         </Badge>
                       </div>
-                      <p className="text-xs text-foreground leading-relaxed">
-                        {fundamentoCampo || "Base legal conforme Ley Orgánica de Protección de Datos Personales (LOPDP) y atribuciones institucionales."}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground italic">
-                        * Gestión constata que la justificación esté debidamente diligenciada y sea congruente con el objetivo institucional antes de derivar a Protección de la Información (DPI).
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <Label className="text-xs font-semibold text-foreground">
+                            Institución Solicitante (Consumidora)
+                          </Label>
+                          <InputGroup
+                            leftIcon={
+                              <Building2 className="size-4 text-muted-foreground" />
+                            }
+                          >
+                            <InputGroupInput
+                              value={solicitud.institucion}
+                              disabled
+                              className="bg-muted/30 cursor-not-allowed font-semibold text-xs text-foreground"
+                            />
+                          </InputGroup>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <Label className="text-xs font-semibold text-foreground">
+                            Coordinador Institucional Solicitante
+                          </Label>
+                          <InputGroup
+                            leftIcon={
+                              <User className="size-4 text-muted-foreground" />
+                            }
+                          >
+                            <InputGroupInput
+                              value={solicitud.coordinador}
+                              disabled
+                              className="bg-muted/30 cursor-not-allowed font-semibold text-xs text-foreground"
+                            />
+                          </InputGroup>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <Label className="text-xs font-semibold text-foreground">
+                            Proyecto Institucional Vinculado
+                          </Label>
+                          <InputGroup
+                            leftIcon={
+                              <FolderKanban className="size-4 text-muted-foreground" />
+                            }
+                          >
+                            <InputGroupInput
+                              value={proyectoNombre}
+                              disabled
+                              className="bg-muted/30 cursor-not-allowed text-xs text-foreground font-medium"
+                            />
+                          </InputGroup>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <Label className="text-xs font-semibold text-foreground">
+                            Institución Proveedora de la Fuente
+                          </Label>
+                          <InputGroup
+                            leftIcon={
+                              <Database className="size-4 text-muted-foreground" />
+                            }
+                          >
+                            <InputGroupInput
+                              value={institucionProveedora}
+                              disabled
+                              className="bg-muted/30 cursor-not-allowed text-xs text-foreground"
+                            />
+                          </InputGroup>
+                        </div>
+
+                        <div className="sm:col-span-2 space-y-1.5">
+                          <Label className="text-xs font-semibold text-foreground">
+                            Justificación General y Finalidad Institucional del Trámite
+                          </Label>
+                          <Textarea
+                            value={justificacionGeneral}
+                            disabled
+                            rows={3}
+                            className="bg-muted/30 cursor-not-allowed text-xs leading-relaxed text-foreground rounded-2xl p-3.5 border-border/80"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="pt-4 border-t border-border flex justify-end">
+                        <Button
+                          type="button"
+                          variant="primary"
+                          size="sm"
+                          onClick={() => setDetailTab(1)}
+                          className="w-full sm:w-auto text-xs font-semibold gap-1.5"
+                        >
+                          Siguiente: 2. Campos y Finalidades →
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* SECCIÓN 1: CAMPOS SOLICITADOS Y FINALIDAD POR CAMPO */}
+                  {detailTab === 1 && (
+                    <div className="bg-surface border border-border rounded-2xl p-4 sm:p-6 space-y-6 shadow-xs animate-in fade-in duration-200">
+                      <div className="bg-primary-100/20 dark:bg-black/35 border-b border-primary dark:border-primary/40 p-3.5 mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-t-lg">
+                        <div>
+                          <h2 className="text-sm font-bold font-heading text-primary dark:text-primary-300 flex items-center gap-2">
+                            <Layers className="size-4 text-primary dark:text-primary-300 shrink-0" />
+                            <span>
+                              Sección II — Campos Solicitados y Finalidades Específicas
+                            </span>
+                          </h2>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            Verifica que cada atributo requerido sea estrictamente pertinente y proporcional al proyecto declarado (SOL-05).
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <Badge tone="success" appearance="soft" size="sm">
+                            {accesiblesCount} Accesibles
+                          </Badge>
+                          <Badge
+                            tone={confidencialesCount > 0 ? "warning" : "neutral"}
+                            appearance="soft"
+                            size="sm"
+                          >
+                            {confidencialesCount} Confidenciales
+                          </Badge>
+                        </div>
+                      </div>
+
+                      {tieneConfidenciales ? (
+                        <Alert
+                          variant="warning"
+                          icon={<Lock className="size-4" />}
+                          title="Bifurcación a Dirección de Protección de la Información (DPI)"
+                          className="p-3.5 text-xs"
+                        >
+                          <p className="text-[11px] text-muted-foreground leading-relaxed mt-0.5">
+                            Esta solicitud incluye{" "}
+                            <strong>{confidencialesCount} campo(s) confidencial(es)</strong>.
+                            Al aprobarse funcionalmente en Gestión, el expediente pasará automáticamente a{" "}
+                            <strong>Pendiente de asignación en DPI</strong> para evaluación normativa y legal.
+                          </p>
+                        </Alert>
+                      ) : (
+                        <Alert
+                          variant="success"
+                          icon={<Unlock className="size-4" />}
+                          title="Flujo de aprobación directa en Gestión"
+                          className="p-3.5 text-xs"
+                        >
+                          <p className="text-[11px] text-muted-foreground leading-relaxed mt-0.5">
+                            Todos los campos solicitados son de sensibilidad{" "}
+                            <strong>Accesible</strong>. La aprobación del Equipo de Gestión concluye la etapa de evaluación sin requerir paso por DPI.
+                          </p>
+                        </Alert>
+                      )}
+
+                      <div className="border border-border rounded-xl overflow-hidden">
+                        <Table>
+                          <TableHeader className="bg-muted/40">
+                            <TableRow>
+                              <TableHead className="text-xs font-bold uppercase text-muted-foreground w-[220px]">
+                                Campo requerido
+                              </TableHead>
+                              <TableHead className="text-xs font-bold uppercase text-muted-foreground w-[140px]">
+                                Sensibilidad
+                              </TableHead>
+                              <TableHead className="text-xs font-bold uppercase text-muted-foreground">
+                                Finalidad específica declarada por el Coordinador
+                              </TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {campos.map((campo, idx) => (
+                              <TableRow key={idx} className="hover:bg-muted/20">
+                                <TableCell className="align-top font-semibold text-xs text-foreground">
+                                  {campo.nombre}
+                                  {campo.descripcion && (
+                                    <span className="block text-[11px] font-normal text-muted-foreground mt-0.5">
+                                      {campo.descripcion}
+                                    </span>
+                                  )}
+                                </TableCell>
+                                <TableCell className="align-top">
+                                  {campo.clasificacion === "Confidencial" ? (
+                                    <Badge
+                                      tone="warning"
+                                      appearance="soft"
+                                      size="sm"
+                                      className="gap-1"
+                                    >
+                                      <Lock className="size-3" />
+                                      Confidencial
+                                    </Badge>
+                                  ) : (
+                                    <Badge
+                                      tone="success"
+                                      appearance="soft"
+                                      size="sm"
+                                      className="gap-1"
+                                    >
+                                      <Unlock className="size-3" />
+                                      Accesible
+                                    </Badge>
+                                  )}
+                                </TableCell>
+                                <TableCell className="align-top text-xs text-muted-foreground leading-relaxed">
+                                  {campo.finalidad}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+
+                      <div className="pt-4 border-t border-border flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+                        <Button
+                          type="button"
+                          variant="neutral"
+                          size="sm"
+                          onClick={() => setDetailTab(0)}
+                          className="w-full sm:w-auto text-xs font-semibold gap-1.5"
+                        >
+                          ← Volver a Institución y Fuente
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="primary"
+                          size="sm"
+                          onClick={() => setDetailTab(2)}
+                          className="w-full sm:w-auto text-xs font-semibold gap-1.5"
+                        >
+                          Siguiente: 3. Modalidad y Cupo →
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* SECCIÓN 2: MODALIDAD DE CONSUMO Y CUPO ESTIMADO */}
+                  {detailTab === 2 && (
+                    <div className="bg-surface border border-border rounded-2xl p-4 sm:p-6 space-y-6 shadow-xs animate-in fade-in duration-200">
+                      <div className="bg-primary-100/20 dark:bg-black/35 border-b border-primary dark:border-primary/40 p-3.5 mb-5 rounded-t-lg">
+                        <h2 className="text-sm font-bold font-heading text-primary dark:text-primary-300 flex items-center gap-2">
+                          <Server className="size-4 text-primary dark:text-primary-300 shrink-0" />
+                          <span>
+                            Sección III — Modalidad de Consumo, Servicio Web y Cupo Estimado
+                          </span>
+                        </h2>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Revisión de la modalidad técnica solicitada y volumen estimado de transacciones.
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="p-4 rounded-xl border border-border bg-muted/20 space-y-1">
+                          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                            Modalidad solicitada por la entidad
+                          </span>
+                          <p className="text-sm font-bold text-foreground">
+                            {solicitud.modalidad || "API individual"}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground">
+                            Modalidades soportadas por el paquete: API individual / API masiva
+                          </p>
+                        </div>
+
+                        <div className="p-4 rounded-xl border border-border bg-muted/20 space-y-1">
+                          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                            Cupo estimado de consultas
+                          </span>
+                          <p className="text-sm font-bold font-mono text-primary">
+                            {(solicitud.cupo || 50000).toLocaleString()} registros / año
+                          </p>
+                          <p className="text-[11px] text-muted-foreground">
+                            Volumen anual proyectado para el proyecto {proyectoNombre}
+                          </p>
+                        </div>
+
+                        <div className="sm:col-span-2 p-4 rounded-xl border border-border bg-muted/20 space-y-1.5">
+                          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                            Servicio Web / Endpoint Técnico Asociado
+                          </span>
+                          <p className="text-xs font-mono font-semibold text-foreground">
+                            {solicitud.servicioPrincipal ||
+                              `ws_${codigoPaquete.toLowerCase().replace(/[^a-z0-9]/g, "_")}_consulta_v2`}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground">
+                            Bus de Interoperabilidad Gubernamental SINARP · Protocolo seguro con autenticación mutua.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="pt-4 border-t border-border flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+                        <Button
+                          type="button"
+                          variant="neutral"
+                          size="sm"
+                          onClick={() => setDetailTab(1)}
+                          className="w-full sm:w-auto text-xs font-semibold gap-1.5"
+                        >
+                          ← Volver a Campos y Finalidades
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="primary"
+                          size="sm"
+                          onClick={() => setDetailTab(3)}
+                          className="w-full sm:w-auto text-xs font-semibold gap-1.5"
+                        >
+                          Siguiente: 4. Documentos de Soporte →
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* SECCIÓN 3: DOCUMENTOS DE SOPORTE */}
+                  {detailTab === 3 && (
+                    <div className="bg-surface border border-border rounded-2xl p-4 sm:p-6 space-y-6 shadow-xs animate-in fade-in duration-200">
+                      <div className="bg-primary-100/20 dark:bg-black/35 border-b border-primary dark:border-primary/40 p-3.5 mb-5 rounded-t-lg">
+                        <h2 className="text-sm font-bold font-heading text-primary dark:text-primary-300 flex items-center gap-2">
+                          <ShieldCheck className="size-4 text-primary dark:text-primary-300 shrink-0" />
+                          <span>
+                            Sección IV — Documentos Habilitantes y Soportes Adjuntos
+                          </span>
+                        </h2>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Verifica la validez documental y firmas electrónicas de los archivos adjuntados por el Coordinador.
+                        </p>
+                      </div>
+
+                      <div className="space-y-3">
+                        {docs.map((doc) => (
+                          <div
+                            key={doc.id}
+                            className="p-4 rounded-2xl border border-border bg-surface hover:border-primary/30 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs"
+                          >
+                            <div className="flex items-start gap-3 min-w-0">
+                              <div className="size-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
+                                <FileText className="size-5" />
+                              </div>
+                              <div className="min-w-0 space-y-1">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <p className="font-mono font-bold text-xs text-foreground truncate">
+                                    {doc.nombre}
+                                  </p>
+                                  <Badge
+                                    tone="success"
+                                    appearance="soft"
+                                    size="sm"
+                                    className="text-[10px] gap-1"
+                                  >
+                                    <Check className="size-3" />
+                                    FirmaEC verificada
+                                  </Badge>
+                                </div>
+                                <p className="text-[11px] text-muted-foreground">
+                                  Categoría: {doc.categoria || "Soporte documental"} · Formato{" "}
+                                  {doc.tipo || "PDF"} · Tamaño: {doc.tamano || "1.4 MB"} · Cargado:{" "}
+                                  {doc.fechaCarga}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 shrink-0">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="h-8 px-3 text-xs font-semibold gap-1.5"
+                                onClick={() =>
+                                  setSelectedDocPreview({
+                                    nombre: doc.nombre,
+                                    fechaCarga: doc.fechaCarga,
+                                  })
+                                }
+                              >
+                                <Eye className="size-3.5 text-primary" />
+                                <span>Vista previa</span>
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 px-2.5 text-xs font-semibold gap-1"
+                                onClick={() =>
+                                  toast.success(`Descargando ${doc.nombre}`, {
+                                    description:
+                                      "Archivo con firma electrónica institucional verificada.",
+                                  })
+                                }
+                              >
+                                <Download className="size-3.5" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="pt-4 border-t border-border flex justify-start">
+                        <Button
+                          type="button"
+                          variant="neutral"
+                          size="sm"
+                          onClick={() => setDetailTab(2)}
+                          className="w-full sm:w-auto text-xs font-semibold gap-1.5"
+                        >
+                          ← Volver a Modalidad y Cupo
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </TabsContent>
+
+                {/* TAB 2: TRAZABILIDAD E HISTORIAL DE OBSERVACIONES */}
+                <TabsContent
+                  value="trazabilidad"
+                  className="space-y-4 animate-in fade-in duration-200"
+                >
+                  <Card
+                    variant="featured"
+                    disableHover={true}
+                    className="bg-info-100/30 dark:bg-info-900/20 border-0 shadow-none hover:shadow-none hover:translate-y-0 relative overflow-hidden"
+                  >
+                    <div className="flex items-center gap-2">
+                      <CardBadge className="bg-info/20 text-info text-[10px] uppercase font-bold tracking-wider px-2.5 py-0.5 border-0 flex items-center gap-1.5">
+                        <History className="size-3.5 text-info" />
+                        <span>
+                          {(solicitud.historial || []).length} EVENTOS REGISTRADOS
+                        </span>
+                      </CardBadge>
+                    </div>
+
+                    <CardTitle className="text-lg sm:text-xl font-bold font-heading text-info mt-1">
+                      Trazabilidad y Línea de Tiempo del Expediente
+                    </CardTitle>
+
+                    <CardDescription className="text-xs text-info-800/80 dark:text-info-200/80 font-medium">
+                      Historial cronológico de envíos, asignaciones, observaciones estructuradas, subsanaciones y dictámenes.
+                    </CardDescription>
+
+                    <CardDecorativeIcon className="-bottom-10 -right-10 opacity-20 group-hover/card:scale-100">
+                      <History className="size-32 text-info" />
+                    </CardDecorativeIcon>
+                  </Card>
+
+                  {/* Historial de Observaciones Estructuradas si existen */}
+                  {solicitud.observacionesEstructuradas &&
+                    solicitud.observacionesEstructuradas.length > 0 && (
+                      <div className="bg-surface border border-border rounded-2xl p-5 space-y-3 shadow-xs">
+                        <h3 className="text-sm font-bold font-heading text-foreground flex items-center gap-2">
+                          <AlertTriangle className="size-4 text-warning" />
+                          <span>Historial de Observaciones Registradas</span>
+                        </h3>
+                        <div className="space-y-2.5">
+                          {solicitud.observacionesEstructuradas.map((obs) => (
+                            <div
+                              key={obs.id}
+                              className="p-3.5 rounded-xl border border-border bg-muted/20 space-y-1.5 text-xs"
+                            >
+                              <div className="flex items-center justify-between gap-2 flex-wrap">
+                                <div className="flex items-center gap-2">
+                                  <Badge tone="warning" appearance="soft" size="sm">
+                                    {obs.tipo.toUpperCase()} · {obs.elementoNombre || "Elemento"}
+                                  </Badge>
+                                  <span className="text-[11px] text-muted-foreground">
+                                    Por {obs.revisor} ({obs.fecha})
+                                  </span>
+                                </div>
+                                <Badge tone="neutral" appearance="soft" size="sm">
+                                  Etapa: {obs.etapa}
+                                </Badge>
+                              </div>
+                              <p className="text-foreground leading-relaxed">
+                                {obs.descripcion}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                  {/* Línea de tiempo cronológica */}
+                  <div className="bg-surface border border-border rounded-2xl p-5 sm:p-6 space-y-4 shadow-xs">
+                    <div className="space-y-4 relative before:absolute before:top-2 before:bottom-2 before:left-3 before:w-0.5 before:bg-border">
+                      {(solicitud.historial || []).map((ev, i) => (
+                        <div key={i} className="relative pl-8">
+                          <span className="absolute left-1.5 top-1.5 size-3 rounded-full bg-primary ring-4 ring-surface" />
+                          <div className="p-3.5 rounded-xl border border-border bg-muted/20 space-y-1">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <span className="text-xs font-bold text-foreground">
+                                {ev.evento}
+                              </span>
+                              <span className="text-[11px] font-mono text-muted-foreground">
+                                {ev.fecha}
+                              </span>
+                            </div>
+                            {ev.detalle && (
+                              <p className="text-xs text-muted-foreground leading-relaxed">
+                                {ev.detalle}
+                              </p>
+                            )}
+                            {ev.actor && (
+                              <div className="text-[11px] text-muted-foreground pt-1">
+                                Actor: <strong className="text-foreground">{ev.actor}</strong>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </div>
+
+            {/* COLUMNA DERECHA (5 cols): PANEL DE REVISIÓN Y DECISIÓN DE GESTIÓN (Igual que Anexos A y B) */}
+            <div className="lg:col-span-5 xl:col-span-5 space-y-5 lg:sticky lg:top-6">
+              <div className="bg-surface border border-border rounded-2xl p-5 shadow-xs space-y-4">
+                {/* Encabezado: Revisión de la solicitud + Badge de estado */}
+                <div className="flex items-center justify-between gap-2 pb-3 border-b border-border/70">
+                  <div className="flex items-center gap-2">
+                    <UserCheck className="size-5 text-primary" />
+                    <h3 className="font-heading font-bold text-sm text-foreground">
+                      Revisión de la solicitud
+                    </h3>
+                  </div>
+                  {renderEstadoBadge(solicitud.estado)}
+                </div>
+
+                {/* Resumen del contexto de revisión */}
+                <div className="p-3.5 bg-muted/30 rounded-xl border border-border text-xs space-y-2">
+                  <div className="flex flex-col gap-0.5 text-[11px]">
+                    <span className="text-muted-foreground">
+                      Fuente / Paquete requerido:
+                    </span>
+                    <strong className="text-foreground leading-snug">
+                      {fuenteNombre} ({codigoPaquete})
+                    </strong>
+                  </div>
+
+                  <div className="flex justify-between items-center text-[11px] pt-1.5 border-t border-border/50">
+                    <span className="text-muted-foreground">
+                      Institución solicitante:
+                    </span>
+                    <strong className="text-foreground truncate max-w-[190px] text-right">
+                      {solicitud.institucion}
+                    </strong>
+                  </div>
+
+                  <div className="flex justify-between items-center text-[11px]">
+                    <span className="text-muted-foreground">
+                      Coordinador solicitante:
+                    </span>
+                    <strong className="text-foreground">{solicitud.coordinador}</strong>
+                  </div>
+
+                  <div className="flex justify-between items-center text-[11px]">
+                    <span className="text-muted-foreground">Alcance de campos:</span>
+                    <strong className="text-foreground">
+                      {campos.length} campos ({confidencialesCount} confidenciales)
+                    </strong>
+                  </div>
+
+                  <div className="flex justify-between items-center text-[11px]">
+                    <span className="text-muted-foreground">Cupo solicitado:</span>
+                    <strong className="text-foreground font-mono">
+                      {(solicitud.cupo || 50000).toLocaleString()} reg./año
+                    </strong>
+                  </div>
+
+                  <div className="flex justify-between items-center text-[11px]">
+                    <span className="text-muted-foreground">Revisor de Gestión:</span>
+                    <strong className="text-foreground">
+                      {solicitud.revisorAsignado || "Ing. Sofía Viteri"}
+                    </strong>
+                  </div>
+                </div>
+
+                {/* Alerta de reingreso subsanado si aplica */}
+                {(solicitud.versionExpediente || 1) > 1 && (
+                  <Alert
+                    variant="success"
+                    icon={<Sparkles className="size-4" />}
+                    title={`Reingreso subsanado (Versión v${solicitud.versionExpediente})`}
+                    className="p-3 text-xs"
+                  >
+                    <p className="text-[11px] text-muted-foreground leading-relaxed mt-0.5">
+                      {solicitud.detalleSubsanacion ||
+                        "El Coordinador subsanó las observaciones previas dentro del plazo de 3 días hábiles."}
+                    </p>
+                  </Alert>
+                )}
+
+                {/* CASO 1: EN EVALUACIÓN FUNCIONAL */}
+                {enEvaluacion && (
+                  <div className="space-y-4 pt-1">
+                    {/* Parámetro ajustable por Gestión antes de aprobar: Modalidad autorizada */}
+                    <div className="p-3.5 rounded-xl border border-border bg-background space-y-2">
+                      <Label className="text-xs font-bold text-foreground block">
+                        Modalidad de consumo a autorizar por Gestión
+                      </Label>
+                      <Combobox
+                        items={modalidadOptions}
+                        value={
+                          modalidadOptions.find(
+                            (m) => m.value === modalidadAutorizada
+                          ) || modalidadOptions[0]
+                        }
+                        onValueChange={(val: any) => {
+                          if (val) {
+                            setModalidadAutorizada(
+                              (typeof val === "string"
+                                ? val
+                                : val.value) as ModalidadAcceso
+                            );
+                          }
+                        }}
+                      >
+                        <ComboboxSelectTrigger className="w-full h-9 justify-between text-xs bg-surface border-border rounded-xl px-3 shadow-2xs" />
+                        <ComboboxContent align="start" className="w-72">
+                          <ComboboxList>
+                            {modalidadOptions.map((opt) => (
+                              <ComboboxItem
+                                key={opt.value}
+                                value={opt}
+                                className="text-xs"
+                              >
+                                {opt.label}
+                              </ComboboxItem>
+                            ))}
+                          </ComboboxList>
+                        </ComboboxContent>
+                      </Combobox>
+                      <p className="text-[11px] text-muted-foreground leading-snug">
+                        Solicitada por el coordinador:{" "}
+                        <strong className="text-foreground">
+                          {solicitud.modalidad || "API individual"}
+                        </strong>
                       </p>
                     </div>
-                  ) : null}
-                </div>
-                );
-              })}
-            </div>
-          </Card>
 
-          {/* PUNTO 5 y 6: MODALIDAD Y CUPO */}
-          <Card className="p-6 bg-surface border-border shadow-xs rounded-2xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-border/70">
-              <div className="flex items-center gap-2">
-                <div className="size-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">
-                  5-6
-                </div>
-                <h2 className="text-base font-bold text-foreground">
-                  Validación de Modalidad y Cupo de Registros
-                </h2>
-              </div>
-              <Badge tone="info" appearance="soft" size="sm" className="font-semibold text-xs">
-                Parámetros Técnicos
-              </Badge>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">
-              {/* Modalidad */}
-              <div className="space-y-3">
-                <label className="font-semibold text-foreground block">
-                  5. Modalidad solicitada vs. Modalidad autorizada:
-                </label>
-                <div className="p-3 rounded-xl bg-muted/20 border border-border space-y-1">
-                  <span className="text-muted-foreground text-[11px]">Modalidad pedida por Coordinador:</span>
-                  <strong className="text-foreground block text-sm">{solicitud.modalidad || "API individual"}</strong>
-                </div>
-
-                {isEvaluable ? (
-                  <div className="space-y-2">
-                    <span className="text-[11px] font-semibold text-muted-foreground block">
-                      Seleccione modalidad técnica autorizada para esta fuente:
-                    </span>
-                    <RadioGroup
-                      value={modalidadAutorizada}
-                      onValueChange={(v) => setModalidadAutorizada(v as "API individual" | "API masiva" | "Ambas")}
-                      className="grid grid-cols-3 gap-2"
+                    <Alert
+                      variant="info"
+                      icon={<Activity className="size-4" />}
+                      title="Expediente asignado para evaluación"
+                      className="p-3 text-xs"
                     >
-                      {(["API individual", "API masiva", "Ambas"] as const).map((m) => (
-                        <label
-                          key={m}
-                          htmlFor={`mod-aut-${m}`}
-                          className={cn(
-                            "py-2 px-3 rounded-xl border text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5",
-                            modalidadAutorizada === m
-                              ? "border-primary bg-primary/10 text-primary ring-1 ring-primary/40 shadow-xs"
-                              : "border-border bg-background hover:bg-muted/40 text-muted-foreground"
-                          )}
+                      <p className="text-[11px] leading-relaxed text-muted-foreground mt-0.5">
+                        Revisa las 4 secciones del expediente en la columna izquierda y selecciona tu decisión para continuar.
+                      </p>
+                    </Alert>
+
+                    {/* Bloque: ¿Cuál es tu decisión? (Idéntico a Anexos A y B) */}
+                    <div className="space-y-3 pt-2 border-t border-border/70">
+                      <div>
+                        <h4 className="font-heading font-bold text-sm text-foreground">
+                          ¿Cuál es tu decisión?
+                        </h4>
+                        <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                          En la etapa de Gestión no se solicita firma electrónica ni informe técnico PDF. Si existen inconsistencias, observa el expediente para su subsanación en 3 días hábiles.
+                        </p>
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-1">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handleOpenModalObservar}
+                          className="flex-1 text-xs font-semibold text-warning border-warning/40 hover:bg-warning/10 gap-1.5"
                         >
-                          <RadioGroupItem value={m} id={`mod-aut-${m}`} className="sr-only" />
-                          <span>{m}</span>
-                        </label>
-                      ))}
-                    </RadioGroup>
+                          <AlertTriangle className="size-3.5" />
+                          <span>Observar solicitud</span>
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="primary"
+                          size="sm"
+                          onClick={() => setIsModalAprobarOpen(true)}
+                          className="flex-1 text-xs font-semibold gap-1.5 shadow-2xs"
+                        >
+                          <CheckCircle2 className="size-3.5" />
+                          <span>Aprobar solicitud</span>
+                        </Button>
+                      </div>
+                    </div>
                   </div>
-                ) : (
-                  <div className="p-3 rounded-xl bg-background border border-border space-y-1">
-                    <span className="text-muted-foreground text-[11px]">Modalidad aprobada:</span>
-                    <strong className="text-primary block text-sm">{solicitud.modalidadAprobada || solicitud.modalidad}</strong>
+                )}
+
+                {/* CASO 2: OBSERVADA POR GESTIÓN (En espera de subsanación) */}
+                {(solicitud.estado === "Observada" ||
+                  solicitud.estado === "Requiere corrección" ||
+                  solicitud.estado === "Con observaciones") && (
+                  <div className="space-y-3 pt-1">
+                    <Alert
+                      variant="warning"
+                      icon={<Clock className="size-4" />}
+                      title="Solicitud observada — En espera de subsanación"
+                      className="p-3 text-xs"
+                    >
+                      <p className="text-[11px] leading-relaxed text-muted-foreground mt-0.5">
+                        Se notificó al Coordinador institucional para que subsane las observaciones y remita el expediente corregido.
+                      </p>
+                    </Alert>
+
+                    {solicitud.observacionesEstructuradas &&
+                      solicitud.observacionesEstructuradas.length > 0 && (
+                        <div className="p-3 bg-warning/5 rounded-xl border border-warning/20 text-xs space-y-2">
+                          <span className="font-semibold text-foreground block text-[11px]">
+                            Observaciones enviadas ({solicitud.observacionesEstructuradas.length}):
+                          </span>
+                          <ul className="space-y-1.5 text-[11px]">
+                            {solicitud.observacionesEstructuradas.map((obs) => (
+                              <li key={obs.id} className="text-muted-foreground">
+                                <strong className="text-foreground">
+                                  {obs.elementoNombre}:
+                                </strong>{" "}
+                                {obs.descripcion}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                  </div>
+                )}
+
+                {/* CASO 3: APROBADA POR GESTIÓN O DERIVADA A DPI */}
+                {(solicitud.estado === "Aprobada por Gestión" ||
+                  solicitud.estado === "Pendiente de asignación en Normatividad" ||
+                  solicitud.estado === "En revisión normativa") && (
+                  <div className="space-y-3 pt-1">
+                    <Alert
+                      variant="success"
+                      icon={<CheckCircle2 className="size-4" />}
+                      title="Evaluación funcional de Gestión completada"
+                      className="p-3 text-xs"
+                    >
+                      <p className="text-[11px] leading-relaxed text-muted-foreground mt-0.5">
+                        {tieneConfidenciales
+                          ? "Aprobaste la pertinencia funcional en Gestión. El expediente fue derivado a la Dirección de Protección de la Información (DPI) por contener campos confidenciales."
+                          : "Aprobaste funcionalmente esta solicitud. Al contener únicamente campos accesibles, quedó aprobada directamente por Gestión."}
+                      </p>
+                    </Alert>
+
+                    <div className="p-3 rounded-xl bg-success/5 border border-success/20 text-[11px] space-y-1.5">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">
+                          Modalidad autorizada:
+                        </span>
+                        <strong className="text-foreground">
+                          {solicitud.modalidadAprobada || modalidadAutorizada}
+                        </strong>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Cupo autorizado:</span>
+                        <strong className="text-foreground font-mono">
+                          {(
+                            solicitud.cupoAprobado ||
+                            solicitud.cupo ||
+                            50000
+                          ).toLocaleString()}{" "}
+                          registros
+                        </strong>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* CASO 4: CERRADA POR NO SUBSANACIÓN */}
+                {(solicitud.estado === "Cerrada" ||
+                  solicitud.estado === "Cerrada por vencimiento") && (
+                  <div className="space-y-3 pt-1">
+                    <Alert
+                      variant="danger"
+                      icon={<AlertTriangle className="size-4" />}
+                      title="Solicitud cerrada por vencimiento de plazo"
+                      className="p-3 text-xs"
+                    >
+                      <p className="text-[11px] leading-relaxed text-muted-foreground mt-0.5">
+                        Expiró el plazo de 3 días hábiles sin que la entidad subsanara las observaciones formuladas.
+                      </p>
+                    </Alert>
                   </div>
                 )}
               </div>
-
-              {/* Cupo */}
-              <div className="space-y-3">
-                <label className="font-semibold text-foreground block">
-                  6. Cupo anual solicitado en registros:
-                </label>
-                <div className="p-3 rounded-xl bg-muted/20 border border-border space-y-1">
-                  <span className="text-muted-foreground text-[11px]">Cupo en expediente:</span>
-                  <strong className="text-foreground block font-mono text-base">
-                    {(solicitud.cupo || 50000).toLocaleString()} registros
-                  </strong>
-                  <span className="text-[10px] text-muted-foreground">
-                    Volumen de consultas solicitado para el proyecto.
-                  </span>
-                </div>
-
-                <div className="p-3 rounded-xl bg-warning/5 border border-warning/20 text-[11px] text-muted-foreground leading-relaxed">
-                  <p className="font-semibold text-foreground mb-0.5">Regla de modificación de cupo:</p>
-                  El Revisor no debe editar el cupo unilateralmente. Si el volumen solicitado excede la capacidad técnica de la fuente proveedora, <strong>debe observar la solicitud</strong> para que el Coordinador lo ajuste formalmente.
-                </div>
-              </div>
             </div>
-          </Card>
-
-          {/* PUNTO 7: DOCUMENTOS */}
-          <Card className="p-6 bg-surface border-border shadow-xs rounded-2xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-border/70">
-              <div className="flex items-center gap-2">
-                <div className="size-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">
-                  7
-                </div>
-                <h2 className="text-base font-bold text-foreground">
-                  Documentos de Soporte Obligatorios
-                </h2>
-              </div>
-              <Badge tone="neutral" appearance="outline" size="sm" className="font-semibold text-xs">
-                {(solicitud.documentos || []).length || 1} documento(s)
-              </Badge>
-            </div>
-
-            <div className="space-y-2">
-              {(solicitud.documentos || [
-                { id: "doc-1", tipo: "Oficio técnico de requerimiento", nombre: "Oficio_Solicitud_Interoperabilidad_Firmado.pdf", fechaCarga: "2026-09-24", categoria: "Requerimiento" }
-              ]).map((doc) => (
-                <div
-                  key={doc.id}
-                  className="flex items-center justify-between p-3.5 rounded-xl border border-border bg-background text-xs"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
-                      <FileText className="size-4" />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-foreground">{doc.nombre}</p>
-                      <p className="text-[11px] text-muted-foreground">
-                        Tipo: {doc.tipo} · Fecha carga: {doc.fechaCarga} · Categoría: <span className="text-success font-medium">{doc.categoria}</span>
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setSelectedDocPreview({ nombre: doc.nombre, tipo: doc.tipo, fechaCarga: doc.fechaCarga });
-                        setIsDocPreviewOpen(true);
-                      }}
-                      className="h-8 text-xs gap-1.5"
-                    >
-                      <ExternalLink className="size-3.5" />
-                      <span>Ver documento</span>
-                    </Button>
-
-                    {isEvaluable && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleObservarCampoDirecto(doc.nombre, "documento")}
-                        className="h-8 text-xs text-warning hover:bg-warning/10"
-                      >
-                        Observar
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Card>
-
-          {/* PUNTO 8: TRAZABILIDAD */}
-          <Card className="p-6 bg-surface border-border shadow-xs rounded-2xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-border/70">
-              <div className="flex items-center gap-2">
-                <div className="size-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">
-                  8
-                </div>
-                <h2 className="text-base font-bold text-foreground">
-                  Trazabilidad e Historial del Expediente
-                </h2>
-              </div>
-              <Badge tone="info" appearance="soft" size="sm" className="font-semibold text-xs">
-                Auditoría Integral BN-07
-              </Badge>
-            </div>
-
-            <div className="space-y-3 text-xs">
-              {/* Eventos ordenados cronológicamente */}
-              <div className="p-3 rounded-xl border border-border bg-muted/20 space-y-1">
-                <div className="flex justify-between items-center">
-                  <span className="font-semibold text-foreground">Radicación y envío inicial</span>
-                  <span className="text-[10px] font-mono text-muted-foreground">{solicitud.fecha}</span>
-                </div>
-                <p className="text-[11px] text-muted-foreground">
-                  El Coordinador SINARP radicó la solicitud con {campos.length} campos y estado inicial &ldquo;Pendiente de asignación en Gestión&rdquo;.
-                </p>
-              </div>
-
-              {solicitud.historialAsignaciones?.map((asig, i) => (
-                <div key={asig.id || i} className="p-3 rounded-xl border border-border bg-muted/20 space-y-1">
-                  <div className="flex justify-between items-center">
-                    <span className="font-semibold text-foreground">
-                      Asignación de Revisor (v{asig.versionExpediente})
-                    </span>
-                    <span className="text-[10px] font-mono text-muted-foreground">{asig.fecha}</span>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground">
-                    El <strong>{asig.director}</strong> asignó el expediente a <strong>{asig.revisorNombre}</strong>.
-                  </p>
-                  {asig.observacion && (
-                    <p className="text-[11px] text-foreground italic bg-background p-1.5 rounded-lg border border-border/60">
-                      &ldquo;{asig.observacion}&rdquo;
-                    </p>
-                  )}
-                </div>
-              ))}
-
-              {solicitud.detalleSubsanacion && (
-                <div className="p-3 rounded-xl border border-info/30 bg-info/10 space-y-1">
-                  <div className="flex justify-between items-center">
-                    <span className="font-semibold text-foreground">Subsanación y reenvío por Coordinador</span>
-                    <span className="text-[10px] font-mono text-muted-foreground">{solicitud.fecha}</span>
-                  </div>
-                  <p className="text-[11px] text-foreground italic">
-                    Detalle aportado: &ldquo;{solicitud.detalleSubsanacion}&rdquo;
-                  </p>
-                </div>
-              )}
-
-              {solicitud.observacionesEstructuradas && solicitud.observacionesEstructuradas.length > 0 && (
-                <div className="p-3 rounded-xl border border-warning/30 bg-warning/10 space-y-2">
-                  <span className="font-semibold text-foreground block">
-                    Observaciones registradas en este expediente:
-                  </span>
-                  <div className="space-y-1.5">
-                    {solicitud.observacionesEstructuradas.map((obs) => (
-                      <div key={obs.id} className="p-2 rounded-lg bg-background border border-border text-[11px] space-y-0.5">
-                        <div className="flex items-center gap-1.5 font-medium text-foreground">
-                          <Badge tone="warning" appearance="outline" size="sm" className="text-[9px] px-1 py-0">
-                            {obs.tipo}
-                          </Badge>
-                          <span>{obs.elementoNombre}</span>
-                        </div>
-                        <p className="text-muted-foreground">{obs.descripcion}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </Card>
+          </div>
         </div>
 
-        {/* MODAL: OBSERVAR SOLICITUD */}
-        <Dialog open={isModalObservarOpen} onOpenChange={setIsModalObservarOpen}>
-          <DialogContent variant="warning" size="lg">
-            <DialogHeader>
-              <DialogTitle className="text-xl font-bold text-foreground">
-                Observar Solicitud de Acceso
+        {/* =====================================================================
+            MODAL 1: CONFIRMAR APROBACIÓN FUNCIONAL (Organizado igual que Anexo A/B)
+           ===================================================================== */}
+        <Dialog open={isModalAprobarOpen} onOpenChange={setIsModalAprobarOpen}>
+          <DialogContent variant="warning" className="sm:max-w-[500px]">
+            <DialogHeader className="space-y-2">
+              <DialogTitle className="text-base font-bold font-heading text-foreground">
+                Confirmar Aprobación Funcional — Acceso a Fuente
               </DialogTitle>
-              <DialogDescription className="text-xs text-muted-foreground mt-2 max-w-[440px]">
-                Detalle claramente qué elementos debe subsanar el Coordinador (campos, finalidades, justificaciones, modalidad, cupo o documentos).
+              <DialogDescription className="text-xs text-muted-foreground leading-relaxed">
+                Verifica los parámetros funcionales que quedarán autorizados por el Equipo de Gestión para este expediente.
               </DialogDescription>
             </DialogHeader>
 
-            <div className="w-full text-left space-y-4 my-2 text-xs">
-              <div className="flex items-center justify-between pb-2 border-b border-border/70">
-                <span className="font-semibold text-foreground">
-                  Lista de observaciones estructuradas ({listaObservaciones.length})
-                </span>
+            <div className="space-y-3 pt-1 text-left">
+              {/* Badge Código Documental */}
+              <div className="flex justify-center">
+                <Badge
+                  tone="warning"
+                  appearance="soft"
+                  size="sm"
+                  className="border border-warning/30 font-semibold text-[11px]"
+                >
+                  {codigoPaquete} · {solicitud.id} · v
+                  {solicitud.versionExpediente || 1}
+                </Badge>
+              </div>
+
+              {/* Resumen estructurado de la solicitud */}
+              <div className="p-3.5 bg-muted/40 rounded-xl border border-border/70 space-y-2 text-xs">
+                <div className="flex items-center justify-between pb-2 border-b border-border/50">
+                  <span className="text-muted-foreground flex items-center gap-1.5 font-medium">
+                    <Building2 className="size-3.5 text-muted-foreground" />{" "}
+                    Institución:
+                  </span>
+                  <span className="font-bold text-foreground text-right truncate max-w-[230px]">
+                    {solicitud.institucion}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground flex items-center gap-1.5 font-medium">
+                    <Database className="size-3.5 text-muted-foreground" /> Fuente:
+                  </span>
+                  <span className="font-semibold text-foreground text-right truncate max-w-[230px]">
+                    {fuenteNombre}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground flex items-center gap-1.5 font-medium">
+                    <User className="size-3.5 text-muted-foreground" /> Solicitante:
+                  </span>
+                  <span className="font-medium text-foreground text-right">
+                    {solicitud.coordinador}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground flex items-center gap-1.5 font-medium">
+                    <Layers className="size-3.5 text-muted-foreground" /> Alcance aprobado:
+                  </span>
+                  <span className="font-semibold text-foreground">
+                    {campos.length} campos ({confidencialesCount} confidenciales)
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground flex items-center gap-1.5 font-medium">
+                    <Server className="size-3.5 text-muted-foreground" /> Modalidad autorizada:
+                  </span>
+                  <span className="font-bold text-primary">
+                    {modalidadAutorizada}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground font-medium">
+                    Cupo autorizado:
+                  </span>
+                  <span className="font-mono font-bold text-foreground">
+                    {(solicitud.cupo || 50000).toLocaleString()} registros/año
+                  </span>
+                </div>
+              </div>
+
+              {/* Aviso de bifurcación según sensibilidad */}
+              {tieneConfidenciales ? (
+                <div className="p-3 bg-warning/10 rounded-xl border border-warning/30 text-[11px] text-warning-foreground flex items-start gap-2">
+                  <Lock className="size-4 shrink-0 mt-0.5 text-warning" />
+                  <span>
+                    <strong>Derivación a DPI (SOL-07):</strong> Como el paquete incluye campos confidenciales, al confirmar pasará a{" "}
+                    <strong>&ldquo;Pendiente de asignación en DPI&rdquo;</strong> para el dictamen jurídico de Protección de la Información.
+                  </span>
+                </div>
+              ) : (
+                <div className="p-3 bg-success/10 rounded-xl border border-success/30 text-[11px] text-foreground flex items-start gap-2">
+                  <CheckCircle2 className="size-4 shrink-0 mt-0.5 text-success" />
+                  <span>
+                    <strong>Aprobación directa (SOL-08):</strong> Al contener solo campos accesibles, la solicitud pasará directamente a estado{" "}
+                    <strong>&ldquo;Aprobada por Gestión&rdquo;</strong>.
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <DialogFooter className="mt-4 flex flex-row w-full gap-3 sm:gap-3 [&>*]:flex-1">
+              <Button
+                type="button"
+                variant="neutral"
+                onClick={() => setIsModalAprobarOpen(false)}
+                className="w-full"
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                variant="warning"
+                onClick={handleConfirmarAprobacion}
+                className="w-full font-semibold"
+              >
+                Confirmar y Aprobar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* =====================================================================
+            MODAL 2: OBSERVAR SOLICITUD ESTRUCTURADAMENTE (Organizado como RechazarSolicitudDialog)
+           ===================================================================== */}
+        <Dialog open={isModalObservarOpen} onOpenChange={setIsModalObservarOpen}>
+          <DialogContent
+            variant="warning"
+            className="max-w-xl max-h-[90vh] overflow-y-auto"
+          >
+            <DialogHeader className="space-y-2">
+              <DialogTitle className="text-base font-bold font-heading text-foreground">
+                Observar Solicitud de Acceso — {solicitud.id}
+              </DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground leading-relaxed">
+                Registra las observaciones puntuales por elemento (campo, finalidad, documento, cupo o modalidad) para que el Coordinador subsane el expediente.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-3.5 pt-1 text-left text-xs">
+              {/* Resumen compacto del expediente */}
+              <div className="p-3 bg-muted/40 rounded-xl border border-border/70 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                <div>
+                  <span className="text-muted-foreground">Fuente: </span>
+                  <strong className="text-foreground">{fuenteNombre}</strong>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Institución: </span>
+                  <strong className="text-foreground">
+                    {solicitud.institucion}
+                  </strong>
+                </div>
+              </div>
+
+              {/* Cabecera de lista de observaciones */}
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-bold text-foreground">
+                  Observaciones del expediente ({listaObservaciones.length})
+                </Label>
                 <Button
+                  type="button"
                   variant="outline"
                   size="sm"
                   onClick={handleAddObservacionItem}
-                  className="h-7 text-xs gap-1"
+                  className="h-7 px-2.5 text-[11px] font-semibold gap-1"
                 >
                   <Plus className="size-3.5" />
-                  Agregar observación
+                  <span>Agregar observación</span>
                 </Button>
               </div>
 
-              <div className="space-y-3 max-h-[340px] overflow-y-auto pr-1">
+              {/* Ítems de observación */}
+              <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
                 {listaObservaciones.map((obs, idx) => (
                   <div
                     key={obs.id}
-                    className="p-3 rounded-xl border border-border bg-background space-y-2.5 relative"
+                    className="p-3.5 rounded-xl border border-border bg-surface space-y-2.5 shadow-2xs"
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-semibold text-foreground text-xs">
+                      <Badge
+                        tone="warning"
+                        appearance="soft"
+                        size="sm"
+                        className="text-[10px]"
+                      >
                         Observación #{idx + 1}
-                      </span>
+                      </Badge>
                       {listaObservaciones.length > 1 && (
                         <Button
+                          type="button"
                           variant="ghost"
                           size="sm"
                           onClick={() => handleRemoveObservacionItem(obs.id)}
-                          className="size-6 p-0 text-muted-foreground hover:text-destructive"
+                          className="size-6 p-0 text-muted-foreground hover:text-danger"
+                          title="Eliminar observación"
                         >
                           <Trash2 className="size-3.5" />
                         </Button>
                       )}
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                       <div className="space-y-1">
-                        <label className="text-[10px] font-semibold text-muted-foreground uppercase">
-                          Elemento afectado:
-                        </label>
+                        <Label className="text-[11px] font-semibold text-foreground">
+                          Categoría observada
+                        </Label>
                         <Combobox
                           items={tipoOptions}
-                          value={tipoOptions.find((t) => t.value === obs.tipo) || tipoOptions[0]}
+                          value={
+                            tipoOptions.find((t) => t.value === obs.tipo) ||
+                            tipoOptions[0]
+                          }
                           onValueChange={(val: any) => {
-                            if (val) handleUpdateObservacionItem(obs.id, { tipo: (typeof val === "string" ? val : val.value) as TipoElementoObservado });
+                            if (val) {
+                              handleUpdateObservacionItem(obs.id, {
+                                tipo: (typeof val === "string"
+                                  ? val
+                                  : val.value) as TipoElementoObservado,
+                              });
+                            }
                           }}
                         >
                           <ComboboxSelectTrigger className="w-full h-8 justify-between text-xs bg-muted/30 border-border rounded-lg px-2.5 shadow-none" />
                           <ComboboxContent align="start" className="w-56">
                             <ComboboxList>
                               {tipoOptions.map((opt) => (
-                                <ComboboxItem key={opt.value} value={opt} className="text-xs">
+                                <ComboboxItem
+                                  key={opt.value}
+                                  value={opt}
+                                  className="text-xs"
+                                >
                                   {opt.label}
                                 </ComboboxItem>
                               ))}
@@ -847,65 +1685,66 @@ export function RevisionGestionDetailView({ id }: RevisionGestionDetailViewProps
                       </div>
 
                       <div className="space-y-1">
-                        <label className="text-[10px] font-semibold text-muted-foreground uppercase">
-                          Nombre o detalle del elemento:
-                        </label>
+                        <Label className="text-[11px] font-semibold text-foreground">
+                          Campo o elemento específico{" "}
+                          <span className="text-danger">*</span>
+                        </Label>
                         <Input
                           value={obs.elementoNombre}
-                          onChange={(e) => handleUpdateObservacionItem(obs.id, { elementoNombre: e.target.value })}
-                          placeholder="Ej. Estado civil, Finalidad campo fecha..."
-                          className="h-8 text-xs bg-background"
+                          onChange={(e) =>
+                            handleUpdateObservacionItem(obs.id, {
+                              elementoNombre: e.target.value,
+                            })
+                          }
+                          placeholder="Ej. Condición de cedulado, Oficio PDF..."
+                          className="h-8 text-xs"
                         />
                       </div>
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-[10px] font-semibold text-muted-foreground uppercase">
-                        Descripción de la observación y corrección requerida <span className="text-destructive">*</span>:
-                      </label>
+                      <Label className="text-[11px] font-semibold text-foreground">
+                        Detalle de la corrección requerida{" "}
+                        <span className="text-danger">*</span>
+                      </Label>
                       <Textarea
                         rows={2}
                         value={obs.descripcion}
-                        onChange={(e) => handleUpdateObservacionItem(obs.id, { descripcion: e.target.value })}
-                        placeholder="Explique por qué es insuficiente o cómo debe corregirse..."
-                        className="text-xs bg-background"
+                        onChange={(e) =>
+                          handleUpdateObservacionItem(obs.id, {
+                            descripcion: e.target.value,
+                          })
+                        }
+                        placeholder="Explica claramente qué debe corregir o complementar el Coordinador..."
+                        className="text-xs resize-none"
                       />
                     </div>
                   </div>
                 ))}
               </div>
 
-              {/* Plazo de subsanación */}
-              <div className="p-3 rounded-xl bg-muted/30 border border-border flex items-center justify-between">
-                <div>
-                  <span className="font-semibold text-foreground block">Plazo límite de subsanación (PAR-13 / PAR-10):</span>
-                  <span className="text-[11px] text-muted-foreground">
-                    Plazo inicial parametrizado en 3 días hábiles según calendario laboral PAR-10 (SOL-06).
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="number"
-                    min={1}
-                    max={30}
-                    value={plazoSubsanacionDias}
-                    onChange={(e) => setPlazoSubsanacionDias(Math.max(1, parseInt(e.target.value) || 3))}
-                    className="w-16 h-8 text-xs text-center font-mono font-bold"
-                  />
-                  <span className="text-xs text-muted-foreground">días hábiles</span>
-                </div>
-              </div>
+              <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                <Mail className="size-3.5 shrink-0" />
+                <span>
+                  El Coordinador institucional será notificado por correo electrónico con el detalle estructurado para su subsanación.
+                </span>
+              </p>
             </div>
 
-            <DialogFooter className="w-full flex flex-col sm:flex-row gap-2 pt-2">
-              <Button variant="neutral" size="sm" onClick={() => setIsModalObservarOpen(false)} className="w-full sm:w-1/2">
+            <DialogFooter className="mt-4 flex flex-row w-full gap-3 sm:gap-3 [&>*]:flex-1">
+              <Button
+                type="button"
+                variant="neutral"
+                onClick={() => setIsModalObservarOpen(false)}
+                className="w-full"
+              >
                 Cancelar
               </Button>
               <Button
+                type="button"
                 variant="warning"
-                size="sm"
                 onClick={handleConfirmarObservacion}
-                className="w-full sm:w-1/2 font-semibold"
+                className="w-full font-semibold"
               >
                 Confirmar y notificar observación
               </Button>
@@ -913,115 +1752,71 @@ export function RevisionGestionDetailView({ id }: RevisionGestionDetailViewProps
           </DialogContent>
         </Dialog>
 
-        {/* MODAL: APROBAR SOLICITUD */}
-        <Dialog open={isModalAprobarOpen} onOpenChange={setIsModalAprobarOpen}>
-          <DialogContent variant="success" size="lg">
+        {/* =====================================================================
+            MODAL 3: VISTA PREVIA DE DOCUMENTO DE SOPORTE
+           ===================================================================== */}
+        <Dialog
+          open={Boolean(selectedDocPreview)}
+          onOpenChange={(open) => {
+            if (!open) setSelectedDocPreview(null);
+          }}
+        >
+          <DialogContent className="max-w-lg p-6">
             <DialogHeader>
-              <DialogTitle className="text-xl font-bold text-foreground">
-                Aprobar Solicitud Funcionalmente
-              </DialogTitle>
-              <DialogDescription className="text-xs text-muted-foreground mt-2 max-w-[440px]">
-                Confirme los parámetros funcionales autorizados para el expediente. En Gestión no se exige informe técnico PDF ni firma digital.
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="w-full text-left space-y-3.5 my-2 text-xs">
-              <div className="p-3.5 rounded-xl bg-muted/30 border border-border space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Expediente:</span>
-                  <strong className="text-foreground font-mono">{solicitud.id} (v{solicitud.versionExpediente || 1})</strong>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Campos aprobados:</span>
-                  <strong className="text-foreground">{campos.length} campos</strong>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Modalidad autorizada:</span>
-                  <strong className="text-primary">{modalidadAutorizada}</strong>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Cupo aprobado:</span>
-                  <strong className="text-foreground font-mono">{(solicitud.cupo || 50000).toLocaleString()} registros</strong>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Revisor de Gestión:</span>
-                  <strong className="text-foreground">{solicitud.revisorAsignado || "Ana Torres"}</strong>
-                </div>
-              </div>
-
-              {/* Bifurcación explicada */}
-              {tieneConfidenciales ? (
-                <div className="p-3 rounded-xl border border-warning/30 bg-warning/10 space-y-1">
-                  <div className="flex items-center gap-1.5 font-bold text-foreground">
-                    <Lock className="size-4 text-warning" />
-                    <span>Contiene campos confidenciales</span>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground leading-relaxed">
-                    Al confirmar, el expediente pasará a <strong>&ldquo;Pendiente de asignación en DPI&rdquo;</strong> para la evaluación jurídica especializada del Director y Revisor de la Dirección de Protección de la Información (DPI) (SOL-07, SOL-08).
-                  </p>
-                </div>
-              ) : (
-                <div className="p-3 rounded-xl border border-success/30 bg-success/10 space-y-1">
-                  <div className="flex items-center gap-1.5 font-bold text-foreground">
-                    <CheckCircle2 className="size-4 text-success" />
-                    <span>Solo contiene campos accesibles</span>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground leading-relaxed">
-                    Al confirmar, la solicitud pasará directamente al estado <strong>&ldquo;Aprobada por Gestión&rdquo;</strong> y continuará al flujo de formalización institucional (BN-08).
-                  </p>
-                </div>
-              )}
-            </div>
-
-            <DialogFooter className="w-full flex flex-col sm:flex-row gap-2 pt-2">
-              <Button variant="neutral" size="sm" onClick={() => setIsModalAprobarOpen(false)} className="w-full sm:w-1/2">
-                Cancelar
-              </Button>
-              <Button
-                variant="success"
-                size="sm"
-                onClick={handleConfirmarAprobacion}
-                className="w-full sm:w-1/2 font-semibold"
-              >
-                Confirmar aprobación funcional
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* MODAL: VISOR DE DOCUMENTO SOPORTE */}
-        <Dialog open={isDocPreviewOpen} onOpenChange={setIsDocPreviewOpen}>
-          <DialogContent size="lg">
-            <DialogHeader>
-              <DialogTitle className="text-base font-bold text-foreground flex items-center gap-2">
+              <DialogTitle className="text-base font-bold font-heading text-foreground flex items-center gap-2">
                 <FileText className="size-4 text-primary" />
-                Visor de Documento de Soporte
+                <span>Vista Previa — Documento Habilitante</span>
               </DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground">
-                {selectedDocPreview?.nombre}
+                Visor de documento de soporte registrado en el expediente{" "}
+                {solicitud.id}.
               </DialogDescription>
             </DialogHeader>
 
-            <div className="p-8 my-2 rounded-xl border border-dashed border-border bg-muted/20 text-center space-y-3 text-xs">
-              <FileText className="size-12 text-primary mx-auto" />
-              <p className="font-semibold text-foreground text-sm">{selectedDocPreview?.nombre}</p>
-              <p className="text-muted-foreground">
-                Documento verificado digitalmente · Fecha: {selectedDocPreview?.fechaCarga} · Tamaño: 1.8 MB
-              </p>
+            <div className="p-6 bg-muted/30 border border-border rounded-2xl text-center space-y-3 my-2">
+              <div className="size-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto">
+                <FileText className="size-6" />
+              </div>
+              <div className="space-y-1">
+                <h4 className="font-mono font-bold text-xs sm:text-sm text-foreground break-all">
+                  {selectedDocPreview?.nombre}
+                </h4>
+                <p className="text-xs text-muted-foreground">
+                  Cargado el {selectedDocPreview?.fechaCarga} ·{" "}
+                  {solicitud.institucion}
+                </p>
+              </div>
               <Badge tone="success" appearance="soft" size="sm" className="gap-1">
                 <Check className="size-3" />
-                Firma electrónica institucional válida
+                Firma electrónica verificada en FirmaEC
               </Badge>
             </div>
 
-            <DialogFooter>
-              <Button variant="outline" size="sm" onClick={() => setIsDocPreviewOpen(false)}>
-                Cerrar visor
+            <DialogFooter className="flex flex-row justify-end gap-2">
+              <Button
+                type="button"
+                variant="neutral"
+                size="sm"
+                onClick={() => setSelectedDocPreview(null)}
+              >
+                Cerrar
+              </Button>
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                className="gap-1.5"
+                onClick={() => {
+                  toast.success(`Descargando ${selectedDocPreview?.nombre}`);
+                  setSelectedDocPreview(null);
+                }}
+              >
+                <Download className="size-3.5" />
+                <span>Descargar PDF</span>
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
-        </Card>
       </main>
     </WireframeDashboardLayout>
   );

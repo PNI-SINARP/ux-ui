@@ -438,7 +438,10 @@ export function RevisionNormativaView() {
   { value: "estado-prioridad", label: "Pendientes primero" }],
   []);
 
-  const activeSectionTitle = "Anexo A — Resoluciones de incorporación";
+  const activeSectionTitle =
+    currentUser.role === "DIR_NORMATIVA"
+      ? "Asignar resoluciones"
+      : "Generar resoluciones";
 
   const hasActiveFilters = useMemo(() => {
     return (
@@ -934,7 +937,11 @@ export function RevisionNormativaView() {
     <WireframeDashboardLayout
       currentUser={currentUser}
       currentRole={currentUser.role}
-      activeMenu="revision-normativa"
+      activeMenu={
+        currentUser.role === "DIR_NORMATIVA"
+          ? "asignacion-resoluciones"
+          : "revision-normativa"
+      }
       breadcrumbs={
       selectedSolicitud ?
       [
@@ -2195,10 +2202,12 @@ export function RevisionNormativaView() {
               const isDirNormativa = currentUser.role === "DIR_NORMATIVA";
 
               const badgeText = "Anexo A · Incorporación institucional";
-              const titleText = "Elaborar resoluciones";
+              const titleText = isDirNormativa
+                ? "Asignar resoluciones"
+                : "Generar resoluciones";
               const subtitleText = isDirNormativa
-                ? "Gestiona y asigna la elaboración de resoluciones de incorporación institucional (Anexo A) aprobadas por Gestión."
-                : "Elabora los proyectos de resolución de incorporación institucional (Anexo A) aprobados por Gestión.";
+                ? "Asigna a los revisores de Normativa los expedientes de incorporación institucional (Anexo A) aprobados por Gestión para que generen la resolución."
+                : "Genera las resoluciones de incorporación institucional (Anexo A) de los expedientes que tienes asignados y remítelas a firma de la Máxima Autoridad.";
 
               return (
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

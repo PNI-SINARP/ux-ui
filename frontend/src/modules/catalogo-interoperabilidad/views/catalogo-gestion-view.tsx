@@ -737,7 +737,7 @@ export function CatalogoGestionView() {
                     </div>
 
                     <div className="flex items-center justify-end gap-2 pt-2 border-t border-border/60">
-                      <Button asChild variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
+                      <Button asChild variant="neutral" size="sm" className="h-9 gap-1.5 text-xs font-semibold cursor-pointer">
                         <Link href={`/catalogo-interoperabilidad/gestion/fuente/${fuente.id}`}>
                           <Eye className="size-3.5" />
                           <span>Ver detalle</span>

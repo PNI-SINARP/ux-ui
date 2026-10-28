@@ -1,4 +1,6 @@
-import React from "react";
+"use client";
+
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
@@ -6,8 +8,10 @@ import {
   Database,
   Building2,
   ShieldCheck,
+  ShieldAlert,
   Server,
   Lock,
+  Unlock,
   Check,
   Eye,
   EyeOff,
@@ -19,7 +23,8 @@ import {
   AlertCircle,
   FileSearch,
   Layers,
-  History
+  History,
+  Settings2
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -28,12 +33,27 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { WireframeDashboardLayout } from "@/components/layout/wireframes/wireframe-dashboard-layout";
 import { WireframeBreadcrumbs } from "@/components/layout/wireframes/wireframe-breadcrumbs";
-import { INITIAL_INSTITUCIONES, MOCK_USERS_BY_ROLE, type FuenteEstado, type FuenteServicio } from "@/modules/catalogo-interoperabilidad/data/catalogo-data";
+import { cn } from "@/lib/utils";
+import {
+  INITIAL_INSTITUCIONES,
+  MOCK_USERS_BY_ROLE,
+  applyCatalogoOverridesToInstituciones,
+  saveCatalogoCampoClasificacion,
+  type FuenteEstado,
+  type FuenteServicio,
+  type CampoCatalogo
+} from "@/modules/catalogo-interoperabilidad/data/catalogo-data";
 
-export async function CatalogoFuenteDetailView({ id }: { id: string }) {
+export function CatalogoFuenteDetailView({ id }: { id: string }) {
+  const [instituciones, setInstituciones] = useState(() => INITIAL_INSTITUCIONES);
+  const [modoParametrizacion, setModoParametrizacion] = useState(false);
 
-  // Buscar fuente en mock
-  const allFuentes = INITIAL_INSTITUCIONES.flatMap(inst =>
+  useEffect(() => {
+    setInstituciones(applyCatalogoOverridesToInstituciones(INITIAL_INSTITUCIONES));
+  }, []);
+
+  // Buscar fuente en mock con overrides aplicados
+  const allFuentes = instituciones.flatMap(inst =>
     inst.fuentes.map(f => ({
       ...f,
       institucionObj: inst
@@ -45,6 +65,15 @@ export async function CatalogoFuenteDetailView({ id }: { id: string }) {
   if (!fuente) {
     notFound();
   }
+
+  const handleParametrizarCampo = (
+    campoId: string,
+    clasificacion: "Accesible" | "Confidencial",
+    esSensible: boolean
+  ) => {
+    saveCatalogoCampoClasificacion(fuente.id, campoId, clasificacion, esSensible);
+    setInstituciones(applyCatalogoOverridesToInstituciones(INITIAL_INSTITUCIONES));
+  };
 
   const getEstadoBadge = (estado: FuenteEstado) => {
     switch (estado) {
@@ -75,6 +104,7 @@ export async function CatalogoFuenteDetailView({ id }: { id: string }) {
   const expedienteId = fuente.trazabilidadExpedienteId || "EXP-2026-001";
   const camposAccesibles = fuente.campos.filter(c => c.clasificacion === "Accesible").length;
   const camposConfidenciales = fuente.campos.filter(c => c.clasificacion === "Confidencial").length;
+  const camposSensibles = fuente.campos.filter(c => c.clasificacion === "Confidencial" && c.esSensible).length;
   const camposPendientes = fuente.campos.filter(c => !c.clasificacion || c.clasificacion === "Pendiente").length;
 
   return (
@@ -283,14 +313,24 @@ export async function CatalogoFuenteDetailView({ id }: { id: string }) {
             {/* TAB 2: CAMPOS */}
             <TabsContent value="campos" className="m-0 flex flex-col gap-4">
               <div className="border border-border rounded-xl bg-surface p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 shadow-xs">
-                <div>
+                <div className="space-y-1">
                   <h3 className="font-heading text-base font-bold text-foreground">
-                    Campos de la Fuente ({fuente.campos.length} campos)
+                    Diccionario y Parametrización de Campos ({fuente.campos.length} campos)
                   </h3>
                   <p className="text-xs text-muted-foreground">
-                    Diccionario de campos y su clasificación de seguridad (solo lectura).
+                    Clasificación parametrizable por DINARP: <strong className="text-foreground">Accesibles</strong> y <strong className="text-foreground">Confidenciales</strong> (incluyendo subclasificación <strong className="text-danger">Confidencial sensible · LOPDP</strong>).
                   </p>
                 </div>
+                <Button
+                  type="button"
+                  variant={modoParametrizacion ? "primary" : "outline"}
+                  size="sm"
+                  onClick={() => setModoParametrizacion(prev => !prev)}
+                  className="gap-1.5 text-xs font-semibold shrink-0"
+                >
+                  <Settings2 className="size-3.5" />
+                  <span>{modoParametrizacion ? "Finalizar parametrización" : "Parametrizar clasificación DINARP"}</span>
+                </Button>
               </div>
 
               <div className="overflow-x-auto rounded-lg border border-border bg-card">
@@ -298,42 +338,113 @@ export async function CatalogoFuenteDetailView({ id }: { id: string }) {
                   <thead className="bg-muted/60 border-b border-border text-muted-foreground uppercase text-[10px] tracking-wider font-semibold">
                     <tr>
                       <th className="py-3 px-4 min-w-[180px]">Campo</th>
-                      <th className="py-3 px-4 min-w-[280px]">Descripción</th>
-                      <th className="py-3 px-4 min-w-[120px]">Tipo de dato</th>
-                      <th className="py-3 px-4 min-w-[140px] text-center">Clasificación</th>
+                      <th className="py-3 px-4 min-w-[260px]">Descripción</th>
+                      <th className="py-3 px-4 min-w-[110px]">Tipo de dato</th>
+                      <th className="py-3 px-4 min-w-[220px] text-center">Clasificación y Sensibilidad</th>
+                      {modoParametrizacion && (
+                        <th className="py-3 px-4 min-w-[280px] text-right">Parametrización DINARP</th>
+                      )}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/60">
-                    {fuente.campos.map(campo => (
-                      <tr key={campo.id} className="hover:bg-muted/20 transition-colors">
-                        <td className="py-3 px-4 font-mono font-medium text-foreground">{campo.nombre}</td>
-                        <td className="py-3 px-4 text-muted-foreground leading-relaxed">{campo.descripcion}</td>
-                        <td className="py-3 px-4 font-mono text-muted-foreground">
-                          <span className="px-2 py-0.5 rounded bg-muted text-foreground text-[11px]">
-                            {campo.tipo}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 text-center">
-                          {campo.clasificacion === "Accesible" && (
-                            <Badge tone="neutral" appearance="soft" size="sm" className="gap-1 inline-flex font-medium">
-                              <Check className="size-3 text-muted-foreground" />
-                              Accesible
-                            </Badge>
+                    {fuente.campos.map(campo => {
+                      const esSensible = campo.clasificacion === "Confidencial" && Boolean(campo.esSensible);
+                      return (
+                        <tr
+                          key={campo.id}
+                          className={cn(
+                            esSensible ? "bg-danger/10 hover:bg-danger/15" : "hover:bg-muted/20"
                           )}
-                          {campo.clasificacion === "Confidencial" && (
-                            <Badge tone="neutral" appearance="outline" size="sm" className="gap-1 inline-flex font-semibold border-border">
-                              <Lock className="size-3 text-muted-foreground" />
-                              Confidencial
-                            </Badge>
+                        >
+                          <td className="py-3 px-4 font-mono font-medium text-foreground">
+                            <div className="flex items-center gap-1.5">
+                              <span>{campo.nombre}</span>
+                              {esSensible && (
+                                <ShieldAlert className="size-3.5 text-danger shrink-0" />
+                              )}
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 text-muted-foreground leading-relaxed">
+                            <div>{campo.descripcion}</div>
+                            {esSensible && (
+                              <span className="text-[10px] font-semibold text-danger block mt-0.5">
+                                Tratamiento especial según Ley Orgánica de Protección de Datos Personales (LOPDP)
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-3 px-4 font-mono text-muted-foreground">
+                            <span className="px-2 py-0.5 rounded bg-muted text-foreground text-[11px]">
+                              {campo.tipo}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-center">
+                            <div className="inline-flex flex-wrap items-center justify-center gap-1.5">
+                              {campo.clasificacion === "Accesible" && (
+                                <Badge tone="success" appearance="soft" size="sm" className="gap-1 inline-flex font-semibold">
+                                  <Unlock className="size-3" />
+                                  Accesible
+                                </Badge>
+                              )}
+                              {campo.clasificacion === "Confidencial" && (
+                                <>
+                                  <Badge tone="warning" appearance="soft" size="sm" className="gap-1 inline-flex font-semibold">
+                                    <Lock className="size-3" />
+                                    Confidencial
+                                  </Badge>
+                                  {esSensible && (
+                                    <Badge tone="danger" appearance="solid" size="sm" className="gap-1 inline-flex font-bold">
+                                      <ShieldAlert className="size-3" />
+                                      Sensible · LOPDP
+                                    </Badge>
+                                  )}
+                                </>
+                              )}
+                              {!campo.clasificacion && (
+                                <Badge tone="neutral" appearance="outline" size="sm" className="text-muted-foreground border-dashed">
+                                  Pendiente de clasificación
+                                </Badge>
+                              )}
+                            </div>
+                          </td>
+                          {modoParametrizacion && (
+                            <td className="py-3 px-4 text-right">
+                              <div className="inline-flex items-center rounded-lg border border-border bg-muted/40 p-0.5 gap-0.5">
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant={campo.clasificacion === "Accesible" ? "success" : "ghost"}
+                                  onClick={() => handleParametrizarCampo(campo.id, "Accesible", false)}
+                                  className="h-7 px-2 text-[11px] font-semibold gap-1"
+                                >
+                                  <Unlock className="size-3" />
+                                  Accesible
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant={campo.clasificacion === "Confidencial" && !esSensible ? "warning" : "ghost"}
+                                  onClick={() => handleParametrizarCampo(campo.id, "Confidencial", false)}
+                                  className="h-7 px-2 text-[11px] font-semibold gap-1"
+                                >
+                                  <Lock className="size-3" />
+                                  Confidencial
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant={esSensible ? "danger" : "ghost"}
+                                  onClick={() => handleParametrizarCampo(campo.id, "Confidencial", true)}
+                                  className="h-7 px-2 text-[11px] font-semibold gap-1"
+                                >
+                                  <ShieldAlert className="size-3" />
+                                  Conf. Sensible
+                                </Button>
+                              </div>
+                            </td>
                           )}
-                          {!campo.clasificacion && (
-                            <Badge tone="neutral" appearance="outline" size="sm" className="text-muted-foreground border-dashed">
-                              Pendiente de clasificación
-                            </Badge>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -345,10 +456,10 @@ export async function CatalogoFuenteDetailView({ id }: { id: string }) {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
                     <h3 className="font-heading text-base font-bold text-foreground">
-                      Resumen de Clasificación
+                      Resumen de Clasificación (DPI — DINARP)
                     </h3>
                     <p className="text-xs text-muted-foreground">
-                      Resumen del dictamen emitido por la Dirección de Protección de la Información (información en solo lectura).
+                      Clasificación principal en Accesibles y Confidenciales (con identificación de datos Confidenciales sensibles bajo LOPDP).
                     </p>
                   </div>
 
@@ -368,27 +479,31 @@ export async function CatalogoFuenteDetailView({ id }: { id: string }) {
                     </span>
                   </div>
 
-                  <div className="p-4 rounded-lg border border-border bg-card flex flex-col gap-1">
-                    <span className="text-[11px] text-muted-foreground">Accesibles</span>
+                  <div className="p-4 rounded-lg border border-success/30 bg-success/5 flex flex-col gap-1">
+                    <span className="text-[11px] font-semibold text-success">Accesibles</span>
                     <span className="font-heading font-bold text-xl text-foreground flex items-center gap-1.5">
-                      <Check className="size-4 text-muted-foreground" />
+                      <Unlock className="size-4 text-success" />
                       {camposAccesibles}
                     </span>
+                    <span className="text-[10px] text-muted-foreground">Solo finalidad de uso</span>
                   </div>
 
-                  <div className="p-4 rounded-lg border border-border bg-card flex flex-col gap-1">
-                    <span className="text-[11px] text-muted-foreground">Confidenciales</span>
+                  <div className="p-4 rounded-lg border border-warning/30 bg-warning/5 flex flex-col gap-1">
+                    <span className="text-[11px] font-semibold text-warning">Confidenciales (Total)</span>
                     <span className="font-heading font-bold text-xl text-foreground flex items-center gap-1.5">
-                      <Lock className="size-4 text-muted-foreground" />
+                      <Lock className="size-4 text-warning" />
                       {camposConfidenciales}
                     </span>
+                    <span className="text-[10px] text-muted-foreground">Finalidad + Justificación jurídica</span>
                   </div>
 
-                  <div className="p-4 rounded-lg border border-border bg-card flex flex-col gap-1">
-                    <span className="text-[11px] text-muted-foreground">Pendientes</span>
-                    <span className="font-heading font-bold text-xl text-foreground">
-                      {camposPendientes}
+                  <div className="p-4 rounded-lg border border-danger/30 bg-danger/5 flex flex-col gap-1">
+                    <span className="text-[11px] font-semibold text-danger">Confidenciales sensibles (LOPDP)</span>
+                    <span className="font-heading font-bold text-xl text-foreground flex items-center gap-1.5">
+                      <ShieldAlert className="size-4 text-danger" />
+                      {camposSensibles}
                     </span>
+                    <span className="text-[10px] text-muted-foreground">Subclasificación de Confidenciales ({camposPendientes} pend.)</span>
                   </div>
                 </div>
 

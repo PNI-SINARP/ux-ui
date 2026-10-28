@@ -507,14 +507,14 @@ export function FuentesTab({ activeRole }: { activeRole?: string }) {
                 </div>
 
                 <div className="flex items-center justify-end gap-2 pt-3 border-t border-border/60 w-full">
-                  <Button asChild variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
+                  <Button asChild variant="neutral" size="sm" className="flex-1 h-9 gap-1.5 text-xs font-semibold justify-center cursor-pointer">
                     <Link href={`/catalogo-interoperabilidad/administracion/fuentes/${fuente.id}`}>
                       <Eye className="size-3.5" />
                       <span>Ver detalle</span>
                     </Link>
                   </Button>
                   {fuente.estado === "PUBLICADO" && (
-                    <Button asChild variant="primary" size="sm" className="h-8 gap-1.5 text-xs">
+                    <Button asChild variant="primary" size="sm" className="flex-1 h-9 gap-1.5 text-xs font-semibold justify-center cursor-pointer">
                       <Link href={`/solicitudes/nueva?fuente=${fuente.id}`}>
                         <Send className="size-3.5" />
                         <span>Solicitar consumo</span>

@@ -87,6 +87,8 @@ export interface CampoFuente {
   descripcion: string;
   es_identificador_persona: boolean;
   clasificacion?: ClasificacionCampo | null;
+  /** Subclasificación dentro de Confidencial: dato confidencial sensible (LOPDP) */
+  es_sensible?: boolean;
   obligatorio?: boolean;
   admite_consultas_directas?: boolean;
 }

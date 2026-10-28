@@ -40,37 +40,37 @@ const badgeVariants = cva(
     compoundVariants: [
       // Primary
       { tone: "primary", appearance: ["solid", "filled"], className: "bg-primary dark:bg-primary-600 !text-white border-transparent shadow-xs" },
-      { tone: "primary", appearance: "soft", className: "bg-primary-50 dark:bg-primary-900/40 text-primary-900 dark:text-primary-200 border border-primary-200/40 dark:border-primary-700/50 font-extrabold" },
+      { tone: "primary", appearance: "soft", className: "bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-200 border border-primary-300 dark:border-primary-700/50 font-extrabold" },
       { tone: "primary", appearance: "outline", className: "text-primary dark:text-primary-400 border-primary/40 dark:border-primary-400/50 font-extrabold" },
       { tone: "primary", appearance: "ghost", className: "text-primary dark:text-primary-400 hover:bg-primary/10 dark:hover:bg-primary-400/10 font-extrabold" },
 
       // Secondary
       { tone: "secondary", appearance: ["solid", "filled"], className: "bg-secondary dark:bg-secondary-600 !text-white border-transparent shadow-xs" },
-      { tone: "secondary", appearance: "soft", className: "bg-secondary-50 dark:bg-secondary-900/40 text-secondary-900 dark:text-secondary-200 border border-secondary-200/40 dark:border-secondary-700/50 font-extrabold" },
+      { tone: "secondary", appearance: "soft", className: "bg-secondary-100 dark:bg-secondary-900/40 text-secondary-700 dark:text-secondary-200 border border-secondary-300 dark:border-secondary-700/50 font-extrabold" },
       { tone: "secondary", appearance: "outline", className: "text-secondary dark:text-secondary-400 border-secondary/40 dark:border-secondary-400/50 font-extrabold" },
       { tone: "secondary", appearance: "ghost", className: "text-secondary dark:text-secondary-400 hover:bg-secondary/10 dark:hover:bg-secondary-400/10 font-extrabold" },
 
       // Success
       { tone: "success", appearance: ["solid", "filled"], className: "bg-success dark:bg-success-600 !text-white border-transparent shadow-xs" },
-      { tone: "success", appearance: "soft", className: "bg-success-50 dark:bg-success-900/40 text-success-900 dark:text-success-200 border border-success-200/40 dark:border-success-700/50 font-extrabold" },
+      { tone: "success", appearance: "soft", className: "bg-success-100 dark:bg-success-900/40 text-success-700 dark:text-success-200 border border-success-300 dark:border-success-700/50 font-extrabold" },
       { tone: "success", appearance: "outline", className: "text-success dark:text-success-400 border-success/40 dark:border-success-400/50 font-extrabold" },
       { tone: "success", appearance: "ghost", className: "text-success dark:text-success-400 hover:bg-success/10 dark:hover:bg-success-400/10 font-extrabold" },
 
       // Warning
       { tone: "warning", appearance: ["solid", "filled"], className: "bg-warning dark:bg-warning-600 !text-white border-transparent shadow-xs" },
-      { tone: "warning", appearance: "soft", className: "bg-warning-50 dark:bg-warning-900/40 text-warning-900 dark:text-warning-200 border border-warning-200/40 dark:border-warning-700/50 font-extrabold" },
-      { tone: "warning", appearance: "outline", className: "text-[#A05000] dark:text-warning-400 border-[#EFB98D] dark:border-warning-400/50 font-extrabold" },
+      { tone: "warning", appearance: "soft", className: "bg-warning-100 dark:bg-warning-900/40 text-warning-700 dark:text-warning-200 border border-warning-300 dark:border-warning-700/50 font-extrabold" },
+      { tone: "warning", appearance: "outline", className: "text-warning-700 dark:text-warning-400 border-warning-400 dark:border-warning-400/50 font-extrabold" },
       { tone: "warning", appearance: "ghost", className: "text-warning-700 dark:text-warning-400 hover:bg-warning/10 dark:hover:bg-warning-400/10 font-extrabold" },
 
       // Danger / Error
       { tone: ["danger", "error"], appearance: ["solid", "filled"], className: "bg-danger dark:bg-danger-600 !text-white border-transparent shadow-xs" },
-      { tone: ["danger", "error"], appearance: "soft", className: "bg-danger-50 dark:bg-danger-900/40 text-danger-900 dark:text-danger-200 border border-danger-200/40 dark:border-danger-700/50 font-extrabold" },
-      { tone: ["danger", "error"], appearance: "outline", className: "text-[#5E021C] dark:text-danger-400 border-[#E19DA8] dark:border-danger-400/50 font-extrabold" },
+      { tone: ["danger", "error"], appearance: "soft", className: "bg-danger-100 dark:bg-danger-900/40 text-danger dark:text-danger-200 border border-danger-300 dark:border-danger-700/50 font-extrabold" },
+      { tone: ["danger", "error"], appearance: "outline", className: "text-danger dark:text-danger-400 border-danger-300 dark:border-danger-400/50 font-extrabold" },
       { tone: ["danger", "error"], appearance: "ghost", className: "text-danger-700 dark:text-danger-400 hover:bg-danger/10 dark:hover:bg-danger-400/10 font-extrabold" },
 
       // Info
       { tone: "info", appearance: ["solid", "filled"], className: "bg-info dark:bg-info-600 !text-white border-transparent shadow-xs" },
-      { tone: "info", appearance: "soft", className: "bg-info-50 dark:bg-info-900/40 text-info-900 dark:text-info-200 border border-info-200/40 dark:border-info-700/50 font-extrabold" },
+      { tone: "info", appearance: "soft", className: "bg-info-100 dark:bg-info-900/40 text-info-700 dark:text-info-200 border border-info-300 dark:border-info-700/50 font-extrabold" },
       { tone: "info", appearance: "outline", className: "text-info dark:text-info-400 border-info/40 dark:border-info-400/50 font-extrabold" },
       { tone: "info", appearance: "ghost", className: "text-info dark:text-info-400 hover:bg-info/10 dark:hover:bg-info-400/10 font-extrabold" },
 

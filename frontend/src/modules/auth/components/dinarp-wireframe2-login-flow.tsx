@@ -62,6 +62,8 @@ function validarCedula(cedula: string) {
       "1111111111",
       "2222222222",
       "3333333333",
+      "4444444444",
+      "5555555555",
       "1712345678",
       "1714443322",
       "1714443376",
@@ -409,11 +411,11 @@ export function DinarpWireframe2LoginFlow({
         targetRoute = "/gestion/fuentes/";
       } else if (loggedUser?.role === "DTD" || loggedUser?.role === "TI") {
         targetRoute = "/tecnologia/conectores/";
-      } else if (loggedUser?.role === "DIR_GESTION" || loggedUser?.role === "DIR_NORMATIVA") {
+      } else if (loggedUser?.role === "DIR_GESTION" || loggedUser?.role === "DIR_NORMATIVA" || loggedUser?.role === "DIR_DPI") {
         targetRoute = "/asignacion-solicitudes/";
       } else if (loggedUser?.role === "EQ_GESTION") {
         targetRoute = "/solicitudes-pendientes/";
-      } else if (loggedUser?.role === "EQ_NORMATIVA") {
+      } else if (loggedUser?.role === "EQ_NORMATIVA" || loggedUser?.role === "EQ_DPI") {
         targetRoute = "/revision-normativa/";
       } else if (loggedUser?.role === "REPRESENTANTE_INSTITUCIONAL") {
         targetRoute = "/cambio-coordinador/";

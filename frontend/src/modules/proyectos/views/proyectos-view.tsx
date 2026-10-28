@@ -262,7 +262,7 @@ export function ProyectosView() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 w-full">
             <div className="space-y-1 min-w-0 flex-1">
               <h1 className="font-heading font-extrabold text-2xl sm:text-3xl tracking-tight text-primary">
-                Mis proyectos
+                Gestión de proyectos
               </h1>
               <p className="text-xs sm:text-sm text-muted-foreground w-full max-w-none leading-relaxed font-normal">
                 Gestiona las iniciativas de tu institución. Desde aquí puedes registrar nuevos proyectos, consultar y actualizar su información, y dar seguimiento a las solicitudes de acceso a datos vinculadas a cada uno.
@@ -922,7 +922,7 @@ export function ProyectosView() {
                                     </Link>
                                   </Button>
                                 </TooltipTrigger>
-                                <TooltipContent side="top">Ver detalle</TooltipContent>
+                                <TooltipContent side="top">Ver expediente</TooltipContent>
                               </Tooltip>
 
                               {/* Editar */}
@@ -1112,64 +1112,52 @@ export function ProyectosView() {
                             {p.fechaActualizacion || p.fechaCreacion}
                           </span>
                         </div>
+                        <div className="flex items-center justify-between gap-2 pt-1 border-t border-border/30">
+                          <span className="text-[11px] text-muted-foreground font-medium">Fecha de creación:</span>
+                          <span className="text-[11px] font-mono text-muted-foreground">
+                            {p.fechaCreacion.split(" ")[0]}
+                          </span>
+                        </div>
                       </div>
 
-                      {/* Bloque 4: Acciones organizadas estilo Cuentas Internas */}
-                      <div className="pt-2 border-t border-border/60 flex items-center justify-between gap-2 w-full">
-                        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground font-mono">
-                          <Calendar className="size-3.5 text-muted-foreground/70" />
-                          <span>{p.fechaCreacion.split(" ")[0]}</span>
-                        </div>
-                        <div className="inline-flex items-center gap-0.5 justify-end">
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                asChild
-                                variant="ghost"
-                                size="icon-sm"
-                                className="text-muted-foreground hover:text-primary hover:bg-primary/10 cursor-pointer"
-                                aria-label={`Ver detalle de ${p.nombre}`}
-                              >
-                                <Link href={`/proyectos/${p.id}`}>
-                                  <Eye className="size-4" />
-                                </Link>
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent side="top">Ver detalle</TooltipContent>
-                          </Tooltip>
+                      {/* Bloque 4: Acciones con Botones del UI Kit */}
+                      <div className="pt-2 border-t border-border/60 flex flex-wrap items-center gap-2 w-full">
+                        <Button
+                          asChild
+                          variant="neutral"
+                          size="sm"
+                          className="flex-1 text-xs font-semibold gap-1.5 h-9 justify-center cursor-pointer"
+                          aria-label={`Ver detalle de ${p.nombre}`}
+                        >
+                          <Link href={`/proyectos/${p.id}`}>
+                            <Eye className="size-3.5" />
+                            <span>Ver expediente</span>
+                          </Link>
+                        </Button>
 
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon-sm"
-                                onClick={() => handleOpenEdit(p)}
-                                className="text-muted-foreground hover:text-primary hover:bg-primary/10 cursor-pointer"
-                                aria-label={`Editar ${p.nombre}`}
-                              >
-                                <Edit2 className="size-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent side="top">Editar</TooltipContent>
-                          </Tooltip>
+                        <Button
+                          type="button"
+                          variant="primary"
+                          size="sm"
+                          onClick={() => handleOpenEdit(p)}
+                          className="flex-1 text-xs font-semibold gap-1.5 h-9 justify-center cursor-pointer"
+                          aria-label={`Editar ${p.nombre}`}
+                        >
+                          <Edit2 className="size-3.5" />
+                          <span>Editar</span>
+                        </Button>
 
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon-sm"
-                                onClick={() => handleOpenTrazabilidad(p)}
-                                className="text-muted-foreground hover:text-primary hover:bg-primary/10 cursor-pointer"
-                                aria-label={`Trazabilidad de ${p.nombre}`}
-                              >
-                                <History className="size-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent side="top">Trazabilidad</TooltipContent>
-                          </Tooltip>
-                        </div>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => handleOpenTrazabilidad(p)}
+                          className="flex-1 text-xs font-semibold gap-1.5 h-9 justify-center cursor-pointer"
+                          aria-label={`Trazabilidad de ${p.nombre}`}
+                        >
+                          <History className="size-3.5" />
+                          <span>Trazabilidad</span>
+                        </Button>
                       </div>
                     </InteractiveCard>
                   );

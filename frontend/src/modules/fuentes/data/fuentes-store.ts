@@ -214,14 +214,20 @@ export function useFuentesStore() {
   );
 
   const clasificarCampo = useCallback(
-    (fuenteId: string, campoId: string, clasificacion: ClasificacionCampo) => {
+    (fuenteId: string, campoId: string, clasificacion: ClasificacionCampo, esSensible?: boolean) => {
       const current = getStoredFuentes();
       const fIndex = current.findIndex((f) => f.id.toLowerCase() === fuenteId.toLowerCase());
       if (fIndex === -1) return false;
 
       const fuente = current[fIndex];
       const updatedCampos = fuente.campos.map((c) =>
-        c.id_campo === campoId ? { ...c, clasificacion } : c
+        c.id_campo === campoId
+          ? {
+              ...c,
+              clasificacion,
+              es_sensible: clasificacion === "Confidencial" ? Boolean(esSensible) : false,
+            }
+          : c
       );
 
       const updatedFuente = {

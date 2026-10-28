@@ -17,9 +17,13 @@ import {
   History,
   ExternalLink,
   X,
+  UserPlus,
+  User,
+  Check,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { InteractiveCard } from "@/components/ui/data-display";
@@ -98,6 +102,8 @@ const ESTADOS_FILTRO = [
   "En revisión de Gestión",
   "Observada",
   "Aprobada por Gestión",
+  "Cerrada por vencimiento",
+  "Cerrada",
 ];
 
 const CLASIFICACION_FILTRO = [
@@ -111,7 +117,7 @@ const REVISOR_FILTRO = [
 ];
 
 export function AccesoAsignacionGestionView() {
-  const { solicitudes, asignarRevisorGestion } = useSolicitudesStore();
+  const { solicitudes, asignarRevisorGestion, reintentarCierreIdempotente } = useSolicitudesStore();
 
   // Estados de filtros y paginación (idénticos al patrón de Gestión de Usuarios)
   const [searchTerm, setSearchTerm] = useState("");
@@ -130,6 +136,20 @@ export function AccesoAsignacionGestionView() {
   const [solicitudToAssign, setSolicitudToAssign] = useState<SolicitudAcceso | null>(null);
   const [selectedRevisorId, setSelectedRevisorId] = useState<string>("U-EQGEST");
   const [observacionAsignacion, setObservacionAsignacion] = useState("");
+  const [revisorSearchQuery, setRevisorSearchQuery] = useState("");
+
+  const filteredRevisoresModal = useMemo(() => {
+    const q = revisorSearchQuery.trim().toLowerCase();
+    const list = q
+      ? REVISORES_GESTION.filter(
+          (r) =>
+            r.nombre.toLowerCase().includes(q) ||
+            r.cargo.toLowerCase().includes(q) ||
+            r.especialidad.toLowerCase().includes(q)
+        )
+      : [...REVISORES_GESTION];
+    return list.sort((a, b) => a.nombre.localeCompare(b.nombre));
+  }, [revisorSearchQuery]);
 
   // Helper para verificar campos confidenciales
   const tieneCamposConfidenciales = (s: SolicitudAcceso) => {
@@ -303,8 +323,8 @@ export function AccesoAsignacionGestionView() {
       currentUser={MOCK_USERS_BY_ROLE.DIR_GESTION}
       breadcrumbs={[
         { label: "Inicio", href: "/" },
-        { label: "Dirección de Gestión", href: "/acceso-interoperabilidad/asignacion" },
-        { label: "Asignación de Solicitudes de Acceso" },
+        { label: "Solicitudes de acceso a fuentes", href: "/acceso-interoperabilidad/asignacion" },
+        { label: "Asignar revisiones de acceso" },
       ]}
     >
       <main className="w-full pr-3 pl-2 pb-3 pt-1.5 flex-1 min-h-0 flex flex-col overflow-hidden">
@@ -312,30 +332,25 @@ export function AccesoAsignacionGestionView() {
           className="bg-surface rounded-2xl border border-border shadow-xs flex-1 min-h-0 overflow-hidden flex flex-col my-0"
           innerClassName="p-4 sm:p-6 lg:p-8 flex flex-col gap-6 overflow-y-auto flex-1 min-h-0 w-full"
         >
-          {/* 1. Cabecera Principal (Mismo patrón visual que Gestión de Usuarios) */}
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 w-full">
-            <div className="flex flex-col gap-1">
+          {/* 1. Cabecera Principal (Mismo patrón visual que Asignar incorporaciones) */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full">
+            <div className="space-y-1.5 w-full">
+              <div className="flex items-center gap-2">
+                <Badge
+                  tone="primary"
+                  appearance="soft"
+                  size="sm"
+                  className="font-semibold text-[11px]"
+                >
+                  Acceso a fuentes · Solicitudes de acceso
+                </Badge>
+              </div>
               <h1 className="font-heading font-extrabold text-2xl sm:text-3xl tracking-tight text-primary">
-                {estadoFilter === "En revisión de Gestión"
-                  ? "Seguimiento de accesos"
-                  : "Asignar accesos"}
+                Asignar revisiones de acceso
               </h1>
-              <p className="text-muted-foreground text-xs sm:text-sm max-w-2xl leading-relaxed">
-                {estadoFilter === "En revisión de Gestión"
-                  ? "Supervisa el avance y estado de evaluación de las solicitudes de acceso a interoperabilidad asignadas al equipo de Gestión."
-                  : "Gestiona y asigna las solicitudes de acceso a fuentes de interoperabilidad a los revisores del equipo de Gestión."}
+              <p className="text-xs sm:text-sm text-muted-foreground w-full max-w-none leading-relaxed font-normal">
+                Gestiona y asigna o reasigna a los revisores del equipo de Gestión las solicitudes de acceso a fuentes enviadas o subsanadas por las instituciones consumidoras.
               </p>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2 shrink-0">
-              <Badge
-                tone="info"
-                appearance="soft"
-                size="md"
-                className="font-semibold px-3 py-1.5 text-xs"
-              >
-                Rol: Director de Gestión
-              </Badge>
             </div>
           </div>
 
@@ -821,13 +836,18 @@ export function AccesoAsignacionGestionView() {
             ) : (
               paginatedSolicitudes.map((solicitud) => {
                 const hasConfidencial = tieneCamposConfidenciales(solicitud);
+                const isCerrada =
+                  solicitud.estado === "Cerrada" ||
+                  solicitud.estado === "Cerrada por vencimiento";
                 const isPendienteAsignacion =
                   solicitud.estado === "Pendiente de asignación en Gestión" ||
                   solicitud.estado === "Pendiente de nueva asignación";
                 const isNuevaAsignacion =
                   solicitud.estado === "Pendiente de nueva asignación";
                 const cardColor =
-                  isNuevaAsignacion || isPendienteAsignacion
+                  isCerrada
+                    ? "neutral"
+                    : isNuevaAsignacion || isPendienteAsignacion
                     ? "warning"
                     : solicitud.estado.includes("Aprobada")
                     ? "success"
@@ -838,10 +858,10 @@ export function AccesoAsignacionGestionView() {
                 return (
                   <InteractiveCard
                     key={solicitud.id}
-                    color={cardColor}
+                    color="default"
                     decorativeIcon={<Database className="size-full" />}
                     decorativeIconClassName="size-20 -bottom-2 -right-2 opacity-40 dark:opacity-25 group-hover:opacity-60"
-                    className="p-4 rounded-xl flex flex-col justify-between gap-3 shadow-2xs transition-all"
+                    className="p-4 rounded-xl flex flex-col justify-between gap-3 bg-surface hover:bg-surface border-border hover:border-primary/40 shadow-2xs transition-all"
                   >
                     <div className="space-y-3 relative z-10 w-full">
                       <div className="flex items-start justify-between gap-2">
@@ -887,7 +907,44 @@ export function AccesoAsignacionGestionView() {
                         </Badge>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs bg-surface/80 backdrop-blur-xs rounded-lg p-2.5 border border-border/40">
+                      {/* Notificación SOL-06 Cierre o TEC-00 */}
+                      {isCerrada && (
+                        <div className="p-2.5 rounded-lg bg-muted/40 border border-border text-[11px] text-muted-foreground space-y-0.5">
+                          <p className="font-semibold text-foreground flex items-center gap-1">
+                            <Clock className="size-3 text-muted-foreground" />
+                            Cierre por vencimiento reglamentario (SOL-06)
+                          </p>
+                          <p className="leading-snug">
+                            {solicitud.motivoCierre ||
+                              "No se subsanó y se cerró porque se cumplió el plazo reglamentario de 3 días hábiles (SOL-06)."}
+                          </p>
+                        </div>
+                      )}
+
+                      {solicitud.falloCierreTec00 && (
+                        <div className="p-2.5 rounded-lg bg-warning/10 border border-warning/30 text-[11px] text-foreground space-y-1.5">
+                          <p className="font-bold text-warning flex items-center gap-1">
+                            <AlertTriangle className="size-3.5 shrink-0" />
+                            No se confirmó el cierre; pendiente de reintento
+                          </p>
+                          <p className="text-muted-foreground text-[10px]">
+                            Registro TEC-00: <span className="font-mono font-bold text-foreground">{solicitud.idOperacionTec00 || "TEC-00-849201"}</span>.
+                          </p>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              reintentarCierreIdempotente(solicitud.id);
+                              toast.success("Cierre completado idempotentemente (SOL-06)");
+                            }}
+                            className="w-full h-6 text-[10px] font-semibold border-warning/40 text-warning hover:bg-warning/15"
+                          >
+                            Reintentar cierre ahora
+                          </Button>
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs bg-muted/30 rounded-lg p-2.5 border border-border/60">
                         <div className="space-y-1 min-w-0">
                           <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                             Fuente y Proyecto
@@ -943,18 +1000,25 @@ export function AccesoAsignacionGestionView() {
                         <Button
                           variant={isPendienteAsignacion ? "primary" : "outline"}
                           size="sm"
+                          disabled={isCerrada}
                           onClick={() => {
+                            if (isCerrada) return;
                             setSolicitudToAssign(solicitud);
-                            setSelectedRevisorId(
-                              solicitud.revisorAsignadoId || "U-EQGEST"
-                            );
+                            setSelectedRevisorId("");
                             setObservacionAsignacion("");
                           }}
-                          className="w-full h-8 text-xs justify-center gap-1.5 font-semibold"
+                          className={cn(
+                            "w-full h-8 text-xs justify-center gap-1.5 font-semibold",
+                            isCerrada && "opacity-50 cursor-not-allowed"
+                          )}
                         >
                           <UserCheck className="size-3.5 shrink-0" />
                           <span className="truncate">
-                            {solicitud.revisorAsignado ? "Reasignar" : "Asignar"}
+                            {isCerrada
+                              ? "Cerrada"
+                              : solicitud.revisorAsignado
+                              ? "Reasignar"
+                              : "Asignar"}
                           </span>
                         </Button>
                       </div>
@@ -1023,6 +1087,9 @@ export function AccesoAsignacionGestionView() {
                   ) : (
                     paginatedSolicitudes.map((solicitud) => {
                       const hasConfidencial = tieneCamposConfidenciales(solicitud);
+                      const isCerrada =
+                        solicitud.estado === "Cerrada" ||
+                        solicitud.estado === "Cerrada por vencimiento";
                       const isPendienteAsignacion =
                         solicitud.estado ===
                           "Pendiente de asignación en Gestión" ||
@@ -1035,6 +1102,7 @@ export function AccesoAsignacionGestionView() {
                           key={solicitud.id}
                           className={cn(
                             "group transition-colors",
+                            isCerrada && "opacity-80 bg-muted/10",
                             isNuevaAsignacion &&
                               "bg-warning/10 hover:bg-warning/15 border-l-4 border-l-warning"
                           )}
@@ -1209,39 +1277,81 @@ export function AccesoAsignacionGestionView() {
 
                           {/* Estado */}
                           <TableCell className="text-left">
-                            <Badge
-                              tone={
-                                isNuevaAsignacion || isPendienteAsignacion
-                                  ? "warning"
-                                  : solicitud.estado.includes("Aprobada")
-                                  ? "success"
-                                  : solicitud.estado === "Observada"
-                                  ? "danger"
-                                  : "info"
-                              }
-                              appearance="soft"
-                              size="sm"
-                              className="text-xs font-semibold px-2.5 py-0.5 rounded-full whitespace-nowrap"
-                            >
-                              <span
-                                className={cn(
-                                  "size-1.5 rounded-full mr-1.5",
-                                  isNuevaAsignacion || isPendienteAsignacion
-                                    ? "bg-warning"
+                            <div className="flex flex-col gap-1 items-start">
+                              <Badge
+                                tone={
+                                  isCerrada
+                                    ? "neutral"
+                                    : isNuevaAsignacion || isPendienteAsignacion
+                                    ? "warning"
                                     : solicitud.estado.includes("Aprobada")
-                                    ? "bg-success"
+                                    ? "success"
                                     : solicitud.estado === "Observada"
-                                    ? "bg-danger"
-                                    : "bg-info"
-                                )}
-                              />
-                              {solicitud.estado}
-                            </Badge>
+                                    ? "danger"
+                                    : "info"
+                                }
+                                appearance="soft"
+                                size="sm"
+                                className="text-xs font-semibold px-2.5 py-0.5 rounded-full whitespace-nowrap"
+                              >
+                                <span
+                                  className={cn(
+                                    "size-1.5 rounded-full mr-1.5",
+                                    isCerrada
+                                      ? "bg-muted-foreground"
+                                      : isNuevaAsignacion || isPendienteAsignacion
+                                      ? "bg-warning"
+                                      : solicitud.estado.includes("Aprobada")
+                                      ? "bg-success"
+                                      : solicitud.estado === "Observada"
+                                      ? "bg-danger"
+                                      : "bg-info"
+                                  )}
+                                />
+                                {solicitud.estado}
+                              </Badge>
+                              {isCerrada && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="text-[10px] text-muted-foreground truncate max-w-[150px] cursor-help flex items-center gap-1 font-medium">
+                                      <Clock className="size-2.5 shrink-0" />
+                                      Vencimiento (SOL-06)
+                                    </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top" variant="surface" className="max-w-xs text-xs">
+                                    <p className="font-bold text-foreground">Cierre por vencimiento (SOL-06)</p>
+                                    <p className="text-muted-foreground text-[11px] mt-0.5">
+                                      {solicitud.motivoCierre ||
+                                        "No se subsanó y se cerró porque se cumplió el plazo reglamentario de 3 días hábiles (SOL-06)."}
+                                    </p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              )}
+                              {solicitud.falloCierreTec00 && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    reintentarCierreIdempotente(solicitud.id);
+                                    toast.success("Cierre completado idempotentemente (SOL-06)");
+                                  }}
+                                  className="h-5 px-1.5 text-[10px] font-bold border-warning/40 text-warning hover:bg-warning/15 gap-1 shadow-2xs"
+                                  title="Fallo de cierre registrado TEC-00. Click para reintentar."
+                                >
+                                  <AlertTriangle className="size-2.5 shrink-0" />
+                                  Reintentar (TEC-00)
+                                </Button>
+                              )}
+                            </div>
                           </TableCell>
 
                           {/* Revisor Asignado */}
                           <TableCell className="text-left">
-                            {solicitud.revisorAsignado ? (
+                            {isCerrada ? (
+                              <span className="text-muted-foreground text-xs italic">
+                                Archivado (Cerrada)
+                              </span>
+                            ) : solicitud.revisorAsignado ? (
                               <div className="flex items-center gap-2">
                                 <div className="size-6 rounded-full bg-primary/10 text-primary text-[11px] font-bold flex items-center justify-center shrink-0">
                                   {solicitud.revisorAsignado.charAt(0)}
@@ -1286,17 +1396,17 @@ export function AccesoAsignacionGestionView() {
                                   <Button
                                     variant="ghost"
                                     size="icon-sm"
+                                    disabled={isCerrada}
                                     onClick={() => {
                                       setSolicitudToAssign(solicitud);
-                                      setSelectedRevisorId(
-                                        solicitud.revisorAsignadoId ||
-                                          "U-EQGEST"
-                                      );
+                                      setSelectedRevisorId("");
                                       setObservacionAsignacion("");
                                     }}
                                     aria-label={`Asignar o reasignar revisor para ${solicitud.id}`}
                                     className={cn(
-                                      isPendienteAsignacion
+                                      isCerrada
+                                        ? "opacity-40 cursor-not-allowed"
+                                        : isPendienteAsignacion
                                         ? "text-warning hover:text-warning hover:bg-warning/15"
                                         : "text-primary hover:text-primary hover:bg-primary/10"
                                     )}
@@ -1309,7 +1419,9 @@ export function AccesoAsignacionGestionView() {
                                   </Button>
                                 </TooltipTrigger>
                                 <TooltipContent side="top">
-                                  {solicitud.revisorAsignado
+                                  {isCerrada
+                                    ? "Solicitud cerrada por vencimiento (SOL-06): no admite asignación"
+                                    : solicitud.revisorAsignado
                                     ? "Reasignar revisor del Equipo de Gestión"
                                     : "Asignar revisor del Equipo de Gestión"}
                                 </TooltipContent>
@@ -1447,212 +1559,342 @@ export function AccesoAsignacionGestionView() {
         </Card>
       </main>
 
-      {/* DIALOG: ASIGNAR REVISOR DE GESTIÓN (Homologado con AccionCuentaDialog de Cuentas Internas) */}
+      {/* DIALOG: ASIGNAR REVISOR DE GESTIÓN (Homologado con AsignarRevisorDialog de Anexo A/B) */}
       <Dialog
         open={!!solicitudToAssign}
-        onOpenChange={(open) => !open && setSolicitudToAssign(null)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSolicitudToAssign(null);
+            setRevisorSearchQuery("");
+          }
+        }}
       >
-        <DialogContent
-          variant="info"
-          size="lg"
-          className="p-6 sm:p-7 max-w-lg max-h-[90vh] flex flex-col overflow-hidden"
-          icon={<UserCheck className="size-10 text-info stroke-[2px]" />}
-        >
-          <DialogHeader className="items-center text-center gap-1.5 shrink-0 pb-3 border-b border-border/50">
-            <DialogTitle className="font-heading font-bold text-xl text-foreground">
-              {solicitudToAssign?.revisorAsignado
-                ? "Recuperar y Reasignar Revisor de Gestión"
-                : "Asignar Revisor del Equipo de Gestión"}
-            </DialogTitle>
-            <DialogDescription className="text-sm text-muted-foreground max-w-md mx-auto">
-              Seleccione manualmente un revisor activo del Equipo de Gestión para realizar la revisión funcional del expediente (SOL-03).
-            </DialogDescription>
-          </DialogHeader>
+        <DialogContent className="max-w-4xl w-full p-4 sm:p-7 max-h-[90vh] overflow-y-auto">
+          {solicitudToAssign && (() => {
+            const esReasignacion = Boolean(solicitudToAssign.revisorAsignado);
+            const selectedRevisorObj = REVISORES_GESTION.find(
+              (r) => r.id === selectedRevisorId
+            );
 
-          {solicitudToAssign && (
-            <div className="modal-scroll-area overflow-y-auto pr-2 py-2.5 space-y-4 text-xs flex-1 min-h-0 text-left">
-              {/* Resumen del expediente a asignar */}
-              <div className="p-3.5 rounded-2xl bg-muted/30 border border-border/70 space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Solicitud:</span>
-                  <strong className="text-foreground font-mono">
-                    {solicitudToAssign.id} (v
-                    {solicitudToAssign.versionExpediente || 1})
-                  </strong>
+            return (
+              <div className="space-y-5 text-left">
+                {/* ── 1. CABECERA CON LÍNEA INFERIOR DIVISORIA ── */}
+                <div className="flex items-start justify-between gap-4 pb-4 border-b border-border pr-6">
+                  <div className="flex items-center gap-3">
+                    <div className="size-10 rounded-full flex items-center justify-center shrink-0 border bg-primary/10 text-primary border-primary/20">
+                      {esReasignacion ? (
+                        <RotateCcw className="size-5 text-primary" />
+                      ) : (
+                        <UserPlus className="size-5 text-primary" />
+                      )}
+                    </div>
+                    <div>
+                      <DialogTitle className="text-base sm:text-lg font-bold font-heading text-foreground leading-tight">
+                        {esReasignacion
+                          ? "Reasignar Revisor — Equipo de Gestión"
+                          : "Asignar Revisor — Equipo de Gestión"}
+                      </DialogTitle>
+                      <DialogDescription className="text-xs text-muted-foreground mt-0.5 leading-snug">
+                        {esReasignacion
+                          ? "Selecciona un nuevo funcionario del Equipo de Gestión y registra el motivo de la reasignación del expediente."
+                          : "Selecciona el funcionario encargado de revisar y validar funcionalmente la solicitud de acceso."}
+                      </DialogDescription>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">
-                    Institución solicitante:
-                  </span>
-                  <strong className="text-foreground">
-                    {solicitudToAssign.institucion}
-                  </strong>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Proyecto:</span>
-                  <strong className="text-foreground truncate max-w-[240px]">
-                    {solicitudToAssign.proyectoNombre ||
-                      "Proyecto institucional"}
-                  </strong>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">
-                    Fuente solicitada:
-                  </span>
-                  <strong className="text-foreground truncate max-w-[240px]">
-                    {solicitudToAssign.fuentePrincipal}
-                  </strong>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">
-                    Director asignante:
-                  </span>
-                  <strong className="text-foreground">
-                    Director Área de Gestión
-                  </strong>
-                </div>
-              </div>
 
-              {/* Aviso para solicitudes subsanadas */}
-              {solicitudToAssign.estado === "Pendiente de nueva asignación" && (
-                <div className="p-3 rounded-2xl border border-warning/30 bg-warning/10 flex items-start gap-2.5">
-                  <AlertTriangle className="size-4 text-warning shrink-0 mt-0.5" />
-                  <p className="text-[11px] text-muted-foreground leading-relaxed">
-                    Esta solicitud fue{" "}
-                    <strong>subsanada por el Coordinador</strong> (versión v
-                    {solicitudToAssign.versionExpediente || 2}). Por estándar del proceso, requiere una nueva asignación formal que quedará debidamente registrada en la auditoría.
-                  </p>
-                </div>
-              )}
+                {/* ── AVISO DE REASIGNACIÓN O SUBSANACIÓN ── */}
+                {esReasignacion && (
+                  <div className="p-3.5 bg-info/10 border border-info/30 rounded-xl flex items-start gap-3 text-xs text-foreground">
+                    <RotateCcw className="size-4 text-info shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <strong className="font-semibold block text-info font-heading">
+                        Reasignación de trámite
+                      </strong>
+                      <p className="text-muted-foreground text-[11px] leading-relaxed">
+                        Revisor actual:{" "}
+                        <strong className="text-foreground">
+                          {solicitudToAssign.revisorAsignado}
+                        </strong>
+                        . Al reasignar la solicitud se conserva íntegro el historial de acciones previas. Selecciona un nuevo revisor y registra el motivo de la reasignación.
+                      </p>
+                    </div>
+                  </div>
+                )}
 
-              {/* Selector de Revisor Activo */}
-              <div className="space-y-2">
-                <label className="font-semibold text-foreground block">
-                  Seleccione persona activa del Equipo de Gestión{" "}
-                  <span className="text-destructive">*</span>
-                </label>
-                <RadioGroup
-                  value={selectedRevisorId}
-                  onValueChange={setSelectedRevisorId}
-                  className="grid grid-cols-1 gap-2.5"
-                >
-                  {REVISORES_GESTION.map((rev) => {
-                    const isSel = selectedRevisorId === rev.id;
-                    return (
-                      <label
-                        key={rev.id}
-                        htmlFor={`revisor-gest-${rev.id}`}
-                        className={cn(
-                          "flex items-center justify-between p-3 rounded-2xl border text-left transition-all cursor-pointer",
-                          isSel
-                            ? "border-primary bg-primary/5 text-foreground ring-1 ring-primary/40 shadow-xs"
-                            : "border-border/80 bg-background hover:bg-muted/30 text-muted-foreground"
-                        )}
-                      >
-                        <div className="flex items-center gap-3">
-                          <RadioGroupItem
-                            value={rev.id}
-                            id={`revisor-gest-${rev.id}`}
-                          />
-                          <div
-                            className={cn(
-                              "size-8 rounded-full flex items-center justify-center font-bold text-xs",
-                              isSel
-                                ? "bg-primary text-primary-foreground"
-                                : "bg-muted text-foreground"
-                            )}
-                          >
-                            {rev.nombre.charAt(0)}
-                          </div>
-                          <div>
-                            <p
-                              className={cn(
-                                "text-xs font-bold",
-                                isSel ? "text-primary" : "text-foreground"
-                              )}
+                {solicitudToAssign.estado === "Pendiente de nueva asignación" && (
+                  <div className="p-3.5 rounded-xl border border-warning/30 bg-warning/10 flex items-start gap-3 text-xs">
+                    <AlertTriangle className="size-4 text-warning shrink-0 mt-0.5" />
+                    <div className="space-y-0.5">
+                      <strong className="font-semibold block text-warning font-heading">
+                        Solicitud subsanada (v{solicitudToAssign.versionExpediente || 2})
+                      </strong>
+                      <p className="text-[11px] text-muted-foreground leading-relaxed">
+                        Esta solicitud fue subsanada por el Coordinador SINARP y requiere una nueva asignación formal para continuar su revisión.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* ── 2. TARJETA INFORMATIVA INSTITUCIÓN, SOLICITUD Y FUENTE ── */}
+                <div className="p-3 bg-surface rounded-xl border border-border/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
+                  <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                    <Building2 className="size-4 text-primary shrink-0" />
+                    <span className="font-semibold text-foreground truncate">
+                      {solicitudToAssign.institucion}
+                    </span>
+                    <Badge tone="primary" appearance="outline" size="sm" className="font-mono text-[10px]">
+                      {solicitudToAssign.id} (v{solicitudToAssign.versionExpediente || 1})
+                    </Badge>
+                    {solicitudToAssign.fuentePrincipal && (
+                      <span className="text-muted-foreground truncate">
+                        · {solicitudToAssign.fuentePrincipal}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2 text-muted-foreground shrink-0">
+                    <User className="size-3.5 text-muted-foreground shrink-0" />
+                    <span>{solicitudToAssign.coordinador || "Coordinador SINARP"}</span>
+                  </div>
+                </div>
+
+                {/* ── 3. TABLA DE REVISORES DISPONIBLES (UI KIT) ── */}
+                <div className="space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      Revisores disponibles
+                    </span>
+
+                    <div className="w-full sm:w-64">
+                      <Search
+                        size="sm"
+                        value={revisorSearchQuery}
+                        onChange={(e) => setRevisorSearchQuery(e.target.value)}
+                        onClear={() => setRevisorSearchQuery("")}
+                        placeholder="Buscar funcionario..."
+                        aria-label="Buscar funcionario"
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="hover:bg-transparent">
+                          <TableHead className="py-3 px-4 text-xs font-bold">
+                            Revisor / Funcionario
+                          </TableHead>
+                          <TableHead className="py-3 px-4 text-xs font-bold">
+                            Cargo
+                          </TableHead>
+                          <TableHead className="py-3 px-4 text-xs font-bold text-center w-28">
+                            Estado
+                          </TableHead>
+                          <TableHead className="py-3 px-4 text-xs font-bold text-center w-24">
+                            Acción
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredRevisoresModal.length === 0 ? (
+                          <TableRow>
+                            <TableCell
+                              colSpan={4}
+                              className="py-6 text-center text-xs text-muted-foreground"
                             >
-                              {rev.nombre}
-                            </p>
-                            <p className="text-[11px] text-muted-foreground">
-                              {rev.cargo} · {rev.especialidad}
-                            </p>
-                          </div>
-                        </div>
-                        {isSel && (
-                          <CheckCircle2 className="size-4 text-primary shrink-0" />
+                              No se encontraron revisores con el término ingresado.
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          filteredRevisoresModal.map((rev) => {
+                            const isSelected = selectedRevisorId === rev.id;
+                            const isCurrent =
+                              rev.nombre === solicitudToAssign.revisorAsignado;
+                            const inicial = rev.nombre.charAt(0).toUpperCase();
+
+                            return (
+                              <TableRow
+                                key={rev.id}
+                                data-state={isSelected ? "selected" : undefined}
+                                onClick={() => setSelectedRevisorId(rev.id)}
+                                className={cn(
+                                  "cursor-pointer transition-colors",
+                                  isSelected
+                                    ? "bg-primary/15 font-semibold"
+                                    : "hover:bg-primary/10"
+                                )}
+                              >
+                                <TableCell className="py-2.5 px-4 h-auto">
+                                  <div className="flex items-center gap-3">
+                                    <div
+                                      className={cn(
+                                        "size-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 transition-colors",
+                                        isSelected
+                                          ? "bg-primary text-primary-foreground shadow-2xs"
+                                          : "bg-primary/10 text-primary border border-primary/20"
+                                      )}
+                                    >
+                                      {inicial}
+                                    </div>
+                                    <div className="min-w-0">
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="text-xs font-bold text-foreground truncate">
+                                          {rev.nombre}
+                                        </span>
+                                        {isCurrent && (
+                                          <Badge
+                                            tone="primary"
+                                            appearance="soft"
+                                            size="sm"
+                                            className="text-[9px] h-4 px-1.5 font-bold uppercase tracking-wider"
+                                          >
+                                            Actual
+                                          </Badge>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </TableCell>
+
+                                <TableCell className="py-2.5 px-4 h-auto text-xs text-muted-foreground">
+                                  {rev.cargo} · {rev.especialidad}
+                                </TableCell>
+
+                                <TableCell className="py-2.5 px-4 h-auto text-center">
+                                  <Badge
+                                    tone="success"
+                                    appearance="soft"
+                                    size="sm"
+                                    className="h-5 px-2 text-[10px] font-medium"
+                                  >
+                                    Activo
+                                  </Badge>
+                                </TableCell>
+
+                                <TableCell className="py-2.5 h-auto text-center">
+                                  <div
+                                    className="flex items-center justify-center gap-3"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Button
+                                            type="button"
+                                            onClick={() => setSelectedRevisorId(rev.id)}
+                                            aria-label={`Seleccionar a ${rev.nombre}`}
+                                            variant="ghost"
+                                            size="icon-sm"
+                                            className="text-muted-foreground hover:text-primary hover:bg-primary/10"
+                                          >
+                                            {isSelected ? (
+                                              <Check className="size-4 text-primary" />
+                                            ) : (
+                                              <UserPlus className="size-4" />
+                                            )}
+                                          </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="top">
+                                          {isSelected
+                                            ? "Revisor seleccionado"
+                                            : "Seleccionar para asignar"}
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })
                         )}
-                      </label>
-                    );
-                  })}
-                </RadioGroup>
-              </div>
-
-              {solicitudToAssign.revisorAsignado && (
-                <div className="rounded-2xl border border-border/80 bg-surface-muted/50 p-3 text-xs text-muted-foreground">
-                  <span className="font-semibold text-foreground">
-                    Revisor actual:{" "}
-                  </span>
-                  {solicitudToAssign.revisorAsignado}
-                  <p className="text-[11px] mt-0.5">
-                    Al recuperar y reasignar la solicitud, se conserva íntegro el historial de acciones y comentarios previos registrados por el revisor anterior (SOL-03). Seleccione un nuevo revisor y especifique el motivo del cambio.
-                  </p>
+                      </TableBody>
+                    </Table>
+                  </div>
                 </div>
-              )}
 
-              {/* Observaciones o instrucciones */}
-              <div className="space-y-1.5 pt-1">
-                <label className="font-semibold text-foreground block">
-                  {solicitudToAssign.revisorAsignado ? (
-                    <>
-                      Motivo de reasignación{" "}
-                      <span className="text-destructive">*</span>
-                    </>
-                  ) : (
-                    "Instrucciones u observaciones de asignación (Opcional):"
-                  )}
-                </label>
-                <Textarea
-                  rows={2}
-                  value={observacionAsignacion}
-                  onChange={(e) => setObservacionAsignacion(e.target.value)}
-                  placeholder={
-                    solicitudToAssign.revisorAsignado
-                      ? "Detalle la justificación técnica u operativa del cambio..."
-                      : "Indique prioridades, plazos sugeridos o notas para el revisor..."
-                  }
-                  className="text-xs bg-background border-border"
-                />
+                {/* ── 4. CAMPO DE OBSERVACIONES / MOTIVO DE REASIGNACIÓN ── */}
+                <div className="space-y-1.5 pt-2">
+                  <Label
+                    htmlFor="motivo-asignacion-gestion"
+                    className="text-xs font-semibold text-foreground flex items-center justify-between"
+                  >
+                    <span>
+                      {esReasignacion
+                        ? "Motivo de la reasignación"
+                        : "Observaciones de asignación"}
+                      {esReasignacion && (
+                        <span className="text-danger ml-1">*</span>
+                      )}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground font-normal">
+                      {esReasignacion ? "Obligatorio" : "Opcional"}
+                    </span>
+                  </Label>
+                  <Textarea
+                    id="motivo-asignacion-gestion"
+                    rows={2}
+                    value={observacionAsignacion}
+                    onChange={(e) => setObservacionAsignacion(e.target.value)}
+                    placeholder={
+                      esReasignacion
+                        ? "Describe la razón por la cual se reasigna el expediente..."
+                        : "Instrucciones u observaciones adicionales para el revisor (opcional)..."
+                    }
+                    className="text-xs bg-surface border-border rounded-xl resize-none"
+                  />
+                </div>
+
+                {/* ── 5. FOOTER CON LÍNEA SUPERIOR DIVISORIA Y ACCIONES ── */}
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-border">
+                  <div className="text-xs text-muted-foreground w-full sm:w-auto text-left" />
+
+                  <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center gap-2.5 w-full sm:w-auto justify-end">
+                    <Button
+                      type="button"
+                      variant="neutral"
+                      size="sm"
+                      onClick={() => setSolicitudToAssign(null)}
+                      className="w-full sm:w-auto text-xs font-semibold h-10 px-6 rounded-full"
+                    >
+                      Cancelar
+                    </Button>
+
+                    <Button
+                      type="button"
+                      variant="primary"
+                      size="sm"
+                      disabled={
+                        !selectedRevisorId ||
+                        (esReasignacion &&
+                          (!observacionAsignacion.trim() ||
+                            selectedRevisorObj?.nombre ===
+                              solicitudToAssign.revisorAsignado))
+                      }
+                      onClick={handleConfirmarAsignacion}
+                      className="w-full sm:w-auto text-xs font-semibold h-10 px-6 gap-2 rounded-full shadow-xs"
+                    >
+                      {esReasignacion ? (
+                        <RotateCcw className="size-4" />
+                      ) : (
+                        <UserPlus className="size-4" />
+                      )}
+                      <span>
+                        {esReasignacion
+                          ? `Reasignar a ${
+                              selectedRevisorObj
+                                ? selectedRevisorObj.nombre.split(" ")[0]
+                                : "revisor"
+                            }`
+                          : "Asignar revisión"}
+                      </span>
+                    </Button>
+                  </div>
+                </div>
               </div>
-            </div>
-          )}
-
-          <DialogFooter className="mt-3 pt-4 border-t border-border flex flex-col-reverse sm:flex-row gap-2.5 w-full shrink-0">
-            <Button
-              variant="ghost"
-              className="w-full sm:w-1/2 font-semibold"
-              onClick={() => setSolicitudToAssign(null)}
-            >
-              Cancelar
-            </Button>
-            <Button
-              variant="primary"
-              onClick={handleConfirmarAsignacion}
-              disabled={
-                Boolean(solicitudToAssign?.revisorAsignado) &&
-                (!observacionAsignacion.trim() ||
-                  REVISORES_GESTION.find((r) => r.id === selectedRevisorId)
-                    ?.nombre === solicitudToAssign?.revisorAsignado)
-              }
-              className="w-full sm:w-1/2 gap-1.5 font-bold shadow-xs"
-            >
-              <UserCheck className="size-4" />
-              <span>
-                {solicitudToAssign?.revisorAsignado
-                  ? "Confirmar Reasignación"
-                  : "Confirmar Asignación"}
-              </span>
-            </Button>
-          </DialogFooter>
+            );
+          })()}
         </DialogContent>
       </Dialog>
 
@@ -1690,7 +1932,10 @@ export function AccesoAsignacionGestionView() {
                   <div className="shrink-0 pt-0.5">
                     <Badge
                       tone={
-                        selectedSolicitudExpediente.estado.includes("Pendiente")
+                        selectedSolicitudExpediente.estado === "Cerrada" ||
+                        selectedSolicitudExpediente.estado === "Cerrada por vencimiento"
+                          ? "neutral"
+                          : selectedSolicitudExpediente.estado.includes("Pendiente")
                           ? "warning"
                           : selectedSolicitudExpediente.estado.includes("Aprobada")
                           ? "success"
@@ -1708,6 +1953,23 @@ export function AccesoAsignacionGestionView() {
                   </div>
                 </div>
               </DialogHeader>
+
+              {/* Banner SOL-06 Cierre en Expediente */}
+              {(selectedSolicitudExpediente.estado === "Cerrada" ||
+                selectedSolicitudExpediente.estado === "Cerrada por vencimiento") && (
+                <div className="p-3.5 rounded-2xl bg-muted/50 border border-border text-xs text-muted-foreground flex items-start gap-2.5 shrink-0">
+                  <Clock className="size-4 text-muted-foreground shrink-0 mt-0.5" />
+                  <div className="space-y-0.5">
+                    <p className="font-bold text-foreground">
+                      Solicitud cerrada por vencimiento reglamentario (SOL-06)
+                    </p>
+                    <p className="text-[11px] leading-relaxed">
+                      {selectedSolicitudExpediente.motivoCierre ||
+                        "No se subsanó y se cerró porque se cumplió el plazo reglamentario de 3 días hábiles (SOL-06). No se permite edición, pago ni aprovisionamiento sobre la solicitud cerrada."}
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* Barra de pestañas segmentadas (Pills redondeadas idénticas a ExpedienteCuentaModal) */}
               <div className="p-1 rounded-xl sm:rounded-full bg-muted/40 border border-border/60 flex items-center gap-1 shrink-0 overflow-x-auto modal-scroll-area max-w-full">
@@ -1987,27 +2249,27 @@ export function AccesoAsignacionGestionView() {
                 >
                   Cerrar expediente
                 </Button>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={() => {
-                    setSolicitudToAssign(selectedSolicitudExpediente);
-                    setSelectedRevisorId(
-                      selectedSolicitudExpediente.revisorAsignadoId ||
-                        "U-EQGEST"
-                    );
-                    setObservacionAsignacion("");
-                    setSelectedSolicitudExpediente(null);
-                  }}
-                  className="gap-1.5 font-semibold h-9 px-5 text-xs !rounded-full shadow-xs"
-                >
-                  <UserCheck className="size-4" />
-                  <span>
-                    {selectedSolicitudExpediente.revisorAsignado
-                      ? "Reasignar revisor ahora"
-                      : "Asignar revisor ahora"}
-                  </span>
-                </Button>
+                {selectedSolicitudExpediente.estado !== "Cerrada" &&
+                  selectedSolicitudExpediente.estado !== "Cerrada por vencimiento" && (
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() => {
+                        setSolicitudToAssign(selectedSolicitudExpediente);
+                        setSelectedRevisorId("");
+                        setObservacionAsignacion("");
+                        setSelectedSolicitudExpediente(null);
+                      }}
+                      className="gap-1.5 font-semibold h-9 px-5 text-xs !rounded-full shadow-xs"
+                    >
+                      <UserCheck className="size-4" />
+                      <span>
+                        {selectedSolicitudExpediente.revisorAsignado
+                          ? "Reasignar revisor ahora"
+                          : "Asignar revisor ahora"}
+                      </span>
+                    </Button>
+                  )}
               </DialogFooter>
             </>
           )}

@@ -1001,6 +1001,11 @@ export function FuenteDetailView({ currentUser: propUser }: FuenteDetailViewProp
                     <Badge tone="warning" appearance="soft" size="sm">
                       {camposIncluidos.filter((c) => c.clasificacion === "Confidencial").length} confidenciales
                     </Badge>
+                    {camposIncluidos.some((c) => c.clasificacion === "Confidencial" && c.es_sensible) && (
+                      <Badge tone="danger" appearance="soft" size="sm" className="border border-danger/30">
+                        {camposIncluidos.filter((c) => c.clasificacion === "Confidencial" && c.es_sensible).length} sensibles · LOPDP
+                      </Badge>
+                    )}
                   </div>
                 </div>
 
@@ -1046,9 +1051,16 @@ export function FuenteDetailView({ currentUser: propUser }: FuenteDetailViewProp
                                 Accesible
                               </Badge>
                             ) : campo.clasificacion === "Confidencial" ? (
-                              <Badge tone="warning" appearance="soft" size="sm">
-                                Confidencial
-                              </Badge>
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <Badge tone="warning" appearance="soft" size="sm">
+                                  Confidencial
+                                </Badge>
+                                {campo.es_sensible && (
+                                  <Badge tone="danger" appearance="soft" size="sm" className="border border-danger/30">
+                                    Sensible · LOPDP
+                                  </Badge>
+                                )}
+                              </div>
                             ) : (
                               <Badge tone="neutral" appearance="outline" size="sm">
                                 Sin clasificar

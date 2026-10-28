@@ -1133,32 +1133,61 @@ export function EmptyState({
   title = "No hay datos disponibles",
   description = "Actualmente no existen registros para mostrar en esta sección.",
   type = "default",
+  icon: CustomIcon,
   action,
+  actionLabel,
+  onAction,
   className
 }: {
   title?: string
   description?: string
   type?: "default" | "search" | "error" | "lock"
+  icon?: React.ComponentType<{ className?: string }> | React.ReactNode
   action?: React.ReactNode
+  actionLabel?: string
+  onAction?: () => void
   className?: string
 }) {
-  const icons = {
+  const defaultIcons = {
     default: <FileText className="size-8 text-primary" />,
     search: <Search className="size-8 text-muted-foreground" />,
     error: <AlertTriangle className="size-8 text-danger" />,
     lock: <Shield className="size-8 text-warning" />,
   }
 
+  const renderIcon = () => {
+    if (CustomIcon) {
+      if (React.isValidElement(CustomIcon)) {
+        return CustomIcon
+      }
+      const IconComponent = CustomIcon as React.ComponentType<{ className?: string }>
+      return <IconComponent className="size-8 text-muted-foreground" />
+    }
+    return defaultIcons[type]
+  }
+
+  const renderAction = () => {
+    if (action) return action
+    if (actionLabel && onAction) {
+      return (
+        <Button variant="outline" size="sm" onClick={onAction}>
+          {actionLabel}
+        </Button>
+      )
+    }
+    return null
+  }
+
   return (
     <div className={cn("w-full p-8 rounded-2xl border border-dashed border-border/80 bg-surface/40 flex flex-col items-center text-center gap-3", className)}>
       <div className="size-16 rounded-2xl bg-muted/50 flex items-center justify-center shadow-xs">
-        {icons[type]}
+        {renderIcon()}
       </div>
       <div className="space-y-1 max-w-sm">
         <h4 className="text-sm font-bold text-foreground">{title}</h4>
         <p className="text-xs text-muted-foreground leading-relaxed">{description}</p>
       </div>
-      {action && <div className="pt-2">{action}</div>}
+      {renderAction() && <div className="pt-2">{renderAction()}</div>}
     </div>
   )
 }

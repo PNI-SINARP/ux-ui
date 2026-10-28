@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import {
   Eye,
   Clock,
@@ -14,12 +14,20 @@ import {
   X,
   FolderSearch,
   ShieldCheck,
+  ShieldAlert,
   FileSignature,
+  Building2,
+  Mail,
+  RefreshCw,
+  History,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { Alert } from "@/components/ui/alert";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { InteractiveCard } from "@/components/ui/data-display";
 import { ViewModeToggle, type ViewMode } from "@/components/shared/view-mode-toggle";
 import { Search } from "@/components/ui/search";
@@ -81,11 +89,13 @@ const REVISORES_DPI = [
     id: "U-EQNORM",
     nombre: "Carlos Mora (Revisor DPI)",
     cargo: "Especialista Jurídico de Protección de Datos (DPI)",
+    email: "carlos.mora@dinarp.gob.ec",
   },
   {
     id: "U-EQNORM2",
     nombre: "Sofía Castro (Revisor DPI)",
     cargo: "Abogada Especialista DPI",
+    email: "sofia.castro@dinarp.gob.ec",
   },
 ];
 
@@ -106,6 +116,7 @@ const ESTADO_OPTIONS = [
 ];
 
 export function RevisionNormativaInteroperabilidadView() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab");
 
@@ -120,7 +131,7 @@ export function RevisionNormativaInteroperabilidadView() {
   const [estadoFilter, setEstadoFilter] = useState("ALL");
   const [viewMode, setViewMode] = useState<ViewMode>("table");
 
-  // Paginación homologada con Gestión de Usuarios
+  // Paginación homologada con Cuentas Internas y Asignación DPI
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(5);
 
@@ -135,13 +146,25 @@ export function RevisionNormativaInteroperabilidadView() {
 
   const [solicitudReviewing, setSolicitudReviewing] =
     useState<SolicitudAcceso | null>(null);
-  const [tabRevisionDpi, setTabRevisionDpi] = useState<"campos" | "informe">("campos");
+  const [tabRevisionDpi, setTabRevisionDpi] = useState<
+    "campos" | "informe" | "historial"
+  >("campos");
   const [isAprobarModalOpen, setIsAprobarModalOpen] = useState(false);
   const [isObservarModalOpen, setIsObservarModalOpen] = useState(false);
   const [textoObservacionJuridica, setTextoObservacionJuridica] = useState("");
   const [conclusionesInforme, setConclusionesInforme] = useState("");
 
-  // Expedientes asignados al Revisor del Equipo DPI (SOL-07 y SOL-08)
+  // Estados para simulación de FirmaEC (homologado a RegistroInstitucion y AsignacionDirector)
+  const [firmaModalOpen, setFirmaModalOpen] = useState(false);
+  const [solicitudAFirmar, setSolicitudAFirmar] =
+    useState<SolicitudAcceso | null>(null);
+  const [firmaEstado, setFirmaEstado] =
+    useState<"validando" | "firmado">("validando");
+  const [isConsultandoFirma, setIsConsultandoFirma] = useState(false);
+  const [firmaTimestamp, setFirmaTimestamp] = useState<string>("");
+  const [firmaCertId, setFirmaCertId] = useState<string>("");
+
+  // Expedientes asignados al Revisor del Equipo DPI
   const baseSolicitudesDPI = useMemo(() => {
     return solicitudes.filter((s) => {
       const tieneConfidencial = s.fuentes?.some((f) =>
@@ -248,25 +271,111 @@ export function RevisionNormativaInteroperabilidadView() {
     return pages;
   };
 
-  // SOL-08: Aprobar confidenciales + generar informe en portal y firmar como Revisor DPI (1.ª Firma)
-  const handleConfirmarAprobacionJuridica = () => {
-    if (!solicitudReviewing) return;
-    const revisorNombre =
-      solicitudReviewing.revisorNormativoAsignado || activeRevisor.nombre;
-
-    aprobarNormativa(solicitudReviewing.id, {
-      revisor: revisorNombre,
-      director: "Director de Protección de la Información (DPI)",
-      fundamento:
-        conclusionesInforme.trim() ||
-        "Se determina que el tratamiento de los datos confidenciales solicitados se encuentra plenamente justificado en base a las competencias constitucionales y legales de la entidad requirente, cumpliendo las garantías de la LOPDP.",
-    });
-
-    toast.success("Informe de aprobación DPI emitido y firmado por el Revisor", {
-      description: `1.ª firma registrada (${revisorNombre}). Enviado al Director de Protección de la Información (DPI) para su firma conjunta.`,
-    });
-
+  // Iniciar flujo de firma FirmaEC para el Revisor DPI (1.ª Firma SOL-08)
+  const handleIniciarFirmaRevisor = (solicitud: SolicitudAcceso) => {
+    setSolicitudAFirmar(solicitud);
+    setFirmaEstado("validando");
+    setIsConsultandoFirma(false);
+    setFirmaTimestamp("");
+    setFirmaCertId(
+      `FEC-REV-2026-${Math.floor(100000 + Math.random() * 900000)}`
+    );
     setIsAprobarModalOpen(false);
+    setFirmaModalOpen(true);
+  };
+
+  // Simulación en vivo: Validación con FirmaEC tras notificación por correo
+  useEffect(() => {
+    if (!firmaModalOpen || firmaEstado !== "validando" || !solicitudAFirmar)
+      return;
+
+    const timer = setTimeout(() => {
+      const now = new Date();
+      const fechaHoraFormatted = `${now.toLocaleDateString("es-EC", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      })} ${now.toLocaleTimeString("es-EC", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      })}`;
+
+      setFirmaTimestamp(fechaHoraFormatted);
+      setFirmaEstado("firmado");
+
+      const revisorNombre =
+        solicitudAFirmar.revisorNormativoAsignado || activeRevisor.nombre;
+
+      aprobarNormativa(solicitudAFirmar.id, {
+        revisor: revisorNombre,
+        director: "Dr. Roberto Méndez (Director DPI)",
+        fundamento:
+          conclusionesInforme.trim() ||
+          "Se determina que el tratamiento de los datos confidenciales solicitados se encuentra plenamente justificado en base a las competencias constitucionales y legales de la entidad requirente, cumpliendo las garantías de la LOPDP.",
+      });
+
+      toast.success(
+        "1.ª Firma electrónica validada con éxito en FirmaEC (SOL-08)",
+        {
+          description: `El informe de ${solicitudAFirmar.id} fue suscrito por ${revisorNombre} y remitido al Director DPI para la refrenda.`,
+        }
+      );
+    }, 2800);
+
+    return () => clearTimeout(timer);
+  }, [
+    firmaModalOpen,
+    firmaEstado,
+    solicitudAFirmar,
+    activeRevisor.nombre,
+    conclusionesInforme,
+    aprobarNormativa,
+  ]);
+
+  const handleConsultarEstadoFirmaManual = () => {
+    if (isConsultandoFirma || firmaEstado === "firmado" || !solicitudAFirmar)
+      return;
+    setIsConsultandoFirma(true);
+    setTimeout(() => {
+      const now = new Date();
+      const fechaHoraFormatted = `${now.toLocaleDateString("es-EC", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      })} ${now.toLocaleTimeString("es-EC", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      })}`;
+
+      setFirmaTimestamp(fechaHoraFormatted);
+      setFirmaEstado("firmado");
+      setIsConsultandoFirma(false);
+
+      const revisorNombre =
+        solicitudAFirmar.revisorNormativoAsignado || activeRevisor.nombre;
+
+      aprobarNormativa(solicitudAFirmar.id, {
+        revisor: revisorNombre,
+        director: "Dr. Roberto Méndez (Director DPI)",
+        fundamento:
+          conclusionesInforme.trim() ||
+          "Se determina que el tratamiento de los datos confidenciales solicitados se encuentra plenamente justificado en base a las competencias constitucionales y legales de la entidad requirente, cumpliendo las garantías de la LOPDP.",
+      });
+
+      toast.success(
+        "1.ª Firma electrónica validada con éxito en FirmaEC (SOL-08)",
+        {
+          description: `El informe de ${solicitudAFirmar.id} fue suscrito por ${revisorNombre} y remitido al Director DPI para la refrenda.`,
+        }
+      );
+    }, 800);
+  };
+
+  const handleCerrarModalFirma = () => {
+    setFirmaModalOpen(false);
+    setSolicitudAFirmar(null);
     setSolicitudReviewing(null);
     setConclusionesInforme("");
   };
@@ -309,19 +418,33 @@ export function RevisionNormativaInteroperabilidadView() {
     setTextoObservacionJuridica("");
   };
 
+  const isElaborarInformesView =
+    tabParam === "informes" || estadoFilter === "PENDIENTES_FIRMA_DIRECTOR";
+
   return (
     <WireframeDashboardLayout
-      activeMenu="revision-normativa-fuentes"
-      currentRole="EQ_NORMATIVA"
+      activeMenu={
+        isElaborarInformesView
+          ? "informes-elaborados-dpi"
+          : "revision-normativa-fuentes"
+      }
+      currentRole="EQ_DPI"
       currentUser={{
-        ...MOCK_USERS_BY_ROLE.EQ_NORMATIVA,
+        ...MOCK_USERS_BY_ROLE.EQ_DPI,
         name: activeRevisor.nombre,
         roleTitle: activeRevisor.cargo,
       }}
       breadcrumbs={[
         { label: "Inicio", href: "/" },
-        { label: "Equipo DPI", href: "/revision-normativa/fuentes" },
-        { label: "Revisión de Campos Confidenciales" },
+        {
+          label: "Solicitudes de acceso a fuentes",
+          href: "/revision-normativa/fuentes",
+        },
+        {
+          label: isElaborarInformesView
+            ? "Elaborar informes DPI"
+            : "Evaluar datos confidenciales",
+        },
       ]}
     >
       <main className="w-full pr-3 pl-2 pb-3 pt-1.5 flex-1 min-h-0 flex flex-col overflow-hidden">
@@ -331,21 +454,26 @@ export function RevisionNormativaInteroperabilidadView() {
         >
           {/* CABECERA HOMOLOGADA */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
-            <div className="space-y-1">
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2">
+                <Badge
+                  tone="primary"
+                  appearance="soft"
+                  size="sm"
+                  className="font-semibold text-[11px]"
+                >
+                  Acceso a fuentes · Solicitudes de acceso
+                </Badge>
+              </div>
               <h1 className="font-heading font-extrabold text-2xl sm:text-3xl tracking-tight text-primary">
-                {tabParam === "informes"
-                  ? "Informes elaborados"
-                  : "Revisar campos DPI"}
+                {isElaborarInformesView
+                  ? "Elaborar informes DPI"
+                  : "Evaluar datos confidenciales"}
               </h1>
-              <p className="text-body-sm text-muted-foreground max-w-3xl">
-                Bandeja del{" "}
-                <strong>
-                  Revisor de la Dirección de Protección de la Información (DPI)
-                </strong>{" "}
-                (SOL-07 y SOL-08). Evalúe la finalidad y justificación jurídica
-                (LOPDP) de los campos confidenciales: genere y firme el informe
-                favorable (1.ª firma) u observe otorgando{" "}
-                <strong>3 días hábiles (PAR-13 / PAR-10)</strong>.
+              <p className="text-xs sm:text-sm text-muted-foreground max-w-3xl leading-relaxed font-normal">
+                {isElaborarInformesView
+                  ? "Genera en la plataforma los informes técnicos-jurídicos favorables de datos confidenciales y suscribe la primera firma electrónica con FirmaEC para remitirlos al Director DPI."
+                  : "Evalúa la finalidad de uso y justificación jurídica de los campos confidenciales en las solicitudes asignadas para emitir observaciones o aprobar su procedencia."}
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2.5 shrink-0 self-start sm:self-center">
@@ -364,7 +492,9 @@ export function RevisionNormativaInteroperabilidadView() {
                   }}
                   onValueChange={(val: any) => {
                     if (val) {
-                      setActiveRevisorId(typeof val === "string" ? val : val.value);
+                      setActiveRevisorId(
+                        typeof val === "string" ? val : val.value
+                      );
                       setCurrentPage(1);
                     }
                   }}
@@ -375,11 +505,16 @@ export function RevisionNormativaInteroperabilidadView() {
                       {REVISORES_DPI.map((r) => (
                         <ComboboxItem
                           key={r.id}
-                          value={{ value: r.id, label: `${r.nombre} (${r.cargo})` }}
+                          value={{
+                            value: r.id,
+                            label: `${r.nombre} (${r.cargo})`,
+                          }}
                           className="text-caption"
                         >
                           <div>
-                            <p className="font-semibold text-foreground">{r.nombre}</p>
+                            <p className="font-semibold text-foreground">
+                              {r.nombre}
+                            </p>
                             <p className="text-caption text-muted-foreground">
                               {r.cargo}
                             </p>
@@ -390,19 +525,11 @@ export function RevisionNormativaInteroperabilidadView() {
                   </ComboboxContent>
                 </Combobox>
               </div>
-              <Badge
-                tone="warning"
-                appearance="soft"
-                size="md"
-                className="font-semibold px-3 py-1.5 text-caption shrink-0"
-              >
-                Rol: Revisor DPI ({activeRevisor.nombre})
-              </Badge>
             </div>
           </div>
 
-          {/* TARJETAS KPI INTERACTIVAS (Idénticas a Cuentas Internas) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-3.5 shrink-0">
+          {/* TARJETAS KPI INTERACTIVAS (Idénticas a Cuentas Internas y Asignación DPI) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 w-full">
             <Card
               variant="featured"
               role="button"
@@ -420,32 +547,43 @@ export function RevisionNormativaInteroperabilidadView() {
               }}
               aria-pressed={estadoFilter === "ALL"}
               className={cn(
-                "bg-primary/5 hover:bg-primary/10 border-primary/25 shadow-2xs transition-all cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-                estadoFilter === "ALL" &&
-                  "ring-2 ring-primary bg-primary/15 border-primary/50"
+                "group relative overflow-hidden cursor-pointer transition-all duration-200 border rounded-xl outline-none select-none p-4 w-full",
+                "hover:-translate-y-0.5 hover:shadow-md",
+                estadoFilter === "ALL"
+                  ? "bg-primary/15 border-primary ring-2 ring-primary/40 shadow-xs"
+                  : "bg-primary/5 hover:bg-primary/10 border-primary/25 shadow-2xs"
               )}
-              innerClassName="p-3.5 sm:p-4 flex flex-col justify-between gap-2.5 h-full"
+              innerClassName="p-0 h-full"
             >
-              <div className="flex items-center justify-between gap-2">
-                <div className="size-10 rounded-xl bg-primary/15 flex items-center justify-center text-primary shrink-0">
-                  <Scale className="size-5 stroke-[2px]" />
+              <div className="flex flex-col justify-between h-full gap-3 w-full">
+                <div className="flex items-center justify-between gap-2 w-full">
+                  <div
+                    className={cn(
+                      "size-10 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200",
+                      estadoFilter === "ALL"
+                        ? "bg-primary text-white shadow-xs"
+                        : "bg-primary/15 text-primary group-hover:scale-105 group-hover:bg-primary group-hover:text-white"
+                    )}
+                  >
+                    <Scale className="size-5" />
+                  </div>
+                  <Badge
+                    tone="primary"
+                    appearance="soft"
+                    size="sm"
+                    className="shrink-0 text-[10px] font-bold px-2 py-0.5"
+                  >
+                    Total DPI
+                  </Badge>
                 </div>
-                <Badge
-                  tone="primary"
-                  appearance="soft"
-                  size="sm"
-                  className="font-bold text-[11px]"
-                >
-                  Total DPI
-                </Badge>
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-muted-foreground">
-                  Asignados a mi bandeja
-                </p>
-                <p className="text-2xl sm:text-3xl font-extrabold font-heading text-foreground leading-none tracking-tight mt-0.5">
-                  {metricas.total}
-                </p>
+                <div className="space-y-0.5 text-left w-full">
+                  <p className="text-xs font-semibold text-muted-foreground group-hover:text-foreground transition-colors truncate">
+                    Asignados a mi bandeja
+                  </p>
+                  <p className="text-2xl sm:text-3xl font-extrabold font-heading text-foreground leading-none tracking-tight">
+                    {metricas.total}
+                  </p>
+                </div>
               </div>
             </Card>
 
@@ -474,32 +612,43 @@ export function RevisionNormativaInteroperabilidadView() {
               }}
               aria-pressed={estadoFilter === "PENDIENTES_DICTAMEN"}
               className={cn(
-                "bg-warning/5 hover:bg-warning/10 border-warning/30 shadow-2xs transition-all cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-warning",
-                estadoFilter === "PENDIENTES_DICTAMEN" &&
-                  "ring-2 ring-warning bg-warning/15 border-warning/60"
+                "group relative overflow-hidden cursor-pointer transition-all duration-200 border rounded-xl outline-none select-none p-4 w-full",
+                "hover:-translate-y-0.5 hover:shadow-md",
+                estadoFilter === "PENDIENTES_DICTAMEN"
+                  ? "bg-warning/15 border-warning ring-2 ring-warning/40 shadow-xs"
+                  : "bg-warning/5 hover:bg-warning/10 border-warning/25 shadow-2xs"
               )}
-              innerClassName="p-3.5 sm:p-4 flex flex-col justify-between gap-2.5 h-full"
+              innerClassName="p-0 h-full"
             >
-              <div className="flex items-center justify-between gap-2">
-                <div className="size-10 rounded-xl bg-warning/15 flex items-center justify-center text-warning shrink-0">
-                  <Clock className="size-5 stroke-[2px]" />
+              <div className="flex flex-col justify-between h-full gap-3 w-full">
+                <div className="flex items-center justify-between gap-2 w-full">
+                  <div
+                    className={cn(
+                      "size-10 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200",
+                      estadoFilter === "PENDIENTES_DICTAMEN"
+                        ? "bg-warning text-white shadow-xs"
+                        : "bg-warning/15 text-warning group-hover:scale-105 group-hover:bg-warning group-hover:text-white"
+                    )}
+                  >
+                    <Clock className="size-5" />
+                  </div>
+                  <Badge
+                    tone="warning"
+                    appearance="soft"
+                    size="sm"
+                    className="shrink-0 text-[10px] font-bold px-2 py-0.5"
+                  >
+                    SOL-07
+                  </Badge>
                 </div>
-                <Badge
-                  tone="warning"
-                  appearance="soft"
-                  size="sm"
-                  className="font-bold text-[11px]"
-                >
-                  Evaluación SOL-07
-                </Badge>
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-muted-foreground">
-                  Pendientes de dictamen
-                </p>
-                <p className="text-2xl sm:text-3xl font-extrabold font-heading text-foreground leading-none tracking-tight mt-0.5">
-                  {metricas.pendientesDictamen}
-                </p>
+                <div className="space-y-0.5 text-left w-full">
+                  <p className="text-xs font-semibold text-muted-foreground group-hover:text-foreground transition-colors truncate">
+                    Pendientes de dictamen
+                  </p>
+                  <p className="text-2xl sm:text-3xl font-extrabold font-heading text-foreground leading-none tracking-tight">
+                    {metricas.pendientesDictamen}
+                  </p>
+                </div>
               </div>
             </Card>
 
@@ -528,32 +677,43 @@ export function RevisionNormativaInteroperabilidadView() {
               }}
               aria-pressed={estadoFilter === "PENDIENTES_FIRMA_DIRECTOR"}
               className={cn(
-                "bg-info/5 hover:bg-info/10 border-info/25 shadow-2xs transition-all cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info",
-                estadoFilter === "PENDIENTES_FIRMA_DIRECTOR" &&
-                  "ring-2 ring-info bg-info/15 border-info/50"
+                "group relative overflow-hidden cursor-pointer transition-all duration-200 border rounded-xl outline-none select-none p-4 w-full",
+                "hover:-translate-y-0.5 hover:shadow-md",
+                estadoFilter === "PENDIENTES_FIRMA_DIRECTOR"
+                  ? "bg-info/15 border-info ring-2 ring-info/40 shadow-xs"
+                  : "bg-info/5 hover:bg-info/10 border-info/25 shadow-2xs"
               )}
-              innerClassName="p-3.5 sm:p-4 flex flex-col justify-between gap-2.5 h-full"
+              innerClassName="p-0 h-full"
             >
-              <div className="flex items-center justify-between gap-2">
-                <div className="size-10 rounded-xl bg-info/15 flex items-center justify-center text-info shrink-0">
-                  <FileSignature className="size-5 stroke-[2px]" />
+              <div className="flex flex-col justify-between h-full gap-3 w-full">
+                <div className="flex items-center justify-between gap-2 w-full">
+                  <div
+                    className={cn(
+                      "size-10 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200",
+                      estadoFilter === "PENDIENTES_FIRMA_DIRECTOR"
+                        ? "bg-info text-white shadow-xs"
+                        : "bg-info/15 text-info group-hover:scale-105 group-hover:bg-info group-hover:text-white"
+                    )}
+                  >
+                    <FileSignature className="size-5" />
+                  </div>
+                  <Badge
+                    tone="info"
+                    appearance="soft"
+                    size="sm"
+                    className="shrink-0 text-[10px] font-bold px-2 py-0.5"
+                  >
+                    1.ª Firma SOL-08
+                  </Badge>
                 </div>
-                <Badge
-                  tone="info"
-                  appearance="soft"
-                  size="sm"
-                  className="font-bold text-[11px]"
-                >
-                  1.ª Firma SOL-08
-                </Badge>
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-muted-foreground">
-                  En firma Director DPI
-                </p>
-                <p className="text-2xl sm:text-3xl font-extrabold font-heading text-foreground leading-none tracking-tight mt-0.5">
-                  {metricas.pendientesFirmaDirector}
-                </p>
+                <div className="space-y-0.5 text-left w-full">
+                  <p className="text-xs font-semibold text-muted-foreground group-hover:text-foreground transition-colors truncate">
+                    En firma Director DPI
+                  </p>
+                  <p className="text-2xl sm:text-3xl font-extrabold font-heading text-foreground leading-none tracking-tight">
+                    {metricas.pendientesFirmaDirector}
+                  </p>
+                </div>
               </div>
             </Card>
 
@@ -582,32 +742,43 @@ export function RevisionNormativaInteroperabilidadView() {
               }}
               aria-pressed={estadoFilter === "Aprobada por Normatividad"}
               className={cn(
-                "bg-success/5 hover:bg-success/10 border-success/25 shadow-2xs transition-all cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-success",
-                estadoFilter === "Aprobada por Normatividad" &&
-                  "ring-2 ring-success bg-success/15 border-success/50"
+                "group relative overflow-hidden cursor-pointer transition-all duration-200 border rounded-xl outline-none select-none p-4 w-full",
+                "hover:-translate-y-0.5 hover:shadow-md",
+                estadoFilter === "Aprobada por Normatividad"
+                  ? "bg-success/15 border-success ring-2 ring-success/40 shadow-xs"
+                  : "bg-success/5 hover:bg-success/10 border-success/25 shadow-2xs"
               )}
-              innerClassName="p-3.5 sm:p-4 flex flex-col justify-between gap-2.5 h-full"
+              innerClassName="p-0 h-full"
             >
-              <div className="flex items-center justify-between gap-2">
-                <div className="size-10 rounded-xl bg-success/15 flex items-center justify-center text-success shrink-0">
-                  <CheckCircle2 className="size-5 stroke-[2px]" />
+              <div className="flex flex-col justify-between h-full gap-3 w-full">
+                <div className="flex items-center justify-between gap-2 w-full">
+                  <div
+                    className={cn(
+                      "size-10 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200",
+                      estadoFilter === "Aprobada por Normatividad"
+                        ? "bg-success text-white shadow-xs"
+                        : "bg-success/15 text-success group-hover:scale-105 group-hover:bg-success group-hover:text-white"
+                    )}
+                  >
+                    <CheckCircle2 className="size-5" />
+                  </div>
+                  <Badge
+                    tone="success"
+                    appearance="soft"
+                    size="sm"
+                    className="shrink-0 text-[10px] font-bold px-2 py-0.5"
+                  >
+                    Doble firma OK
+                  </Badge>
                 </div>
-                <Badge
-                  tone="success"
-                  appearance="soft"
-                  size="sm"
-                  className="font-bold text-[11px]"
-                >
-                  Doble firma OK
-                </Badge>
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-muted-foreground">
-                  Aprobadas por DPI
-                </p>
-                <p className="text-2xl sm:text-3xl font-extrabold font-heading text-foreground leading-none tracking-tight mt-0.5">
-                  {metricas.aprobadas}
-                </p>
+                <div className="space-y-0.5 text-left w-full">
+                  <p className="text-xs font-semibold text-muted-foreground group-hover:text-foreground transition-colors truncate">
+                    Aprobadas por DPI
+                  </p>
+                  <p className="text-2xl sm:text-3xl font-extrabold font-heading text-foreground leading-none tracking-tight">
+                    {metricas.aprobadas}
+                  </p>
+                </div>
               </div>
             </Card>
           </div>
@@ -766,10 +937,10 @@ export function RevisionNormativaInteroperabilidadView() {
             </div>
           ) : (
             <div className="space-y-4">
-              {/* VISTA TARJETAS (MÓVIL O MODO TARJETAS — Idéntica a Cuentas Internas) */}
+              {/* VISTA TARJETAS (MÓVIL O MODO TARJETAS — Idéntica a Cuentas Internas y Asignación DPI) */}
               <div
                 className={cn(
-                  "grid grid-cols-1 gap-3",
+                  "grid grid-cols-1 gap-3.5",
                   viewMode === "cards" ? "md:grid-cols-2" : "md:hidden"
                 )}
               >
@@ -779,10 +950,17 @@ export function RevisionNormativaInteroperabilidadView() {
                       (c) => c.clasificacion === "Confidencial"
                     ) || [];
                   const tieneInforme = Boolean(solicitud.informeNormativa);
+                  const firmaRevisorOk = Boolean(
+                    solicitud.informeNormativa?.firmadoRevisor
+                  );
+                  const firmaDirectorOk = Boolean(
+                    solicitud.informeNormativa?.firmadoDirector
+                  );
                   const canDictaminar =
                     solicitud.estado === "En revisión normativa" &&
                     !tieneInforme;
-                  const cardColor =
+
+                  const cardBadgeTone =
                     solicitud.estado === "Aprobada por Normatividad"
                       ? "success"
                       : tieneInforme
@@ -792,17 +970,26 @@ export function RevisionNormativaInteroperabilidadView() {
                   return (
                     <InteractiveCard
                       key={solicitud.id}
-                      color={cardColor}
+                      color="default"
                       decorativeIcon={<Scale className="size-full" />}
                       decorativeIconClassName="size-20 -bottom-2 -right-2 opacity-40 dark:opacity-25 group-hover:opacity-60"
-                      className="p-4 flex flex-col justify-between gap-3.5"
+                      className="p-4 flex flex-col justify-between gap-3.5 bg-surface hover:bg-surface border-border hover:border-primary/40 shadow-2xs transition-all"
                     >
+                      {/* Cabecera de la tarjeta */}
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
                           <div className="flex items-center gap-1.5">
-                            <span className="font-mono text-xs font-bold text-primary">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                router.push(
+                                  `/revision-normativa/fuentes/${solicitud.id}`
+                                )
+                              }
+                              className="font-mono text-xs font-bold text-primary hover:underline cursor-pointer"
+                            >
                               {solicitud.id}
-                            </span>
+                            </button>
                             <Badge
                               tone="neutral"
                               appearance="outline"
@@ -812,18 +999,27 @@ export function RevisionNormativaInteroperabilidadView() {
                               v{solicitud.versionExpediente || 1}
                             </Badge>
                           </div>
-                          <p className="text-sm font-bold text-foreground mt-1 truncate">
-                            {solicitud.institucion}
-                          </p>
+                          <TooltipProvider delayDuration={200}>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <p className="text-sm font-bold text-foreground mt-1 truncate cursor-default">
+                                  {solicitud.institucion}
+                                </p>
+                              </TooltipTrigger>
+                              <TooltipContent variant="surface" side="top">
+                                {solicitud.institucion}
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                           <p className="text-xs text-muted-foreground truncate mt-0.5">
                             {solicitud.fuentePrincipal}
                           </p>
                         </div>
                         <Badge
-                          tone={cardColor}
+                          tone={cardBadgeTone}
                           appearance="soft"
                           size="sm"
-                          className="shrink-0 font-semibold"
+                          className="shrink-0 font-semibold text-xs"
                         >
                           {solicitud.estado === "En revisión normativa"
                             ? tieneInforme
@@ -835,12 +1031,14 @@ export function RevisionNormativaInteroperabilidadView() {
                         </Badge>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-2 text-xs bg-surface/80 backdrop-blur-xs rounded-lg p-2.5 border border-border/40">
+                      {/* Bloque de datos estructurados */}
+                      <div className="grid grid-cols-2 gap-2 text-xs bg-muted/30 rounded-xl p-3 border border-border/60">
                         <div className="min-w-0">
                           <span className="text-[11px] text-muted-foreground block">
                             Campos confidenciales
                           </span>
-                          <span className="font-bold text-warning truncate block">
+                          <span className="font-bold text-warning truncate flex items-center gap-1 mt-0.5">
+                            <Lock className="size-3 shrink-0" />
                             {camposConf.length} campo(s) LOPDP
                           </span>
                         </div>
@@ -848,19 +1046,70 @@ export function RevisionNormativaInteroperabilidadView() {
                           <span className="text-[11px] text-muted-foreground block">
                             Revisor DPI
                           </span>
-                          <span className="font-semibold text-foreground truncate block">
+                          <span className="font-semibold text-foreground truncate block mt-0.5">
                             {solicitud.revisorNormativoAsignado ||
                               activeRevisor.nombre}
                           </span>
                         </div>
+                        <div className="min-w-0 pt-1.5 border-t border-border/50">
+                          <span className="text-[10px] text-muted-foreground block">
+                            1.ª Firma (Revisor DPI)
+                          </span>
+                          <span
+                            className={cn(
+                              "text-[11px] font-semibold flex items-center gap-1 mt-0.5",
+                              firmaRevisorOk ? "text-success" : "text-warning"
+                            )}
+                          >
+                            {firmaRevisorOk ? (
+                              <>
+                                <Check className="size-3 font-bold" />
+                                Firmado
+                              </>
+                            ) : (
+                              <>
+                                <Clock className="size-3" />
+                                Pendiente
+                              </>
+                            )}
+                          </span>
+                        </div>
+                        <div className="min-w-0 pt-1.5 border-t border-border/50">
+                          <span className="text-[10px] text-muted-foreground block">
+                            2.ª Firma (Director DPI)
+                          </span>
+                          <span
+                            className={cn(
+                              "text-[11px] font-semibold flex items-center gap-1 mt-0.5",
+                              firmaDirectorOk ? "text-success" : "text-muted-foreground"
+                            )}
+                          >
+                            {firmaDirectorOk ? (
+                              <>
+                                <Check className="size-3 font-bold" />
+                                Firmado
+                              </>
+                            ) : (
+                              <>
+                                <Clock className="size-3" />
+                                En espera
+                              </>
+                            )}
+                          </span>
+                        </div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-1.5 pt-2 border-t border-border/60">
+                      {/* Botones de acción homologados con altura h-9 */}
+                      <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/60">
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => setSolicitudReviewing(solicitud)}
-                          className="w-full justify-center gap-1.5 font-semibold bg-surface/80 text-xs"
+                          onClick={() => {
+                            router.push(
+                              `/revision-normativa/fuentes/${solicitud.id}`
+                            );
+                          }}
+                          className="w-full justify-center gap-1.5 font-semibold bg-surface/80 text-xs h-9 rounded-xl"
                         >
                           <Eye className="size-3.5 text-primary" />
                           <span>Ver expediente</span>
@@ -871,10 +1120,11 @@ export function RevisionNormativaInteroperabilidadView() {
                             variant="primary"
                             size="sm"
                             onClick={() => {
-                              setSolicitudReviewing(solicitud);
-                              setIsAprobarModalOpen(true);
+                              router.push(
+                                `/revision-normativa/fuentes/${solicitud.id}`
+                              );
                             }}
-                            className="w-full justify-center gap-1.5 font-semibold text-xs"
+                            className="w-full justify-center gap-1.5 font-semibold text-xs h-9 rounded-xl shadow-xs"
                           >
                             <FileSignature className="size-3.5" />
                             <span>Emitir informe</span>
@@ -884,12 +1134,13 @@ export function RevisionNormativaInteroperabilidadView() {
                             variant="outline"
                             size="sm"
                             onClick={() => {
-                              setSolicitudReviewing(solicitud);
-                              setTabRevisionDpi("informe");
+                              router.push(
+                                `/revision-normativa/fuentes/${solicitud.id}`
+                              );
                             }}
-                            className="w-full justify-center gap-1.5 font-semibold text-xs"
+                            className="w-full justify-center gap-1.5 font-semibold text-xs h-9 rounded-xl text-info hover:text-info hover:bg-info/10"
                           >
-                            <FileText className="size-3.5 text-info" />
+                            <FileText className="size-3.5" />
                             <span>Ver informe DPI</span>
                           </Button>
                         )}
@@ -899,7 +1150,7 @@ export function RevisionNormativaInteroperabilidadView() {
                 })}
               </div>
 
-              {/* VISTA DESKTOP: TABLA ESTÁNDAR (Idéntica a Cuentas Internas) */}
+              {/* VISTA DESKTOP: TABLA ESTÁNDAR (Idéntica a Cuentas Internas y Asignación DPI) */}
               <div
                 className={cn(
                   "w-full",
@@ -959,15 +1210,23 @@ export function RevisionNormativaInteroperabilidadView() {
                         return (
                           <TableRow
                             key={solicitud.id}
-                            className="group transition-colors"
+                            className="group transition-colors cursor-pointer hover:bg-muted/40"
+                            onClick={() =>
+                              router.push(
+                                `/revision-normativa/fuentes/${solicitud.id}`
+                              )
+                            }
                           >
                             <TableCell className="pl-6">
                               <div className="flex items-center gap-1.5">
                                 <button
                                   type="button"
-                                  onClick={() =>
-                                    setSolicitudReviewing(solicitud)
-                                  }
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    router.push(
+                                      `/revision-normativa/fuentes/${solicitud.id}`
+                                    );
+                                  }}
                                   className="font-mono text-xs font-bold text-primary hover:underline cursor-pointer"
                                 >
                                   {solicitud.id}
@@ -1026,7 +1285,7 @@ export function RevisionNormativaInteroperabilidadView() {
                                 <Lock className="size-3.5 shrink-0" />
                                 <span>{camposConf.length} confidencial(es)</span>
                               </div>
-                              <span className="text-[11px] text-muted-foreground truncate block max-w-40">
+                              <span className="text-[11px] text-muted-foreground truncate block max-w-44">
                                 {camposConf
                                   .map((c) => c.nombre || c.nombreCampo)
                                   .join(", ")}
@@ -1046,7 +1305,7 @@ export function RevisionNormativaInteroperabilidadView() {
                                   <div className="flex items-center gap-1 text-[11px]">
                                     <Check className="size-3 text-success font-bold" />
                                     <span className="text-success font-medium">
-                                      1.ª Revisor DPI:{" "}
+                                      1.ª Revisor:{" "}
                                       {firmaRevisorOk ? "Firmado" : "Pendiente"}
                                     </span>
                                   </div>
@@ -1063,10 +1322,10 @@ export function RevisionNormativaInteroperabilidadView() {
                                           : "text-warning font-medium"
                                       }
                                     >
-                                      2.ª Director DPI:{" "}
+                                      2.ª Director:{" "}
                                       {firmaDirectorOk
                                         ? "Firmado"
-                                        : "En espera firma Director"}
+                                        : "En espera firma"}
                                     </span>
                                   </div>
                                 </div>
@@ -1103,15 +1362,18 @@ export function RevisionNormativaInteroperabilidadView() {
 
                             <TableCell className="text-right pr-6">
                               <div className="flex items-center justify-end gap-1">
-                                {/* 1. Ver expediente e informe DPI en modal */}
+                                {/* 1. Ver expediente e informe DPI */}
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                     <Button
                                       variant="ghost"
                                       size="icon-sm"
-                                      onClick={() =>
-                                        setSolicitudReviewing(solicitud)
-                                      }
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        router.push(
+                                          `/revision-normativa/fuentes/${solicitud.id}`
+                                        );
+                                      }}
                                       className="text-primary hover:bg-primary/10"
                                       aria-label="Ver expediente e informe DPI"
                                     >
@@ -1130,9 +1392,11 @@ export function RevisionNormativaInteroperabilidadView() {
                                       <Button
                                         variant="ghost"
                                         size="icon-sm"
-                                        onClick={() => {
-                                          setSolicitudReviewing(solicitud);
-                                          setIsAprobarModalOpen(true);
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          router.push(
+                                            `/revision-normativa/fuentes/${solicitud.id}`
+                                          );
                                         }}
                                         className="text-success hover:bg-success/10"
                                         aria-label="Generar y firmar informe de aprobación DPI"
@@ -1153,9 +1417,11 @@ export function RevisionNormativaInteroperabilidadView() {
                                       <Button
                                         variant="ghost"
                                         size="icon-sm"
-                                        onClick={() => {
-                                          setSolicitudReviewing(solicitud);
-                                          setIsObservarModalOpen(true);
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          router.push(
+                                            `/revision-normativa/fuentes/${solicitud.id}`
+                                          );
                                         }}
                                         className="text-warning hover:bg-warning/10"
                                         aria-label="Observar justificación jurídica en DPI"
@@ -1165,6 +1431,31 @@ export function RevisionNormativaInteroperabilidadView() {
                                     </TooltipTrigger>
                                     <TooltipContent variant="surface" side="top">
                                       Observar justificación jurídica (3 días hábiles PAR-13)
+                                    </TooltipContent>
+                                  </Tooltip>
+                                )}
+
+                                {/* 4. Ver informe emitido si ya existe */}
+                                {tieneInforme && (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon-sm"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          router.push(
+                                            `/revision-normativa/fuentes/${solicitud.id}`
+                                          );
+                                        }}
+                                        className="text-info hover:bg-info/10"
+                                        aria-label="Ver informe DPI emitido"
+                                      >
+                                        <FileText className="size-4" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent variant="surface" side="top">
+                                      Ver informe DPI emitido
                                     </TooltipContent>
                                   </Tooltip>
                                 )}
@@ -1178,7 +1469,7 @@ export function RevisionNormativaInteroperabilidadView() {
                 </TooltipProvider>
               </div>
 
-              {/* PAGINACIÓN HOMOLOGADA CON CUENTAS-INTERNAS */}
+              {/* PAGINACIÓN HOMOLOGADA CON CUENTAS-INTERNAS Y ASIGNACIÓN DPI */}
               <div className="pt-2 pb-1 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                   <p className="text-caption text-muted-foreground font-medium">
@@ -1298,9 +1589,9 @@ export function RevisionNormativaInteroperabilidadView() {
           )}
         </Card>
 
-        {/* MODAL EXPEDIENTE DPI (HOMOLOGADO CON EXPEDIENTE-CUENTA-MODAL) */}
+        {/* MODAL 1: EXPEDIENTE DPI (HOMOLOGADO CON PESTAÑAS PILLS) */}
         <Dialog
-          open={Boolean(solicitudReviewing)}
+          open={Boolean(solicitudReviewing) && !isAprobarModalOpen && !isObservarModalOpen && !firmaModalOpen}
           onOpenChange={(open) => {
             if (!open) {
               setSolicitudReviewing(null);
@@ -1318,7 +1609,7 @@ export function RevisionNormativaInteroperabilidadView() {
                 <DialogHeader className="pb-1">
                   <div className="flex flex-wrap items-start justify-between gap-2 pr-6">
                     <div className="flex items-center gap-2.5 text-primary">
-                      <div className="p-2 rounded-xl bg-primary/10">
+                      <div className="p-2.5 rounded-2xl bg-primary/10 text-primary border border-primary/20 shrink-0">
                         <Scale className="size-5 shrink-0" />
                       </div>
                       <div>
@@ -1338,6 +1629,8 @@ export function RevisionNormativaInteroperabilidadView() {
                         solicitudReviewing.estado ===
                         "Aprobada por Normatividad"
                           ? "success"
+                          : solicitudReviewing.informeNormativa
+                          ? "info"
                           : "warning"
                       }
                       appearance="soft"
@@ -1346,7 +1639,9 @@ export function RevisionNormativaInteroperabilidadView() {
                     >
                       <Lock className="size-3" />
                       {solicitudReviewing.estado === "En revisión normativa"
-                        ? "En revisión DPI"
+                        ? solicitudReviewing.informeNormativa
+                          ? "En firma Director DPI"
+                          : "En revisión DPI"
                         : solicitudReviewing.estado ===
                           "Aprobada por Normatividad"
                         ? "Aprobada por DPI"
@@ -1355,7 +1650,7 @@ export function RevisionNormativaInteroperabilidadView() {
                   </div>
                 </DialogHeader>
 
-                {/* TABS SEGMENTADAS AL ESTILO EXPEDIENTE-CUENTA-MODAL */}
+                {/* TABS SEGMENTADAS TIPO PILLS */}
                 <div className="p-1 rounded-xl sm:rounded-full bg-muted/40 border border-border/60 flex items-center gap-1 shrink-0 overflow-x-auto modal-scroll-area max-w-full">
                   {(
                     [
@@ -1368,6 +1663,11 @@ export function RevisionNormativaInteroperabilidadView() {
                         id: "informe",
                         label: "Informe y firmas DPI (SOL-08)",
                         icon: FileSignature,
+                      },
+                      {
+                        id: "historial",
+                        label: "Historial y trazabilidad",
+                        icon: History,
                       },
                     ] as const
                   ).map((t) => {
@@ -1395,7 +1695,7 @@ export function RevisionNormativaInteroperabilidadView() {
                 </div>
 
                 {/* CONTENIDO SCROLLABLE DE PESTAÑAS */}
-                <div className="flex-1 overflow-y-auto pr-1 space-y-4 min-h-0">
+                <div className="flex-1 overflow-y-auto pr-1 space-y-4 min-h-0 modal-scroll-area">
                   {tabRevisionDpi === "campos" && (
                     <>
                       <div className="p-3.5 rounded-xl border border-success/30 bg-success/10 space-y-1 text-caption">
@@ -1417,46 +1717,77 @@ export function RevisionNormativaInteroperabilidadView() {
                       <div className="space-y-3">
                         {(solicitudReviewing.fuentes?.[0]?.campos || [])
                           .filter((c) => c.clasificacion === "Confidencial")
-                          .map((campo) => (
-                            <div
-                              key={campo.id || campo.nombreCampo}
-                              className="p-3.5 rounded-xl border border-warning/30 bg-warning/5 space-y-2 text-caption"
-                            >
-                              <div className="flex items-center justify-between">
-                                <span className="font-mono font-bold text-foreground">
-                                  {campo.nombre || campo.nombreCampo}
-                                </span>
-                                <Badge
-                                  tone="warning"
-                                  appearance="soft"
-                                  size="sm"
-                                  className="rounded-full"
-                                >
-                                  Confidencial
-                                </Badge>
-                              </div>
+                          .map((campo) => {
+                            const isSensible =
+                              campo.esSensible ||
+                              campo.etiquetaSensibilidad === "Sensible";
+                            return (
+                              <div
+                                key={campo.id || campo.nombreCampo}
+                                className="p-3.5 rounded-xl border border-warning/30 bg-warning/5 space-y-2.5 text-caption"
+                              >
+                                <div className="flex items-center justify-between gap-2 flex-wrap">
+                                  <span className="font-mono font-bold text-foreground text-xs">
+                                    {campo.nombre || campo.nombreCampo}
+                                  </span>
+                                  <div className="inline-flex items-center gap-1.5 flex-wrap">
+                                    <Badge
+                                      tone="warning"
+                                      appearance="soft"
+                                      size="sm"
+                                      className="gap-1 inline-flex font-semibold"
+                                    >
+                                      <Lock className="size-3" />
+                                      Confidencial
+                                    </Badge>
+                                    {isSensible && (
+                                      <Badge
+                                        tone="danger"
+                                        appearance="soft"
+                                        size="sm"
+                                        className="gap-1 inline-flex font-semibold"
+                                      >
+                                        <ShieldAlert className="size-3" />
+                                        Sensible · LOPDP
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </div>
 
-                              <div className="p-2.5 rounded-lg bg-background border border-border space-y-1">
-                                <span className="text-caption font-bold text-muted-foreground uppercase">
-                                  Finalidad de uso declarada:
-                                </span>
-                                <p className="text-foreground text-caption leading-relaxed">
-                                  {campo.finalidad}
-                                </p>
-                              </div>
+                                {isSensible && (
+                                  <div className="p-2.5 rounded-lg border border-danger/30 bg-danger/5 flex items-center gap-2 text-xs text-foreground">
+                                    <ShieldAlert className="size-4 text-danger shrink-0" />
+                                    <span>
+                                      <strong>Dato Confidencial Sensible:</strong>{" "}
+                                      sujeto a tratamiento especial según Ley
+                                      Orgánica de Protección de Datos Personales
+                                      (LOPDP).
+                                    </span>
+                                  </div>
+                                )}
 
-                              <div className="p-2.5 rounded-lg bg-background border border-border space-y-1">
-                                <span className="text-caption font-bold text-warning uppercase">
-                                  Justificación jurídica presentada (LOPDP):
-                                </span>
-                                <p className="text-foreground text-caption leading-relaxed">
-                                  {campo.justificacionConfidencial ||
-                                    campo.fundamento ||
-                                    "Base legal conforme Ley Orgánica de Protección de Datos Personales (LOPDP)."}
-                                </p>
+                                <div className="p-2.5 rounded-lg bg-background border border-border space-y-1">
+                                  <span className="text-[11px] font-bold text-muted-foreground uppercase">
+                                    Finalidad de uso declarada:
+                                  </span>
+                                  <p className="text-foreground text-caption leading-relaxed">
+                                    {campo.finalidad}
+                                  </p>
+                                </div>
+
+                                <div className="p-2.5 rounded-lg bg-background border border-border space-y-1">
+                                  <span className="text-[11px] font-bold text-warning uppercase">
+                                    Justificación jurídica presentada (LOPDP):
+                                  </span>
+                                  <p className="text-foreground text-caption leading-relaxed">
+                                    {campo.justificacionConfidencial ||
+                                      campo.fundamento ||
+                                      "Base legal conforme Ley Orgánica de Protección de Datos Personales (LOPDP)."}
+                                  </p>
+                                </div>
                               </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                       </div>
                     </>
                   )}
@@ -1464,89 +1795,138 @@ export function RevisionNormativaInteroperabilidadView() {
                   {tabRevisionDpi === "informe" && (
                     <div className="space-y-3">
                       {solicitudReviewing.informeNormativa ? (
-                        <div className="p-4 rounded-xl border border-border bg-muted/20 space-y-3 text-caption">
-                          <div className="flex items-center justify-between">
-                            <span className="font-bold text-foreground flex items-center gap-1.5">
+                        <div className="p-4 rounded-2xl border border-border bg-surface space-y-3 text-caption">
+                          <div className="flex items-center justify-between flex-wrap gap-2">
+                            <span className="font-bold text-foreground flex items-center gap-1.5 text-xs">
                               <FileText className="size-4 text-primary" />
                               {solicitudReviewing.informeNormativa.numero} -{" "}
                               {solicitudReviewing.informeNormativa.titulo}
                             </span>
-                            <span className="font-mono text-muted-foreground">
+                            <span className="font-mono text-muted-foreground text-[11px]">
                               {solicitudReviewing.informeNormativa.fechaEmision}
                             </span>
                           </div>
-                          <p className="text-muted-foreground italic">
+                          <p className="text-muted-foreground italic bg-muted/20 p-3 rounded-xl border border-border/60">
                             &ldquo;
                             {solicitudReviewing.informeNormativa.fundamento}
                             &rdquo;
                           </p>
-                          <div className="pt-2 border-t border-border flex items-center justify-between">
-                            <span className="text-muted-foreground">
-                              1.ª Firma (Revisor DPI):
-                            </span>
-                            <Badge
-                              tone="success"
-                              appearance="soft"
-                              size="sm"
-                              className="rounded-full"
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2 border-t border-border/60">
+                            <div className="p-3 rounded-xl bg-success/10 border border-success/30 space-y-1">
+                              <span className="text-[10px] text-muted-foreground uppercase font-bold block">
+                                1.ª Firma (Revisor DPI)
+                              </span>
+                              <div className="flex items-center gap-1.5 text-success font-bold text-xs">
+                                <CheckCircle2 className="size-4 text-success" />
+                                <span>
+                                  {
+                                    solicitudReviewing.informeNormativa
+                                      .revisorNombre
+                                  }
+                                </span>
+                              </div>
+                              <span className="text-[10px] text-muted-foreground block font-mono">
+                                Suscrito digitalmente con FirmaEC
+                              </span>
+                            </div>
+
+                            <div
+                              className={cn(
+                                "p-3 rounded-xl border space-y-1",
+                                solicitudReviewing.informeNormativa
+                                  .firmadoDirector
+                                  ? "bg-success/10 border-success/30"
+                                  : "bg-warning/10 border-warning/30"
+                              )}
                             >
-                              {solicitudReviewing.informeNormativa.revisorNombre}{" "}
-                              (Firmado)
-                            </Badge>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-muted-foreground">
-                              2.ª Firma (Director DPI):
-                            </span>
-                            {solicitudReviewing.informeNormativa
-                              .firmadoDirector ? (
-                              <Badge
-                                tone="success"
-                                appearance="soft"
-                                size="sm"
-                                className="rounded-full"
-                              >
-                                {
-                                  solicitudReviewing.informeNormativa
-                                    .directorNombre
-                                }{" "}
-                                (Firmado)
-                              </Badge>
-                            ) : (
-                              <Badge
-                                tone="warning"
-                                appearance="soft"
-                                size="sm"
-                                className="rounded-full"
-                              >
-                                En bandeja del Director DPI (
-                                /revision-normativa/asignacion)
-                              </Badge>
-                            )}
+                              <span className="text-[10px] text-muted-foreground uppercase font-bold block">
+                                2.ª Firma (Director DPI)
+                              </span>
+                              {solicitudReviewing.informeNormativa
+                                .firmadoDirector ? (
+                                <>
+                                  <div className="flex items-center gap-1.5 text-success font-bold text-xs">
+                                    <CheckCircle2 className="size-4 text-success" />
+                                    <span>
+                                      {
+                                        solicitudReviewing.informeNormativa
+                                          .directorNombre
+                                      }
+                                    </span>
+                                  </div>
+                                  <span className="text-[10px] text-muted-foreground block font-mono">
+                                    Refrendado con FirmaEC
+                                  </span>
+                                </>
+                              ) : (
+                                <>
+                                  <div className="flex items-center gap-1.5 text-warning font-bold text-xs">
+                                    <Clock className="size-4 text-warning" />
+                                    <span>Pendiente refrenda</span>
+                                  </div>
+                                  <span className="text-[10px] text-muted-foreground block">
+                                    En bandeja del Director DPI (
+                                    /revision-normativa/asignacion)
+                                  </span>
+                                </>
+                              )}
+                            </div>
                           </div>
                         </div>
                       ) : (
-                        <div className="p-6 rounded-xl border border-dashed border-border text-center text-caption text-muted-foreground">
-                          Aún no se ha generado el Informe de Aprobación DPI. Use
-                          el botón{" "}
-                          <strong className="text-foreground">
-                            Generar y firmar informe DPI (1.ª Firma)
-                          </strong>{" "}
-                          para elaborarlo y remitirlo al Director DPI.
+                        <div className="p-8 rounded-2xl border border-dashed border-border text-center text-caption text-muted-foreground space-y-3">
+                          <FileSignature className="size-8 mx-auto text-muted-foreground/60" />
+                          <div>
+                            <p className="font-semibold text-foreground text-sm">
+                              Aún no se ha generado el Informe de Aprobación DPI
+                            </p>
+                            <p className="text-caption text-muted-foreground mt-1 max-w-md mx-auto">
+                              Para dictaminar favorablemente los campos confidenciales y remitir el informe al Director DPI, utilice el botón de emisión y primera firma.
+                            </p>
+                          </div>
                         </div>
                       )}
                     </div>
                   )}
+
+                  {tabRevisionDpi === "historial" && (
+                    <div className="space-y-3">
+                      {(solicitudReviewing.historial || []).map((ev, idx) => (
+                        <div
+                          key={idx}
+                          className="p-3.5 rounded-xl border border-border/80 bg-surface space-y-1 text-xs"
+                        >
+                          <div className="flex items-center justify-between gap-2 flex-wrap">
+                            <span className="font-bold text-foreground">
+                              {ev.evento}
+                            </span>
+                            <span className="font-mono text-muted-foreground text-[11px]">
+                              {ev.fecha}
+                            </span>
+                          </div>
+                          <p className="text-muted-foreground text-caption">
+                            <strong>Actor:</strong> {ev.actor}
+                          </p>
+                          {ev.detalle && (
+                            <p className="text-caption text-foreground/80 leading-relaxed pt-1 border-t border-border/40">
+                              {ev.detalle}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
-                {/* FOOTER DEL MODAL */}
-                <DialogFooter className="pt-3 border-t border-border/60 flex flex-col sm:flex-row sm:justify-between gap-2 shrink-0">
+                {/* FOOTER DEL MODAL EXPEDIENTE */}
+                <DialogFooter className="pt-3 border-t border-border/60 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 shrink-0">
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
                     onClick={() => setSolicitudReviewing(null)}
-                    className="rounded-xl font-semibold"
+                    className="h-9 px-5 text-xs font-semibold rounded-xl cursor-pointer"
                   >
                     Cerrar
                   </Button>
@@ -1558,7 +1938,7 @@ export function RevisionNormativaInteroperabilidadView() {
                           variant="outline"
                           size="sm"
                           onClick={() => setIsObservarModalOpen(true)}
-                          className="rounded-xl font-semibold gap-1.5"
+                          className="h-9 px-4 text-xs rounded-xl font-semibold gap-1.5 text-warning hover:text-warning hover:bg-warning/10"
                         >
                           <AlertTriangle className="size-3.5 text-warning" />
                           <span>Observar (3 días hábiles PAR-13)</span>
@@ -1567,9 +1947,9 @@ export function RevisionNormativaInteroperabilidadView() {
                           variant="primary"
                           size="sm"
                           onClick={() => setIsAprobarModalOpen(true)}
-                          className="rounded-xl font-semibold gap-1.5"
+                          className="h-9 px-4 text-xs rounded-xl font-semibold gap-1.5 shadow-xs"
                         >
-                          <ShieldCheck className="size-3.5" />
+                          <FileSignature className="size-3.5" />
                           <span>Generar y firmar informe DPI (1.ª Firma)</span>
                         </Button>
                       </div>
@@ -1580,7 +1960,7 @@ export function RevisionNormativaInteroperabilidadView() {
           </DialogContent>
         </Dialog>
 
-        {/* MODAL: OBSERVAR JURÍDICAMENTE EN DPI (3 DÍAS HÁBILES PAR-13) */}
+        {/* MODAL 2: OBSERVAR JURÍDICAMENTE EN DPI (3 DÍAS HÁBILES PAR-13) */}
         <Dialog
           open={isObservarModalOpen}
           onOpenChange={setIsObservarModalOpen}
@@ -1588,7 +1968,7 @@ export function RevisionNormativaInteroperabilidadView() {
           <DialogContent
             variant="warning"
             size="lg"
-            className="p-6 sm:p-7 max-w-lg max-h-[90vh] flex flex-col overflow-hidden"
+            className="p-6 sm:p-7 max-w-lg max-h-[90vh] flex flex-col overflow-hidden rounded-3xl"
           >
             <DialogHeader className="items-center text-center gap-1.5 shrink-0 pb-3 border-b border-border/50">
               <DialogTitle className="font-heading text-xl font-bold text-foreground">
@@ -1627,16 +2007,18 @@ export function RevisionNormativaInteroperabilidadView() {
 
             <DialogFooter className="mt-3 pt-4 border-t border-border flex flex-col-reverse sm:flex-row gap-2.5 w-full shrink-0">
               <Button
-                variant="ghost"
+                variant="neutral"
+                size="sm"
                 onClick={() => setIsObservarModalOpen(false)}
-                className="w-full sm:w-1/2 font-semibold"
+                className="w-full sm:w-1/2 h-9 text-xs rounded-xl font-semibold"
               >
                 Cancelar
               </Button>
               <Button
                 variant="warning"
+                size="sm"
                 onClick={handleConfirmarObservacionJuridica}
-                className="w-full sm:w-1/2 font-bold shadow-xs"
+                className="w-full sm:w-1/2 h-9 text-xs rounded-xl font-bold shadow-xs"
               >
                 Notificar Subsanación
               </Button>
@@ -1644,20 +2026,20 @@ export function RevisionNormativaInteroperabilidadView() {
           </DialogContent>
         </Dialog>
 
-        {/* MODAL: APROBAR Y FIRMAR INFORME COMO REVISOR DPI (SOL-08) */}
+        {/* MODAL 3: ELABORAR DICTAMEN JURÍDICO Y PROCEDER A FIRMA (SOL-08) */}
         <Dialog open={isAprobarModalOpen} onOpenChange={setIsAprobarModalOpen}>
           <DialogContent
             variant="success"
             size="lg"
-            className="p-6 sm:p-7 max-w-lg max-h-[90vh] flex flex-col overflow-hidden"
+            className="p-6 sm:p-7 max-w-lg max-h-[90vh] flex flex-col overflow-hidden rounded-3xl"
             icon={<CheckCircle2 className="size-10 text-success stroke-[2px]" />}
           >
             <DialogHeader className="items-center text-center gap-1.5 shrink-0 pb-3 border-b border-border/50">
               <DialogTitle className="font-heading text-xl font-bold text-foreground">
-                Generar y Firmar Informe de Aprobación DPI (1.ª Firma)
+                Generar Informe de Aprobación DPI (1.ª Firma)
               </DialogTitle>
               <DialogDescription className="text-sm text-muted-foreground max-w-md mx-auto">
-                Genera el informe de aprobación en el portal con la firma electrónica del Revisor DPI y lo remite al Director DPI para la segunda firma conjunta (SOL-08).
+                Redacta las conclusiones del informe jurídico favorable y continúa con la suscripción electrónica FirmaEC (SOL-08).
               </DialogDescription>
             </DialogHeader>
 
@@ -1666,44 +2048,285 @@ export function RevisionNormativaInteroperabilidadView() {
                 Conclusiones y Dictamen de Protección de la Información (LOPDP):
               </label>
               <Textarea
-                rows={3}
+                rows={4}
                 value={conclusionesInforme}
                 onChange={(e) => setConclusionesInforme(e.target.value)}
-                placeholder="Se determina que el tratamiento de los datos confidenciales solicitados cuenta con base jurídica habilitante conforme a la LOPDP..."
+                placeholder="Se determina que el tratamiento de los datos confidenciales solicitados cuenta con base jurídica habilitante conforme a la LOPDP y cumple con el principio de finalidad y proporcionalidad..."
                 className="text-caption bg-background rounded-xl"
               />
 
-              <div className="p-3 rounded-xl bg-success/10 border border-success/30 text-caption space-y-1">
-                <p className="font-bold text-foreground">
-                  Requisito SOL-08: Doble firma electrónica en DPI
+              <div className="p-3.5 rounded-2xl bg-success/10 border border-success/30 text-caption space-y-1">
+                <p className="font-bold text-foreground flex items-center gap-1.5">
+                  <ShieldCheck className="size-4 text-success" />
+                  <span>Flujo de doble firma electrónica en DPI (SOL-08)</span>
                 </p>
-                <p className="text-muted-foreground leading-relaxed">
-                  1. Al confirmar, se estampa la{" "}
-                  <strong>1.ª firma (Revisor del Equipo DPI)</strong>.<br />
-                  2. La solicitud no quedará aprobada por DPI hasta contar con
-                  la <strong>2.ª firma del Director DPI</strong> en su bandeja (
-                  <code>/revision-normativa/asignacion</code>).
+                <p className="text-muted-foreground leading-relaxed text-[11px]">
+                  1. Al pulsar continuar, se validará la <strong>1.ª firma con FirmaEC</strong> del Revisor DPI ({activeRevisor.nombre}).<br />
+                  2. El informe pasará de forma inmediata a la bandeja del <strong>Director DPI</strong> (<code>/revision-normativa/asignacion</code>) para la <strong>2.ª firma de refrenda</strong>.
                 </p>
               </div>
             </div>
 
             <DialogFooter className="mt-3 pt-4 border-t border-border flex flex-col-reverse sm:flex-row gap-2.5 w-full shrink-0">
               <Button
-                variant="ghost"
+                variant="neutral"
+                size="sm"
                 onClick={() => setIsAprobarModalOpen(false)}
-                className="w-full sm:w-1/2 font-semibold"
+                className="w-full sm:w-1/2 h-9 text-xs rounded-xl font-semibold"
               >
                 Cancelar
               </Button>
               <Button
                 variant="success"
-                onClick={handleConfirmarAprobacionJuridica}
-                className="w-full sm:w-1/2 font-bold shadow-xs gap-1.5"
+                size="sm"
+                onClick={() => {
+                  if (solicitudReviewing) {
+                    handleIniciarFirmaRevisor(solicitudReviewing);
+                  }
+                }}
+                className="w-full sm:w-1/2 h-9 text-xs rounded-xl font-bold shadow-xs gap-1.5"
               >
-                <CheckCircle2 className="size-4" />
-                <span>Firmar y Enviar a Director DPI</span>
+                <Sparkles className="size-4" />
+                <span>Continuar a FirmaEC (1.ª Firma)</span>
               </Button>
             </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* MODAL 4: SIMULACIÓN EN VIVO DE FIRMAEC REVISOR DPI (Homologado a RegistroInstitucion) */}
+        <Dialog
+          open={firmaModalOpen}
+          onOpenChange={(open) => {
+            if (!open) handleCerrarModalFirma();
+          }}
+        >
+          <DialogContent
+            variant="standard"
+            size="lg"
+            className="p-6 sm:p-7 max-w-xl max-h-[90vh] flex flex-col overflow-hidden rounded-3xl"
+          >
+            {solicitudAFirmar && (
+              <div className="space-y-4 text-left">
+                {/* 1. Cabecera */}
+                <DialogHeader className="gap-2 text-left items-start pb-2 border-b border-border/50 shrink-0">
+                  <div className="flex items-start justify-between w-full gap-3 pr-6">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 rounded-2xl bg-primary/10 text-primary border border-primary/20 shrink-0">
+                        <FileSignature className="size-6 text-primary stroke-[2.2px]" />
+                      </div>
+                      <div>
+                        <DialogTitle className="font-heading font-extrabold text-base sm:text-lg text-foreground leading-tight">
+                          Firma Electrónica del Dictamen DPI (FirmaEC)
+                        </DialogTitle>
+                        <DialogDescription className="text-xs text-muted-foreground mt-0.5 leading-snug">
+                          Suscripción digital oficial del Revisor de Protección de la Información (1.ª Firma requerida - SOL-08).
+                        </DialogDescription>
+                      </div>
+                    </div>
+                  </div>
+                </DialogHeader>
+
+                {/* 2. Tarjeta resumen del expediente e informe */}
+                <div className="p-3.5 bg-surface rounded-2xl border border-border/80 space-y-2 text-xs">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Building2 className="size-4 text-primary shrink-0" />
+                      <span className="font-bold text-foreground truncate">
+                        {solicitudAFirmar.institucion}
+                      </span>
+                    </div>
+                    <Badge
+                      tone="primary"
+                      appearance="outline"
+                      size="sm"
+                      className="font-mono text-[10px]"
+                    >
+                      {solicitudAFirmar.id}
+                    </Badge>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 border-t border-border/50 text-[11px]">
+                    <div>
+                      <span className="text-muted-foreground block text-[10px]">
+                        Expediente y fuente:
+                      </span>
+                      <strong className="text-foreground font-semibold truncate block">
+                        {solicitudAFirmar.fuentePrincipal}
+                      </strong>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block text-[10px]">
+                        Revisor DPI firmante:
+                      </span>
+                      <strong className="text-foreground font-semibold truncate block">
+                        {solicitudAFirmar.revisorNormativoAsignado ||
+                          activeRevisor.nombre}
+                      </strong>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Estados Dinámicos: Validando con FirmaEC vs Firmado con Éxito */}
+                {firmaEstado === "validando" ? (
+                  <div className="space-y-3.5 animate-in fade-in duration-200">
+                    {/* Alerta de notificación por correo (idéntica a registro-institución) */}
+                    <div className="p-4 rounded-2xl border border-primary/25 bg-primary/5 space-y-2 text-xs">
+                      <div className="flex items-center gap-2 font-bold text-primary">
+                        <Mail className="size-4 shrink-0" />
+                        <span>Notificación de firma enviada al correo institucional</span>
+                      </div>
+                      <p className="text-[11px] leading-relaxed text-muted-foreground">
+                        Se ha remitido la solicitud de suscripción digital al correo institucional{" "}
+                        <strong className="text-foreground font-semibold">
+                          {activeRevisor.email}
+                        </strong>{" "}
+                        (Revisor DPI).
+                      </p>
+                      <p className="text-[11px] font-semibold text-primary flex items-center gap-1.5 pt-1">
+                        <RefreshCw className="size-3.5 animate-spin shrink-0" />
+                        <span>
+                          Revisa tu correo. Cuando firmes con FirmaEC o Token criptográfico, el estado de esta pantalla se actualizará automáticamente.
+                        </span>
+                      </p>
+                    </div>
+
+                    {/* Barra interactiva de validación en vivo */}
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 rounded-2xl bg-surface border border-border shadow-2xs">
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                        <LoadingSpinner size="sm" className="size-4 text-primary shrink-0" />
+                        <div>
+                          <p className="text-xs font-semibold text-foreground">
+                            Validando 1.ª firma con FirmaEC en vivo...
+                          </p>
+                          <p className="text-[11px] text-muted-foreground">
+                            Comprobando certificado digital en la pasarela gubernamental oficial.
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleConsultarEstadoFirmaManual}
+                        disabled={isConsultandoFirma}
+                        className="text-xs font-semibold gap-1.5 w-full sm:w-auto shrink-0 h-9 rounded-xl"
+                      >
+                        <RefreshCw
+                          className={cn(
+                            "size-3.5",
+                            isConsultandoFirma && "animate-spin"
+                          )}
+                        />
+                        <span>
+                          {isConsultandoFirma
+                            ? "Consultando..."
+                            : "Consultar estado ahora"}
+                        </span>
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3.5 animate-in fade-in duration-200">
+                    {/* Alerta de éxito con detalles del certificado (idéntica a registro-institución) */}
+                    <Alert
+                      variant="success"
+                      icon={<CheckCircle2 className="size-4" />}
+                      title="1.ª Firma electrónica validada con éxito en FirmaEC"
+                    >
+                      <div className="space-y-2.5 w-full">
+                        <p className="text-[11px] leading-relaxed text-muted-foreground">
+                          El informe favorable de confidencialidad ha sido suscrito digitalmente de forma válida por{" "}
+                          <strong className="text-foreground font-semibold">
+                            {solicitudAFirmar.revisorNormativoAsignado ||
+                              activeRevisor.nombre}
+                          </strong>
+                          . La primera firma oficial ha quedado registrada en el expediente.
+                        </p>
+
+                        <div className="flex flex-wrap items-center gap-2 pt-1 text-xs w-full">
+                          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface/80 dark:bg-surface/40 border border-success/30 shadow-2xs text-foreground font-mono text-[11px]">
+                            <span className="font-sans font-medium text-muted-foreground">
+                              Fecha y Hora:
+                            </span>
+                            <strong className="text-foreground font-bold">
+                              {firmaTimestamp || "28/10/2026 13:30:00"}
+                            </strong>
+                          </div>
+                          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface/80 dark:bg-surface/40 border border-success/30 shadow-2xs text-foreground font-mono text-[11px]">
+                            <span className="font-sans font-medium text-muted-foreground">
+                              Serie Certificado / ID:
+                            </span>
+                            <strong className="text-foreground font-bold">
+                              {firmaCertId || "FEC-REV-2026-802142"}
+                            </strong>
+                          </div>
+                        </div>
+                      </div>
+                    </Alert>
+
+                    {/* Banner de trámite remitido al Director DPI */}
+                    <div className="p-3.5 rounded-2xl border border-primary/30 bg-primary/5 space-y-1 text-xs">
+                      <div className="flex items-center gap-2 font-bold text-primary text-xs">
+                        <ShieldCheck className="size-4 shrink-0" />
+                        <span>
+                          Informe remitido al Director DPI para segunda firma conjunta (SOL-08)
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground leading-relaxed">
+                        El informe ha sido enviado a la bandeja del Director de Protección de la Información en{" "}
+                        <code className="text-primary font-mono text-[10px]">
+                          /revision-normativa/asignacion
+                        </code>
+                        . Al completar la segunda firma, el expediente quedará formalmente aprobado.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* 4. Footer con acciones */}
+                <DialogFooter className="pt-3 w-full flex items-center justify-between border-t border-border/50 shrink-0 mt-2">
+                  <Button
+                    type="button"
+                    variant="neutral"
+                    size="sm"
+                    onClick={handleCerrarModalFirma}
+                    className="h-9 px-5 text-xs rounded-xl font-semibold cursor-pointer"
+                  >
+                    {firmaEstado === "firmado" ? "Cerrar" : "Cancelar"}
+                  </Button>
+
+                  {firmaEstado === "validando" ? (
+                    <Button
+                      type="button"
+                      variant="primary"
+                      size="sm"
+                      onClick={handleConsultarEstadoFirmaManual}
+                      disabled={isConsultandoFirma}
+                      className="font-semibold gap-1.5 h-9 px-5 text-xs rounded-xl shadow-xs"
+                    >
+                      <RefreshCw
+                        className={cn(
+                          "size-3.5",
+                          isConsultandoFirma && "animate-spin"
+                        )}
+                      />
+                      <span>Simular validación inmediata</span>
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="primary"
+                      size="sm"
+                      onClick={handleCerrarModalFirma}
+                      className="font-semibold gap-1.5 h-9 px-5 text-xs rounded-xl shadow-xs"
+                    >
+                      <Check className="size-4" />
+                      <span>Aceptar y ver bandeja</span>
+                    </Button>
+                  )}
+                </DialogFooter>
+              </div>
+            )}
           </DialogContent>
         </Dialog>
       </main>

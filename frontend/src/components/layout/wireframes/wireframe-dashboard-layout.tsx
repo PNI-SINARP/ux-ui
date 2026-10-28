@@ -114,14 +114,15 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  // ── Coordinador SINARP — Acceso a Interoperabilidad (BN-07) ──
+  // ── SECCIÓN PRINCIPAL BN-07: ACCESO A FUENTES ──
+  // Coordinador SINARP
   {
-    id: "nueva-solicitud-interoperabilidad",
-    label: "Solicitar acceso",
-    icon: FileSignature,
-    href: "/acceso-interoperabilidad/nueva",
+    id: "catalogo-interoperabilidad",
+    label: "Catálogo de fuentes",
+    icon: Database,
+    href: "/catalogo-interoperabilidad",
     allowedRoles: ["COORDINADOR_SINARP", "ADMIN"],
-    section: "Acceso a Interoperabilidad",
+    section: "Acceso a fuentes",
   },
   {
     id: "mis-solicitudes",
@@ -129,31 +130,69 @@ const navItems: NavItem[] = [
     icon: Network,
     href: "/acceso-interoperabilidad/solicitudes",
     allowedRoles: ["COORDINADOR_SINARP", "ADMIN"],
-    section: "Acceso a Interoperabilidad",
+    section: "Acceso a fuentes",
+  },
+  // Director de Gestión
+  {
+    id: "acceso-interoperabilidad-asignacion",
+    label: "Asignar revisiones de acceso",
+    icon: UserCheck,
+    href: "/acceso-interoperabilidad/asignacion",
+    allowedRoles: ["DIR_GESTION", "ADMIN"],
+    section: "Acceso a fuentes",
+  },
+  // Revisor de Gestión
+  {
+    id: "revision-gestion",
+    label: "Revisar solicitudes de acceso",
+    icon: CheckSquare,
+    href: "/revision-gestion",
+    allowedRoles: ["EQ_GESTION", "ADMIN"],
+    section: "Acceso a fuentes",
+  },
+  // Director DPI (Separado de Normativa)
+  {
+    id: "asignacion-normativa-fuentes",
+    label: "Asignar revisiones DPI",
+    icon: UserCheck,
+    href: "/revision-normativa/asignacion",
+    allowedRoles: ["DIR_DPI", "DPI", "ADMIN"],
+    section: "Acceso a fuentes",
   },
   {
-    id: "catalogo-interoperabilidad",
-    label: "Catálogo de fuentes",
-    icon: Database,
-    href: "/catalogo-interoperabilidad",
-    allowedRoles: ["COORDINADOR_SINARP", "ADMIN"],
-    section: "Acceso a Interoperabilidad",
+    id: "informes-aprobacion-dpi",
+    label: "Firmar informes DPI",
+    icon: FileSignature,
+    href: "/revision-normativa/asignacion?tab=informes",
+    allowedRoles: ["DIR_DPI", "DPI", "ADMIN"],
+    section: "Acceso a fuentes",
+  },
+  // Revisor DPI (Separado de Normativa)
+  {
+    id: "revision-normativa-fuentes",
+    label: "Evaluar datos confidenciales",
+    icon: Lock,
+    href: "/revision-normativa/fuentes",
+    allowedRoles: ["EQ_DPI", "ADMIN"],
+    section: "Acceso a fuentes",
   },
   {
-    id: "mis-accesos",
-    label: "Mis accesos",
-    icon: KeyRound,
-    href: "/acceso-interoperabilidad/solicitudes?tab=habilitadas",
-    allowedRoles: ["COORDINADOR_SINARP", "ADMIN"],
-    section: "Acceso a Interoperabilidad",
+    id: "informes-elaborados-dpi",
+    label: "Elaborar informes DPI",
+    icon: FileCheck2,
+    href: "/revision-normativa/fuentes?tab=informes",
+    allowedRoles: ["EQ_DPI", "ADMIN"],
+    section: "Acceso a fuentes",
   },
+
+  // ── Coordinador SINARP — Proyecto Institucional ──
   {
     id: "proyectos",
-    label: "Mis proyectos",
+    label: "Gestión de proyectos",
     icon: FolderKanban,
     href: "/proyectos",
     allowedRoles: ["COORDINADOR_SINARP", "ADMIN"],
-    section: "Acceso a Interoperabilidad",
+    section: "Proyecto institucional",
   },
   {
     id: "fuentes-proveedor",
@@ -207,11 +246,19 @@ const navItems: NavItem[] = [
     section: "Expedientes Anexo A",
   },
   {
+    id: "asignacion-resoluciones",
+    label: "Asignar resoluciones",
+    icon: UserCheck,
+    href: "/revision-normativa",
+    allowedRoles: ["DIR_NORMATIVA", "ADMIN"],
+    section: "Expedientes Anexo A",
+  },
+  {
     id: "revision-normativa",
-    label: "Elaborar resoluciones",
+    label: "Generar resoluciones",
     icon: Scale,
     href: "/revision-normativa",
-    allowedRoles: ["DIR_NORMATIVA", "EQ_NORMATIVA", "ADMIN"],
+    allowedRoles: ["EQ_NORMATIVA", "ADMIN"],
     section: "Expedientes Anexo A",
   },
   {
@@ -224,22 +271,6 @@ const navItems: NavItem[] = [
   },
 
   // ── SECCIÓN INDEPENDIENTE: EXPEDIENTES ANEXO B (Registro de Coordinadores) ──
-  {
-    id: "enrolamiento-coordinador",
-    label: "Registrar enrolamiento",
-    icon: UserCheck,
-    href: "/enrolamiento-coordinador",
-    allowedRoles: ["COORDINADOR_SINARP"],
-    section: "Expedientes Anexo B",
-  },
-  {
-    id: "expedientes-anexo-b-coord",
-    label: "Mi enrolamiento",
-    icon: FileText,
-    href: "/expedientes-anexo-b",
-    allowedRoles: ["COORDINADOR_SINARP"],
-    section: "Expedientes Anexo B",
-  },
   {
     id: "expedientes-anexo-b",
     label: "Estado de enrolamientos",
@@ -315,40 +346,14 @@ const navItems: NavItem[] = [
     section: "Expedientes Anexo C",
   },
 
-  // ── Director de Gestión — Gestión de Solicitudes (BN-07) ──
-  {
-    id: "acceso-interoperabilidad-asignacion",
-    label: "Asignar accesos",
-    icon: UserCheck,
-    href: "/acceso-interoperabilidad/asignacion",
-    allowedRoles: ["DIR_GESTION", "ADMIN"],
-    section: "Gestión de Interoperabilidad",
-  },
-  {
-    id: "acceso-interoperabilidad-seguimiento",
-    label: "Seguimiento de accesos",
-    icon: History,
-    href: "/acceso-interoperabilidad/asignacion?tab=seguimiento",
-    allowedRoles: ["DIR_GESTION"],
-    section: "Gestión de Interoperabilidad",
-  },
+  // ── Formalización y Catálogo de Fuentes (Otros Flujos) ──
   {
     id: "formalizacion-gestion",
     label: "Formalizar accesos",
     icon: FileCheck2,
     href: "/formalizacion",
     allowedRoles: ["DIR_GESTION", "ADMIN"],
-    section: "Gestión de Interoperabilidad",
-  },
-
-  // ── Revisor del Equipo de Gestión — Revisión de Solicitudes (BN-07) ──
-  {
-    id: "revision-gestion",
-    label: "Revisar accesos",
-    icon: Network,
-    href: "/revision-gestion",
-    allowedRoles: ["EQ_GESTION", "ADMIN"],
-    section: "Revisión de Interoperabilidad",
+    section: "Formalización de Accesos",
   },
   {
     id: "revision-aprobacion-fuentes",
@@ -357,48 +362,6 @@ const navItems: NavItem[] = [
     href: "/gestion/fuentes",
     allowedRoles: ["DGR", "DPI", "DIR_GESTION", "EQ_GESTION", "ADMIN"],
     section: "Catálogo de Fuentes",
-  },
-
-  // ── Dirección y Equipo de Protección de la Información (DPI) (BN-07) ──
-  {
-    id: "asignacion-normativa-fuentes",
-    label: "Asignar revisiones DPI",
-    icon: UserCheck,
-    href: "/revision-normativa/asignacion",
-    allowedRoles: ["DIR_NORMATIVA", "DPI", "ADMIN"],
-    section: "Protección de la Información",
-  },
-  {
-    id: "informes-aprobacion-dpi",
-    label: "Informes de aprobación",
-    icon: FileSignature,
-    href: "/revision-normativa/asignacion?tab=informes",
-    allowedRoles: ["DIR_NORMATIVA", "DPI"],
-    section: "Protección de la Información",
-  },
-  {
-    id: "seguimiento-dpi",
-    label: "Seguimiento DPI",
-    icon: History,
-    href: "/revision-normativa/asignacion?tab=seguimiento",
-    allowedRoles: ["DIR_NORMATIVA", "DPI"],
-    section: "Protección de la Información",
-  },
-  {
-    id: "revision-normativa-fuentes",
-    label: "Revisar campos DPI",
-    icon: Lock,
-    href: "/revision-normativa/fuentes",
-    allowedRoles: ["EQ_NORMATIVA", "ADMIN"],
-    section: "Protección de la Información",
-  },
-  {
-    id: "informes-elaborados-dpi",
-    label: "Informes elaborados",
-    icon: FileCheck2,
-    href: "/revision-normativa/fuentes?tab=informes",
-    allowedRoles: ["EQ_NORMATIVA"],
-    section: "Protección de la Información",
   },
 
   // ── Jurídica ──
@@ -582,14 +545,10 @@ export function WireframeDashboardLayout({
   const { activeUser, logout, setRole } = useAuthStore();
   const fallbackUser = activeUser || MOCK_USERS_BY_ROLE.COORDINADOR_SINARP;
   let rawUser: MockUser | WireframeDashboardUser;
-  if (currentUser) {
+  if (activeUser) {
+    rawUser = activeUser;
+  } else if (currentUser) {
     rawUser = currentUser;
-  } else if (activeUser) {
-    if (!currentRole || activeUser.role === currentRole) {
-      rawUser = activeUser;
-    } else {
-      rawUser = MOCK_USERS_BY_ROLE[currentRole] || activeUser;
-    }
   } else if (currentRole && MOCK_USERS_BY_ROLE[currentRole]) {
     rawUser = MOCK_USERS_BY_ROLE[currentRole];
   } else {
@@ -607,13 +566,15 @@ export function WireframeDashboardLayout({
     institution: rawUser.institution || fallbackUser.institution,
     avatar: ("avatar" in rawUser && rawUser.avatar) ? rawUser.avatar : fallbackUser.avatar,
   };
-  const activeUserRole = currentRole || resolvedUser?.role || "COORDINADOR_SINARP";
+  const activeUserRole = activeUser?.role || currentRole || resolvedUser?.role || "COORDINADOR_SINARP";
   const isAprobador = activeUserRole === "APROBADOR";
   const isInternalDinarpRole =
     activeUserRole === "DIR_GESTION" ||
     activeUserRole === "DIR_NORMATIVA" ||
     activeUserRole === "EQ_GESTION" ||
-    activeUserRole === "EQ_NORMATIVA";
+    activeUserRole === "EQ_NORMATIVA" ||
+    activeUserRole === "DIR_DPI" ||
+    activeUserRole === "EQ_DPI";
 
   const isProvider =
     isProviderInstitution(resolvedUser?.institution) ||
@@ -666,6 +627,9 @@ export function WireframeDashboardLayout({
 
   const isItemActive = (item: NavItem) => {
     if (activeMenu) {
+      if (item.id === "mis-solicitudes" && activeMenu === "nueva-solicitud-acceso") {
+        return true;
+      }
       return activeMenu === item.id || activeMenu === item.href.replace(/^\//, "");
     }
     if (item.href && pathname) {
@@ -738,26 +702,19 @@ export function WireframeDashboardLayout({
               let visibleNavItems = baseNavItems;
               if (isProvider && activeUserRole === "COORDINADOR_SINARP") {
                 const priorityOrder: Record<string, number> = {
-                  "fuentes-proveedor": 1,
+                  "catalogo-interoperabilidad": 1,
                   "mis-solicitudes": 2,
-                  "nueva-solicitud-interoperabilidad": 3,
-                  "catalogo-interoperabilidad": 4,
-                  "mis-accesos": 5,
-                  "proyectos": 6,
-                  "enrolamiento-coordinador": 7,
-                  "expedientes-anexo-b-coord": 8,
-                  "cambio-coordinador": 9,
-                  "expedientes-anexo-c": 10,
-                  "mi-suplencia": 11,
+                  "proyectos": 3,
+                  "fuentes-proveedor": 4,
+                  "cambio-coordinador": 5,
+                  "expedientes-anexo-c": 6,
+                  "mi-suplencia": 7,
                 };
                 visibleNavItems = [...baseNavItems]
                   .sort((a, b) => (priorityOrder[a.id] || 99) - (priorityOrder[b.id] || 99))
                   .map((item) => {
                     if (item.id === "fuentes-proveedor") {
                       return { ...item, label: "Mis fuentes de datos" };
-                    }
-                    if (item.id === "mis-solicitudes") {
-                      return { ...item, label: "Solicitudes de acceso" };
                     }
                     return item;
                   });

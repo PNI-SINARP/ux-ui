@@ -12,6 +12,7 @@ import {
   Lock,
   Unlock,
   ShieldCheck,
+  ShieldAlert,
   Eye,
   Download,
   Scale,
@@ -30,6 +31,7 @@ import {
   Edit,
   ChevronDown,
   ChevronUp,
+  ChevronRight,
   Receipt,
   CreditCard,
   UploadCloud,
@@ -37,12 +39,17 @@ import {
   Info,
   KeyRound,
   Copy,
-  EyeOff
+  EyeOff,
+  Briefcase,
+  Paperclip,
+  Clock
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { Stepper, type Step } from "@/components/ui/stepper";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { InputGroup, InputGroupInput } from "@/components/ui/input-group";
 import { toast } from "sonner";
 import {
@@ -104,6 +111,7 @@ export function AccesoSolicitudDetailView({ params, searchParams }: PageProps) {
     validarPagoConCur,
     subsanarYReenviar,
     cerrarPorVencimiento,
+    reintentarCierreIdempotente,
     firmarContrato
   } = useSolicitudesStore();
 
@@ -160,9 +168,40 @@ export function AccesoSolicitudDetailView({ params, searchParams }: PageProps) {
     }
   }, [resolvedSearchParams?.step]);
 
-  // Tabs de detalle
+  // Tabs de detalle y paso activo del expediente
   const [activeTab, setActiveTab] = useState<string>("resumen");
+  const [detailStep, setDetailStep] = useState<number>(1);
   const [expandedJustificaciones, setExpandedJustificaciones] = useState<Record<string, boolean>>({});
+
+  const toggleCampoJustificacion = (key: string) => {
+    setExpandedJustificaciones((prev) => ({
+      ...prev,
+      [key]: !(prev[key] ?? true),
+    }));
+  };
+
+  const expandAllJustificaciones = (camposList: { id?: string; nombre: string }[]) => {
+    const next: Record<string, boolean> = {};
+    camposList.forEach((c) => {
+      next[c.id || c.nombre] = true;
+    });
+    setExpandedJustificaciones(next);
+  };
+
+  const collapseAllJustificaciones = (camposList: { id?: string; nombre: string }[]) => {
+    const next: Record<string, boolean> = {};
+    camposList.forEach((c) => {
+      next[c.id || c.nombre] = false;
+    });
+    setExpandedJustificaciones(next);
+  };
+
+  const detailStepperSteps: Step[] = [
+    { id: "1", title: "Proyecto y modalidad", icon: Briefcase },
+    { id: "2", title: "Seleccionar información", icon: Database },
+    { id: "3", title: "Justificar campos", icon: FileText },
+    { id: "4", title: "Expediente y resumen", icon: FileCheck2 },
+  ];
 
   // Archivos de subida de informe para aprobación
   const informeExistenteNombre = solicitud?.informeJustificacion?.nombre;
@@ -348,8 +387,8 @@ export function AccesoSolicitudDetailView({ params, searchParams }: PageProps) {
       estadoStr === "Reenviada para aprobación");
 
   const isObservada = solicitud.estado === "Observada";
-  const isCerrada = solicitud.estado === "Cerrada";
-  const isRechazada = solicitud.estado === "Rechazada" || solicitud.estado === "Con observaciones" || isObservada;
+  const isCerrada = solicitud.estado === "Cerrada" || solicitud.estado === "Cerrada por vencimiento";
+  const isRechazada = (solicitud.estado === "Rechazada" || solicitud.estado === "Con observaciones" || isObservada) && !isCerrada;
 
   return (
     <WireframeDashboardLayout
@@ -400,11 +439,11 @@ export function AccesoSolicitudDetailView({ params, searchParams }: PageProps) {
       ) : (
         <main className="w-full pr-3 pl-2 pb-3 pt-1.5 flex-1 min-h-0 flex flex-col overflow-hidden">
           <Card
-            className="bg-surface rounded-2xl border border-border shadow-xs flex-1 min-h-0 overflow-hidden flex flex-col my-0"
-            innerClassName="p-4 sm:p-6 lg:p-8 flex flex-col gap-6 overflow-y-auto flex-1 min-h-0 w-full"
+            className="w-full bg-surface rounded-2xl border border-border shadow-xs flex-1 min-h-0 overflow-hidden flex flex-col my-0"
+            innerClassName="p-4 sm:p-6 lg:p-8 flex flex-col items-stretch gap-6 overflow-y-auto flex-1 min-h-0 w-full"
           >
             {/* Barra superior de navegación */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between w-full">
               <Link
                 href="/acceso-interoperabilidad/solicitudes"
                 className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors font-medium"
@@ -424,7 +463,7 @@ export function AccesoSolicitudDetailView({ params, searchParams }: PageProps) {
           {feedbackMessage && (
             <div
               className={cn(
-                "p-4 rounded-xl border flex items-center gap-3 animate-in fade-in-50 duration-200",
+                "w-full p-4 rounded-xl border flex items-center gap-3 animate-in fade-in-50 duration-200",
                 feedbackMessage.tipo === "success"
                   ? "bg-success/10 border-success/30 text-success"
                   : "bg-warning/10 border-warning/30 text-warning"
@@ -441,7 +480,7 @@ export function AccesoSolicitudDetailView({ params, searchParams }: PageProps) {
 
           {/* Banner de Borrador SOL-01 */}
           {solicitud.estado === "Borrador" && (
-            <div className="p-4 sm:p-5 rounded-2xl border border-warning/40 bg-warning/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="w-full p-4 sm:p-5 rounded-2xl border border-warning/40 bg-warning/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-start gap-3">
                 <Edit className="size-5 text-warning shrink-0 mt-0.5" />
                 <div className="space-y-1">
@@ -488,9 +527,43 @@ export function AccesoSolicitudDetailView({ params, searchParams }: PageProps) {
             </div>
           )}
 
+          {/* Banner TEC-00: Fallo en registro de cierre */}
+          {solicitud.falloCierreTec00 && (
+            <div className="w-full p-4 sm:p-5 rounded-2xl border border-warning/40 bg-warning/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="size-5 text-warning shrink-0 mt-0.5" />
+                <div className="space-y-1 text-xs">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-sm font-bold text-foreground">
+                      No se confirmó el cierre; pendiente de reintento
+                    </p>
+                    <Badge tone="warning" appearance="soft" className="text-[11px] font-mono font-semibold">
+                      Registro {solicitud.idOperacionTec00 || "TEC-00-849201"}
+                    </Badge>
+                  </div>
+                  <p className="text-muted-foreground leading-relaxed">
+                    Ocurrió un fallo en la persistencia del cierre (TEC-00). Se conserva el estado observado y el expediente no es editable fuera de plazo; no se envió aviso de cierre. El proceso reintenta de manera idempotente sin crear duplicados ni modificar la fecha límite original.
+                  </p>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  reintentarCierreIdempotente(solicitud.id);
+                  toast.success("Cierre completado idempotentemente (SOL-06 / TEC-00)");
+                }}
+                className="shrink-0 gap-1.5 font-semibold border-warning/40 text-warning hover:bg-warning/15 shadow-2xs rounded-full"
+              >
+                <RotateCcw className="size-3.5" />
+                <span>Reintentar cierre ahora</span>
+              </Button>
+            </div>
+          )}
+
           {/* Banner de Observaciones SOL-05 y Plazo SOL-06 (para Coordinador SINARP) */}
-          {(isRechazada || solicitud.estado === "Requiere corrección" || solicitud.estado === "Observada") && (
-            <div className="p-4 sm:p-5 rounded-2xl border border-destructive/40 bg-destructive/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          {!isCerrada && !solicitud.falloCierreTec00 && (isRechazada || solicitud.estado === "Requiere corrección" || solicitud.estado === "Observada") && (
+            <div className="w-full p-4 sm:p-5 rounded-2xl border border-destructive/40 bg-destructive/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-start gap-3">
                 <AlertTriangle className="size-5 text-destructive shrink-0 mt-0.5" />
                 <div className="space-y-1">
@@ -530,17 +603,27 @@ export function AccesoSolicitudDetailView({ params, searchParams }: PageProps) {
                 >
                   Simular vencimiento (SOL-06)
                 </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    cerrarPorVencimiento(solicitud.id, { simularFalloTec00: true });
+                    toast.error("Simulado fallo transaccional TEC-00: Cierre pendiente de reintento.");
+                  }}
+                  className="text-xs border-warning/40 text-warning hover:bg-warning/10"
+                >
+                  Simular fallo TEC-00
+                </Button>
                 {role === "COORDINADOR_SINARP" && (
                   <Button
+                    asChild
                     size="sm"
-                    onClick={() => {
-                      setCorrectionStep(targetCorrectionStep);
-                      setModoCorreccion(true);
-                    }}
-                    className="shrink-0 gap-1.5 shadow-sm bg-primary text-primary-foreground font-semibold"
+                    className="shrink-0 gap-1.5 shadow-sm bg-primary text-primary-foreground font-semibold cursor-pointer"
                   >
-                    <Edit className="size-3.5" />
-                    Subsanar solicitud
+                    <Link href={`/acceso-interoperabilidad/solicitudes/${solicitud.id}/corregir`}>
+                      <Edit className="size-3.5" />
+                      <span>Subsanar solicitud</span>
+                    </Link>
                   </Button>
                 )}
               </div>
@@ -548,23 +631,45 @@ export function AccesoSolicitudDetailView({ params, searchParams }: PageProps) {
           )}
 
           {/* Banner de Solicitud Cerrada por Vencimiento SOL-06 */}
-          {(solicitud.estado === "Cerrada por vencimiento" || (solicitud.estado === "Cerrada" && solicitud.subsanable === false) || solicitud.estado === "Cerrada") && (
-            <div className="p-4 sm:p-5 rounded-2xl border border-border bg-muted/40 flex items-start gap-3">
-              <AlertTriangle className="size-5 text-muted-foreground shrink-0 mt-0.5" />
-              <div className="space-y-1 text-xs">
-                <p className="text-sm font-bold text-foreground">
-                  La solicitud fue cerrada por vencimiento del plazo de subsanación (SOL-06).
-                </p>
-                <p className="text-muted-foreground leading-relaxed">
-                  El plazo inicial de 3 días hábiles (parametrizable según PAR-13 y calendario laboral PAR-10) establecido para subsanar las observaciones finalizó sin recibir respuesta. El expediente no admite edición ni reenvío; para requerir acceso a esta fuente, deberás iniciar una nueva solicitud.
-                </p>
+          {isCerrada && (
+            <div className="w-full p-4 sm:p-5 rounded-2xl border border-border bg-muted/40 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <Clock className="size-5 text-muted-foreground shrink-0 mt-0.5" />
+                <div className="space-y-1 text-xs">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-sm font-bold text-foreground">
+                      La solicitud fue cerrada por vencimiento del plazo de subsanación (SOL-06).
+                    </p>
+                    <Badge tone="neutral" appearance="soft" className="text-[11px] font-semibold">
+                      No editable / Sin provisión
+                    </Badge>
+                  </div>
+                  <p className="text-muted-foreground leading-relaxed">
+                    {solicitud.motivoCierre ||
+                      "No se subsanó y se cerró porque se cumplió el plazo reglamentario de 3 días hábiles (SOL-06)."}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">
+                    El expediente se conserva para auditoría y consulta histórica. No se permite edición, reenvío, pago ni aprovisionamiento sobre esta solicitud; una nueva necesidad debe iniciar una solicitud desde cero (SOL-01).
+                  </p>
+                </div>
               </div>
+              <Button
+                asChild
+                size="sm"
+                variant="primary"
+                className="shrink-0 gap-1.5 shadow-xs font-semibold rounded-full cursor-pointer"
+              >
+                <Link href="/acceso-interoperabilidad/solicitudes/nueva">
+                  <Send className="size-3.5" />
+                  <span>Iniciar nueva solicitud (SOL-01)</span>
+                </Link>
+              </Button>
             </div>
           )}
 
           {/* Banner de Solicitud Reenviada tras Subsanación */}
           {(estadoStr === "Reenviada" || estadoStr === "Reenviada para aprobación" || estadoStr === "Pendiente de nueva asignación" || estadoStr === "Subsanada - Pendiente de asignación") && (
-            <div className="p-4 rounded-xl border border-info/40 bg-info/10 flex items-start gap-3">
+            <div className="w-full p-4 rounded-xl border border-info/40 bg-info/10 flex items-start gap-3">
               <CheckCircle2 className="size-5 text-info shrink-0 mt-0.5" />
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
@@ -587,7 +692,7 @@ export function AccesoSolicitudDetailView({ params, searchParams }: PageProps) {
 
           {/* Banner SIGEF para Rol Facturación cuando está en "Pendiente de validación de pago" */}
           {role === "FACTURACION" && (solicitud.estado === "Pendiente de validación de pago" || solicitud.estado === "Pago en validación") && (
-            <div className="p-4 rounded-xl border border-warning/40 bg-warning/10 flex items-start gap-3">
+            <div className="w-full p-4 rounded-xl border border-warning/40 bg-warning/10 flex items-start gap-3">
               <AlertTriangle className="size-5 text-warning shrink-0 mt-0.5" />
               <div className="text-xs space-y-1">
                 <p className="font-bold text-foreground">
@@ -601,7 +706,7 @@ export function AccesoSolicitudDetailView({ params, searchParams }: PageProps) {
           )}
 
           {/* Header Principal del Expediente */}
-          <div className="bg-surface border border-border rounded-2xl p-6 sm:p-7 shadow-xs flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+          <div className="w-full bg-surface border border-border rounded-2xl p-6 sm:p-7 shadow-xs flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
             <div className="flex flex-col gap-3">
               <div className="flex flex-wrap items-center gap-3">
                 <h1 className="font-heading text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
@@ -632,20 +737,20 @@ export function AccesoSolicitudDetailView({ params, searchParams }: PageProps) {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-2 text-xs sm:text-sm text-muted-foreground">
                 <p className="flex items-center gap-1.5">
-                  <Building2 className="size-3.5 text-muted-foreground shrink-0" />
-                  Institución: <strong className="text-foreground">{solicitud.institucion}</strong>
+                  <Building2 className="size-3.5 text-primary shrink-0" />
+                  Institución: <strong className="text-foreground truncate">{solicitud.institucion}</strong>
                 </p>
                 <p className="flex items-center gap-1.5">
-                  <span className="text-xs">📁</span>
-                  Proyecto: <strong className="text-foreground">{solicitud.proyectoNombre || "Sin proyecto asignado"}</strong>
+                  <Briefcase className="size-3.5 text-primary shrink-0" />
+                  Proyecto: <strong className="text-foreground truncate">{solicitud.proyectoNombre || "Sistema Integrado de Subsidios"}</strong>
                 </p>
                 <p className="flex items-center gap-1.5">
-                  <span className="text-xs">🗄️</span>
-                  Fuente: <strong className="text-foreground">{solicitud.fuentePrincipal || solicitud.fuentes?.[0]?.nombre}</strong>
+                  <Database className="size-3.5 text-primary shrink-0" />
+                  Fuente: <strong className="text-foreground truncate">{solicitud.fuentePrincipal || solicitud.fuentes?.[0]?.nombre}</strong>
                 </p>
                 <p className="flex items-center gap-1.5">
-                  <Calendar className="size-3.5 text-muted-foreground shrink-0" />
-                  Fecha: <span className="text-foreground">{solicitud.fecha.substring(0, 10)}</span>
+                  <Calendar className="size-3.5 text-primary shrink-0" />
+                  Fecha: <span className="text-foreground font-medium">{solicitud.fecha.substring(0, 10)}</span>
                 </p>
               </div>
             </div>
@@ -780,15 +885,14 @@ export function AccesoSolicitudDetailView({ params, searchParams }: PageProps) {
                   )}
                   {isRechazada && (
                     <Button
+                      asChild
                       size="sm"
-                      onClick={() => {
-                        setCorrectionStep(targetCorrectionStep);
-                        setModoCorreccion(true);
-                      }}
-                      className="gap-2 font-semibold shadow-sm bg-primary text-primary-foreground"
+                      className="gap-2 font-semibold shadow-sm bg-primary text-primary-foreground cursor-pointer"
                     >
-                      <Edit className="size-4" />
-                      Corregir solicitud
+                      <Link href={`/acceso-interoperabilidad/solicitudes/${solicitud.id}/corregir`}>
+                        <Edit className="size-4" />
+                        <span>Subsanar solicitud</span>
+                      </Link>
                     </Button>
                   )}
                 </>
@@ -815,494 +919,1396 @@ export function AccesoSolicitudDetailView({ params, searchParams }: PageProps) {
             tipoInstitucion={solicitud.tipoInstitucion}
           />
 
-          {/* â”€â”€â”€ VISTA UNIFICADA POR TABS â”€â”€â”€ */}
-          <div className="space-y-6">
-            <div className="flex gap-2 sm:gap-4 border-b border-border" id="tabs-container">
-              <button
-                onClick={() => setActiveTab("resumen")}
-                className={cn(
-                  "pb-2.5 px-1 text-xs sm:text-sm font-semibold flex items-center gap-2 border-b-2 transition-colors",
-                  activeTab === "resumen"
-                    ? "border-primary text-primary"
-                    : "border-transparent text-muted-foreground hover:text-foreground"
-                )}
-              >
-                <FileText className="size-4" />
-                Resumen de la solicitud
-              </button>
-              <button
-                onClick={() => setActiveTab("seguimiento")}
-                className={cn(
-                  "pb-2.5 px-1 text-xs sm:text-sm font-semibold flex items-center gap-2 border-b-2 transition-colors",
-                  activeTab === "seguimiento"
-                    ? "border-primary text-primary"
-                    : "border-transparent text-muted-foreground hover:text-foreground"
-                )}
-              >
-                <History className="size-4" />
-                Historial y trazabilidad
-                <Badge tone="neutral" appearance="soft" className="text-[10px] h-5 px-1.5 font-bold">
-                  {solicitud.historial?.length || 0}
-                </Badge>
-              </button>
+          {/* ─── CONTENEDOR UNIFICADO DEL EXPEDIENTE (PASOS 1 AL 4 + TRAZABILIDAD) ─── */}
+          <div className="w-full rounded-2xl border border-border/80 bg-surface shadow-xs flex flex-col overflow-hidden">
+            {/* Barra superior de pestañas del expediente */}
+            <div className="px-4 sm:px-6 py-3 bg-muted/20 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3" id="tabs-container">
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full sm:w-auto">
+                <TabsList className="h-9 bg-background/80 border border-border/70 p-1 rounded-xl">
+                  <TabsTrigger value="resumen" className="text-xs font-semibold gap-1.5 px-3 rounded-lg">
+                    <FileText className="size-3.5" />
+                    <span>Detalle por pasos (1 al 4)</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="seguimiento" className="text-xs font-semibold gap-1.5 px-3 rounded-lg">
+                    <History className="size-3.5" />
+                    <span>Historial y trazabilidad</span>
+                    <Badge tone="neutral" appearance="soft" size="sm" className="text-[10px] h-4 px-1.5 font-bold ml-0.5">
+                      {solicitud.historial?.length || 0}
+                    </Badge>
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+
+              {activeTab === "resumen" && (
+                <div className="flex items-center gap-2 self-end sm:self-auto">
+                  <Button
+                    type="button"
+                    variant={detailStep === 4 ? "primary" : "outline"}
+                    size="sm"
+                    onClick={() => setDetailStep(4)}
+                    className="h-8 text-xs font-semibold gap-1.5"
+                  >
+                    <Layers className="size-3.5" />
+                    <span>Ver resumen consolidado (Paso 4)</span>
+                  </Button>
+                </div>
+              )}
             </div>
 
-            {/* CONTENIDO DE TABS */}
-            <div className="mt-2" id="tab-content">
-              {/* TAB RESUMEN DE LA SOLICITUD (3 PASOS COMO EN CREACIÓN) */}
-              {activeTab === "resumen" && (
-                <div className="space-y-6">
-                  {/* COMPONENTE FINANCIERO (Si es privada o rol Facturación) */}
-                  {(solicitud.tipoInstitucion === "Privada" || role === "FACTURACION") && (
-                    <Card className="p-6 bg-card border-primary/20 shadow-xs space-y-4">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border">
-                        <div className="flex items-center gap-2.5">
-                          <div className="size-9 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                            <CreditCard className="size-5" />
-                          </div>
-                          <div>
-                            <h3 className="text-base font-bold text-foreground">Componente Financiero y Liquidación</h3>
-                            <p className="text-xs text-muted-foreground">
-                              Control de tarifas, contrato de prestación y comprobante oficial SIGEF.
-                            </p>
-                          </div>
-                        </div>
+            {activeTab === "resumen" && (
+              <>
+                {/* Stepper Oficial Integrado en Cabecera del Contenedor (igual que en Nueva Solicitud) */}
+                <div id="stepper-container" className="p-4 sm:p-6 bg-muted/15 border-b border-border/80 w-full overflow-x-auto">
+                  <Stepper
+                    steps={detailStepperSteps}
+                    activeStep={detailStep - 1}
+                    completedSteps={[0, 1, 2, 3].filter((i) => i !== detailStep - 1)}
+                    variant="default"
+                    stepPrefix="PASO"
+                    showBadge={true}
+                    onStepClick={(index) => setDetailStep(index + 1)}
+                  />
+                </div>
 
-                        <div className="flex items-center gap-2">
-                          {solicitud.factura && solicitud.estado !== "Pago pendiente" && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setModalFactura(true)}
-                              className="h-8 text-xs gap-1.5"
-                            >
-                              <Receipt className="size-3.5 text-primary" />
-                              Ver factura
-                            </Button>
-                          )}
-                          {solicitud.cur && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setModalCur(true)}
-                              className="h-8 text-xs gap-1.5 border-emerald-500/40 text-emerald-700 dark:text-emerald-300"
-                            >
-                              <FileCheck2 className="size-3.5" />
-                              Ver CUR
-                            </Button>
-                          )}
+                {/* PASO 1: PROYECTO Y MODALIDAD */}
+                {detailStep === 1 && (
+                  <div className="flex flex-col w-full animate-in fade-in duration-200" id="detail-step-1">
+                    {/* Cabecera Sección I */}
+                    <div className="bg-primary/5 dark:bg-primary-950/20 border-b border-border p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 w-full">
+                      <div className="flex items-start sm:items-center gap-3">
+                        <div className="size-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                          <Briefcase className="size-4.5" />
                         </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
-                        <div className="p-3 rounded-lg border border-border bg-muted/20">
-                          <span className="text-muted-foreground block text-[11px]">Tipo de Contrato:</span>
-                          <span className="font-bold text-foreground">{solicitud.instrumento || "Contrato"}</span>
-                          <span className="text-[10px] text-muted-foreground block font-mono">{solicitud.contrato || "CONTR-2026-0019"}</span>
-                        </div>
-                        <div className="p-3 rounded-lg border border-border bg-muted/20">
-                          <span className="text-muted-foreground block text-[11px]">Facturación:</span>
-                          <span className="font-bold text-foreground font-mono">
-                            {solicitud.estado === "Pago pendiente" ? "Sistema externo (SIGEF)" : (solicitud.factura?.numero || "FAC-0028")}
-                          </span>
-                          <span className="text-[10px] text-muted-foreground block">
-                            {solicitud.estado === "Pago pendiente" ? "Emisión y pago externo" : (solicitud.factura?.fechaEmision || solicitud.fecha.substring(0, 10))}
-                          </span>
-                        </div>
-                        <div className="p-3 rounded-lg border border-border bg-muted/20">
-                          <span className="text-muted-foreground block text-[11px]">Valor Liquidado:</span>
-                          <span className="font-bold text-primary text-sm">{solicitud.factura?.valor || "$ 150.00"}</span>
-                          <span className="text-[10px] text-muted-foreground block">Tarifa aprobada</span>
-                        </div>
-                        <div className="p-3 rounded-lg border border-border bg-muted/20">
-                          <span className="text-muted-foreground block text-[11px]">Estado del Pago:</span>
-                          <Badge
-                            tone={solicitud.cur ? "success" : "warning"}
-                            appearance="soft"
-                            size="sm"
-                            className="mt-0.5"
-                          >
-                            {solicitud.cur ? "Validado con CUR" : solicitud.estado}
-                          </Badge>
-                        </div>
-                      </div>
-
-                      {solicitud.cur && (
-                        <div className="p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/5 flex items-center justify-between text-xs">
-                          <div className="flex items-center gap-2.5">
-                            <FileCheck2 className="size-4 text-emerald-600" />
-                            <div>
-                              <span className="font-bold text-emerald-800 dark:text-emerald-300">
-                                Comprobante Único de Registro ({solicitud.cur.numeroCur})
-                              </span>
-                              <p className="text-[11px] text-muted-foreground">
-                                Verificado en SIGEF y anexado por {solicitud.cur.usuarioResponsable} el {solicitud.cur.fechaRegistro}.
-                              </p>
-                            </div>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setModalCur(true)}
-                            className="text-xs text-primary font-semibold"
-                          >
-                            Consultar comprobante
-                          </Button>
-                        </div>
-                      )}
-                    </Card>
-                  )}
-
-                  {/* Encabezado del Resumen */}
-                  <div>
-                    <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
-                      <FileText className="size-5 text-primary" />
-                      Resumen de la solicitud
-                    </h2>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Revisión de toda la información y justificaciones ingresadas en los pasos anteriores.
-                    </p>
-                  </div>
-
-                  {/* PASO 1: Campos seleccionados */}
-                  <Card className="p-6 bg-card border-border shadow-xs space-y-4 rounded-2xl">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-border/70 gap-2">
-                      <div className="flex items-center gap-2.5">
-                        <span className="flex items-center justify-center size-6 rounded-full bg-primary/10 text-primary font-bold text-xs shrink-0">
-                          1
-                        </span>
                         <div>
-                          <h3 className="font-bold text-base text-foreground">
-                            Paso 1: Campos seleccionados
-                          </h3>
+                          <h2 className="text-base font-bold font-heading text-primary dark:text-primary-300">
+                            Sección I — Proyecto Institucional, Modalidad y Documentación Habilitante
+                          </h2>
                           <p className="text-xs text-muted-foreground mt-0.5">
-                            Institución: <strong className="text-foreground font-semibold">{solicitud.fuentes?.[0]?.nombre || solicitud.fuentePrincipal || "Registro Civil de Ciudadanos"}</strong>
-                            {solicitud.servicioPrincipal && (
-                              <span className="text-muted-foreground font-normal"> · Fuente: <strong className="text-foreground font-semibold">{solicitud.servicioPrincipal}</strong></span>
-                            )}
+                            Detalle del proyecto institucional activo vinculado a la solicitud (SOL-01), modalidad técnica y respaldo legal (SOL-02).
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Badge tone="neutral" appearance="outline" className="text-xs font-semibold w-fit">
-                          {todosLosCampos.length} campo(s)
-                        </Badge>
-                        {role === "COORDINADOR_SINARP" && isRechazada && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setCorrectionStep(1);
-                              setModoCorreccion(true);
-                            }}
-                            className="h-7 text-xs gap-1 text-muted-foreground hover:text-foreground"
-                          >
-                            <Edit className="size-3" />
-                            Editar campos
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Campos seleccionados */}
-                    <div className="space-y-2">
-                      <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
-                        <ListChecks className="size-3.5 text-muted-foreground" />
-                        Campos seleccionados de la fuente:
-                      </label>
-                      <div className={cn(
-                        "grid gap-3 w-full",
-                        todosLosCampos.length === 1
-                          ? "grid-cols-1"
-                          : todosLosCampos.length === 2
-                          ? "grid-cols-1 sm:grid-cols-2"
-                          : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
-                      )}>
-                        {todosLosCampos.map((item) => (
-                          <div
-                            key={`p1-res-${item.id || item.nombre}`}
-                            className="flex items-center justify-between p-3.5 rounded-xl border border-border/80 bg-muted/20 gap-3"
-                          >
-                            <div className="min-w-0 flex-1">
-                              <p className="font-mono font-bold text-xs text-foreground truncate">
-                                {item.nombre}
-                              </p>
-                              <p className="text-[11px] text-muted-foreground truncate">
-                                {item.descripcion}
-                              </p>
-                            </div>
-                            <Badge
-                              tone={item.clasificacion === "Confidencial" ? "warning" : "success"}
-                              appearance="soft"
-                              size="sm"
-                              className="gap-1 inline-flex font-semibold shrink-0"
-                            >
-                              {item.clasificacion === "Confidencial" ? (
-                                <Lock className="size-3" />
-                              ) : (
-                                <Unlock className="size-3" />
-                              )}
-                              {item.clasificacion.toUpperCase()}
-                            </Badge>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </Card>
-
-                  {/* PASO 2: Justificaciones declaradas */}
-                  <Card className="p-6 bg-card border-border shadow-xs space-y-5 rounded-2xl">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-border/70 gap-2">
-                      <div className="flex items-center gap-2.5">
-                        <span className="flex items-center justify-center size-6 rounded-full bg-primary/10 text-primary font-bold text-xs shrink-0">
-                          2
-                        </span>
-                        <div>
-                          <h3 className="font-bold text-base text-foreground">
-                            Paso 2: Finalidad de uso y justificación jurídica declaradas
-                          </h3>
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            Finalidad de uso (campos accesibles) y justificación jurídica (campos confidenciales)
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge tone="neutral" appearance="outline" className="text-xs font-semibold w-fit">
-                          {todosLosCampos.length} justificado(s)
-                        </Badge>
-                        {role === "COORDINADOR_SINARP" && isRechazada && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setCorrectionStep(2);
-                              setModoCorreccion(true);
-                            }}
-                            className="h-7 text-xs gap-1 text-muted-foreground hover:text-foreground"
-                          >
-                            <Edit className="size-3" />
-                            Editar justificaciones
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col gap-4">
-                      {todosLosCampos.map((item) => (
-                        <div
-                          key={`p2-res-${item.id || item.nombre}`}
-                          className="p-4 sm:p-5 border border-border/80 bg-muted/10 space-y-3.5 rounded-xl w-full"
-                        >
-                          <div className="flex items-center justify-between gap-2 pb-2 border-b border-border/60">
-                            <div className="flex items-center gap-2 min-w-0">
-                              <span className="font-mono font-bold text-sm text-foreground">
-                                {item.nombre}
-                              </span>
-                              <span className="text-xs text-muted-foreground hidden sm:inline truncate">
-                                — {item.descripcion}
-                              </span>
-                            </div>
-                            <Badge
-                              tone={item.clasificacion === "Confidencial" ? "warning" : "success"}
-                              appearance="soft"
-                              size="sm"
-                              className="gap-1 inline-flex font-semibold shrink-0"
-                            >
-                              {item.clasificacion === "Confidencial" ? (
-                                <Lock className="size-3" />
-                              ) : (
-                                <Unlock className="size-3" />
-                              )}
-                              {item.clasificacion.toUpperCase()}
-                            </Badge>
-                          </div>
-
-                          <div className={cn(
-                            "w-full",
-                            item.clasificacion === "Confidencial"
-                              ? "grid grid-cols-1 md:grid-cols-2 gap-4"
-                              : "flex flex-col"
-                          )}>
-                            <div className="space-y-1.5 w-full">
-                              <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
-                                <FileText className="size-3.5 text-primary" />
-                                Finalidad de uso declarada
-                              </label>
-                              <Textarea
-                                disabled
-                                className="w-full rounded-xl min-h-[75px] text-xs sm:text-sm bg-background border-border/80 opacity-90 cursor-not-allowed"
-                                value={item.finalidad || "Finalidad de verificación institucional y consulta de elegibilidad."}
-                              />
-                            </div>
-
-                            {item.clasificacion === "Confidencial" && (
-                              <div className="space-y-1.5 w-full">
-                                <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
-                                  <Scale className="size-3.5 text-amber-600 dark:text-amber-400" />
-                                  Justificación jurídica requerida
-                                </label>
-                                <Textarea
-                                  disabled
-                                  className="w-full rounded-xl min-h-[75px] text-xs sm:text-sm bg-background border-amber-500/30 opacity-90 cursor-not-allowed"
-                                  value={item.fundamento || "Art. 89 del Código Orgánico de la Economía Social de los Conocimientos y Ley Orgánica de Protección de Datos Personales."}
-                                />
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </Card>
-
-                  {/* PASO 3: Documentos soporte y resoluciones */}
-                  <Card className="p-6 bg-card border-border shadow-xs space-y-4 rounded-2xl">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-border/70 gap-2">
-                      <div className="flex items-center gap-2.5">
-                        <span className="flex items-center justify-center size-6 rounded-full bg-primary/10 text-primary font-bold text-xs shrink-0">
-                          3
-                        </span>
-                        <div>
-                          <h3 className="font-bold text-base text-foreground">
-                            Paso 3: Documentos soporte y formalización
-                          </h3>
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            Expediente documental, dictámenes técnicos y resoluciones de aprobación
-                          </p>
-                        </div>
-                      </div>
-                      <Badge tone="neutral" appearance="outline" className="text-xs font-semibold w-fit">
-                        {(solicitud.documentos?.length || 0) + (solicitud.informeJustificacion ? 1 : 0) + (solicitud.cur ? 1 : 0)} documento(s)
+                      <Badge tone="primary" appearance="solid" size="sm" className="font-bold uppercase tracking-wider shrink-0 self-start sm:self-auto !text-white shadow-xs rounded-full px-3 py-1">
+                        PASO 1 DE 4
                       </Badge>
                     </div>
 
-                    {/* Si está aprobada o tiene informe / CUR / documentos */}
-                    {solicitud.informeJustificacion || (solicitud.documentos && solicitud.documentos.length > 0) || solicitud.cur ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {solicitud.informeJustificacion && (
-                          <div className="p-4 rounded-xl border border-emerald-500/40 bg-emerald-500/10 flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <div className="size-9 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-700 dark:text-emerald-300">
-                                <FileSignature className="size-5" />
-                              </div>
-                              <div>
-                                <p className="text-xs font-bold text-foreground">{solicitud.informeJustificacion.nombre}</p>
-                                <p className="text-[11px] text-emerald-800 dark:text-emerald-300 font-semibold">
-                                  Informe de Justificación Aprobado · {solicitud.informeJustificacion.tamano}
-                                </p>
-                                <p className="text-[10px] text-muted-foreground">
-                                  Firmado por {solicitud.informeJustificacion.firmadoPor}
+                    {/* Cuerpo del Paso 1 en 2 columnas laterales (igual que al crear) */}
+                    <div className="p-5 sm:p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-12 gap-6 w-full items-start">
+                      {/* Columna Izquierda (7 cols) */}
+                      <div className="lg:col-span-7 flex flex-col gap-6 w-full">
+                        {/* Sub-sección 1.1 */}
+                        <div className="space-y-4 w-full">
+                          <div className="bg-primary/5 dark:bg-primary-950/20 p-3.5 flex items-start sm:items-center justify-between gap-3 rounded-xl">
+                            <div className="flex items-start gap-2.5 min-w-0">
+                              <Briefcase className="size-4 text-primary dark:text-primary-300 shrink-0 mt-0.5" />
+                              <div className="min-w-0">
+                                <h3 className="text-sm font-bold font-heading text-primary dark:text-primary-300 leading-snug">
+                                  1.1 Vinculación de Proyecto y Modalidad Técnica
+                                </h3>
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                  Proyecto institucional autorizado y capacidad operativa registrada en el expediente.
                                 </p>
                               </div>
                             </div>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => toast.info(`Descargando ${solicitud.informeJustificacion?.nombre}...`)}
-                              className="text-xs gap-1 text-emerald-700 dark:text-emerald-300"
-                            >
-                              <Download className="size-3.5" />
-                              Descargar
-                            </Button>
+                            <Badge tone="primary" appearance="soft" size="sm" className="shrink-0">
+                              SOL-01
+                            </Badge>
                           </div>
-                        )}
 
-                        {solicitud.cur && (
-                          <div className="p-4 rounded-xl border border-primary/40 bg-primary/10 flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <div className="size-9 rounded-lg bg-primary/20 flex items-center justify-center text-primary">
-                                <FileCheck2 className="size-5" />
+                          <div className="grid grid-cols-1 sm:grid-cols-12 gap-4">
+                            <div className="sm:col-span-12 space-y-1.5">
+                              <label className="text-caption font-semibold text-muted-foreground block">
+                                Proyecto institucional activo
+                              </label>
+                              <div className="p-3.5 rounded-xl border border-border bg-muted/15 flex items-center justify-between gap-3">
+                                <div className="min-w-0">
+                                  <p className="text-xs sm:text-sm font-bold text-foreground truncate">
+                                    {solicitud.proyectoId || "PROY-2026-001"} — {solicitud.proyectoNombre || "Sistema Integrado de Subsidios y Prestaciones Sociales"}
+                                  </p>
+                                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                                    Entidad solicitante: <strong className="text-foreground font-medium">{solicitud.institucion}</strong> ({solicitud.tipoInstitucion})
+                                  </p>
+                                </div>
+                                <Badge tone="success" appearance="soft" size="sm" className="shrink-0 font-semibold">
+                                  Proyecto activo
+                                </Badge>
                               </div>
-                              <div>
-                                <p className="text-xs font-bold text-foreground">{solicitud.cur.nombreArchivo}</p>
-                                <p className="text-[11px] text-primary font-semibold">
-                                  Comprobante Único de Registro ({solicitud.cur.numeroCur}) · {solicitud.cur.tamano}
+                            </div>
+
+                            <div className="sm:col-span-7 space-y-1.5">
+                              <label className="text-caption font-semibold text-muted-foreground block">
+                                Modalidad de consulta solicitada
+                              </label>
+                              <div className="h-11 px-3.5 rounded-xl border border-border bg-muted/15 flex items-center justify-between text-xs sm:text-sm font-semibold text-foreground">
+                                <span>
+                                  {(solicitud.modalidad || "API individual") === "API individual"
+                                    ? "API individual (Tiempo real)"
+                                    : solicitud.modalidad === "API masiva"
+                                    ? "API masiva (Por lotes)"
+                                    : "Ambas (Individual y Masiva)"}
+                                </span>
+                                <Badge tone="info" appearance="soft" size="sm">
+                                  {solicitud.modalidad || "API individual"}
+                                </Badge>
+                              </div>
+                            </div>
+
+                            <div className="sm:col-span-5 space-y-1.5">
+                              <label className="text-caption font-semibold text-muted-foreground block">
+                                Cupo mensual solicitado
+                              </label>
+                              <div className="h-11 px-3.5 rounded-xl border border-border bg-muted/15 flex items-center justify-between text-xs sm:text-sm font-mono font-bold text-foreground">
+                                <span>{(solicitud.cupo || 50000).toLocaleString()}</span>
+                                <span className="text-[11px] font-sans font-normal text-muted-foreground">reg./mes</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Sub-sección 1.2: Documentación habilitante */}
+                        <div className="space-y-4 w-full">
+                          <div className="bg-primary/5 dark:bg-primary-950/20 p-3.5 flex items-start sm:items-center justify-between gap-3 rounded-xl">
+                            <div className="flex items-start gap-2.5 min-w-0">
+                              <Paperclip className="size-4 text-primary dark:text-primary-300 shrink-0 mt-0.5" />
+                              <div className="min-w-0">
+                                <h3 className="text-sm font-bold font-heading text-primary dark:text-primary-300 leading-snug">
+                                  1.2 Documentación Habilitante Adjunta
+                                </h3>
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                  Oficio formal firmado y anexos jurídicos o técnicos que respaldan la solicitud.
                                 </p>
                               </div>
                             </div>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => toast.info(`Descargando ${solicitud.cur?.nombreArchivo}...`)}
-                              className="text-xs gap-1 text-primary"
-                            >
-                              <Download className="size-3.5" />
-                              Descargar
-                            </Button>
+                            <Badge tone="neutral" appearance="outline" size="sm" className="shrink-0">
+                              {(solicitud.documentos?.length || 1) + (solicitud.informeJustificacion ? 1 : 0)} doc(s)
+                            </Badge>
                           </div>
-                        )}
 
-                        {(solicitud.documentos || []).map((doc) => (
-                          <div key={doc.id} className="p-4 rounded-xl border border-border bg-surface flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <div className="size-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-                                <FileText className="size-5" />
+                          <div
+                            className={cn(
+                              "grid gap-3 w-full",
+                              (solicitud.documentos?.length || 1) + (solicitud.informeJustificacion ? 1 : 0) === 1
+                                ? "grid-cols-1"
+                                : "grid-cols-1 sm:grid-cols-2"
+                            )}
+                          >
+                            {(solicitud.documentos && solicitud.documentos.length > 0
+                              ? solicitud.documentos
+                              : [
+                                  {
+                                    id: "doc-oficio-1",
+                                    nombre: solicitud.documentoSustentoNombre || "Oficio_Solicitud_Interoperabilidad_Firmado.pdf",
+                                    tipo: "PDF",
+                                    tamano: "1.4 MB",
+                                    fechaCarga: solicitud.fecha.substring(0, 10),
+                                    categoria: "Oficio de Solicitud",
+                                  },
+                                ]
+                            ).map((doc) => (
+                              <div
+                                key={doc.id}
+                                className="flex items-center justify-between p-3.5 rounded-xl border border-border bg-background hover:border-primary/30 transition-colors gap-3"
+                              >
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                  <div className="size-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                                    <FileText className="size-4" />
+                                  </div>
+                                  <div className="min-w-0">
+                                    <p className="text-xs font-semibold text-foreground truncate" title={doc.nombre}>
+                                      {doc.nombre}
+                                    </p>
+                                    <p className="text-[11px] text-muted-foreground">
+                                      {doc.categoria} · {doc.tamano}
+                                    </p>
+                                  </div>
+                                </div>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => toast.info(`Descargando ${doc.nombre}...`)}
+                                  className="h-7 px-2 text-xs text-primary shrink-0 gap-1"
+                                >
+                                  <Download className="size-3.5" />
+                                  <span>PDF</span>
+                                </Button>
                               </div>
-                              <div>
-                                <p className="text-xs font-bold text-foreground">{doc.nombre}</p>
-                                <p className="text-[11px] text-muted-foreground">{doc.categoria} · {doc.tamano}</p>
+                            ))}
+
+                            {solicitud.informeJustificacion && (
+                              <div className="flex items-center justify-between p-3.5 rounded-xl border border-success/40 bg-success/5 gap-3">
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                  <div className="size-9 rounded-lg bg-success/15 text-success flex items-center justify-center shrink-0">
+                                    <FileSignature className="size-4" />
+                                  </div>
+                                  <div className="min-w-0">
+                                    <p className="text-xs font-semibold text-foreground truncate" title={solicitud.informeJustificacion.nombre}>
+                                      {solicitud.informeJustificacion.nombre}
+                                    </p>
+                                    <p className="text-[11px] text-success font-medium">
+                                      Informe Aprobado · {solicitud.informeJustificacion.tamano}
+                                    </p>
+                                  </div>
+                                </div>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => toast.info(`Descargando ${solicitud.informeJustificacion?.nombre}...`)}
+                                  className="h-7 px-2 text-xs text-success shrink-0 gap-1"
+                                >
+                                  <Download className="size-3.5" />
+                                  <span>PDF</span>
+                                </Button>
                               </div>
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => toast.info(`Descargando ${doc.nombre}...`)}
-                              className="text-xs gap-1"
-                            >
-                              <Download className="size-3.5" />
-                              Descargar
-                            </Button>
+                            )}
                           </div>
-                        ))}
+                        </div>
                       </div>
-                    ) : (
-                      <div className="p-4 rounded-xl border border-border bg-muted/20 flex items-center gap-3 text-xs text-muted-foreground">
-                        <Info className="size-4 text-primary shrink-0" />
-                        <span>
-                          Los documentos de soporte formal (informe técnico de viabilidad, dictamen legal y resolución de acceso) se incorporan a este expediente una vez aprobada la solicitud.
-                        </span>
-                      </div>
-                    )}
-                  </Card>
 
-                  {/* Banner de acción de corrección si la solicitud está rechazada o con observaciones */}
-                  {role === "COORDINADOR_SINARP" && isRechazada && (
-                    <div className="p-4 sm:p-5 rounded-2xl border border-destructive/40 bg-destructive/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-2">
-                      <div className="flex items-start gap-3">
-                        <AlertTriangle className="size-5 text-destructive shrink-0 mt-0.5" />
-                        <div>
-                          <p className="text-sm font-bold text-foreground">Solicitud pendiente de corrección y subsanación</p>
+                      {/* Columna Derecha Lateral (5 cols): Ficha Técnica del Proyecto Seleccionado */}
+                      <div className="lg:col-span-5 flex flex-col gap-4 w-full">
+                        <div className="rounded-2xl border border-border bg-muted/15 p-5 space-y-4 shadow-2xs">
+                          <div className="flex items-start justify-between gap-2 pb-3 border-b border-border/70">
+                            <div>
+                              <span className="text-[11px] font-bold uppercase tracking-wider text-primary block">
+                                Ficha del Proyecto Vinculado
+                              </span>
+                              <h3 className="font-heading text-sm sm:text-base font-bold text-foreground mt-0.5">
+                                {solicitud.proyectoNombre || "Sistema Integrado de Subsidios y Prestaciones Sociales"}
+                              </h3>
+                            </div>
+                            <Badge tone="success" appearance="soft" size="sm" className="font-semibold shrink-0">
+                              Activo (v{solicitud.versionExpediente || 1})
+                            </Badge>
+                          </div>
+
+                          <div className="space-y-2">
+                            <span className="text-[11px] font-semibold text-muted-foreground block">
+                              Propósito y alcance institucional:
+                            </span>
+                            <p className="text-xs text-foreground/90 leading-relaxed bg-background p-3 rounded-xl border border-border/60">
+                              {solicitud.proyectoObjetivo ||
+                                solicitud.justificacionGeneral ||
+                                "Automatizar la validación de identidad y elegibilidad de beneficiarios en trámites institucionales mediante consumo interoperable en línea con trazabilidad auditada."}
+                            </p>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3 text-xs">
+                            <div className="p-3 rounded-xl bg-background border border-border/60">
+                              <span className="text-[11px] text-muted-foreground block">Código de proyecto</span>
+                              <strong className="font-mono text-xs text-foreground mt-0.5 block">
+                                {solicitud.proyectoId || solicitud.proyectoCodigo || "PROY-2026-001"}
+                              </strong>
+                            </div>
+                            <div className="p-3 rounded-xl bg-background border border-border/60">
+                              <span className="text-[11px] text-muted-foreground block">Fecha de radicación</span>
+                              <strong className="text-xs text-foreground mt-0.5 block">
+                                {solicitud.fecha.substring(0, 10)}
+                              </strong>
+                            </div>
+                            <div className="p-3 rounded-xl bg-background border border-border/60">
+                              <span className="text-[11px] text-muted-foreground block">Coordinador SINARP</span>
+                              <strong className="text-xs text-foreground mt-0.5 block truncate" title={solicitud.coordinador}>
+                                {solicitud.coordinador}
+                              </strong>
+                            </div>
+                            <div className="p-3 rounded-xl bg-background border border-border/60">
+                              <span className="text-[11px] text-muted-foreground block">Campos requeridos</span>
+                              <strong className="text-xs text-primary mt-0.5 block">
+                                {todosLosCampos.length} campo(s)
+                              </strong>
+                            </div>
+                          </div>
+
+                          <div className="pt-2 border-t border-border/60 flex items-center justify-between text-xs">
+                            <span className="text-muted-foreground font-medium">Capacidad solicitada:</span>
+                            <div className="flex items-center gap-2">
+                              <Badge tone="info" appearance="soft" size="sm">
+                                {solicitud.modalidad || "API individual"}
+                              </Badge>
+                              <Badge tone="neutral" appearance="outline" size="sm" className="font-mono">
+                                {(solicitud.cupo || 50000).toLocaleString()} reg./mes
+                              </Badge>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Footer Unificado del Paso 1 */}
+                    <div className="p-4 sm:p-6 bg-muted/20 border-t border-border flex flex-wrap justify-between items-center gap-3 w-full">
+                      <Link href="/acceso-interoperabilidad/solicitudes">
+                        <Button variant="outline" size="sm" className="gap-2 text-xs font-semibold">
+                          <ArrowLeft className="size-4" />
+                          <span>Volver a solicitudes</span>
+                        </Button>
+                      </Link>
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => setDetailStep(2)}
+                        className="gap-2 text-xs font-semibold"
+                      >
+                        <span>Siguiente: Información solicitada</span>
+                        <ChevronRight className="size-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* PASO 2: SELECCIONAR INFORMACIÓN (FUENTE Y CAMPOS ACCESIBLES / CONFIDENCIALES) */}
+                {detailStep === 2 && (
+                  <div className="flex flex-col w-full animate-in fade-in duration-200" id="detail-step-2">
+                    {/* Cabecera Sección II */}
+                    <div className="bg-primary/5 dark:bg-primary-950/20 border-b border-border p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 w-full">
+                      <div className="flex items-center gap-3.5 min-w-0">
+                        <div className="size-10 rounded-xl bg-primary/15 text-primary flex items-center justify-center shrink-0 shadow-2xs">
+                          <Database className="size-5 text-primary" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h2 className="font-heading text-base font-bold text-primary leading-snug">
+                              Sección II — Fuente e Información Seleccionada del Catálogo
+                            </h2>
+                            <Badge tone="primary" appearance="soft" size="sm" className="text-[10px] font-semibold">
+                              Fuente única por solicitud
+                            </Badge>
+                          </div>
                           <p className="text-xs text-muted-foreground mt-0.5">
-                            {solicitud.motivoRechazo || solicitud.observaciones || "Ajuste los campos o justificaciones observadas y remita nuevamente la solicitud para aprobación."}
+                            Campos requeridos de la fuente del catálogo nacional separados por nivel de sensibilidad (Accesibles vs. Confidenciales).
                           </p>
                         </div>
                       </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Badge tone="primary" appearance="solid" size="sm" className="font-bold uppercase tracking-wider shrink-0 !text-white shadow-xs rounded-full px-3 py-1">
+                          PASO 2 DE 4
+                        </Badge>
+                      </div>
+                    </div>
+
+                    {/* Cuerpo del Paso 2 */}
+                    <div className="p-4 sm:p-6 flex flex-col gap-5 w-full">
+                      {/* Resumen compacto del Paso 1 */}
+                      <div className="p-3.5 rounded-xl bg-muted/20 border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 w-full">
+                        <div className="flex flex-wrap items-center gap-2 text-xs">
+                          <Badge tone="neutral" appearance="soft" size="sm" className="gap-1.5 font-semibold">
+                            <Briefcase className="size-3 text-primary" />
+                            <span>{solicitud.proyectoId || "PROY-2026-001"} — {solicitud.proyectoNombre || "Sistema Integrado de Subsidios"}</span>
+                          </Badge>
+                          <Badge tone="info" appearance="soft" size="sm">
+                            {solicitud.modalidad || "API individual"}
+                          </Badge>
+                          <Badge tone="neutral" appearance="outline" size="sm" className="font-mono">
+                            Cupo: {(solicitud.cupo || 50000).toLocaleString()} reg./mes
+                          </Badge>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setDetailStep(1)}
+                          className="h-7 px-2.5 text-caption text-primary hover:text-primary shrink-0 self-start sm:self-center"
+                        >
+                          Ver proyecto y modalidad
+                        </Button>
+                      </div>
+
+                      {/* Tarjeta de Fuente y Campos separados en Accesibles y Confidenciales */}
+                      <div className="border border-border rounded-2xl bg-card overflow-hidden shadow-xs w-full">
+                        <div className="p-4 sm:p-5 bg-muted/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border w-full">
+                          <div className="flex items-center gap-3.5 min-w-0">
+                            <div className="size-10 rounded-xl bg-surface border border-border flex items-center justify-center shrink-0 shadow-2xs">
+                              <Building2 className="size-5 text-primary" />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <h3 className="font-heading text-base font-bold text-foreground">
+                                  {solicitud.fuentePrincipal || solicitud.fuentes?.[0]?.nombre || "Dirección General de Registro Civil, Identificación y Cedulación"}
+                                </h3>
+                                <Badge tone="primary" appearance="soft" size="sm" className="gap-1 text-[10px] font-semibold">
+                                  <Check className="size-2.5" /> Fuente vinculada
+                                </Badge>
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                Fuente: <strong className="text-foreground font-semibold">{solicitud.servicioPrincipal || "Consulta de Datos de Identidad"}</strong> · {todosLosCampos.length} campo(s) solicitado(s)
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                            <Badge tone="success" appearance="soft" size="sm" className="gap-1 font-semibold">
+                              <Unlock className="size-3" />
+                              {todosLosCampos.filter((c) => c.clasificacion === "Accesible").length} Accesibles
+                            </Badge>
+                            <Badge tone="warning" appearance="soft" size="sm" className="gap-1 font-semibold">
+                              <Lock className="size-3" />
+                              {todosLosCampos.filter((c) => c.clasificacion === "Confidencial").length} Confidenciales
+                            </Badge>
+                          </div>
+                        </div>
+
+                        <div className="p-4 sm:p-6 space-y-6 w-full">
+                          {/* Subgrupo 1: Campos Accesibles */}
+                          {todosLosCampos.filter((c) => c.clasificacion === "Accesible").length > 0 && (
+                            <div className="space-y-3 w-full">
+                              <div className="flex items-center justify-between border-b border-success/20 pb-2 w-full">
+                                <div className="flex items-center gap-2">
+                                  <Unlock className="size-4 text-success" />
+                                  <h4 className="text-xs font-bold uppercase tracking-wider text-foreground">
+                                    Campos Accesibles (PAR-11)
+                                  </h4>
+                                </div>
+                                <Badge tone="success" appearance="soft" size="sm" className="text-[10px] font-semibold">
+                                  Evaluación Dirección de Gestión
+                                </Badge>
+                              </div>
+                              <div
+                                className={cn(
+                                  "grid gap-3 w-full",
+                                  todosLosCampos.filter((c) => c.clasificacion === "Accesible").length === 1
+                                    ? "grid-cols-1"
+                                    : todosLosCampos.filter((c) => c.clasificacion === "Accesible").length === 2
+                                    ? "grid-cols-1 sm:grid-cols-2"
+                                    : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+                                )}
+                              >
+                                {todosLosCampos
+                                  .filter((c) => c.clasificacion === "Accesible")
+                                  .map((item) => (
+                                    <div
+                                      key={`step2-acc-${item.id || item.nombre}`}
+                                      className="flex flex-col justify-between p-3.5 rounded-xl border border-success/30 bg-success/5 gap-2 w-full"
+                                    >
+                                      <div className="flex items-start justify-between gap-2">
+                                        <span className="font-mono font-bold text-xs sm:text-sm text-foreground break-all">
+                                          {item.nombre}
+                                        </span>
+                                        <Badge tone="success" appearance="soft" size="sm" className="gap-1 inline-flex font-semibold shrink-0">
+                                          <Unlock className="size-3" />
+                                          ACCESIBLE
+                                        </Badge>
+                                      </div>
+                                      <p className="text-xs text-muted-foreground leading-relaxed">
+                                        {item.descripcion}
+                                      </p>
+                                    </div>
+                                  ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Subgrupo 2: Campos Confidenciales */}
+                          {todosLosCampos.filter((c) => c.clasificacion === "Confidencial").length > 0 && (
+                            <div className="space-y-3 w-full">
+                              <div className="flex items-center justify-between border-b border-warning/30 pb-2 w-full">
+                                <div className="flex items-center gap-2">
+                                  <Lock className="size-4 text-warning" />
+                                  <h4 className="text-xs font-bold uppercase tracking-wider text-foreground">
+                                    Campos Confidenciales (PAR-12)
+                                  </h4>
+                                </div>
+                                <Badge tone="warning" appearance="soft" size="sm" className="text-[10px] font-semibold">
+                                  Evaluación Gestión + DPI (Normatividad)
+                                </Badge>
+                              </div>
+                              <div
+                                className={cn(
+                                  "grid gap-3 w-full",
+                                  todosLosCampos.filter((c) => c.clasificacion === "Confidencial").length === 1
+                                    ? "grid-cols-1"
+                                    : todosLosCampos.filter((c) => c.clasificacion === "Confidencial").length === 2
+                                    ? "grid-cols-1 sm:grid-cols-2"
+                                    : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+                                )}
+                              >
+                                {todosLosCampos
+                                  .filter((c) => c.clasificacion === "Confidencial")
+                                  .map((item) => {
+                                    const isSensible = item.esSensible || item.etiquetaSensibilidad === "Sensible";
+                                    return (
+                                      <div
+                                        key={`step2-conf-${item.id || item.nombre}`}
+                                        className="flex flex-col justify-between p-3.5 rounded-xl border border-warning/40 bg-warning/5 gap-2 w-full"
+                                      >
+                                        <div className="flex items-start justify-between gap-2">
+                                          <span className="font-mono font-bold text-xs sm:text-sm text-foreground break-all">
+                                            {item.nombre}
+                                          </span>
+                                          <div className="inline-flex items-center gap-1 flex-wrap shrink-0 justify-end">
+                                            <Badge tone="warning" appearance="soft" size="sm" className="gap-1 inline-flex font-semibold shrink-0">
+                                              <Lock className="size-3" />
+                                              CONFIDENCIAL
+                                            </Badge>
+                                            {isSensible && (
+                                              <Badge tone="danger" appearance="soft" size="sm" className="gap-1 inline-flex font-semibold shrink-0">
+                                                <ShieldAlert className="size-3" />
+                                                SENSIBLE · LOPDP
+                                              </Badge>
+                                            )}
+                                          </div>
+                                        </div>
+                                        <p className="text-xs text-muted-foreground leading-relaxed">
+                                          {item.descripcion}
+                                        </p>
+                                        {isSensible && (
+                                          <p className="text-[11px] font-medium text-danger flex items-center gap-1 pt-1 border-t border-warning/20">
+                                            <ShieldAlert className="size-3 shrink-0" />
+                                            <span>Dato sensible: sujeto a tratamiento especial según LOPDP</span>
+                                          </p>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Footer Unificado del Paso 2 */}
+                    <div className="p-4 sm:p-6 bg-muted/20 border-t border-border flex flex-wrap justify-between items-center gap-3 w-full">
                       <Button
+                        variant="outline"
                         size="sm"
-                        onClick={() => {
-                          setCorrectionStep(targetCorrectionStep);
-                          setModoCorreccion(true);
-                        }}
-                        className="gap-2 bg-primary text-primary-foreground font-semibold shrink-0 shadow-sm"
+                        onClick={() => setDetailStep(1)}
+                        className="gap-1.5 text-xs font-semibold"
                       >
-                        <Edit className="size-4" />
-                        Corregir solicitud ahora
+                        <ArrowLeft className="size-3.5" />
+                        <span>Anterior: Proyecto y modalidad</span>
+                      </Button>
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => setDetailStep(3)}
+                        className="gap-2 text-xs font-semibold"
+                      >
+                        <span>Siguiente: Justificación de campos</span>
+                        <ChevronRight className="size-4" />
                       </Button>
                     </div>
-                  )}
-                </div>
-              )}
+                  </div>
+                )}
 
-              {/* TAB SEGUIMIENTO Y HISTORIAL (Punto 14 - Timeline compartido) */}
-              {activeTab === "seguimiento" && (
-                <Card className="p-6">
-                  <h3 className="text-base font-bold text-foreground flex items-center gap-2 mb-4">
-                    <History className="size-4 text-primary" />
-                    Historial del trámite y Trazabilidad Compartida
-                  </h3>
-                  <TrazabilidadTimeline historial={solicitud.historial || []} />
-                </Card>
-              )}
-            </div>
+                {/* PASO 3: JUSTIFICAR CAMPOS (FINALIDAD PAR-11 Y BASE LEGAL PAR-12) */}
+                {detailStep === 3 && (
+                  <div className="flex flex-col w-full animate-in fade-in duration-200" id="detail-step-3">
+                    {/* Cabecera Sección III */}
+                    <div className="bg-primary/5 dark:bg-primary-950/20 border-b border-border p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 w-full">
+                      <div className="flex items-center gap-3.5 min-w-0">
+                        <div className="size-10 rounded-xl bg-primary/15 text-primary flex items-center justify-center shrink-0 shadow-2xs">
+                          <Scale className="size-5 text-primary" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h2 className="font-heading text-base font-bold text-primary leading-snug">
+                              Sección III — Finalidad de Uso y Justificación Jurídica Declaradas
+                            </h2>
+                            <Badge tone="primary" appearance="soft" size="sm" className="text-[10px] font-semibold">
+                              PAR-11 / PAR-12
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            Finalidad institucional declarada para cada campo y base legal habilitante para datos confidenciales.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        {todosLosCampos.length > 1 && (
+                          <>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => expandAllJustificaciones(todosLosCampos)}
+                              className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground bg-surface"
+                            >
+                              Expandir todos
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => collapseAllJustificaciones(todosLosCampos)}
+                              className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground bg-surface"
+                            >
+                              Colapsar todos
+                            </Button>
+                          </>
+                        )}
+                        <Badge tone="primary" appearance="solid" size="sm" className="font-bold uppercase tracking-wider shrink-0 !text-white shadow-xs rounded-full px-3 py-1">
+                          PASO 3 DE 4
+                        </Badge>
+                      </div>
+                    </div>
+
+                    {/* Cuerpo del Paso 3 */}
+                    <div className="p-4 sm:p-6 flex flex-col gap-5 w-full">
+                      {/* Nota de distinción en 2 columnas laterales */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 w-full">
+                        <div className="p-3.5 rounded-xl border border-success/25 bg-success/5 flex items-start gap-3">
+                          <Unlock className="size-4 text-success shrink-0 mt-0.5" />
+                          <div className="text-xs space-y-0.5">
+                            <p className="font-semibold text-foreground">Campos Accesibles (Evaluación Gestión)</p>
+                            <p className="text-muted-foreground leading-relaxed">
+                              Registran la <strong className="text-foreground font-medium">Finalidad de uso (PAR-11)</strong> vinculada al trámite institucional.
+                            </p>
+                          </div>
+                        </div>
+                        <div className="p-3.5 rounded-xl border border-warning/30 bg-warning/5 flex items-start gap-3">
+                          <Lock className="size-4 text-warning shrink-0 mt-0.5" />
+                          <div className="text-xs space-y-0.5">
+                            <p className="font-semibold text-foreground">Campos Confidenciales (Evaluación Gestión + DPI)</p>
+                            <p className="text-muted-foreground leading-relaxed">
+                              Registran <strong className="text-foreground font-medium">Finalidad de uso</strong> y <strong className="text-foreground font-medium">Justificación jurídica (PAR-12)</strong> con norma expresa.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="border border-border rounded-2xl bg-card overflow-hidden shadow-xs w-full">
+                        <div className="p-4 sm:p-5 bg-muted/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border w-full">
+                          <div className="flex items-center gap-3.5 min-w-0">
+                            <div className="size-9 rounded-lg bg-surface border border-border flex items-center justify-center shrink-0 shadow-2xs">
+                              <Building2 className="size-4.5 text-primary" />
+                            </div>
+                            <div className="min-w-0">
+                              <h3 className="font-heading text-base font-bold text-foreground">
+                                {solicitud.fuentePrincipal || solicitud.fuentes?.[0]?.nombre || "Dirección General de Registro Civil, Identificación y Cedulación"}
+                              </h3>
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                {todosLosCampos.length} campo(s) justificado(s) en el expediente
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="p-4 sm:p-6 flex flex-col gap-3.5 bg-card w-full">
+                          {todosLosCampos.map((item) => {
+                            const key = item.id || item.nombre;
+                            const isExpanded = expandedJustificaciones[key] ?? true;
+
+                            return (
+                              <div
+                                key={`step3-just-${key}`}
+                                className="border border-border/80 rounded-xl bg-surface/50 overflow-hidden shadow-2xs transition-all w-full"
+                              >
+                                <div
+                                  onClick={() => toggleCampoJustificacion(key)}
+                                  className="p-4 hover:bg-muted/30 transition-colors cursor-pointer flex items-center justify-between gap-3 select-none w-full"
+                                >
+                                  <div className="flex items-center gap-2.5 flex-wrap min-w-0">
+                                    <span className="font-mono font-bold text-sm text-foreground">{item.nombre}</span>
+                                    {item.clasificacion === "Accesible" ? (
+                                      <Badge tone="success" appearance="soft" size="sm" className="gap-1 inline-flex font-semibold">
+                                        <Unlock className="size-3" /> ACCESIBLE
+                                      </Badge>
+                                    ) : (
+                                      <div className="inline-flex items-center gap-1.5 flex-wrap">
+                                        <Badge tone="warning" appearance="soft" size="sm" className="gap-1 inline-flex font-semibold">
+                                          <Lock className="size-3" /> CONFIDENCIAL
+                                        </Badge>
+                                        {(item.esSensible || item.etiquetaSensibilidad === "Sensible") && (
+                                          <Badge tone="danger" appearance="soft" size="sm" className="gap-1 inline-flex font-semibold">
+                                            <ShieldAlert className="size-3" /> SENSIBLE · LOPDP
+                                          </Badge>
+                                        )}
+                                      </div>
+                                    )}
+                                    <span className="text-xs text-muted-foreground line-clamp-1">— {item.descripcion}</span>
+                                  </div>
+
+                                  <div className="flex items-center gap-2.5 shrink-0 ml-2">
+                                    <Badge appearance="soft" tone="success" className="h-6 px-2 text-[10px] font-semibold gap-1 hidden sm:inline-flex">
+                                      <Check className="size-3" /> Declarado
+                                    </Badge>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      aria-label={isExpanded ? "Ocultar justificación" : "Desplegar justificación"}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        toggleCampoJustificacion(key);
+                                      }}
+                                      className="size-8 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground border border-border/80 shadow-2xs"
+                                    >
+                                      {isExpanded ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+                                    </Button>
+                                  </div>
+                                </div>
+
+                                {isExpanded && (
+                                  <div
+                                    className={cn(
+                                      "border-t border-border/70 p-4 sm:p-5 bg-muted/10 animate-in fade-in-50 duration-150 w-full",
+                                      item.clasificacion === "Confidencial"
+                                        ? "grid grid-cols-1 lg:grid-cols-2 gap-4 items-start"
+                                        : "flex flex-col gap-4"
+                                    )}
+                                  >
+                                    <div className="flex flex-col gap-1.5 w-full">
+                                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                                        <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                                          <FileText className="size-3.5 text-primary" />
+                                          Finalidad de uso declarada
+                                        </label>
+                                        <Badge tone="neutral" appearance="outline" size="sm" className="text-[10px]">
+                                          PAR-11
+                                        </Badge>
+                                      </div>
+                                      <div className="p-3.5 rounded-xl bg-background border border-border text-xs sm:text-sm text-foreground leading-relaxed min-h-[76px]">
+                                        {item.finalidad || "Finalidad de verificación institucional y consulta de elegibilidad en línea."}
+                                      </div>
+                                    </div>
+
+                                    {item.clasificacion === "Confidencial" && (
+                                      <div className="flex flex-col gap-1.5 w-full">
+                                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                                          <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                                            <Scale className="size-3.5 text-warning" />
+                                            Justificación jurídica requerida (Confidencial)
+                                          </label>
+                                          <Badge tone="warning" appearance="soft" size="sm" className="text-[10px]">
+                                            Evaluado por DPI (PAR-12)
+                                          </Badge>
+                                        </div>
+                                        {(item.esSensible || item.etiquetaSensibilidad === "Sensible") && (
+                                          <div className="p-2.5 rounded-lg border border-danger/30 bg-danger/5 flex items-start gap-2 text-xs">
+                                            <ShieldAlert className="size-4 text-danger shrink-0 mt-0.5" />
+                                            <div className="space-y-0.5">
+                                              <p className="font-semibold text-foreground">
+                                                Dato Confidencial Sensible (LOPDP)
+                                              </p>
+                                              <p className="text-muted-foreground text-[11px] leading-relaxed">
+                                                Pertenece a la categoría de confidenciales y está sujeto a tratamiento especial según la Ley Orgánica de Protección de Datos Personales. Se evalúa dentro de la misma revisión normativa por DPI.
+                                              </p>
+                                            </div>
+                                          </div>
+                                        )}
+                                        <div className="p-3.5 rounded-xl bg-background border border-warning/40 text-xs sm:text-sm text-foreground leading-relaxed min-h-[76px]">
+                                          {item.fundamento || "Art. 89 del Código Orgánico de la Economía Social de los Conocimientos y Ley Orgánica de Protección de Datos Personales."}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Footer Unificado del Paso 3 */}
+                    <div className="p-4 sm:p-6 bg-muted/20 border-t border-border flex flex-wrap justify-between items-center gap-3 w-full">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setDetailStep(2)}
+                        className="gap-1.5 text-xs font-semibold"
+                      >
+                        <ArrowLeft className="size-3.5" />
+                        <span>Anterior: Información solicitada</span>
+                      </Button>
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => setDetailStep(4)}
+                        className="gap-2 text-xs font-semibold"
+                      >
+                        <span>Siguiente: Resumen y formalización</span>
+                        <ChevronRight className="size-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* PASO 4: EXPEDIENTE CONSOLIDADO, DICTÁMENES Y FORMALIZACIÓN */}
+                {detailStep === 4 && (
+                  <div className="flex flex-col w-full animate-in fade-in duration-200" id="detail-step-4">
+                    {/* Cabecera Sección IV */}
+                    <div className="bg-primary/5 dark:bg-primary-950/20 border-b border-border p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 w-full">
+                      <div className="flex items-center gap-3.5 min-w-0">
+                        <div className="size-10 rounded-xl bg-primary/15 text-primary flex items-center justify-center shrink-0 shadow-2xs">
+                          <FileCheck2 className="size-5 text-primary" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h2 className="font-heading text-base font-bold text-primary leading-snug">
+                              Sección IV — Resumen Integral del Expediente y Formalización
+                            </h2>
+                            <Badge tone="info" appearance="soft" size="sm" className="font-semibold text-[10px]">
+                              Vista consolidada (Pasos 1 al 4)
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            Revisión integral de proyecto, campos solicitados, justificaciones legales, documentos soporte y liquidación.
+                          </p>
+                        </div>
+                      </div>
+
+                      <Badge tone="primary" appearance="solid" size="sm" className="font-bold uppercase tracking-wider shrink-0 !text-white shadow-xs rounded-full px-3 py-1">
+                        PASO 4 DE 4
+                      </Badge>
+                    </div>
+
+                    {/* Cuerpo del Paso 4 Consolidado */}
+                    <div className="p-4 sm:p-6 flex flex-col gap-6 w-full">
+                      {/* COMPONENTE FINANCIERO (Si es privada o rol Facturación) */}
+                      {(solicitud.tipoInstitucion === "Privada" || role === "FACTURACION") && (
+                        <div className="w-full rounded-2xl border border-primary/25 bg-card p-4 sm:p-5 shadow-2xs space-y-4">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border">
+                            <div className="flex items-center gap-2.5">
+                              <div className="size-9 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                                <CreditCard className="size-5" />
+                              </div>
+                              <div>
+                                <h3 className="text-base font-bold text-foreground">Componente Financiero y Liquidación</h3>
+                                <p className="text-xs text-muted-foreground">
+                                  Control de tarifas, contrato de prestación y comprobante oficial SIGEF.
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              {solicitud.factura && solicitud.estado !== "Pago pendiente" && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setModalFactura(true)}
+                                  className="h-8 text-xs gap-1.5"
+                                >
+                                  <Receipt className="size-3.5 text-primary" />
+                                  Ver factura
+                                </Button>
+                              )}
+                              {solicitud.cur && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setModalCur(true)}
+                                  className="h-8 text-xs gap-1.5 border-success/40 text-success"
+                                >
+                                  <FileCheck2 className="size-3.5" />
+                                  Ver CUR
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+                            <div className="p-3 rounded-lg border border-border bg-muted/20">
+                              <span className="text-muted-foreground block text-[11px]">Tipo de Contrato:</span>
+                              <span className="font-bold text-foreground">{solicitud.instrumento || "Contrato"}</span>
+                              <span className="text-[10px] text-muted-foreground block font-mono">{solicitud.contrato || "CONTR-2026-0019"}</span>
+                            </div>
+                            <div className="p-3 rounded-lg border border-border bg-muted/20">
+                              <span className="text-muted-foreground block text-[11px]">Facturación:</span>
+                              <span className="font-bold text-foreground font-mono">
+                                {solicitud.estado === "Pago pendiente" ? "Sistema externo (SIGEF)" : (solicitud.factura?.numero || "FAC-0028")}
+                              </span>
+                              <span className="text-[10px] text-muted-foreground block">
+                                {solicitud.estado === "Pago pendiente" ? "Emisión y pago externo" : (solicitud.factura?.fechaEmision || solicitud.fecha.substring(0, 10))}
+                              </span>
+                            </div>
+                            <div className="p-3 rounded-lg border border-border bg-muted/20">
+                              <span className="text-muted-foreground block text-[11px]">Valor Liquidado:</span>
+                              <span className="font-bold text-primary text-sm">{solicitud.factura?.valor || "$ 150.00"}</span>
+                              <span className="text-[10px] text-muted-foreground block">Tarifa aprobada</span>
+                            </div>
+                            <div className="p-3 rounded-lg border border-border bg-muted/20">
+                              <span className="text-muted-foreground block text-[11px]">Estado del Pago:</span>
+                              <Badge
+                                tone={solicitud.cur ? "success" : "warning"}
+                                appearance="soft"
+                                size="sm"
+                                className="mt-0.5"
+                              >
+                                {solicitud.cur ? "Validado con CUR" : solicitud.estado}
+                              </Badge>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 4.1 Proyecto, modalidad, cupo y documentos */}
+                      <div className="w-full rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-2xs flex flex-col gap-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-border/70 gap-2">
+                          <div className="flex items-center gap-2.5">
+                            <span className="flex items-center justify-center size-6 rounded-md bg-primary/10 text-primary font-bold text-xs shrink-0">
+                              4.1
+                            </span>
+                            <div>
+                              <h3 className="font-heading font-bold text-sm sm:text-base text-foreground">
+                                Proyecto institucional, modalidad y respaldo (Paso 1)
+                              </h3>
+                              <p className="text-xs text-muted-foreground">
+                                Datos institucionales consolidados para revisión en Gestión y DPI
+                              </p>
+                            </div>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setDetailStep(1)}
+                            className="h-7 px-2.5 text-caption text-primary hover:text-primary shrink-0 w-fit"
+                          >
+                            Ver detalle Paso 1
+                          </Button>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs w-full">
+                          <div className="p-3.5 rounded-xl bg-muted/25 border border-border/60">
+                            <span className="text-muted-foreground block text-[11px] mb-0.5">Proyecto institucional:</span>
+                            <strong className="text-foreground text-xs sm:text-sm truncate block">
+                              {solicitud.proyectoNombre || "Sistema Integrado de Subsidios y Prestaciones Sociales"}
+                            </strong>
+                            <span className="text-[10px] text-muted-foreground">{solicitud.institucion} ({solicitud.proyectoId || "PROY-2026-001"})</span>
+                          </div>
+
+                          <div className="p-3.5 rounded-xl bg-muted/25 border border-border/60">
+                            <span className="text-muted-foreground block text-[11px] mb-0.5">Fuente seleccionada:</span>
+                            <strong className="text-foreground text-xs sm:text-sm truncate block">
+                              {solicitud.fuentePrincipal || solicitud.fuentes?.[0]?.nombre || "Registro Civil"}
+                            </strong>
+                            <span className="text-[10px] text-muted-foreground truncate block">
+                              {solicitud.servicioPrincipal || "Consulta de Datos de Identidad"}
+                            </span>
+                          </div>
+
+                          <div className="p-3.5 rounded-xl bg-muted/25 border border-border/60">
+                            <span className="text-muted-foreground block text-[11px] mb-0.5">Modalidad y cupo:</span>
+                            <strong className="text-foreground text-xs sm:text-sm truncate block">
+                              {solicitud.modalidad || "API individual"}
+                            </strong>
+                            <span className="text-[10px] text-muted-foreground">Cupo: {(solicitud.cupo || 50000).toLocaleString()} reg./mes</span>
+                          </div>
+
+                          <div className="p-3.5 rounded-xl bg-muted/25 border border-border/60">
+                            <span className="text-muted-foreground block text-[11px] mb-0.5">Oficio habilitante:</span>
+                            <div className="flex items-center gap-1.5 text-foreground font-semibold">
+                              <FileText className="size-3.5 text-primary shrink-0" />
+                              <span className="truncate">{solicitud.documentos?.[0]?.nombre || solicitud.documentoSustentoNombre || "Oficio_Solicitud_Acceso.pdf"}</span>
+                            </div>
+                            <span className="text-[10px] text-muted-foreground">Respaldo técnico-jurídico (SOL-02)</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 4.2 Fuente y campos seleccionados */}
+                      <div className="w-full rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-2xs flex flex-col gap-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-border/70 gap-2">
+                          <div className="flex items-center gap-2.5">
+                            <span className="flex items-center justify-center size-6 rounded-md bg-primary/10 text-primary font-bold text-xs shrink-0">
+                              4.2
+                            </span>
+                            <div>
+                              <h3 className="font-heading font-bold text-sm sm:text-base text-foreground">
+                                Fuente y campos seleccionados ({todosLosCampos.length})
+                              </h3>
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                Institución: <strong className="text-foreground font-semibold">{solicitud.fuentePrincipal || solicitud.fuentes?.[0]?.nombre}</strong>
+                                {solicitud.servicioPrincipal && (
+                                  <span className="text-muted-foreground font-normal"> · Fuente: <strong className="text-foreground font-semibold">{solicitud.servicioPrincipal}</strong></span>
+                                )}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {role === "COORDINADOR_SINARP" && isRechazada && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setCorrectionStep(1);
+                                  setModoCorreccion(true);
+                                }}
+                                className="h-7 text-xs gap-1 text-muted-foreground hover:text-foreground"
+                              >
+                                <Edit className="size-3" />
+                                Editar campos
+                              </Button>
+                            )}
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setDetailStep(2)}
+                              className="h-7 px-2.5 text-caption text-primary hover:text-primary shrink-0 w-fit"
+                            >
+                              Ver detalle Paso 2
+                            </Button>
+                          </div>
+                        </div>
+
+                        <div className={cn(
+                          "grid gap-3 w-full",
+                          todosLosCampos.length === 1
+                            ? "grid-cols-1"
+                            : todosLosCampos.length === 2
+                            ? "grid-cols-1 sm:grid-cols-2"
+                            : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+                        )}>
+                          {todosLosCampos.map((item) => (
+                            <div
+                              key={`p4-res-${item.id || item.nombre}`}
+                              className="flex items-center justify-between p-3.5 rounded-xl border border-border/80 bg-muted/20 gap-3"
+                            >
+                              <div className="min-w-0 flex-1">
+                                <p className="font-mono font-bold text-xs text-foreground truncate">
+                                  {item.nombre}
+                                </p>
+                                <p className="text-[11px] text-muted-foreground truncate">
+                                  {item.descripcion}
+                                </p>
+                              </div>
+                              <div className="inline-flex items-center gap-1 flex-wrap shrink-0 justify-end">
+                                <Badge
+                                  tone={item.clasificacion === "Confidencial" ? "warning" : "success"}
+                                  appearance="soft"
+                                  size="sm"
+                                  className="gap-1 inline-flex font-semibold shrink-0"
+                                >
+                                  {item.clasificacion === "Confidencial" ? (
+                                    <Lock className="size-3" />
+                                  ) : (
+                                    <Unlock className="size-3" />
+                                  )}
+                                  {item.clasificacion.toUpperCase()}
+                                </Badge>
+                                {item.clasificacion === "Confidencial" && (item.esSensible || item.etiquetaSensibilidad === "Sensible") && (
+                                  <Badge
+                                    tone="danger"
+                                    appearance="soft"
+                                    size="sm"
+                                    className="gap-1 inline-flex font-semibold shrink-0"
+                                  >
+                                    <ShieldAlert className="size-3" />
+                                    SENSIBLE · LOPDP
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* 4.3 Justificaciones declaradas */}
+                      <div className="w-full rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-2xs flex flex-col gap-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-border/70 gap-2">
+                          <div className="flex items-center gap-2.5">
+                            <span className="flex items-center justify-center size-6 rounded-md bg-primary/10 text-primary font-bold text-xs shrink-0">
+                              4.3
+                            </span>
+                            <div>
+                              <h3 className="font-heading font-bold text-sm sm:text-base text-foreground">
+                                Finalidad de uso y justificación jurídica declaradas ({todosLosCampos.length})
+                              </h3>
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                Finalidad de uso (PAR-11) y justificación jurídica (PAR-12)
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {role === "COORDINADOR_SINARP" && isRechazada && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setCorrectionStep(2);
+                                  setModoCorreccion(true);
+                                }}
+                                className="h-7 text-xs gap-1 text-muted-foreground hover:text-foreground"
+                              >
+                                <Edit className="size-3" />
+                                Editar justificaciones
+                              </Button>
+                            )}
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setDetailStep(3)}
+                              className="h-7 px-2.5 text-caption text-primary hover:text-primary shrink-0 w-fit"
+                            >
+                              Ver detalle Paso 3
+                            </Button>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col gap-3.5 w-full">
+                          {todosLosCampos.map((item) => (
+                            <div
+                              key={`p4-just-${item.id || item.nombre}`}
+                              className="p-4 border border-border/80 bg-muted/10 space-y-3 rounded-xl w-full"
+                            >
+                              <div className="flex items-center justify-between gap-2 pb-2 border-b border-border/60">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <span className="font-mono font-bold text-sm text-foreground">
+                                    {item.nombre}
+                                  </span>
+                                  <span className="text-xs text-muted-foreground hidden sm:inline truncate">
+                                    — {item.descripcion}
+                                  </span>
+                                </div>
+                                <div className="inline-flex items-center gap-1.5 flex-wrap shrink-0">
+                                  <Badge
+                                    tone={item.clasificacion === "Confidencial" ? "warning" : "success"}
+                                    appearance="soft"
+                                    size="sm"
+                                    className="gap-1 inline-flex font-semibold shrink-0"
+                                  >
+                                    {item.clasificacion === "Confidencial" ? (
+                                      <Lock className="size-3" />
+                                    ) : (
+                                      <Unlock className="size-3" />
+                                    )}
+                                    {item.clasificacion.toUpperCase()}
+                                  </Badge>
+                                  {item.clasificacion === "Confidencial" && (item.esSensible || item.etiquetaSensibilidad === "Sensible") && (
+                                    <Badge
+                                      tone="danger"
+                                      appearance="soft"
+                                      size="sm"
+                                      className="gap-1 inline-flex font-semibold shrink-0"
+                                    >
+                                      <ShieldAlert className="size-3" />
+                                      SENSIBLE · LOPDP
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className={cn(
+                                "w-full",
+                                item.clasificacion === "Confidencial"
+                                  ? "grid grid-cols-1 md:grid-cols-2 gap-4"
+                                  : "flex flex-col"
+                              )}>
+                                <div className="space-y-1.5 w-full">
+                                  <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
+                                    <FileText className="size-3.5 text-primary" />
+                                    Finalidad de uso declarada (PAR-11)
+                                  </label>
+                                  <div className="w-full rounded-xl p-3 text-xs sm:text-sm bg-background border border-border/80 text-foreground leading-relaxed">
+                                    {item.finalidad || "Finalidad de verificación institucional y consulta de elegibilidad."}
+                                  </div>
+                                </div>
+
+                                {item.clasificacion === "Confidencial" && (
+                                  <div className="space-y-1.5 w-full">
+                                    <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
+                                      <Scale className="size-3.5 text-warning" />
+                                      Justificación jurídica requerida (PAR-12)
+                                    </label>
+                                    <div className="w-full rounded-xl p-3 text-xs sm:text-sm bg-background border border-warning/30 text-foreground leading-relaxed">
+                                      {item.fundamento || "Art. 89 del Código Orgánico de la Economía Social de los Conocimientos y Ley Orgánica de Protección de Datos Personales."}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* 4.4 Documentos soporte, dictámenes y resoluciones */}
+                      <div className="w-full rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-2xs flex flex-col gap-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-border/70 gap-2">
+                          <div className="flex items-center gap-2.5">
+                            <span className="flex items-center justify-center size-6 rounded-md bg-primary/10 text-primary font-bold text-xs shrink-0">
+                              4.4
+                            </span>
+                            <div>
+                              <h3 className="font-heading font-bold text-sm sm:text-base text-foreground">
+                                Documentos soporte, dictámenes y formalización
+                              </h3>
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                Expediente documental, dictámenes técnicos y resoluciones de aprobación
+                              </p>
+                            </div>
+                          </div>
+                          <Badge tone="neutral" appearance="outline" className="text-xs font-semibold w-fit">
+                            {(solicitud.documentos?.length || 0) + (solicitud.informeJustificacion ? 1 : 0) + (solicitud.cur ? 1 : 0)} documento(s)
+                          </Badge>
+                        </div>
+
+                        {solicitud.informeJustificacion || (solicitud.documentos && solicitud.documentos.length > 0) || solicitud.cur ? (
+                          <div
+                            className={cn(
+                              "grid gap-3 w-full",
+                              (solicitud.documentos?.length || 0) + (solicitud.informeJustificacion ? 1 : 0) + (solicitud.cur ? 1 : 0) === 1
+                                ? "grid-cols-1"
+                                : "grid-cols-1 md:grid-cols-2"
+                            )}
+                          >
+                            {solicitud.informeJustificacion && (
+                              <div className="p-4 rounded-xl border border-success/40 bg-success/10 flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  <div className="size-9 rounded-lg bg-success/20 flex items-center justify-center text-success">
+                                    <FileSignature className="size-5" />
+                                  </div>
+                                  <div>
+                                    <p className="text-xs font-bold text-foreground">{solicitud.informeJustificacion.nombre}</p>
+                                    <p className="text-[11px] text-success font-semibold">
+                                      Informe de Justificación Aprobado · {solicitud.informeJustificacion.tamano}
+                                    </p>
+                                    <p className="text-[10px] text-muted-foreground">
+                                      Firmado por {solicitud.informeJustificacion.firmadoPor}
+                                    </p>
+                                  </div>
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => toast.info(`Descargando ${solicitud.informeJustificacion?.nombre}...`)}
+                                  className="text-xs gap-1 text-success"
+                                >
+                                  <Download className="size-3.5" />
+                                  Descargar
+                                </Button>
+                              </div>
+                            )}
+
+                            {solicitud.cur && (
+                              <div className="p-4 rounded-xl border border-primary/40 bg-primary/10 flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  <div className="size-9 rounded-lg bg-primary/20 flex items-center justify-center text-primary">
+                                    <FileCheck2 className="size-5" />
+                                  </div>
+                                  <div>
+                                    <p className="text-xs font-bold text-foreground">{solicitud.cur.nombreArchivo}</p>
+                                    <p className="text-[11px] text-primary font-semibold">
+                                      Comprobante Único de Registro ({solicitud.cur.numeroCur}) · {solicitud.cur.tamano}
+                                    </p>
+                                  </div>
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => toast.info(`Descargando ${solicitud.cur?.nombreArchivo}...`)}
+                                  className="text-xs gap-1 text-primary"
+                                >
+                                  <Download className="size-3.5" />
+                                  Descargar
+                                </Button>
+                              </div>
+                            )}
+
+                            {(solicitud.documentos || []).map((doc) => (
+                              <div key={doc.id} className="p-4 rounded-xl border border-border bg-surface flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  <div className="size-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                                    <FileText className="size-5" />
+                                  </div>
+                                  <div>
+                                    <p className="text-xs font-bold text-foreground">{doc.nombre}</p>
+                                    <p className="text-[11px] text-muted-foreground">{doc.categoria} · {doc.tamano}</p>
+                                  </div>
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => toast.info(`Descargando ${doc.nombre}...`)}
+                                  className="text-xs gap-1"
+                                >
+                                  <Download className="size-3.5" />
+                                  Descargar
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="p-4 rounded-xl border border-border bg-muted/20 flex items-center gap-3 text-xs text-muted-foreground">
+                            <Info className="size-4 text-primary shrink-0" />
+                            <span>
+                              Los documentos de soporte formal (informe técnico de viabilidad, dictamen legal y resolución de acceso) se incorporan a este expediente una vez aprobada la solicitud.
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Banner de acción de corrección si la solicitud está rechazada o con observaciones */}
+                      {role === "COORDINADOR_SINARP" && isRechazada && (
+                        <div className="p-4 sm:p-5 rounded-2xl border border-destructive/40 bg-destructive/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                          <div className="flex items-start gap-3">
+                            <AlertTriangle className="size-5 text-destructive shrink-0 mt-0.5" />
+                            <div>
+                              <p className="text-sm font-bold text-foreground">Solicitud pendiente de corrección y subsanación</p>
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                {solicitud.motivoRechazo || solicitud.observaciones || "Ajuste los campos o justificaciones observadas y remita nuevamente la solicitud para aprobación."}
+                              </p>
+                            </div>
+                          </div>
+                          <Button
+                            asChild
+                            size="sm"
+                            className="gap-2 bg-primary text-primary-foreground font-semibold shrink-0 shadow-sm cursor-pointer"
+                          >
+                            <Link href={`/acceso-interoperabilidad/solicitudes/${solicitud.id}/corregir`}>
+                              <Edit className="size-4" />
+                              <span>Subsanar solicitud ahora</span>
+                            </Link>
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Footer Unificado del Paso 4 */}
+                    <div className="p-4 sm:p-6 bg-muted/20 border-t border-border flex flex-wrap justify-between items-center gap-3 w-full">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setDetailStep(3)}
+                        className="gap-1.5 text-xs font-semibold"
+                      >
+                        <ArrowLeft className="size-3.5" />
+                        <span>Anterior: Justificación de campos</span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setActiveTab("seguimiento")}
+                        className="gap-2 text-xs font-semibold text-primary border-primary/30 hover:bg-primary/5"
+                      >
+                        <History className="size-4" />
+                        <span>Ver historial y trazabilidad ({solicitud.historial?.length || 0})</span>
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* TAB SEGUIMIENTO Y HISTORIAL */}
+            {activeTab === "seguimiento" && (
+              <div className="p-4 sm:p-6 space-y-4 w-full">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-border">
+                  <div>
+                    <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+                      <History className="size-4 text-primary" />
+                      Historial del trámite y Trazabilidad Compartida
+                    </h3>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Registro cronológico de eventos, asignaciones y dictámenes emitidos sobre el expediente.
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setActiveTab("resumen")}
+                    className="h-8 text-xs font-semibold gap-1.5 w-fit"
+                  >
+                    <FileText className="size-3.5" />
+                    <span>Volver a los pasos del expediente</span>
+                  </Button>
+                </div>
+                <TrazabilidadTimeline historial={solicitud.historial || []} />
+              </div>
+            )}
           </div>
           </Card>
         </main>

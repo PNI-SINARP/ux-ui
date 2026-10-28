@@ -2095,7 +2095,7 @@ export function SolicitudesPendientesView({
                     <div className="min-w-0 space-y-0.5">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <h3 className="text-sm font-bold text-foreground group-hover:text-warning transition-colors truncate">
-                          Pendientes
+                          Pendientes por revisar
                         </h3>
                         {filterEstado === "PENDIENTES" && (
                           <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded-full bg-warning/20 text-warning border border-warning/30 shrink-0">

@@ -207,7 +207,26 @@ export function SolicitudDetalleView({ id, basePath = "/asignacion-solicitudes",
     archivo: string;
   } | null>(null);
 
-  const activeSectionTitle = useMemo(() => { if (sectionTitle) return sectionTitle; if (currentUser.role === "DIR_GESTION" || currentUser.role === "DIR_NORMATIVA") return "Asignación de solicitudes"; if (currentUser.role === "EQ_NORMATIVA") return "Solicitudes pendientes"; if (currentUser.role === "EQ_GESTION") return "Solicitudes pendientes"; return "Gestión de ingresos"; }, [currentUser.role, sectionTitle]);
+  const resolvedActiveMenu = useMemo(() => {
+    if (isNormativaPath) {
+      return currentUser.role === "DIR_NORMATIVA"
+        ? "asignacion-resoluciones"
+        : "revision-normativa";
+    }
+    return activeMenu;
+  }, [activeMenu, currentUser.role, isNormativaPath]);
+
+  const activeSectionTitle = useMemo(() => {
+    if (isNormativaPath) {
+      return currentUser.role === "DIR_NORMATIVA"
+        ? "Asignar resoluciones"
+        : "Generar resoluciones";
+    }
+    if (sectionTitle) return sectionTitle;
+    if (currentUser.role === "DIR_GESTION") return "Asignar incorporaciones";
+    if (currentUser.role === "EQ_GESTION") return "Revisar incorporaciones";
+    return "Gestión de ingresos";
+  }, [currentUser.role, isNormativaPath, sectionTitle]);
 
   const handleConfirmAsignacion = (
     solicitudId: string,
@@ -372,7 +391,7 @@ export function SolicitudDetalleView({ id, basePath = "/asignacion-solicitudes",
 
   if (!solicitud) {
     return (
-      <WireframeDashboardLayout activeMenu={activeMenu} breadcrumbs={[{ label: activeSectionTitle, onClick: () => router.push(basePath) }, { label: "Cargando..." }]}>
+      <WireframeDashboardLayout activeMenu={resolvedActiveMenu} breadcrumbs={[{ label: activeSectionTitle, onClick: () => router.push(basePath) }, { label: "Cargando..." }]}>
         <div className="p-8 text-center text-xs text-muted-foreground">Cargando datos del trámite...</div>
       </WireframeDashboardLayout>
     );

@@ -630,9 +630,9 @@ export function ProcesosTab({ activeRole, onStartTour }: ProcesosTabProps) {
                   <div className="flex items-center justify-end gap-2 pt-3 border-t border-border/60 w-full">
                     <Button
                       asChild
-                      variant={isMyTask ? "primary" : "outline"}
+                      variant={isMyTask ? "primary" : "neutral"}
                       size="sm"
-                      className="h-8 gap-1.5 text-xs"
+                      className="h-9 gap-1.5 text-xs font-semibold cursor-pointer"
                     >
                       <Link href={`/catalogo-interoperabilidad/administracion/incorporaciones/${exp.id}`}>
                         {isMyTask ? (

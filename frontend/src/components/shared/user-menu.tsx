@@ -16,8 +16,6 @@ import {
   ChevronDown,
   ChevronLeft,
   Building2,
-  UserCheck,
-  ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -29,51 +27,6 @@ import {
   MOCK_USERS_BY_ROLE,
   type UserRole,
 } from "@/modules/catalogo-interoperabilidad/data/catalogo-data";
-
-const BN07_ROLES: { role: UserRole; label: string; subtitle: string; route: string }[] = [
-  {
-    role: "COORDINADOR_SINARP",
-    label: "1. Coordinador SINARP",
-    subtitle: "Anexos B/C e Interoperabilidad · Enrolamiento y expedientes",
-    route: "/expedientes-anexo-b",
-  },
-  {
-    role: "REPRESENTANTE_INSTITUCIONAL",
-    label: "2. Representante Institucional",
-    subtitle: "Anexos A/B/C · Incorporación, coordinadores y seguimiento",
-    route: "/expedientes-anexo-a",
-  },
-  {
-    role: "DIR_GESTION",
-    label: "3. Director de Gestión",
-    subtitle: "Anexos A/B/C y SOL-03 · Asignación de solicitudes por anexo",
-    route: "/asignacion-solicitudes",
-  },
-  {
-    role: "EQ_GESTION",
-    label: "4. Revisor de Gestión",
-    subtitle: "Anexos A/B/C y SOL-04 · Revisión de solicitudes por anexo",
-    route: "/solicitudes-pendientes",
-  },
-  {
-    role: "DIR_NORMATIVA",
-    label: "5. Director Normativa / DPI",
-    subtitle: "Anexo A y SOL-07 · Asignación de resoluciones e informes",
-    route: "/revision-normativa",
-  },
-  {
-    role: "EQ_NORMATIVA",
-    label: "6. Revisor Normativa / DPI",
-    subtitle: "Anexo A y SOL-07 · Resoluciones de incorporación e informes",
-    route: "/revision-normativa",
-  },
-  {
-    role: "APROBADOR",
-    label: "7. Máxima Autoridad",
-    subtitle: "Anexo A (INS-07) · Firma de resoluciones de incorporación",
-    route: "/firma-resoluciones",
-  },
-];
 
 export interface UserMenuProps {
   user?: {
@@ -90,30 +43,15 @@ export interface UserMenuProps {
   onLogout?: () => void;
 }
 
-export function UserMenu({ user: userProp, onRoleChange, onLogout }: UserMenuProps = {}) {
+export function UserMenu({ user: userProp, onLogout }: UserMenuProps = {}) {
   const router = useRouter();
   const pathname = usePathname();
   const isMobile = useIsMobile();
   const [open, setOpen] = useState(false);
 
-  // Read auth store for reactive session state
-  const { activeUser, setRole: setStoreRole, logout: authLogout } = useAuthStore();
-  const effectiveUser = userProp || activeUser || MOCK_USERS_BY_ROLE.COORDINADOR_SINARP;
-
-  const handleSelectBn07Role = (targetRole: UserRole, route: string) => {
-    setOpen(false);
-    try {
-      setStoreRole(targetRole);
-      if (typeof window !== "undefined") {
-        localStorage.setItem("dinarp_simulated_role_v2", targetRole);
-        window.dispatchEvent(new Event("role-changed"));
-      }
-    } catch {}
-    if (onRoleChange) {
-      onRoleChange(targetRole);
-    }
-    router.push(route);
-  };
+  // Read auth store for reactive session state — activeUser always takes priority so logged-in user is never overwritten
+  const { activeUser, logout: authLogout } = useAuthStore();
+  const effectiveUser = activeUser || userProp || MOCK_USERS_BY_ROLE.COORDINADOR_SINARP;
 
   const isWireframe2 = pathname.startsWith("/");
   const isWireframe = pathname.startsWith("/wireframes");
@@ -125,18 +63,19 @@ export function UserMenu({ user: userProp, onRoleChange, onLogout }: UserMenuPro
       ? effectiveUser.avatar
       : effectiveUser?.name
       ? effectiveUser.name
-      .split(" ")
-      .map((w: string) => w[0])
-      .slice(0, 2)
-      .join("")
-      .toUpperCase()
+          .split(" ")
+          .map((w: string) => w[0])
+          .slice(0, 2)
+          .join("")
+          .toUpperCase()
       : "AL");
 
   const institution = effectiveUser?.institution || "DINARP";
-  const roleName =
+  const rawRoleName =
     effectiveUser?.roleTitle ||
     (effectiveUser?.role && ROLES_CONFIG[effectiveUser.role as UserRole]?.name) ||
     (effectiveUser?.role ? effectiveUser.role.replace(/_/g, " ") : "Coordinador SINARP");
+  const roleName = rawRoleName.replace(/\s*[—-]\s*.*$/, "");
 
   const email = effectiveUser?.email || "coordinador@gmail.com";
   const cedula = effectiveUser?.cedula;
@@ -156,7 +95,7 @@ export function UserMenu({ user: userProp, onRoleChange, onLogout }: UserMenuPro
   const TriggerButton = (
     <button
       type="button"
-      className="group flex items-center gap-2 rounded-full outline-none pr-3 pl-1.5 py-1 hover:bg-muted/60 data-[state=open]:bg-muted/60 transition-all cursor-pointer border border-transparent hover:border-border/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+      className="group flex items-center gap-2 rounded-full outline-none pr-3 pl-1.5 py-1 hover:bg-muted/60 data-[state=open]:bg-muted/60 transition-all cursor-pointer border border-transparent hover:border-border/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none shrink-0"
       aria-label="Perfil y rol del usuario"
     >
       <Avatar className="size-8.5 cursor-pointer transition-all duration-200 border border-border group-hover:border-primary/40 group-hover:ring-2 group-hover:ring-primary/10 shrink-0">
@@ -165,14 +104,14 @@ export function UserMenu({ user: userProp, onRoleChange, onLogout }: UserMenuPro
         </AvatarFallback>
       </Avatar>
 
-      {/* Nombre y Rol destacados con jerarquía clara y visible */}
-      <div className="flex flex-col items-start leading-tight text-left min-w-0">
-        <span className="text-xs font-bold text-foreground truncate max-w-[110px] xs:max-w-[140px] sm:max-w-[180px] md:max-w-[210px] lg:max-w-[240px]">
+      {/* Nombre y Rol completos sin recortar */}
+      <div className="flex flex-col items-start leading-tight text-left">
+        <span className="text-xs font-bold text-foreground whitespace-nowrap">
           {name}
         </span>
-        <span className="text-[10px] sm:text-[11px] font-medium text-muted-foreground flex items-center gap-1.5 truncate max-w-[110px] xs:max-w-[140px] sm:max-w-[180px] md:max-w-[210px] lg:max-w-[240px]">
+        <span className="text-[10px] sm:text-[11px] font-medium text-muted-foreground flex items-center gap-1.5 whitespace-nowrap">
           <span className="size-1.5 rounded-full bg-primary shrink-0" />
-          <span className="truncate text-foreground/80 font-medium">{roleName}</span>
+          <span className="text-foreground/80 font-medium whitespace-nowrap">{roleName}</span>
         </span>
       </div>
 
@@ -195,7 +134,7 @@ export function UserMenu({ user: userProp, onRoleChange, onLogout }: UserMenuPro
           showCloseButton={false}
           className="rounded-t-[28px] p-0 border-border bg-background flex flex-col focus-visible:outline-none focus:outline-none"
         >
-          <SheetTitle className="sr-only">Menú de usuario y roles</SheetTitle>
+          <SheetTitle className="sr-only">Menú de usuario</SheetTitle>
 
           {/* Header Móvil */}
           <div className="flex items-center justify-between px-4 py-3.5 border-b border-border/60 shrink-0">
@@ -222,49 +161,35 @@ export function UserMenu({ user: userProp, onRoleChange, onLogout }: UserMenuPro
                   {initials}
                 </AvatarFallback>
               </Avatar>
-              <div className="flex flex-col min-w-0 relative z-10 space-y-1">
-                <span className="text-sm font-bold font-heading text-foreground truncate">
+              <div className="flex flex-col min-w-0 flex-1 relative z-10 space-y-1">
+                <span className="text-sm font-bold font-heading text-foreground break-words leading-snug">
                   {name}
                 </span>
                 <div>
-                  <Badge tone="primary" appearance="soft" size="sm" className="font-semibold text-[10px]">
+                  <Badge
+                    tone="primary"
+                    appearance="soft"
+                    size="sm"
+                    className="font-semibold text-[10px] whitespace-normal text-left h-auto py-0.5 leading-snug"
+                  >
                     {roleName}
                   </Badge>
                 </div>
-                <div className="text-[11px] text-muted-foreground flex items-center gap-1.5 pt-0.5">
-                  <Building2 className="size-3 shrink-0" />
-                  <span className="truncate">{institution}</span>
+                <div className="text-[11px] text-muted-foreground flex items-start gap-1.5 pt-0.5">
+                  <Building2 className="size-3 shrink-0 mt-0.5" />
+                  <span className="break-words leading-snug">{institution}</span>
                 </div>
                 {cedula && (
                   <div className="text-[10px] text-muted-foreground font-mono">
                     Cédula: <span className="text-foreground font-medium">{cedula}</span>
                   </div>
                 )}
-                <div className="text-[10px] text-muted-foreground/80 font-mono truncate">
-                  {email}
-                </div>
+                {email && (
+                  <div className="text-[10px] text-muted-foreground/80 font-mono break-all">
+                    {email}
+                  </div>
+                )}
               </div>
-            </div>
-
-            {/* Selector rápido de Roles BN-07 */}
-            <div className="space-y-1.5 pt-2 border-t border-border/60">
-              <span className="px-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                <ShieldCheck className="size-3.5 text-primary" />
-                Cambiar Rol (Flujo BN-07)
-              </span>
-              {BN07_ROLES.map((item) => {
-                const isCurrent = effectiveUser?.role === item.role;
-                return (
-                  <MobileMenuItem
-                    key={item.role}
-                    icon={UserCheck}
-                    label={item.label}
-                    isActive={isCurrent}
-                    badge={isCurrent ? "Activo" : undefined}
-                    onClick={() => handleSelectBn07Role(item.role, item.route)}
-                  />
-                );
-              })}
             </div>
 
             {/* Logout */}
@@ -292,7 +217,7 @@ export function UserMenu({ user: userProp, onRoleChange, onLogout }: UserMenuPro
         align="end"
         sideOffset={8}
         className={cn(
-          "w-[calc(100vw-1.5rem)] sm:w-[320px] max-w-[320px] rounded-2xl border border-border bg-card p-2 shadow-lg",
+          "w-[calc(100vw-1.5rem)] sm:w-auto sm:min-w-[300px] sm:max-w-[420px] rounded-2xl border border-border bg-card p-2 shadow-lg",
           "data-[state=open]:animate-in data-[state=closed]:animate-out",
           "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
           "data-[state=closed]:zoom-out-[0.98] data-[state=open]:zoom-in-[0.98]",
@@ -308,17 +233,22 @@ export function UserMenu({ user: userProp, onRoleChange, onLogout }: UserMenuPro
               </AvatarFallback>
             </Avatar>
             <div className="flex flex-col min-w-0 flex-1">
-              <span className="text-sm font-bold font-heading text-foreground truncate">
+              <span className="text-sm font-bold font-heading text-foreground break-words leading-snug">
                 {name}
               </span>
-              <div className="mt-0.5">
-                <Badge tone="primary" appearance="soft" size="sm" className="font-semibold text-[10px]">
+              <div className="mt-1">
+                <Badge
+                  tone="primary"
+                  appearance="soft"
+                  size="sm"
+                  className="font-semibold text-[10px] whitespace-normal text-left h-auto py-0.5 leading-snug"
+                >
                   {roleName}
                 </Badge>
               </div>
-              <div className="text-[11px] text-muted-foreground flex items-center gap-1.5 mt-1 truncate">
-                <Building2 className="size-3 shrink-0" />
-                <span className="truncate">{institution}</span>
+              <div className="text-[11px] text-muted-foreground flex items-start gap-1.5 mt-1.5">
+                <Building2 className="size-3 shrink-0 mt-0.5" />
+                <span className="break-words leading-snug">{institution}</span>
               </div>
               {cedula && (
                 <div className="text-[10px] text-muted-foreground font-mono mt-0.5">
@@ -326,35 +256,12 @@ export function UserMenu({ user: userProp, onRoleChange, onLogout }: UserMenuPro
                 </div>
               )}
               {email && (
-                <div className="text-[10px] text-muted-foreground/80 font-mono truncate mt-0.5">
+                <div className="text-[10px] text-muted-foreground/80 font-mono break-all mt-0.5">
                   {email}
                 </div>
               )}
             </div>
           </div>
-        </div>
-
-        <DropdownMenuSeparator className="my-1 bg-border/60" />
-
-        {/* Selector rápido de Roles BN-07 */}
-        <div className="flex flex-col gap-0.5 py-1">
-          <span className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-            <ShieldCheck className="size-3.5 text-primary" />
-            Cambiar Rol (Flujo BN-07)
-          </span>
-          {BN07_ROLES.map((item) => {
-            const isCurrent = effectiveUser?.role === item.role;
-            return (
-              <DesktopMenuItem
-                key={item.role}
-                icon={UserCheck}
-                label={item.label}
-                isActive={isCurrent}
-                badge={isCurrent ? "Activo" : undefined}
-                onClick={() => handleSelectBn07Role(item.role, item.route)}
-              />
-            );
-          })}
         </div>
 
         <DropdownMenuSeparator className="my-1 bg-border/60" />

@@ -29,6 +29,8 @@ import {
   Eye,
   EyeOff,
   Clock,
+  ShieldAlert,
+  Settings2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -42,7 +44,10 @@ import { toast } from "sonner";
 import { Search as SearchInput } from "@/components/ui/search";
 import { Stepper, Step } from "@/components/ui/stepper";
 import { WireframeDashboardLayout } from "@/components/layout/wireframes/wireframe-dashboard-layout";
-import { INITIAL_INSTITUCIONES } from "@/modules/catalogo-interoperabilidad/data/catalogo-data";
+import {
+  INITIAL_INSTITUCIONES,
+  applyCatalogoOverridesToInstituciones,
+} from "@/modules/catalogo-interoperabilidad/data/catalogo-data";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { WireframeTour, TourStep } from "@/components/layout/wireframes/wireframe-tour";
 import {
@@ -60,21 +65,117 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { useSolicitudesStore } from "@/modules/acceso-interoperabilidad/data/solicitudes-store";
+import {
+  useSolicitudesStore,
+  SolicitudAcceso,
+  FuenteDetalle,
+} from "@/modules/acceso-interoperabilidad/data/solicitudes-store";
 import { INITIAL_PROYECTOS } from "@/modules/proyectos/data/proyectos-store";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-button";
 import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "@/components/ui/table";
+import { InteractiveCard } from "@/components/ui/data-display";
+import {
+  ViewModeToggle,
+  type ViewMode,
+} from "@/components/shared/view-mode-toggle";
+import {
+  useConfiguracionAyudaBN07,
+  resolverAyudaParaCampo,
+} from "@/modules/acceso-interoperabilidad/data/ayuda-justificacion-store";
+import { AyudaPermanenteCampoBN07 } from "@/modules/acceso-interoperabilidad/components/ayuda-permanente-campo-bn07";
 
-export function AccesoSolicitudNuevaView() {
+export interface AccesoSolicitudNuevaViewProps {
+  initialSolicitudId?: string;
+  solicitud?: SolicitudAcceso;
+  isSubsanacion?: boolean;
+  initialStep?: number;
+  onCancel?: () => void;
+  onReenviar?: (comentario: string, nuevasFuentes: FuenteDetalle[]) => void;
+}
+
+export function AccesoSolicitudNuevaView({
+  initialSolicitudId,
+  solicitud: propSolicitud,
+  isSubsanacion = false,
+  initialStep,
+  onCancel,
+  onReenviar,
+}: AccesoSolicitudNuevaViewProps = {}) {
   const router = useRouter();
-  const { crearNuevaSolicitud } = useSolicitudesStore();
-  const [step, setStep] = useState(1);
+  const {
+    solicitudes,
+    getSolicitudById,
+    crearNuevaSolicitud,
+    subsanarYReenviar,
+    reenviarSolicitud,
+  } = useSolicitudesStore();
+  const { config: configAyudaBN07 } = useConfiguracionAyudaBN07();
+
+  const targetSolicitud = useMemo(() => {
+    if (propSolicitud) return propSolicitud;
+    if (initialSolicitudId) {
+      return (
+        solicitudes.find((s) => s.id === initialSolicitudId) ||
+        getSolicitudById(initialSolicitudId)
+      );
+    }
+    return undefined;
+  }, [propSolicitud, initialSolicitudId, solicitudes, getSolicitudById]);
+
+  const esModoSubsanacion =
+    isSubsanacion ||
+    Boolean(
+      targetSolicitud &&
+        (targetSolicitud.estado === "Observada" ||
+          targetSolicitud.estado === "Requiere corrección" ||
+          targetSolicitud.estado === "Rechazada" ||
+          targetSolicitud.estado === "Con observaciones")
+    );
+
+  const [step, setStep] = useState<number>(() => {
+    if (initialStep && initialStep >= 1 && initialStep <= 4) return initialStep;
+    return 1;
+  });
   const [isModalConfirmacionOpen, setIsModalConfirmacionOpen] = useState(false);
+  const [comentarioSubsanacion, setComentarioSubsanacion] = useState(
+    "Se subsanaron las observaciones del expediente conforme a los requerimientos de Gestión."
+  );
 
   // Step 1 State - Proyecto, Modalidad, Cupo y Documentos
-  const [selectedProyectoId, setSelectedProyectoId] = useState("PRJ-2026-001");
-  const [modalidadSolicitada, setModalidadSolicitada] = useState<"API individual" | "API masiva" | "Ambas">("API individual");
-  const [cupoSolicitado, setCupoSolicitado] = useState<number>(50000);
+  const [selectedProyectoId, setSelectedProyectoId] = useState<string>(() => {
+    return targetSolicitud?.proyectoId || "PRJ-2026-001";
+  });
+
+  const activeProyecto = useMemo(() => {
+    return (
+      INITIAL_PROYECTOS.find((p) => p.id === selectedProyectoId) ||
+      INITIAL_PROYECTOS[0]
+    );
+  }, [selectedProyectoId]);
+
+  const proyectoOptions = useMemo(() => {
+    return INITIAL_PROYECTOS.map((p) => ({
+      value: p.id,
+      label: `${p.id} - ${p.nombre}`,
+    }));
+  }, []);
+  const [modalidadSolicitada, setModalidadSolicitada] = useState<"API individual" | "API masiva" | "Ambas">(() => {
+    if (targetSolicitud?.modalidad) {
+      return targetSolicitud.modalidad as "API individual" | "API masiva" | "Ambas";
+    }
+    return "API individual";
+  });
+  const [cupoSolicitado, setCupoSolicitado] = useState<number>(() => {
+    return targetSolicitud?.cupo || 50000;
+  });
   const [documentosAdjuntos, setDocumentosAdjuntos] = useState<
     {
       id: string;
@@ -85,41 +186,107 @@ export function AccesoSolicitudNuevaView() {
       categoria: "Oficio Formal" | "Justificación Legal" | "Anexo Técnico" | "Certificado Digital";
       fecha?: string;
     }[]
-  >([
-    {
-      id: "doc-1",
-      nombre: "Oficio_Solicitud_Interoperabilidad_Firmado.pdf",
-      tipo: "PDF",
-      tamano: "1.8 MB",
-      fechaCarga: "2026-09-24",
-      categoria: "Oficio Formal",
-      fecha: "2026-09-24",
-    },
-  ]);
+  >(() => {
+    if (targetSolicitud?.documentos && targetSolicitud.documentos.length > 0) {
+      return targetSolicitud.documentos.map((d, idx) => ({
+        id: d.id || `doc-sub-${idx}`,
+        nombre: d.nombre,
+        tipo: (d.tipo as "PDF" | "ZIP" | "DOCX") || "PDF",
+        tamano: d.tamano || "1.8 MB",
+        fechaCarga: d.fechaCarga || "2026-09-24",
+        categoria: (d.categoria as any) || "Oficio Formal",
+        fecha: d.fechaCarga || "2026-09-24",
+      }));
+    }
+    return [
+      {
+        id: "doc-1",
+        nombre: "Oficio_Solicitud_Interoperabilidad_Firmado.pdf",
+        tipo: "PDF",
+        tamano: "1.8 MB",
+        fechaCarga: "2026-09-24",
+        categoria: "Oficio Formal",
+        fecha: "2026-09-24",
+      },
+    ];
+  });
   const [nuevoDocInput, setNuevoDocInput] = useState("");
 
-  const activeProyecto = useMemo(() => {
-    return INITIAL_PROYECTOS.find(p => p.id === selectedProyectoId) || INITIAL_PROYECTOS[0];
-  }, [selectedProyectoId]);
-
-  const proyectoOptions = useMemo(() => {
-    return INITIAL_PROYECTOS.map(p => ({
-      value: p.id,
-      label: `${p.id} - ${p.nombre}`
-    }));
-  }, []);
-
-  // Step 1 State - Filtros de Catálogo
+  // Step 2 State - Filtros y Vista de Catálogo (Tabla / Cards)
   const [searchTerm, setSearchTerm] = useState("");
   const [institucionFilter, setInstitucionFilter] = useState("ALL");
   const [clasificacionFilter, setClasificacionFilter] = useState("ALL");
+  const [viewMode, setViewMode] = useState<ViewMode>("table");
   const [expandedInstituciones, setExpandedInstituciones] = useState<Record<string, boolean>>({});
-  const [expandedFuentes, setExpandedFuentes] = useState<Record<string, boolean>>({});
-  const [selectedCampos, setSelectedCampos] = useState<Record<string, boolean>>({});
+  const [expandedFuentes, setExpandedFuentes] = useState<Record<string, boolean>>({
+    "FNT-001": true,
+  });
+  const [selectedCampos, setSelectedCampos] = useState<Record<string, boolean>>(() => {
+    if (targetSolicitud?.fuentes && targetSolicitud.fuentes.length > 0) {
+      const map: Record<string, boolean> = {};
+      targetSolicitud.fuentes.forEach((f) => {
+        f.campos?.forEach((c) => {
+          map[c.id] = true;
+        });
+      });
+      if (Object.keys(map).length > 0) return map;
+    }
+    return {};
+  });
 
-  // Step 2 State
-  const [justificaciones, setJustificaciones] = useState<Record<string, { finalidad: string; fundamento: string }>>({});
+  // Step 3 State
+  const [justificaciones, setJustificaciones] = useState<Record<string, { finalidad: string; fundamento: string }>>(() => {
+    if (targetSolicitud?.fuentes && targetSolicitud.fuentes.length > 0) {
+      const map: Record<string, { finalidad: string; fundamento: string }> = {};
+      targetSolicitud.fuentes.forEach((f) => {
+        f.campos?.forEach((c) => {
+          map[c.id] = {
+            finalidad: c.finalidad || c.finalidadUso || "",
+            fundamento: c.fundamento || c.justificacionConfidencial || "",
+          };
+        });
+      });
+      if (Object.keys(map).length > 0) return map;
+    }
+    return {};
+  });
   const [expandedCamposJustificacion, setExpandedCamposJustificacion] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    if (targetSolicitud) {
+      if (targetSolicitud.proyectoId) setSelectedProyectoId(targetSolicitud.proyectoId);
+      if (targetSolicitud.modalidad) setModalidadSolicitada(targetSolicitud.modalidad as any);
+      if (targetSolicitud.cupo) setCupoSolicitado(targetSolicitud.cupo);
+      if (targetSolicitud.documentos && targetSolicitud.documentos.length > 0) {
+        setDocumentosAdjuntos(
+          targetSolicitud.documentos.map((d, idx) => ({
+            id: d.id || `doc-sub-${idx}`,
+            nombre: d.nombre,
+            tipo: (d.tipo as "PDF" | "ZIP" | "DOCX") || "PDF",
+            tamano: d.tamano || "1.8 MB",
+            fechaCarga: d.fechaCarga || "2026-09-24",
+            categoria: (d.categoria as any) || "Oficio Formal",
+            fecha: d.fechaCarga || "2026-09-24",
+          }))
+        );
+      }
+      if (targetSolicitud.fuentes && targetSolicitud.fuentes.length > 0) {
+        const camposMap: Record<string, boolean> = {};
+        const justMap: Record<string, { finalidad: string; fundamento: string }> = {};
+        targetSolicitud.fuentes.forEach((f) => {
+          f.campos?.forEach((c) => {
+            camposMap[c.id] = true;
+            justMap[c.id] = {
+              finalidad: c.finalidad || c.finalidadUso || "",
+              fundamento: c.fundamento || c.justificacionConfidencial || "",
+            };
+          });
+        });
+        setSelectedCampos(camposMap);
+        setJustificaciones(justMap);
+      }
+    }
+  }, [targetSolicitud?.id]);
 
   const toggleInstitucion = (id: string) => setExpandedInstituciones(prev => ({ ...prev, [id]: !prev[id] }));
   const toggleFuente = (id: string) => setExpandedFuentes(prev => ({ ...prev, [id]: !prev[id] }));
@@ -140,12 +307,18 @@ export function AccesoSolicitudNuevaView() {
     setExpandedCamposJustificacion(next);
   };
 
+  const [catalogoInstituciones, setCatalogoInstituciones] = useState(INITIAL_INSTITUCIONES);
+
+  useEffect(() => {
+    setCatalogoInstituciones(applyCatalogoOverridesToInstituciones(INITIAL_INSTITUCIONES));
+  }, []);
+
   const institucionesPublicadas = useMemo(() => {
-    return INITIAL_INSTITUCIONES.map(inst => ({
+    return catalogoInstituciones.map(inst => ({
       ...inst,
       fuentes: inst.fuentes.filter(f => f.estado === "PUBLICADO")
     })).filter(inst => inst.fuentes.length > 0);
-  }, []);
+  }, [catalogoInstituciones]);
 
   const institucionOptions = useMemo(() => {
     return [
@@ -160,7 +333,8 @@ export function AccesoSolicitudNuevaView() {
   const clasificacionOptions = useMemo(() => [
     { value: "ALL", label: "Todas las clasificaciones" },
     { value: "Accesible", label: "Accesible" },
-    { value: "Confidencial", label: "Confidencial" }
+    { value: "Confidencial", label: "Confidencial (Todos)" },
+    { value: "Confidencial_Sensible", label: "↳ Confidencial sensible (tratamiento especial LOPDP)" },
   ], []);
 
   const filteredInstituciones = useMemo(() => {
@@ -175,7 +349,16 @@ export function AccesoSolicitudNuevaView() {
         const matchingFuentes = inst.fuentes
           .map(fuente => {
             const matchingCampos = fuente.campos.filter(campo => {
-              if (clasificacionFilter !== "ALL" && campo.clasificacion !== clasificacionFilter) {
+              if (clasificacionFilter === "Accesible" && campo.clasificacion !== "Accesible") {
+                return false;
+              }
+              if (clasificacionFilter === "Confidencial" && campo.clasificacion !== "Confidencial") {
+                return false;
+              }
+              if (
+                clasificacionFilter === "Confidencial_Sensible" &&
+                !(campo.clasificacion === "Confidencial" && campo.esSensible)
+              ) {
                 return false;
               }
               if (!searchTerm) return true;
@@ -207,6 +390,35 @@ export function AccesoSolicitudNuevaView() {
       .filter(inst => inst.fuentes.length > 0);
   }, [institucionesPublicadas, institucionFilter, clasificacionFilter, searchTerm]);
 
+  const flattenedFuentes = useMemo(() => {
+    const list: {
+      fuente: (typeof institucionesPublicadas)[0]["fuentes"][0];
+      institucion: (typeof institucionesPublicadas)[0];
+      camposAccesibles: number;
+      camposConfidenciales: number;
+      camposSensibles: number;
+    }[] = [];
+
+    filteredInstituciones.forEach((inst) => {
+      inst.fuentes.forEach((f) => {
+        const accesibles = f.campos.filter((c) => c.clasificacion === "Accesible").length;
+        const confidenciales = f.campos.filter((c) => c.clasificacion === "Confidencial").length;
+        const sensibles = f.campos.filter(
+          (c) => c.clasificacion === "Confidencial" && c.esSensible
+        ).length;
+        list.push({
+          fuente: f,
+          institucion: inst,
+          camposAccesibles: accesibles,
+          camposConfidenciales: confidenciales,
+          camposSensibles: sensibles,
+        });
+      });
+    });
+
+    return list;
+  }, [filteredInstituciones]);
+
   const [restrictionAlert, setRestrictionAlert] = useState<{
     fuenteActual: string;
     fuenteIntentada: string;
@@ -235,8 +447,10 @@ export function AccesoSolicitudNuevaView() {
   const activeFuente = useMemo(() => {
     if (selectedCamposDetails.length === 0) return null;
     return {
-      id: selectedCamposDetails[0].fuenteId,
+      id: selectedCamposDetails[0].servicioId,
+      instId: selectedCamposDetails[0].fuenteId,
       nombre: selectedCamposDetails[0].fuenteNombre,
+      servicioNombre: selectedCamposDetails[0].servicioNombre,
     };
   }, [selectedCamposDetails]);
 
@@ -265,12 +479,15 @@ export function AccesoSolicitudNuevaView() {
     fuenteNombre?: string
   ) => {
     if (isSelected && activeFuente && fuenteId && activeFuente.id !== fuenteId) {
+      const currentLabel = activeFuente.servicioNombre
+        ? `${activeFuente.servicioNombre} (${activeFuente.nombre})`
+        : activeFuente.nombre;
       setRestrictionAlert({
-        fuenteActual: activeFuente.nombre,
+        fuenteActual: currentLabel,
         fuenteIntentada: fuenteNombre || "otra fuente",
       });
       toast.warning("Para esta solicitud solo puedes seleccionar campos pertenecientes a una misma fuente.", {
-        description: `Fuente seleccionada: "${activeFuente.nombre}". No se permite combinar campos de múltiples fuentes en una sola solicitud.`,
+        description: `Fuente seleccionada: "${currentLabel}". No se permite combinar campos de múltiples fuentes en una sola solicitud.`,
         duration: 5000,
       });
       return;
@@ -289,9 +506,49 @@ export function AccesoSolicitudNuevaView() {
     });
   };
 
+  const handleToggleAllFuente = (
+    fuente: (typeof institucionesPublicadas)[0]["fuentes"][0],
+    institucion: (typeof institucionesPublicadas)[0],
+    selectAll: boolean
+  ) => {
+    const fuenteLabel = `${fuente.nombre} (${institucion.sigla || institucion.nombre})`;
+    if (selectAll && activeFuente && activeFuente.id !== fuente.id) {
+      const currentLabel = activeFuente.servicioNombre
+        ? `${activeFuente.servicioNombre} (${activeFuente.nombre})`
+        : activeFuente.nombre;
+      setRestrictionAlert({
+        fuenteActual: currentLabel,
+        fuenteIntentada: fuenteLabel,
+      });
+      toast.warning("Para esta solicitud solo puedes seleccionar campos pertenecientes a una misma fuente.", {
+        description: `Fuente seleccionada: "${currentLabel}". No se permite combinar campos de múltiples fuentes en una sola solicitud.`,
+        duration: 5000,
+      });
+      return;
+    }
+
+    if (selectAll && restrictionAlert) {
+      setRestrictionAlert(null);
+    }
+
+    setSelectedCampos((prev) => {
+      const next = { ...prev };
+      fuente.campos.forEach((c) => {
+        if (selectAll) {
+          next[c.id] = true;
+        } else {
+          delete next[c.id];
+        }
+      });
+      return next;
+    });
+  };
+
   const selectedCount = Object.values(selectedCampos).filter(Boolean).length;
 
-  const isStep2Valid = selectedCamposDetails.every(c => {
+  const isStep1Valid = Boolean(selectedProyectoId && modalidadSolicitada && cupoSolicitado >= 100 && documentosAdjuntos.length > 0);
+
+  const isStep3Valid = selectedCamposDetails.every(c => {
     const j = justificaciones[c.campo.id];
     if (!j) return false;
     if (!j.finalidad) return false;
@@ -299,7 +556,7 @@ export function AccesoSolicitudNuevaView() {
     return true;
   });
 
-  const nextStep = () => setStep(prev => (prev < 3 ? prev + 1 : prev));
+  const nextStep = () => setStep(prev => (prev < 4 ? prev + 1 : prev));
   const prevStep = () => setStep(prev => (prev > 1 ? prev - 1 : prev));
 
   const [tourOpen, setTourOpen] = useState(false);
@@ -317,42 +574,42 @@ export function AccesoSolicitudNuevaView() {
       id: "step1",
       target: "#stepper-container",
       title: "Progreso de solicitud",
-      description: "Esta solicitud se completa paso a paso. Puedes revisar tu progreso antes de enviarla."
+      description: "Esta solicitud se completa en 4 pasos: Proyecto y modalidad, Selección de información, Justificación de campos y Revisión."
     },
     {
       id: "step2",
-      target: "#datos-documentos",
-      title: "Filtros y búsqueda",
-      description: "Filtre por búsqueda general, institución proveedora o clasificación para encontrar campos rápidamente.",
+      target: "#proyecto-modalidad-step",
+      title: "Proyecto y modalidad (Paso 1)",
+      description: "Seleccione primero el proyecto institucional activo, la modalidad de consulta, el cupo mensual y adjunte la documentación de respaldo.",
       onBeforeStep: () => setStep(1)
     },
     {
       id: "step3",
       target: "#seleccion-info",
-      title: "Selección de información",
-      description: "Explore las instituciones fuente y seleccione los campos deseados.",
-      onBeforeStep: () => setStep(1)
+      title: "Selección de información (Paso 2)",
+      description: "Explore las instituciones fuente del catálogo y seleccione los campos deseados de una única fuente.",
+      onBeforeStep: () => setStep(2)
     },
     {
       id: "step4",
       target: "#justificacion-step",
-      title: "Justificación de campos",
+      title: "Justificación de campos (Paso 3)",
       description: "Cada campo seleccionado debe quedar asociado a una finalidad de uso. Los campos confidenciales requieren justificación jurídica.",
-      onBeforeStep: () => setStep(2)
+      onBeforeStep: () => setStep(3)
     },
     {
       id: "step5",
       target: "#resumen-step",
-      title: "Revisar y enviar",
-      description: "Antes de enviar, verifique el resumen de información de la solicitud.",
-      onBeforeStep: () => setStep(3)
+      title: "Revisar y enviar (Paso 4)",
+      description: "Antes de enviar, verifique el resumen completo de la solicitud.",
+      onBeforeStep: () => setStep(4)
     },
     {
       id: "step6",
       target: "#btn-enviar-solicitud",
       title: "Enviar solicitud",
-      description: "Al enviar, la solicitud pasa a validación y podrás consultar todo su avance desde Gestión de solicitudes.",
-      onBeforeStep: () => setStep(3)
+      description: "Al enviar, la solicitud pasa a la Dirección de Gestión DINARP para asignación y revisión.",
+      onBeforeStep: () => setStep(4)
     }
   ];
 
@@ -392,6 +649,8 @@ export function AccesoSolicitudNuevaView() {
                   clasificacion: (c.campo.clasificacion === "Confidencial"
                     ? "Confidencial"
                     : "Accesible") as "Accesible" | "Confidencial",
+                  esSensible: Boolean(c.campo.esSensible),
+                  etiquetaSensibilidad: c.campo.esSensible ? "Sensible" : undefined,
                   finalidad:
                     justificaciones[c.campo.id]?.finalidad ||
                     "Borrador pendiente de completar finalidad.",
@@ -421,20 +680,25 @@ export function AccesoSolicitudNuevaView() {
   };
 
   const stepperSteps: Step[] = [
-    { id: "1", title: "Seleccionar información", icon: Database },
-    { id: "2", title: "Justificar campos", icon: FileText },
-    { id: "3", title: "Revisar y enviar", icon: Send },
+    { id: "1", title: "Proyecto y modalidad", icon: Briefcase },
+    { id: "2", title: "Seleccionar información", icon: Database },
+    { id: "3", title: "Justificar campos", icon: FileText },
+    { id: "4", title: "Revisar y enviar", icon: Send },
   ];
 
   return (
     <TooltipProvider>
       <WireframeDashboardLayout
-        activeMenu="nueva-solicitud-interoperabilidad"
+        activeMenu="nueva-solicitud-acceso"
         currentRole="COORDINADOR_SINARP"
         breadcrumbs={[
           { label: "Inicio", href: "/" },
-          { label: "Acceso a Interoperabilidad", href: "/acceso-interoperabilidad/solicitudes" },
-          { label: "Nueva Solicitud" }
+          { label: "Solicitudes de acceso a fuentes", href: "/acceso-interoperabilidad/solicitudes" },
+          {
+            label: esModoSubsanacion
+              ? `Subsanación de solicitud ${targetSolicitud?.id || initialSolicitudId || ""}`
+              : "Nueva solicitud de acceso",
+          },
         ]}
       >
         <WireframeTour
@@ -448,814 +712,1961 @@ export function AccesoSolicitudNuevaView() {
         <main className="w-full pr-3 pl-2 pb-3 pt-1.5 flex-1 min-h-0 flex flex-col overflow-hidden">
           {/* Contenedor principal */}
           <Card
-            className="bg-surface rounded-2xl border border-border shadow-xs flex-1 min-h-0 overflow-hidden flex flex-col my-0"
-            innerClassName="p-4 sm:p-6 lg:p-8 flex flex-col gap-6 overflow-y-auto flex-1 min-h-0 w-full"
+            className="bg-surface rounded-2xl border border-border shadow-xs flex-1 min-h-0 overflow-hidden flex flex-col my-0 w-full"
+            innerClassName="p-4 sm:p-6 lg:p-8 flex flex-col items-stretch gap-6 overflow-y-auto flex-1 min-h-0 w-full"
           >
-            {/* Volver a gestión de solicitudes */}
-            <div>
-              <Link
-                href="/acceso-interoperabilidad/solicitudes"
-                className="inline-flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <ArrowLeft className="size-4" />
-                <span>Volver a gestión de solicitudes</span>
-              </Link>
-            </div>
-
-            {/* Cabecera */}
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">
-                Solicitar acceso
-              </h1>
-              <p className="text-sm text-muted-foreground mt-1">
-                Selecciona los campos requeridos de las fuentes del catálogo y registra la finalidad de uso y justificación jurídica para solicitar acceso a interoperabilidad.
+            {/* Cabecera Superior */}
+            <div className="flex flex-col gap-1 w-full">
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex items-center gap-2.5">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        asChild={!onCancel}
+                        variant="ghost"
+                        size="icon-sm"
+                        onClick={onCancel ? onCancel : undefined}
+                        className="shrink-0 text-muted-foreground hover:text-primary hover:bg-primary/10 cursor-pointer"
+                      >
+                        {onCancel ? (
+                          <span className="flex items-center justify-center">
+                            <ArrowLeft className="size-4" />
+                          </span>
+                        ) : (
+                          <Link
+                            href="/acceso-interoperabilidad/solicitudes"
+                            aria-label="Volver a Mis solicitudes de acceso"
+                          >
+                            <ArrowLeft className="size-4" />
+                          </Link>
+                        )}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">
+                      Volver a Mis solicitudes de acceso
+                    </TooltipContent>
+                  </Tooltip>
+                  <h1 className="font-heading font-extrabold text-2xl sm:text-3xl tracking-tight text-primary">
+                    {esModoSubsanacion
+                      ? `Subsanación de solicitud ${targetSolicitud?.id || initialSolicitudId || ""}`
+                      : "Nueva solicitud de acceso"}
+                  </h1>
+                </div>
+                {esModoSubsanacion && targetSolicitud && (
+                  <div className="flex items-center gap-2">
+                    <Badge tone="warning" appearance="soft" size="sm" className="font-semibold text-xs">
+                      Expediente v{targetSolicitud.versionExpediente || 1} → v{(targetSolicitud.versionExpediente || 1) + 1} (SOL-05)
+                    </Badge>
+                  </div>
+                )}
+              </div>
+              <p className="text-xs sm:text-sm text-muted-foreground w-full leading-relaxed">
+                {esModoSubsanacion
+                  ? "Revisa y ajusta los 4 pasos del expediente según las observaciones de la Dirección de Gestión para subsanar y reenviar la solicitud dentro del plazo reglamentario."
+                  : "Selecciona un proyecto institucional activo y una fuente publicada del catálogo, define los campos requeridos con su finalidad de uso y justificación jurídica para enviar tu solicitud."}
               </p>
             </div>
 
-            {/* Stepper del UI kit */}
-            <div id="stepper-container" className="pt-2 pb-4 border-b border-border">
-              <Stepper
-                steps={stepperSteps}
-                activeStep={step - 1}
-                onStepClick={(index) => setStep(index + 1)}
-                size="sm"
-              />
-            </div>
-
-            {/* PASO 1: SELECCIONAR INFORMACIÓN */}
-            {step === 1 && (
-              <div className="flex flex-col gap-4">
-                {/* Configuración de Proyecto, Modalidad, Cupo y Documentación (SOL-01) */}
-                <Card className="p-4 sm:p-5 bg-muted/15 border border-border rounded-xl space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-                    <div className="md:col-span-5 space-y-1.5">
-                      <label className="text-caption font-semibold text-foreground flex items-center gap-1.5">
-                        <Briefcase className="size-3.5 text-primary" />
-                        <span>Proyecto institucional activo (SOL-01)</span>
-                        <span className="text-danger">*</span>
-                      </label>
-                      <Combobox
-                        items={proyectoOptions}
-                        value={
-                          proyectoOptions.find(
-                            (p) => p.value === selectedProyectoId
-                          ) || proyectoOptions[0]
-                        }
-                        onValueChange={(val: any) => {
-                          if (val) {
-                            setSelectedProyectoId(
-                              typeof val === "string" ? val : val.value
-                            );
-                          }
-                        }}
-                      >
-                        <ComboboxSelectTrigger className="w-full h-10 justify-between text-caption bg-background rounded-xl border-border px-3.5 shadow-none" />
-                        <ComboboxContent align="start" className="w-96 max-w-[90vw]">
-                          <ComboboxList>
-                            {proyectoOptions.map((opt) => (
-                              <ComboboxItem
-                                key={opt.value}
-                                value={opt}
-                                className="text-caption"
-                              >
-                                {opt.label}
-                              </ComboboxItem>
-                            ))}
-                          </ComboboxList>
-                        </ComboboxContent>
-                      </Combobox>
-                    </div>
-
-                    <div className="md:col-span-4 space-y-1.5">
-                      <label className="text-caption font-semibold text-foreground block">
-                        Modalidad de consulta solicitada <span className="text-danger">*</span>
-                      </label>
-                      <Combobox
-                        items={[
-                          { value: "API individual", label: "API individual (Tiempo real)" },
-                          { value: "API masiva", label: "API masiva (Por lotes)" },
-                          { value: "Ambas", label: "Ambas (Individual y Masiva)" },
-                        ]}
-                        value={{
-                          value: modalidadSolicitada,
-                          label:
-                            modalidadSolicitada === "API individual"
-                              ? "API individual (Tiempo real)"
-                              : modalidadSolicitada === "API masiva"
-                              ? "API masiva (Por lotes)"
-                              : "Ambas (Individual y Masiva)",
-                        }}
-                        onValueChange={(val: any) => {
-                          if (val) {
-                            const next = typeof val === "string" ? val : val.value;
-                            setModalidadSolicitada(
-                              next as "API individual" | "API masiva" | "Ambas"
-                            );
-                          }
-                        }}
-                      >
-                        <ComboboxSelectTrigger className="w-full h-10 justify-between text-caption bg-background rounded-xl border-border px-3.5 shadow-none" />
-                        <ComboboxContent align="start" className="w-72">
-                          <ComboboxList>
-                            {[
-                              { value: "API individual", label: "API individual (Tiempo real)" },
-                              { value: "API masiva", label: "API masiva (Por lotes)" },
-                              { value: "Ambas", label: "Ambas (Individual y Masiva)" },
-                            ].map((opt) => (
-                              <ComboboxItem
-                                key={opt.value}
-                                value={opt}
-                                className="text-caption"
-                              >
-                                {opt.label}
-                              </ComboboxItem>
-                            ))}
-                          </ComboboxList>
-                        </ComboboxContent>
-                      </Combobox>
-                    </div>
-
-                    <div className="md:col-span-3 space-y-1.5">
-                      <label className="text-caption font-semibold text-foreground block">
-                        Cupo mensual solicitado (reg.) <span className="text-danger">*</span>
-                      </label>
-                      <Input
-                        type="number"
-                        min={100}
-                        value={cupoSolicitado}
-                        onChange={(e) =>
-                          setCupoSolicitado(Math.max(100, Number(e.target.value) || 0))
-                        }
-                        className="h-10 bg-background rounded-xl border-border text-caption font-mono"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Documentos de respaldo adjuntos */}
-                  <div className="pt-3 border-t border-border/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-caption font-semibold text-muted-foreground flex items-center gap-1.5">
-                        <Paperclip className="size-3.5 text-primary" />
-                        Documentación adjunta:
-                      </span>
-                      {documentosAdjuntos.map((doc) => (
-                        <Badge
-                          key={doc.id}
-                          tone="neutral"
-                          appearance="outline"
-                          size="sm"
-                          className="gap-1.5 bg-background text-caption"
-                        >
-                          <FileText className="size-3 text-primary" />
-                          <span>{doc.nombre}</span>
-                          <span className="text-muted-foreground">({doc.tamano})</span>
+            {/* Banner de Observaciones en modo Subsanación */}
+            {esModoSubsanacion && targetSolicitud && (
+              <div className="p-4 sm:p-5 rounded-2xl border border-warning/40 bg-warning/10 flex flex-col gap-3 w-full">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="size-5 text-warning shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="text-sm font-bold text-foreground">
+                          Observaciones de Gestión ({targetSolicitud.responsable || "Revisor"})
+                        </h3>
+                        <Badge tone="warning" appearance="soft" size="sm" className="font-semibold text-xs">
+                          Requiere subsanación (SOL-05)
                         </Badge>
-                      ))}
+                      </div>
+                      <p className="text-xs text-foreground/90 font-medium leading-relaxed bg-surface/80 p-3 rounded-xl border border-warning/30">
+                        {targetSolicitud.motivoRechazo ||
+                          targetSolicitud.observaciones ||
+                          "Se requiere ajustar la finalidad de uso o justificación jurídica en campos observados."}
+                      </p>
                     </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        const fechaHoy = new Date().toISOString().substring(0, 10);
-                        const nuevo = {
-                          id: `doc-${Date.now()}`,
-                          nombre: `Anexo_Soporte_Juridico_${documentosAdjuntos.length + 1}.pdf`,
-                          tipo: "PDF" as const,
-                          tamano: "1.2 MB",
-                          fechaCarga: fechaHoy,
-                          categoria: "Justificación Legal" as const,
-                          fecha: fechaHoy,
-                        };
-                        setDocumentosAdjuntos((prev) => [...prev, nuevo]);
-                        toast.info("Documento adjuntado al expediente", {
-                          description: nuevo.nombre,
-                        });
-                      }}
-                      className="h-8 text-caption gap-1.5 self-start sm:self-center"
-                    >
-                      <UploadCloud className="size-3.5" />
-                      <span>Adjuntar documento soporte</span>
-                    </Button>
                   </div>
-                </Card>
-
-                {/* 3 Filtros horizontales sin contenedor, separados por línea */}
-                <div className="pb-6 border-b border-border" id="datos-documentos">
-                  <div className="flex flex-col gap-3">
-                    <div className="grid grid-cols-1 sm:grid-cols-12 gap-3.5 sm:gap-4 items-end">
-                      <div className="sm:col-span-12 lg:col-span-5 space-y-1.5">
-                        <label className="text-xs font-medium text-muted-foreground whitespace-nowrap block">Búsqueda general</label>
-                        <SearchInput
-                          placeholder="Buscar por institución, fuente o campo..."
-                          value={searchTerm}
-                          onChange={e => setSearchTerm(e.target.value)}
-                          onClear={() => setSearchTerm("")}
-                          className="w-full h-10 bg-background rounded-full border-border/80"
-                        />
-                      </div>
-
-                      <div className="sm:col-span-6 lg:col-span-4 space-y-1.5">
-                        <label className="text-xs font-medium text-muted-foreground whitespace-nowrap block">Institución proveedora</label>
-                        <Combobox
-                          items={institucionOptions}
-                          value={institucionOptions.find(opt => opt.value === institucionFilter) || institucionOptions[0]}
-                          onValueChange={(val: any) => {
-                            if (val) {
-                              const selected = typeof val === "string" ? val : val.value;
-                              setInstitucionFilter(selected);
-                            }
-                          }}
-                        >
-                          <ComboboxSelectTrigger className="w-full h-10 justify-between text-xs sm:text-sm font-normal bg-background rounded-xl border-border/80 px-3.5 hover:bg-muted/40 shadow-none">
-                            <span className="truncate">
-                              {institucionOptions.find(opt => opt.value === institucionFilter)?.label || "Todas las instituciones"}
-                            </span>
-                          </ComboboxSelectTrigger>
-                          <ComboboxContent align="start" className="w-80 max-w-[90vw]">
-                            <ComboboxList>
-                              {institucionOptions.map((opt) => (
-                                <ComboboxItem key={opt.value} value={opt} className="text-xs">
-                                  {opt.label}
-                                </ComboboxItem>
-                              ))}
-                            </ComboboxList>
-                          </ComboboxContent>
-                        </Combobox>
-                      </div>
-
-                      <div className="sm:col-span-6 lg:col-span-3 space-y-1.5">
-                        <label className="text-xs font-medium text-muted-foreground whitespace-nowrap block">Clasificación del campo</label>
-                        <Combobox
-                          items={clasificacionOptions}
-                          value={clasificacionOptions.find(opt => opt.value === clasificacionFilter) || clasificacionOptions[0]}
-                          onValueChange={(val: any) => {
-                            if (val) {
-                              const selected = typeof val === "string" ? val : val.value;
-                              setClasificacionFilter(selected);
-                            }
-                          }}
-                        >
-                          <ComboboxSelectTrigger className="w-full h-10 justify-between text-xs sm:text-sm font-normal bg-background rounded-xl border-border/80 px-3.5 hover:bg-muted/40 shadow-none">
-                            <span className="truncate">
-                              {clasificacionOptions.find(opt => opt.value === clasificacionFilter)?.label || "Todas las clasificaciones"}
-                            </span>
-                          </ComboboxSelectTrigger>
-                          <ComboboxContent align="end" className="w-56">
-                            <ComboboxList>
-                              {clasificacionOptions.map((opt) => (
-                                <ComboboxItem key={opt.value} value={opt} className="text-xs">
-                                  {opt.label}
-                                </ComboboxItem>
-                              ))}
-                            </ComboboxList>
-                          </ComboboxContent>
-                        </Combobox>
-                      </div>
-                    </div>
-
-                    {/* Badges de Filtros Activos (UI Kit pattern igual a Consulta) */}
-                    {(searchTerm || institucionFilter !== "ALL" || clasificacionFilter !== "ALL") && (
-                      <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-border/60 w-full">
-                        <span className="text-[12px] font-semibold text-muted-foreground mr-1">Filtros activos:</span>
-
-                        {searchTerm && (
-                          <Badge
-                            tone="neutral"
-                            appearance="soft"
-                            className="pl-2.5 pr-1 py-0.5 rounded-full text-[11px] h-7 gap-1.5 font-medium bg-muted text-foreground border border-border"
-                          >
-                            <span>Búsqueda: <strong className="font-semibold text-foreground">&ldquo;{searchTerm}&rdquo;</strong></span>
-                            <Button
-                              variant="ghost"
-                              type="button"
-                              onClick={() => setSearchTerm("")}
-                              className="h-auto p-0.5 rounded-full hover:bg-foreground/10 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-                              aria-label="Eliminar filtro de búsqueda"
-                            >
-                              <X className="size-3" />
-                            </Button>
-                          </Badge>
-                        )}
-
-                        {institucionFilter !== "ALL" && (
-                          <Badge
-                            tone="neutral"
-                            appearance="soft"
-                            className="pl-2.5 pr-1 py-0.5 rounded-full text-[11px] h-7 gap-1.5 font-medium bg-muted text-foreground border border-border"
-                          >
-                            <span className="flex items-center gap-1">
-                              <Building2 className="size-3 text-muted-foreground" />
-                              Institución: <strong className="font-semibold text-foreground">{institucionOptions.find((i) => i.value === institucionFilter)?.label || institucionFilter}</strong>
-                            </span>
-                            <Button
-                              variant="ghost"
-                              type="button"
-                              onClick={() => setInstitucionFilter("ALL")}
-                              className="h-auto p-0.5 rounded-full hover:bg-foreground/10 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-                              aria-label="Eliminar filtro de institución"
-                            >
-                              <X className="size-3" />
-                            </Button>
-                          </Badge>
-                        )}
-
-                        {clasificacionFilter !== "ALL" && (
-                          <Badge
-                            tone="neutral"
-                            appearance="soft"
-                            className="pl-2.5 pr-1 py-0.5 rounded-full text-[11px] h-7 gap-1.5 font-medium bg-muted text-foreground border border-border"
-                          >
-                            <span className="flex items-center gap-1">
-                              {clasificacionFilter === "Accesible" ? <Check className="size-3 text-muted-foreground" /> : <Lock className="size-3 text-muted-foreground" />}
-                              Clasificación: <strong className="font-semibold text-foreground">{clasificacionFilter}</strong>
-                            </span>
-                            <Button
-                              variant="ghost"
-                              type="button"
-                              onClick={() => setClasificacionFilter("ALL")}
-                              className="h-auto p-0.5 rounded-full hover:bg-foreground/10 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-                              aria-label="Eliminar filtro de clasificación"
-                            >
-                              <X className="size-3" />
-                            </Button>
-                          </Badge>
-                        )}
-
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setSearchTerm("");
-                            setInstitucionFilter("ALL");
-                            setClasificacionFilter("ALL");
-                          }}
-                          className="text-xs text-muted-foreground hover:text-foreground h-7 px-2.5 ml-auto"
-                        >
-                          Limpiar filtros
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Alerta / Mensaje contextual de restricción de fuente única */}
-                {!restrictionAlert && (
-                  <Alert
-                    variant="info"
-                    icon={<Info className="size-4" />}
-                    className="py-3 px-4 border border-border/70 rounded-xl"
-                  >
-                    <div className="text-xs sm:text-sm text-foreground leading-relaxed">
-                      Para esta solicitud solo puedes seleccionar campos pertenecientes a una misma fuente.
-                      {activeFuente && (
-                        <span className="text-muted-foreground ml-1.5">
-                          (Fuente activa: <strong className="text-foreground font-semibold">&ldquo;{activeFuente.nombre}&rdquo;</strong>)
+                  {typeof targetSolicitud.diasRestantesSubsanacion === "number" && (
+                    <div className="shrink-0 flex flex-col items-end gap-1">
+                      <Badge tone="warning" appearance="outline" size="sm" className="font-mono text-xs">
+                        <Clock className="size-3 mr-1" />
+                        {targetSolicitud.diasRestantesSubsanacion} días restantes
+                      </Badge>
+                      {targetSolicitud.fechaLimiteSubsanacion && (
+                        <span className="text-[10px] text-muted-foreground font-mono">
+                          Límite: {targetSolicitud.fechaLimiteSubsanacion}
                         </span>
                       )}
                     </div>
-                  </Alert>
-                )}
-
-                {/* Alerta de restricción si se intenta seleccionar de otra fuente */}
-                {restrictionAlert && (
-                  <Alert
-                    variant="warning"
-                    icon={<AlertTriangle className="size-4" />}
-                    title="Para esta solicitud solo puedes seleccionar campos pertenecientes a una misma fuente."
-                    onClose={() => setRestrictionAlert(null)}
-                    className="animate-in fade-in-0 duration-200"
-                  >
-                    <div className="flex flex-col gap-2 pt-0.5">
-                      <p className="text-xs sm:text-sm leading-relaxed text-muted-foreground">
-                        Actualmente tu solicitud contiene campos de <strong className="font-semibold text-foreground">&ldquo;{restrictionAlert.fuenteActual}&rdquo;</strong>.
-                        Para consultar campos de <strong className="font-semibold text-foreground">&ldquo;{restrictionAlert.fuenteIntentada}&rdquo;</strong>, debes tramitarlos en una solicitud independiente o reiniciar tu selección.
-                      </p>
-                      <div className="flex items-center gap-3 pt-1">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedCampos({});
-                            setRestrictionAlert(null);
-                            toast.info("Selección reiniciada", {
-                              description: "Ahora puede seleccionar campos de cualquier otra fuente.",
-                            });
-                          }}
-                          className="text-xs h-7 px-2.5 gap-1.5 border-warning/40 hover:bg-warning/10"
-                        >
-                          <RotateCcw className="size-3" />
-                          <span>Cambiar de fuente (limpiar selección actual)</span>
-                        </Button>
-                      </div>
-                    </div>
-                  </Alert>
-                )}
-
-                {/* Listado de instituciones y fuentes */}
-                <div className="flex flex-col gap-4" id="seleccion-info">
-                  {filteredInstituciones.length === 0 ? (
-                    <div className="p-8 text-center text-sm text-muted-foreground border border-dashed border-border rounded-xl">
-                      No se encontraron campos o instituciones con los filtros aplicados.
-                    </div>
-                  ) : (
-                    filteredInstituciones.map(institucion => {
-                      const isInstExpanded = expandedInstituciones[institucion.id] ?? true;
-                      const isCurrentActiveFuente = activeFuente?.id === institucion.id;
-                      const isDifferentFromActive = activeFuente && !isCurrentActiveFuente;
-                      const selectedInInst = selectedCamposDetails.filter(d => d.fuenteId === institucion.id).length;
-
-                      return (
-                        <div key={institucion.id} className="border border-border rounded-2xl bg-card overflow-hidden shadow-xs w-full">
-                          <div
-                            onClick={() => toggleInstitucion(institucion.id)}
-                            role="button"
-                            tabIndex={0}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter" || e.key === " ") {
-                                e.preventDefault();
-                                toggleInstitucion(institucion.id);
-                              }
-                            }}
-                            className="bg-primary/5 hover:bg-primary/10 transition-colors cursor-pointer border-b border-border p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 select-none w-full"
-                          >
-                            <div className="flex items-center gap-3.5 min-w-0 flex-1">
-                              <div className="size-11 rounded-xl bg-primary/15 text-primary flex items-center justify-center shrink-0 shadow-2xs">
-                                <Building2 className="size-5 text-primary" />
-                              </div>
-                              <div className="min-w-0 flex-1">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  <h2 className="font-heading text-base sm:text-lg font-bold text-primary leading-snug">
-                                    {institucion.nombre}
-                                  </h2>
-                                  {institucion.sigla && (
-                                    <Badge
-                                      tone="primary"
-                                      appearance="solid"
-                                      size="sm"
-                                      className="font-bold text-[10px] tracking-wider !text-white rounded-full px-2.5 py-0.5 shadow-2xs"
-                                    >
-                                      {institucion.sigla}
-                                    </Badge>
-                                  )}
-                                  {isCurrentActiveFuente && (
-                                    <Badge tone="primary" appearance="soft" size="sm" className="gap-1 font-semibold">
-                                      <Check className="size-3" /> Fuente en uso ({selectedInInst})
-                                    </Badge>
-                                  )}
-                                  {isDifferentFromActive && (
-                                    <Badge tone="neutral" appearance="soft" size="sm" className="gap-1 text-muted-foreground border-dashed">
-                                      <Lock className="size-3 text-muted-foreground" /> Solicitud independiente requerida
-                                    </Badge>
-                                  )}
-                                </div>
-                                <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5 flex-wrap">
-                                  {institucion.sector && <span>{institucion.sector}</span>}
-                                  {institucion.codigoInstitucion && (
-                                    <>
-                                      <span className="text-muted-foreground/40">•</span>
-                                      <span className="font-mono text-[11px]">RUC: {institucion.codigoInstitucion}</span>
-                                    </>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-
-                            <div className="flex items-center gap-3 shrink-0 self-end sm:self-center">
-                              <Badge tone="primary" appearance="soft" size="sm" className="font-semibold px-2.5 py-0.5">
-                                {institucion.fuentes.length} {institucion.fuentes.length === 1 ? "fuente disponible" : "fuentes disponibles"}
-                              </Badge>
-                              <div className="size-8 rounded-lg bg-surface/80 border border-border/60 flex items-center justify-center text-muted-foreground hover:text-foreground">
-                                {isInstExpanded ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
-                              </div>
-                            </div>
-                          </div>
-
-                          {isInstExpanded && (
-                            <div className="p-4 sm:p-6 flex flex-col gap-6 bg-card w-full">
-                              {institucion.fuentes.map(servicio => {
-                                const isServicioExpanded = expandedFuentes[servicio.id] ?? false;
-                                const selectedInServicio = selectedCamposDetails.filter(d => d.servicioId === servicio.id).length;
-                                const camposAccesibles = servicio.campos.filter((c) => c.clasificacion === "Accesible").length;
-                                const camposConfidenciales = servicio.campos.filter((c) => c.clasificacion === "Confidencial").length;
-
-                                return (
-                                  <div
-                                    key={servicio.id}
-                                    className={cn(
-                                      "border rounded-xl bg-surface overflow-hidden shadow-2xs transition-all hover:border-primary/40 w-full",
-                                      selectedInServicio > 0
-                                        ? "border-primary/50"
-                                        : isDifferentFromActive
-                                        ? "border-border/60 opacity-80"
-                                        : "border-border"
-                                    )}
-                                  >
-                                    {/* Encabezado de la Fuente (Estilo Catálogo de Interoperabilidad) */}
-                                    <div
-                                      className={cn(
-                                        "p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 bg-muted/10 w-full",
-                                        isServicioExpanded && "border-b border-border"
-                                      )}
-                                    >
-                                      <div className="flex flex-col gap-1.5 flex-1 min-w-0">
-                                        <div className="flex items-center gap-2.5 flex-wrap">
-                                          <Badge tone="neutral" appearance="outline" size="sm" className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                                            Fuente
-                                          </Badge>
-                                          <h3 className="font-heading text-base font-bold text-foreground">
-                                            {servicio.nombre}
-                                          </h3>
-                                          {servicio.codigoServicio && (
-                                            <span className="text-xs text-muted-foreground font-mono bg-muted/60 px-2 py-0.5 rounded">
-                                              {servicio.codigoServicio}
-                                            </span>
-                                          )}
-                                          {selectedInServicio > 0 && (
-                                            <Badge tone="primary" appearance="soft" size="sm" className="gap-1 font-semibold">
-                                              <Check className="size-3" /> {selectedInServicio} CAMPO(S) SELECCIONADO(S)
-                                            </Badge>
-                                          )}
-                                        </div>
-
-                                        <p className="text-xs text-muted-foreground leading-relaxed">
-                                          {servicio.descripcion}
-                                        </p>
-
-                                        {(servicio.baseLegal || servicio.ultimaActualizacion) && (
-                                          <div className="text-[11px] text-muted-foreground flex items-center gap-3 pt-0.5 flex-wrap">
-                                            {servicio.baseLegal && (
-                                              <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                  <span className="flex items-center gap-1 cursor-help hover:text-foreground">
-                                                    <Scale className="size-3 text-primary" />
-                                                    <span>Base Legal: {servicio.baseLegal}</span>
-                                                  </span>
-                                                </TooltipTrigger>
-                                                <TooltipContent side="top" className="text-xs max-w-sm">
-                                                  Marco legal que ampara el intercambio de información
-                                                </TooltipContent>
-                                              </Tooltip>
-                                            )}
-                                            {servicio.baseLegal && servicio.ultimaActualizacion && <span>•</span>}
-                                            {servicio.ultimaActualizacion && (
-                                              <span className="flex items-center gap-1">
-                                                <Clock className="size-3 text-muted-foreground" />
-                                                <span>Actualizado: {servicio.ultimaActualizacion}</span>
-                                              </span>
-                                            )}
-                                          </div>
-                                        )}
-                                      </div>
-
-                                      <div className="flex items-center gap-3 shrink-0 flex-wrap sm:flex-nowrap">
-                                        {/* Badges con Colores Unificados: Verde (Success) para Accesibles y Ámbar (Warning) para Confidenciales */}
-                                        <div className="flex items-center gap-2.5 bg-muted/30 px-3 py-1.5 rounded-lg border border-border/50 text-xs">
-                                          <Tooltip>
-                                            <TooltipTrigger asChild>
-                                              <span
-                                                tabIndex={0}
-                                                aria-label={`${camposAccesibles} accesibles: Requieren únicamente finalidad de uso`}
-                                                className="cursor-help inline-flex items-center gap-1 rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none group/acc"
-                                              >
-                                                <Badge tone="success" appearance="soft" size="sm" className="gap-1 inline-flex font-semibold">
-                                                  <Unlock className="size-3" />
-                                                  <span>{camposAccesibles} ACCESIBLES</span>
-                                                </Badge>
-                                                <Info className="size-3.5 text-muted-foreground group-hover/acc:text-success transition-colors shrink-0" />
-                                              </span>
-                                            </TooltipTrigger>
-                                            <TooltipContent side="top" className="text-xs">
-                                              Requieren únicamente finalidad de uso
-                                            </TooltipContent>
-                                          </Tooltip>
-
-                                          <span className="text-muted-foreground/40">•</span>
-
-                                          <Tooltip>
-                                            <TooltipTrigger asChild>
-                                              <span
-                                                tabIndex={0}
-                                                aria-label={`${camposConfidenciales} confidenciales: Requieren finalidad de uso y justificación jurídica`}
-                                                className="cursor-help inline-flex items-center gap-1 rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none group/conf"
-                                              >
-                                                <Badge tone="warning" appearance="soft" size="sm" className="gap-1 inline-flex font-semibold">
-                                                  <Lock className="size-3" />
-                                                  <span>{camposConfidenciales} CONFIDENCIALES</span>
-                                                </Badge>
-                                                <Info className="size-3.5 text-muted-foreground group-hover/conf:text-warning transition-colors shrink-0" />
-                                              </span>
-                                            </TooltipTrigger>
-                                            <TooltipContent side="top" className="text-xs">
-                                              Requieren finalidad de uso y justificación jurídica
-                                            </TooltipContent>
-                                          </Tooltip>
-                                        </div>
-
-                                        {/* Botón Solo Icono para Ver/Ocultar Datos con Tooltip (igual a Catálogo) */}
-                                        <Tooltip>
-                                          <TooltipTrigger asChild>
-                                            <Button
-                                              variant="outline"
-                                              size="icon"
-                                              onClick={() => toggleFuente(servicio.id)}
-                                              className="size-9 rounded-lg border-border hover:bg-muted text-muted-foreground hover:text-foreground shrink-0 transition-colors"
-                                              aria-label={isServicioExpanded ? "Ocultar campos" : "Ver campos"}
-                                            >
-                                              {isServicioExpanded ? (
-                                                <EyeOff className="size-4" />
-                                              ) : (
-                                                <Eye className="size-4 text-primary" />
-                                              )}
-                                            </Button>
-                                          </TooltipTrigger>
-                                          <TooltipContent side="top" className="text-xs">
-                                            {isServicioExpanded ? "Ocultar campos" : "Ver campos disponibles"}
-                                          </TooltipContent>
-                                        </Tooltip>
-                                      </div>
-                                    </div>
-
-                                    {isServicioExpanded && (
-                                      <div className="p-4 sm:p-5 grid grid-cols-1 md:grid-cols-2 gap-3 bg-card">
-                                        {servicio.campos.map(campo => {
-                                          const isSelected = !!selectedCampos[campo.id];
-                                          const isBlocked = isDifferentFromActive;
-                                          const esAccesible = campo.clasificacion === "Accesible";
-
-                                          return (
-                                            <div
-                                              key={campo.id}
-                                              onClick={() => {
-                                                handleSelectCampo(campo.id, !isSelected, institucion.id, institucion.nombre);
-                                              }}
-                                              className={cn(
-                                                "flex items-start gap-3 p-3.5 border rounded-xl cursor-pointer transition-colors",
-                                                isSelected
-                                                  ? "bg-primary/5 border-primary/40 shadow-2xs"
-                                                  : isBlocked
-                                                  ? "bg-muted/10 border-border/40 opacity-70 hover:border-warning/50 hover:bg-warning/5"
-                                                  : "bg-surface hover:bg-muted/30 border-border/70"
-                                              )}
-                                            >
-                                              <div className="pt-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
-                                                <Checkbox
-                                                  checked={isSelected}
-                                                  variant="primary"
-                                                  size="md"
-                                                  onCheckedChange={(checked) => {
-                                                    handleSelectCampo(campo.id, !!checked, institucion.id, institucion.nombre);
-                                                  }}
-                                                />
-                                              </div>
-                                              <div className="flex-1 min-w-0">
-                                                <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                                  <span className="font-mono font-semibold text-xs sm:text-sm text-foreground">{campo.nombre}</span>
-                                                  {esAccesible ? (
-                                                    <Tooltip>
-                                                      <TooltipTrigger asChild>
-                                                        <span
-                                                          tabIndex={0}
-                                                          aria-label="Accesible: Requiere solo finalidad de uso"
-                                                          onClick={(e) => {
-                                                            e.preventDefault();
-                                                            e.stopPropagation();
-                                                          }}
-                                                          className="inline-flex items-center gap-1.5 cursor-help rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none group/req"
-                                                        >
-                                                          <Badge tone="success" appearance="soft" size="sm" className="gap-1 inline-flex font-semibold">
-                                                            <Unlock className="size-3" />
-                                                            ACCESIBLE
-                                                          </Badge>
-                                                          <Info className="size-3.5 text-muted-foreground group-hover/req:text-success transition-colors shrink-0" />
-                                                        </span>
-                                                      </TooltipTrigger>
-                                                      <TooltipContent side="top" className="text-xs">
-                                                        Requiere: Solo finalidad de uso
-                                                      </TooltipContent>
-                                                    </Tooltip>
-                                                  ) : (
-                                                    <Tooltip>
-                                                      <TooltipTrigger asChild>
-                                                        <span
-                                                          tabIndex={0}
-                                                          aria-label="Confidencial: Requiere finalidad y justificación jurídica"
-                                                          onClick={(e) => {
-                                                            e.preventDefault();
-                                                            e.stopPropagation();
-                                                          }}
-                                                          className="inline-flex items-center gap-1.5 cursor-help rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none group/req"
-                                                        >
-                                                          <Badge tone="warning" appearance="soft" size="sm" className="gap-1 inline-flex font-semibold">
-                                                            <Lock className="size-3" />
-                                                            CONFIDENCIAL
-                                                          </Badge>
-                                                          <Info className="size-3.5 text-muted-foreground group-hover/req:text-warning transition-colors shrink-0" />
-                                                        </span>
-                                                      </TooltipTrigger>
-                                                      <TooltipContent side="top" className="text-xs">
-                                                        Requiere: Finalidad de uso y justificación jurídica
-                                                      </TooltipContent>
-                                                    </Tooltip>
-                                                  )}
-                                                </div>
-                                                <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{campo.descripcion}</p>
-                                              </div>
-                                            </div>
-                                          );
-                                        })}
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })
                   )}
                 </div>
-
-                {/* Barra inferior flotante */}
-                <div
-                  data-theme="dark"
-                  className="sticky bottom-4 bg-surface text-foreground border border-border p-4 flex items-center justify-between gap-4 rounded-xl shadow-lg mt-4 z-10"
-                >
-                  <div className="flex items-center gap-3 flex-wrap">
-                    <span className="font-bold text-foreground text-sm">
-                      Campos seleccionados: {selectedCount}
-                    </span>
-                    {selectedCount > 0 && (
-                      <span className="text-xs text-muted-foreground hidden lg:inline">
-                        ({selectedCamposDetails.filter(c => c.campo.clasificacion === "Accesible").length} accesibles [solo finalidad] · {selectedCamposDetails.filter(c => c.campo.clasificacion === "Confidencial").length} confidenciales [finalidad + justificación jurídica])
-                      </span>
-                    )}
-                    {activeFuente && (
-                      <Badge tone="neutral" appearance="soft" size="sm" className="hidden sm:inline-flex text-xs gap-1.5 bg-muted text-foreground border border-border">
-                        <Database className="size-3 text-muted-foreground" />
-                        <span>Fuente: {activeFuente.nombre}</span>
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleGuardarBorrador}
-                      className="gap-1.5"
-                    >
-                      <FileText className="size-3.5" />
-                      <span>Guardar como borrador</span>
-                    </Button>
-                    <Button onClick={nextStep} disabled={selectedCount === 0} size="sm" className="shrink-0">
-                      Continuar con la justificación
-                    </Button>
-                  </div>
-                </div>
+                {targetSolicitud.observacionesEstructuradas &&
+                  targetSolicitud.observacionesEstructuradas.length > 0 && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-warning/20">
+                      {targetSolicitud.observacionesEstructuradas.map((obs, idx) => (
+                        <div
+                          key={idx}
+                          className="p-2.5 rounded-lg bg-surface/60 border border-warning/20 text-xs space-y-0.5"
+                        >
+                          <span className="font-semibold text-warning block">{obs.tipo}</span>
+                          <p className="text-muted-foreground text-[11px]">{obs.descripcion}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
               </div>
             )}
 
-            {/* PASO 2: JUSTIFICAR CAMPOS (SENCILLO Y APROVECHANDO EL ESPACIO) */}
-            {step === 2 && (
-              <div className="flex flex-col gap-6" id="justificacion-step">
-                {selectedCamposDetails.length === 0 ? (
-                  <div className="p-8 text-center text-sm text-muted-foreground border border-dashed border-border rounded-xl">
-                    No hay campos seleccionados. Vuelva al paso anterior para seleccionar campos.
+            {/* Contenedor Unificado del Proceso (Stepper + Contenido del Paso + Footer en un solo contenedor sin cortes) */}
+            <div className="w-full rounded-2xl border border-border/80 bg-surface shadow-xs flex flex-col">
+              {/* Stepper Oficial Integrado en Cabecera del Contenedor */}
+              <div id="stepper-container" className="p-4 sm:p-6 bg-muted/15 border-b border-border/80 w-full overflow-x-auto">
+                <Stepper
+                  steps={stepperSteps}
+                  activeStep={step - 1}
+                  variant="default"
+                  stepPrefix="PASO"
+                  showBadge={true}
+                  onStepClick={(index) => setStep(index + 1)}
+                />
+              </div>
+
+              {/* PASO 1: PROYECTO Y MODALIDAD */}
+              {step === 1 && (
+                <div className="flex flex-col w-full animate-in fade-in duration-200" id="proyecto-modalidad-step">
+                  {/* Cabecera Sección I al ras */}
+                  <div className="bg-primary/5 dark:bg-primary-950/20 border-b border-border p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 w-full">
+                    <div className="flex items-start sm:items-center gap-3">
+                      <div className="size-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                        <Briefcase className="size-4.5" />
+                      </div>
+                      <div>
+                        <h2 className="text-base font-bold font-heading text-primary dark:text-primary-300">
+                          Sección I — Proyecto Institucional, Modalidad y Documentación Habilitante
+                        </h2>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Seleccione el proyecto activo al que se vinculará la solicitud (SOL-01), la modalidad técnica de consumo y adjunte el respaldo legal (SOL-02).
+                        </p>
+                      </div>
+                    </div>
+                    <Badge tone="primary" appearance="solid" size="sm" className="font-bold uppercase tracking-wider shrink-0 self-start sm:self-auto !text-white shadow-xs rounded-full px-3 py-1">
+                      PASO 1 DE 4
+                    </Badge>
                   </div>
-                ) : (
-                  <div className="border border-border rounded-xl bg-card overflow-hidden shadow-xs">
-                    {/* Nivel 1: Institución / Fuente */}
-                    <div className="p-4 sm:p-5 bg-muted/20 flex items-center justify-between border-b border-border">
-                      <div className="flex items-center gap-3.5 min-w-0">
-                        <div className="size-9 rounded-lg bg-surface border border-border flex items-center justify-center shrink-0 shadow-2xs">
-                          <Building2 className="size-4.5 text-foreground" />
-                        </div>
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <h2 className="font-heading text-base font-bold text-foreground">
-                              {activeFuente ? activeFuente.nombre : (selectedCamposDetails[0]?.fuenteNombre || "Dirección General de Registro Civil, Identificación y Cedulación")}
-                            </h2>
-                            <Badge tone="neutral" appearance="soft" size="sm" className="gap-1 border-primary/30 text-primary bg-primary/10 text-[10px]">
-                              <Check className="size-2.5" /> Fuente en uso
-                            </Badge>
+
+                  {/* Cuerpo del Paso 1 aprovechando laterales (2 columnas en desktop) */}
+                  <div className="p-5 sm:p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-12 gap-6 w-full items-start">
+                    {/* Columna Izquierda (7 cols): Selección de Proyecto, Modalidad, Cupo y Documentación */}
+                    <div className="lg:col-span-7 flex flex-col gap-6 w-full">
+                      {/* Sub-sección 1.1 */}
+                      <div className="space-y-4 w-full">
+                        <div className="bg-primary/5 dark:bg-primary-950/20 p-3.5 flex items-start sm:items-center justify-between gap-3 rounded-xl">
+                          <div className="flex items-start gap-2.5 min-w-0">
+                            <Briefcase className="size-4 text-primary dark:text-primary-300 shrink-0 mt-0.5" />
+                            <div className="min-w-0">
+                              <h3 className="text-sm font-bold font-heading text-primary dark:text-primary-300 leading-snug">
+                                1.1 Vinculación de Proyecto y Modalidad Técnica
+                              </h3>
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                Asocie el proyecto institucional autorizado y defina la capacidad operativa requerida.
+                              </p>
+                            </div>
                           </div>
-                          <div className="flex items-center flex-wrap gap-2 mt-1">
-                            <span className="text-xs text-muted-foreground">
-                              {selectedCamposDetails.length} {selectedCamposDetails.length === 1 ? "campo seleccionado para justificar" : "campos seleccionados para justificar"}
-                            </span>
+                          <Badge tone="primary" appearance="soft" size="sm" className="shrink-0">
+                            SOL-01
+                          </Badge>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-12 gap-4">
+                          <div className="sm:col-span-12 space-y-1.5">
+                            <label className="text-caption font-semibold text-foreground flex items-center gap-1.5">
+                              <span>Proyecto institucional activo</span>
+                              <span className="text-danger">*</span>
+                            </label>
+                            <Combobox
+                              items={proyectoOptions}
+                              value={
+                                proyectoOptions.find(
+                                  (p) => p.value === selectedProyectoId
+                                ) || proyectoOptions[0]
+                              }
+                              onValueChange={(val: any) => {
+                                if (val) {
+                                  setSelectedProyectoId(
+                                    typeof val === "string" ? val : val.value
+                                  );
+                                }
+                              }}
+                            >
+                              <ComboboxSelectTrigger className="w-full h-10 justify-between text-caption bg-background rounded-xl border-border px-3.5 shadow-none">
+                                <span className="truncate">
+                                  {(proyectoOptions.find((p) => p.value === selectedProyectoId) || proyectoOptions[0])?.label}
+                                </span>
+                              </ComboboxSelectTrigger>
+                              <ComboboxContent align="start" className="w-[460px] max-w-[90vw]">
+                                <ComboboxList>
+                                  {proyectoOptions.map((opt) => (
+                                    <ComboboxItem
+                                      key={opt.value}
+                                      value={opt}
+                                      className="text-caption"
+                                    >
+                                      {opt.label}
+                                    </ComboboxItem>
+                                  ))}
+                                </ComboboxList>
+                              </ComboboxContent>
+                            </Combobox>
+                          </div>
+
+                          <div className="sm:col-span-7 space-y-1.5">
+                            <label className="text-caption font-semibold text-foreground block">
+                              Modalidad de consulta solicitada <span className="text-danger">*</span>
+                            </label>
+                            <Combobox
+                              items={[
+                                { value: "API individual", label: "API individual (Tiempo real)" },
+                                { value: "API masiva", label: "API masiva (Por lotes)" },
+                                { value: "Ambas", label: "Ambas (Individual y Masiva)" },
+                              ]}
+                              value={{
+                                value: modalidadSolicitada,
+                                label:
+                                  modalidadSolicitada === "API individual"
+                                    ? "API individual (Tiempo real)"
+                                    : modalidadSolicitada === "API masiva"
+                                    ? "API masiva (Por lotes)"
+                                    : "Ambas (Individual y Masiva)",
+                              }}
+                              onValueChange={(val: any) => {
+                                if (val) {
+                                  const next = typeof val === "string" ? val : val.value;
+                                  setModalidadSolicitada(
+                                    next as "API individual" | "API masiva" | "Ambas"
+                                  );
+                                }
+                              }}
+                            >
+                              <ComboboxSelectTrigger className="w-full h-10 justify-between text-caption bg-background rounded-xl border-border px-3.5 shadow-none">
+                                <span className="truncate">
+                                  {modalidadSolicitada === "API individual"
+                                    ? "API individual (Tiempo real)"
+                                    : modalidadSolicitada === "API masiva"
+                                    ? "API masiva (Por lotes)"
+                                    : "Ambas (Individual y Masiva)"}
+                                </span>
+                              </ComboboxSelectTrigger>
+                              <ComboboxContent align="start" className="w-72">
+                                <ComboboxList>
+                                  {[
+                                    { value: "API individual", label: "API individual (Tiempo real)" },
+                                    { value: "API masiva", label: "API masiva (Por lotes)" },
+                                    { value: "Ambas", label: "Ambas (Individual y Masiva)" },
+                                  ].map((opt) => (
+                                    <ComboboxItem
+                                      key={opt.value}
+                                      value={opt}
+                                      className="text-caption"
+                                    >
+                                      {opt.label}
+                                    </ComboboxItem>
+                                  ))}
+                                </ComboboxList>
+                              </ComboboxContent>
+                            </Combobox>
+                          </div>
+
+                          <div className="sm:col-span-5 space-y-1.5">
+                            <label className="text-caption font-semibold text-foreground block">
+                              Cupo mensual (reg.) <span className="text-danger">*</span>
+                            </label>
+                            <Input
+                              type="number"
+                              min={100}
+                              value={cupoSolicitado}
+                              onChange={(e) =>
+                                setCupoSolicitado(Math.max(100, Number(e.target.value) || 0))
+                              }
+                              className="h-10 bg-background rounded-xl border-border text-caption font-mono"
+                            />
                           </div>
                         </div>
                       </div>
 
+                      {/* Sub-sección 1.2: Documentación habilitante */}
+                      <div className="space-y-4 w-full">
+                        <div className="bg-primary/5 dark:bg-primary-950/20 p-3.5 flex items-start sm:items-center justify-between gap-3 rounded-xl">
+                          <div className="flex items-start gap-2.5 min-w-0">
+                            <Paperclip className="size-4 text-primary dark:text-primary-300 shrink-0 mt-0.5" />
+                            <div className="min-w-0">
+                              <h3 className="text-sm font-bold font-heading text-primary dark:text-primary-300 leading-snug">
+                                1.2 Documentación Habilitante Adjunta
+                              </h3>
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                Oficio formal firmado y anexos jurídicos o técnicos que respaldan la solicitud.
+                              </p>
+                            </div>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const fechaHoy = new Date().toISOString().substring(0, 10);
+                              const nuevo = {
+                                id: `doc-${Date.now()}`,
+                                nombre: `Anexo_Soporte_Juridico_${documentosAdjuntos.length + 1}.pdf`,
+                                tipo: "PDF" as const,
+                                tamano: "1.2 MB",
+                                fechaCarga: fechaHoy,
+                                categoria: "Justificación Legal" as const,
+                                fecha: fechaHoy,
+                              };
+                              setDocumentosAdjuntos((prev) => [...prev, nuevo]);
+                              toast.info("Documento adjuntado al expediente", {
+                                description: nuevo.nombre,
+                              });
+                            }}
+                            className="h-8 text-caption gap-1.5 bg-background shrink-0"
+                          >
+                            <UploadCloud className="size-3.5 text-primary" />
+                            <span>Adjuntar documento</span>
+                          </Button>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {documentosAdjuntos.map((doc) => (
+                            <div
+                              key={doc.id}
+                              className="flex items-center justify-between p-3.5 rounded-xl border border-border bg-background hover:border-primary/30 transition-colors gap-3"
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <div className="size-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                                  <FileText className="size-4" />
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="text-xs font-semibold text-foreground truncate" title={doc.nombre}>
+                                    {doc.nombre}
+                                  </p>
+                                  <p className="text-[11px] text-muted-foreground">
+                                    {doc.categoria} · {doc.tamano}
+                                  </p>
+                                </div>
+                              </div>
+                              {documentosAdjuntos.length > 1 && (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() =>
+                                    setDocumentosAdjuntos((prev) =>
+                                      prev.filter((d) => d.id !== doc.id)
+                                    )
+                                  }
+                                  aria-label="Eliminar documento"
+                                  className="size-7 text-muted-foreground hover:text-danger shrink-0"
+                                >
+                                  <Trash2 className="size-3.5" />
+                                </Button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Columna Derecha Lateral (5 cols): Ficha Técnica del Proyecto Seleccionado y Resumen Operativo */}
+                    <div className="lg:col-span-5 flex flex-col gap-4 w-full">
+                      <div className="rounded-2xl border border-border bg-muted/15 p-5 space-y-4 shadow-2xs">
+                        <div className="flex items-start justify-between gap-2 pb-3 border-b border-border/70">
+                          <div>
+                            <span className="text-[11px] font-bold uppercase tracking-wider text-primary block">
+                              Ficha del Proyecto Seleccionado
+                            </span>
+                            <h3 className="font-heading text-sm sm:text-base font-bold text-foreground mt-0.5">
+                              {activeProyecto.nombre}
+                            </h3>
+                          </div>
+                          <Badge tone="success" appearance="soft" size="sm" className="font-semibold shrink-0">
+                            Activo (v{activeProyecto.version})
+                          </Badge>
+                        </div>
+
+                        <div className="space-y-2">
+                          <span className="text-[11px] font-semibold text-muted-foreground block">
+                            Propósito y alcance institucional:
+                          </span>
+                          <p className="text-xs text-foreground/90 leading-relaxed bg-background p-3 rounded-xl border border-border/60">
+                            {activeProyecto.proposito}
+                          </p>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3 text-xs">
+                          <div className="p-3 rounded-xl bg-background border border-border/60">
+                            <span className="text-[11px] text-muted-foreground block">Código de proyecto</span>
+                            <strong className="font-mono text-xs text-foreground mt-0.5 block">
+                              {activeProyecto.id}
+                            </strong>
+                          </div>
+                          <div className="p-3 rounded-xl bg-background border border-border/60">
+                            <span className="text-[11px] text-muted-foreground block">Fecha de registro</span>
+                            <strong className="text-xs text-foreground mt-0.5 block">
+                              {activeProyecto.fechaCreacion}
+                            </strong>
+                          </div>
+                          <div className="p-3 rounded-xl bg-background border border-border/60">
+                            <span className="text-[11px] text-muted-foreground block">Responsable</span>
+                            <strong className="text-xs text-foreground mt-0.5 block truncate" title={activeProyecto.creadoPor}>
+                              {activeProyecto.creadoPor}
+                            </strong>
+                          </div>
+                          <div className="p-3 rounded-xl bg-background border border-border/60">
+                            <span className="text-[11px] text-muted-foreground block">Solicitudes vinculadas</span>
+                            <strong className="text-xs text-primary mt-0.5 block">
+                              {activeProyecto.solicitudes.length} solicitud(es)
+                            </strong>
+                          </div>
+                        </div>
+
+                        <div className="pt-2 border-t border-border/60 flex items-center justify-between text-xs">
+                          <span className="text-muted-foreground font-medium">Capacidad configurada:</span>
+                          <div className="flex items-center gap-2">
+                            <Badge tone="info" appearance="soft" size="sm">
+                              {modalidadSolicitada}
+                            </Badge>
+                            <Badge tone="neutral" appearance="outline" size="sm" className="font-mono">
+                              {cupoSolicitado.toLocaleString()} reg./mes
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Footer Unificado del Paso 1 */}
+                  <div className="p-4 sm:p-6 bg-muted/20 border-t border-border flex flex-wrap justify-between items-center gap-3 w-full rounded-b-2xl">
+                    <Button asChild variant="neutral" size="default" className="gap-2 text-xs font-semibold">
+                      <Link href="/acceso-interoperabilidad/solicitudes">
+                        <ArrowLeft className="size-4" />
+                        <span>Cancelar</span>
+                      </Link>
+                    </Button>
+                    <div className="flex flex-wrap items-center gap-2.5">
+                      <Button
+                        variant="secondary"
+                        size="default"
+                        onClick={handleGuardarBorrador}
+                        className="gap-1.5 text-xs font-semibold"
+                      >
+                        <FileText className="size-4" />
+                        <span>Guardar como borrador</span>
+                      </Button>
+                      <Button
+                        variant="primary"
+                        size="default"
+                        onClick={nextStep}
+                        disabled={!isStep1Valid}
+                        className="gap-2 text-xs font-semibold"
+                      >
+                        <span>Siguiente: Seleccionar información</span>
+                        <ChevronRight className="size-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* PASO 2: SELECCIONAR INFORMACIÓN */}
+              {step === 2 && (
+                <div className="flex flex-col w-full">
+                  {/* Cabecera de Sección II */}
+                  <div className="bg-primary/5 dark:bg-primary-950/20 border-b border-border p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 w-full">
+                    <div className="flex items-center gap-3.5 min-w-0">
+                      <div className="size-10 rounded-xl bg-primary/15 text-primary flex items-center justify-center shrink-0 shadow-2xs">
+                        <Database className="size-5 text-primary" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h2 className="font-heading text-base font-bold text-primary leading-snug">
+                            Sección II — Selección de Fuente e Información del Catálogo
+                          </h2>
+                          <Badge tone="primary" appearance="soft" size="sm" className="text-[10px] font-semibold">
+                            Fuente única por solicitud
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Seleccione los campos requeridos de una fuente del catálogo nacional de interoperabilidad.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Badge tone={selectedCount > 0 ? "primary" : "neutral"} appearance="soft" size="sm" className="font-semibold px-2.5 py-1">
+                        {selectedCount} {selectedCount === 1 ? "campo seleccionado" : "campos seleccionados"}
+                      </Badge>
+                    </div>
+                  </div>
+
+                  {/* Cuerpo del Paso 2 */}
+                  <div className="p-4 sm:p-6 flex flex-col gap-5 w-full">
+                    {/* Resumen compacto del Paso 1 */}
+                    <div className="p-3.5 rounded-xl bg-muted/20 border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 w-full">
+                      <div className="flex flex-wrap items-center gap-2 text-xs">
+                        <Badge tone="neutral" appearance="soft" size="sm" className="gap-1.5 font-semibold">
+                          <Briefcase className="size-3 text-primary" />
+                          <span>{activeProyecto.id} — {activeProyecto.nombre}</span>
+                        </Badge>
+                        <Badge tone="info" appearance="soft" size="sm">
+                          {modalidadSolicitada}
+                        </Badge>
+                        <Badge tone="neutral" appearance="outline" size="sm" className="font-mono">
+                          Cupo: {cupoSolicitado.toLocaleString()} reg./mes
+                        </Badge>
+                        <Badge tone="neutral" appearance="outline" size="sm" className="gap-1">
+                          <Paperclip className="size-3 text-primary" />
+                          <span>{documentosAdjuntos.length} doc(s)</span>
+                        </Badge>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setStep(1)}
+                        className="h-7 px-2.5 text-caption text-primary hover:text-primary shrink-0 self-start sm:self-center"
+                      >
+                        Editar proyecto y modalidad
+                      </Button>
+                    </div>
+
+                    {/* Barra de herramientas y Filtros (Catálogo de Fuentes: Tabla / Cards) */}
+                    <div className="pb-4 border-b border-border w-full" id="datos-documentos">
+                      <div className="flex flex-col gap-3 w-full">
+                        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-3.5 w-full">
+                          <div className="grid grid-cols-1 sm:grid-cols-12 gap-3.5 flex-1 items-end">
+                            <div className="sm:col-span-12 lg:col-span-5 space-y-1.5">
+                              <label className="text-xs font-medium text-muted-foreground whitespace-nowrap block">
+                                Búsqueda general
+                              </label>
+                              <SearchInput
+                                placeholder="Buscar por fuente, código, institución o campo..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                onClear={() => setSearchTerm("")}
+                                className="w-full h-10 bg-background rounded-xl border-border/80"
+                              />
+                            </div>
+
+                            <div className="sm:col-span-6 lg:col-span-4 space-y-1.5">
+                              <label className="text-xs font-medium text-muted-foreground whitespace-nowrap block">
+                                Institución proveedora
+                              </label>
+                              <Combobox
+                                items={institucionOptions}
+                                value={
+                                  institucionOptions.find((opt) => opt.value === institucionFilter) ||
+                                  institucionOptions[0]
+                                }
+                                onValueChange={(val: any) => {
+                                  if (val) {
+                                    const selected = typeof val === "string" ? val : val.value;
+                                    setInstitucionFilter(selected);
+                                  }
+                                }}
+                              >
+                                <ComboboxSelectTrigger className="w-full h-10 justify-between text-xs sm:text-sm font-normal bg-background rounded-xl border-border/80 px-3.5 hover:bg-muted/40 shadow-none">
+                                  <span className="truncate">
+                                    {institucionOptions.find((opt) => opt.value === institucionFilter)?.label ||
+                                      "Todas las instituciones"}
+                                  </span>
+                                </ComboboxSelectTrigger>
+                                <ComboboxContent align="start" className="w-80 max-w-[90vw]">
+                                  <ComboboxList>
+                                    {institucionOptions.map((opt) => (
+                                      <ComboboxItem key={opt.value} value={opt} className="text-xs">
+                                        {opt.label}
+                                      </ComboboxItem>
+                                    ))}
+                                  </ComboboxList>
+                                </ComboboxContent>
+                              </Combobox>
+                            </div>
+
+                            <div className="sm:col-span-6 lg:col-span-3 space-y-1.5">
+                              <label className="text-xs font-medium text-muted-foreground whitespace-nowrap block">
+                                Clasificación del campo
+                              </label>
+                              <Combobox
+                                items={clasificacionOptions}
+                                value={
+                                  clasificacionOptions.find((opt) => opt.value === clasificacionFilter) ||
+                                  clasificacionOptions[0]
+                                }
+                                onValueChange={(val: any) => {
+                                  if (val) {
+                                    const selected = typeof val === "string" ? val : val.value;
+                                    setClasificacionFilter(selected);
+                                  }
+                                }}
+                              >
+                                <ComboboxSelectTrigger className="w-full h-10 justify-between text-xs sm:text-sm font-normal bg-background rounded-xl border-border/80 px-3.5 hover:bg-muted/40 shadow-none">
+                                  <span className="truncate">
+                                    {clasificacionOptions.find((opt) => opt.value === clasificacionFilter)?.label ||
+                                      "Todas las clasificaciones"}
+                                  </span>
+                                </ComboboxSelectTrigger>
+                                <ComboboxContent align="end" className="w-56">
+                                  <ComboboxList>
+                                    {clasificacionOptions.map((opt) => (
+                                      <ComboboxItem key={opt.value} value={opt} className="text-xs">
+                                        {opt.label}
+                                      </ComboboxItem>
+                                    ))}
+                                  </ComboboxList>
+                                </ComboboxContent>
+                              </Combobox>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-end gap-2 shrink-0">
+                            {(searchTerm || institucionFilter !== "ALL" || clasificacionFilter !== "ALL") && (
+                              <Button
+                                type="button"
+                                variant="neutral"
+                                size="sm"
+                                onClick={() => {
+                                  setSearchTerm("");
+                                  setInstitucionFilter("ALL");
+                                  setClasificacionFilter("ALL");
+                                }}
+                                className="h-10 px-3 text-xs gap-1.5"
+                              >
+                                <RotateCcw className="size-3.5" />
+                                <span>Restablecer</span>
+                              </Button>
+                            )}
+                            <ViewModeToggle value={viewMode} onChange={setViewMode} />
+                          </div>
+                        </div>
+
+                        {/* Píldoras de Filtros Activos */}
+                        {(searchTerm || institucionFilter !== "ALL" || clasificacionFilter !== "ALL") && (
+                          <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border/60 w-full">
+                            <span className="text-[11px] font-semibold text-muted-foreground mr-1">
+                              Filtros aplicados:
+                            </span>
+
+                            {searchTerm && (
+                              <Badge
+                                tone="neutral"
+                                appearance="soft"
+                                size="sm"
+                                className="gap-1.5 text-[11px]"
+                              >
+                                <span>
+                                  Búsqueda: <strong className="font-semibold text-foreground">&ldquo;{searchTerm}&rdquo;</strong>
+                                </span>
+                                <Button
+                                  variant="ghost"
+                                  type="button"
+                                  onClick={() => setSearchTerm("")}
+                                  className="h-auto p-0.5 rounded-full hover:bg-foreground/10 text-muted-foreground hover:text-foreground"
+                                  aria-label="Eliminar filtro de búsqueda"
+                                >
+                                  <X className="size-3" />
+                                </Button>
+                              </Badge>
+                            )}
+
+                            {institucionFilter !== "ALL" && (
+                              <Badge
+                                tone="primary"
+                                appearance="soft"
+                                size="sm"
+                                className="gap-1.5 text-[11px]"
+                              >
+                                <span className="flex items-center gap-1">
+                                  <Building2 className="size-3" />
+                                  {institucionOptions.find((i) => i.value === institucionFilter)?.label || institucionFilter}
+                                </span>
+                                <Button
+                                  variant="ghost"
+                                  type="button"
+                                  onClick={() => setInstitucionFilter("ALL")}
+                                  className="h-auto p-0.5 rounded-full hover:bg-foreground/10"
+                                  aria-label="Eliminar filtro de institución"
+                                >
+                                  <X className="size-3" />
+                                </Button>
+                              </Badge>
+                            )}
+
+                            {clasificacionFilter !== "ALL" && (
+                              <Badge
+                                tone={clasificacionFilter === "Accesible" ? "success" : "warning"}
+                                appearance="soft"
+                                size="sm"
+                                className="gap-1.5 text-[11px]"
+                              >
+                                <span className="flex items-center gap-1">
+                                  {clasificacionFilter === "Accesible" ? (
+                                    <Unlock className="size-3" />
+                                  ) : (
+                                    <Lock className="size-3" />
+                                  )}
+                                  {clasificacionFilter}
+                                </span>
+                                <Button
+                                  variant="ghost"
+                                  type="button"
+                                  onClick={() => setClasificacionFilter("ALL")}
+                                  className="h-auto p-0.5 rounded-full hover:bg-foreground/10"
+                                  aria-label="Eliminar filtro de clasificación"
+                                >
+                                  <X className="size-3" />
+                                </Button>
+                              </Badge>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Alerta / Mensaje contextual de restricción de fuente única */}
+                    {!restrictionAlert && (
+                      <Alert
+                        variant="info"
+                        icon={<Info className="size-4" />}
+                        className="py-3 px-4 border border-border/70 rounded-xl"
+                      >
+                        <div className="text-xs sm:text-sm text-foreground leading-relaxed flex flex-wrap items-center justify-between gap-2">
+                          <div>
+                            Para esta solicitud solo puedes seleccionar campos pertenecientes a una misma fuente.
+                            {activeFuente && (
+                              <span className="text-muted-foreground ml-1.5">
+                                (Fuente activa:{" "}
+                                <strong className="text-foreground font-semibold">
+                                  &ldquo;{activeFuente.servicioNombre || activeFuente.nombre}&rdquo;
+                                </strong>{" "}
+                                — {activeFuente.nombre})
+                              </span>
+                            )}
+                          </div>
+                          {activeFuente && (
+                            <Button
+                              type="button"
+                              variant="neutral"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedCampos({});
+                                setRestrictionAlert(null);
+                              }}
+                              className="h-7 px-2.5 text-[11px] gap-1"
+                            >
+                              <RotateCcw className="size-3" />
+                              <span>Cambiar de fuente</span>
+                            </Button>
+                          )}
+                        </div>
+                      </Alert>
+                    )}
+
+                    {/* Alerta de restricción si se intenta seleccionar de otra fuente */}
+                    {restrictionAlert && (
+                      <Alert
+                        variant="warning"
+                        icon={<AlertTriangle className="size-4" />}
+                        title="Para esta solicitud solo puedes seleccionar campos pertenecientes a una misma fuente."
+                        onClose={() => setRestrictionAlert(null)}
+                        className="animate-in fade-in-0 duration-200"
+                      >
+                        <div className="flex flex-col gap-2 pt-0.5">
+                          <p className="text-xs sm:text-sm leading-relaxed text-muted-foreground">
+                            Actualmente tu solicitud contiene campos de{" "}
+                            <strong className="font-semibold text-foreground">
+                              &ldquo;{restrictionAlert.fuenteActual}&rdquo;
+                            </strong>
+                            . Para consultar campos de{" "}
+                            <strong className="font-semibold text-foreground">
+                              &ldquo;{restrictionAlert.fuenteIntentada}&rdquo;
+                            </strong>
+                            , debes tramitarlos en una solicitud independiente o reiniciar tu selección.
+                          </p>
+                          <div className="flex items-center gap-3 pt-1">
+                            <Button
+                              type="button"
+                              variant="neutral"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedCampos({});
+                                setRestrictionAlert(null);
+                                toast.info("Selección reiniciada", {
+                                  description: "Ahora puede seleccionar campos de cualquier otra fuente.",
+                                });
+                              }}
+                              className="text-xs h-7 px-2.5 gap-1.5"
+                            >
+                              <RotateCcw className="size-3" />
+                              <span>Cambiar de fuente (limpiar selección actual)</span>
+                            </Button>
+                          </div>
+                        </div>
+                      </Alert>
+                    )}
+
+                    {/* Catálogo de Fuentes (Tabla o Cards igual a Catálogo de Fuentes) */}
+                    <div className="w-full" id="seleccion-info">
+                      {flattenedFuentes.length === 0 ? (
+                        <div className="p-10 text-center text-sm text-muted-foreground border border-dashed border-border rounded-xl bg-muted/15">
+                          No se encontraron fuentes o campos con los filtros aplicados.
+                        </div>
+                      ) : (
+                        <div className="space-y-4 w-full">
+                          {/* 1. VISTA TABULAR CON FILA EXPANDIBLE */}
+                          <div
+                            className={cn(
+                              "w-full",
+                              viewMode === "table" ? "hidden md:block" : "hidden"
+                            )}
+                          >
+                            <Table>
+                              <TableHeader>
+                                <TableRow className="hover:bg-transparent">
+                                  <TableHead className="w-12 text-center"></TableHead>
+                                  <TableHead>Fuente de Información</TableHead>
+                                  <TableHead>Institución Proveedora</TableHead>
+                                  <TableHead>Base Legal y Vigencia</TableHead>
+                                  <TableHead>Campos y Requisitos</TableHead>
+                                  <TableHead className="text-center">Selección</TableHead>
+                                  <TableHead className="w-20 text-center">Acciones</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {flattenedFuentes.map(
+                                  ({
+                                    fuente,
+                                    institucion,
+                                    camposAccesibles,
+                                    camposConfidenciales,
+                                    camposSensibles,
+                                  }) => {
+                                    const isExpanded = expandedFuentes[fuente.id] ?? false;
+                                    const rowContentId = `expandable-fuente-${fuente.id}`;
+                                    const listaAccesibles = fuente.campos.filter(
+                                      (c) => c.clasificacion === "Accesible"
+                                    );
+                                    const listaConfidenciales = fuente.campos.filter(
+                                      (c) => c.clasificacion === "Confidencial"
+                                    );
+                                    const selectedInFuente = selectedCamposDetails.filter(
+                                      (d) => d.servicioId === fuente.id
+                                    ).length;
+                                    const isCurrentActiveFuente = activeFuente?.id === fuente.id;
+                                    const isDifferentFromActive = Boolean(
+                                      activeFuente && !isCurrentActiveFuente
+                                    );
+                                    const allSelectedInFuente =
+                                      fuente.campos.length > 0 &&
+                                      fuente.campos.every((c) => !!selectedCampos[c.id]);
+                                    const fuenteDisplayLabel = `${fuente.nombre} (${
+                                      institucion.sigla || institucion.nombre
+                                    })`;
+
+                                    return (
+                                      <React.Fragment key={fuente.id}>
+                                        <TableRow
+                                          id={`row-${fuente.id}`}
+                                          onClick={() => toggleFuente(fuente.id)}
+                                          className={cn(
+                                            "group cursor-pointer transition-all duration-200 hover:bg-primary/10 dark:hover:bg-primary/15",
+                                            isExpanded && "bg-primary/10 dark:bg-primary/15 font-medium",
+                                            isCurrentActiveFuente && "bg-primary/5",
+                                            isDifferentFromActive && "opacity-75"
+                                          )}
+                                        >
+                                          {/* Botón Expandir */}
+                                          <TableCell
+                                            className="text-center"
+                                            onClick={(e) => e.stopPropagation()}
+                                          >
+                                            <Button
+                                              type="button"
+                                              variant="ghost"
+                                              size="icon-sm"
+                                              onClick={() => toggleFuente(fuente.id)}
+                                              aria-expanded={isExpanded}
+                                              aria-controls={rowContentId}
+                                              className="size-8 rounded-lg group-hover:bg-primary/15 hover:bg-primary/25 text-primary transition-all duration-200"
+                                            >
+                                              <ChevronRight
+                                                className={cn(
+                                                  "size-4 transition-transform duration-300",
+                                                  isExpanded && "rotate-90 text-primary"
+                                                )}
+                                              />
+                                            </Button>
+                                          </TableCell>
+
+                                          {/* Fuente de Información */}
+                                          <TableCell>
+                                            <div className="space-y-1 max-w-md">
+                                              <div className="flex items-center gap-2 flex-wrap">
+                                                <span className="font-mono text-[11px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded">
+                                                  {fuente.codigoServicio}
+                                                </span>
+                                                <Badge
+                                                  tone="neutral"
+                                                  appearance="outline"
+                                                  size="sm"
+                                                  className="text-[10px] font-mono"
+                                                >
+                                                  v{fuente.version}
+                                                </Badge>
+                                              </div>
+                                              <p className="font-heading font-bold text-sm text-foreground group-hover:text-primary transition-colors leading-snug">
+                                                {fuente.nombre}
+                                              </p>
+                                              <p className="text-xs text-muted-foreground line-clamp-1">
+                                                {fuente.descripcion}
+                                              </p>
+                                            </div>
+                                          </TableCell>
+
+                                          {/* Institución Proveedora */}
+                                          <TableCell>
+                                            <div className="space-y-1">
+                                              <div className="flex items-center gap-1.5">
+                                                <Badge
+                                                  tone="primary"
+                                                  appearance="solid"
+                                                  size="sm"
+                                                  className="font-bold text-[10px] tracking-wider !text-white px-2 py-0.5 shadow-2xs"
+                                                >
+                                                  {institucion.sigla}
+                                                </Badge>
+                                                <span className="text-[11px] font-mono text-muted-foreground">
+                                                  RUC: {institucion.codigoInstitucion}
+                                                </span>
+                                              </div>
+                                              <p className="text-xs font-semibold text-foreground leading-snug">
+                                                {institucion.nombre}
+                                              </p>
+                                              <p className="text-[11px] text-muted-foreground">
+                                                {institucion.sector}
+                                              </p>
+                                            </div>
+                                          </TableCell>
+
+                                          {/* Base Legal y Vigencia */}
+                                          <TableCell>
+                                            <div className="space-y-1 text-xs">
+                                              <div className="flex items-center gap-1.5 text-foreground font-medium">
+                                                <Scale className="size-3.5 text-primary shrink-0" />
+                                                <span
+                                                  className="line-clamp-1"
+                                                  title={fuente.baseLegal}
+                                                >
+                                                  {fuente.baseLegal}
+                                                </span>
+                                              </div>
+                                              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                                                <Clock className="size-3 shrink-0" />
+                                                <span>Actualizado: {fuente.ultimaActualizacion}</span>
+                                              </div>
+                                            </div>
+                                          </TableCell>
+
+                                          {/* Campos y Requisitos */}
+                                          <TableCell>
+                                            <div className="flex flex-wrap items-center gap-1.5">
+                                              {camposAccesibles > 0 && (
+                                                <Badge
+                                                  tone="success"
+                                                  appearance="soft"
+                                                  size="sm"
+                                                  className="gap-1 font-semibold text-[10px]"
+                                                >
+                                                  <Unlock className="size-3" />
+                                                  <span>{camposAccesibles} ACCESIBLES</span>
+                                                </Badge>
+                                              )}
+                                              {camposConfidenciales > 0 && (
+                                                <Badge
+                                                  tone="warning"
+                                                  appearance="soft"
+                                                  size="sm"
+                                                  className="gap-1 font-semibold text-[10px]"
+                                                >
+                                                  <Lock className="size-3" />
+                                                  <span>{camposConfidenciales} CONFIDENCIALES</span>
+                                                </Badge>
+                                              )}
+                                              {camposSensibles > 0 && (
+                                                <Badge
+                                                  tone="danger"
+                                                  appearance="soft"
+                                                  size="sm"
+                                                  className="gap-1 font-semibold text-[10px]"
+                                                >
+                                                  <ShieldAlert className="size-3" />
+                                                  <span>{camposSensibles} SENSIBLE{camposSensibles === 1 ? "" : "S"} · LOPDP</span>
+                                                </Badge>
+                                              )}
+                                            </div>
+                                          </TableCell>
+
+                                          {/* Selección */}
+                                          <TableCell className="text-center">
+                                            {selectedInFuente > 0 ? (
+                                              <Badge
+                                                tone="primary"
+                                                appearance="soft"
+                                                size="sm"
+                                                className="gap-1 font-semibold text-[10px]"
+                                              >
+                                                <Check className="size-3" />
+                                                <span>
+                                                  {selectedInFuente} / {fuente.campos.length}
+                                                </span>
+                                              </Badge>
+                                            ) : isDifferentFromActive ? (
+                                              <Badge
+                                                tone="neutral"
+                                                appearance="outline"
+                                                size="sm"
+                                                className="text-[10px] text-muted-foreground gap-1"
+                                              >
+                                                <Lock className="size-2.5" />
+                                                <span>Otra fuente</span>
+                                              </Badge>
+                                            ) : (
+                                              <span className="text-xs text-muted-foreground">
+                                                0 / {fuente.campos.length}
+                                              </span>
+                                            )}
+                                          </TableCell>
+
+                                          {/* Acciones */}
+                                          <TableCell
+                                            className="text-center"
+                                            onClick={(e) => e.stopPropagation()}
+                                          >
+                                            <div className="flex items-center justify-center">
+                                              <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                  <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="icon-sm"
+                                                    onClick={() => toggleFuente(fuente.id)}
+                                                    className="text-muted-foreground hover:text-primary hover:bg-primary/10"
+                                                    aria-label={
+                                                      isExpanded
+                                                        ? "Ocultar campos de la fuente"
+                                                        : "Ver y seleccionar campos"
+                                                    }
+                                                  >
+                                                    {isExpanded ? (
+                                                      <EyeOff className="size-4" />
+                                                    ) : (
+                                                      <Eye className="size-4 text-primary" />
+                                                    )}
+                                                  </Button>
+                                                </TooltipTrigger>
+                                                <TooltipContent side="top" className="text-xs">
+                                                  {isExpanded
+                                                    ? "Ocultar campos"
+                                                    : `Seleccionar entre ${fuente.campos.length} campos`}
+                                                </TooltipContent>
+                                              </Tooltip>
+                                            </div>
+                                          </TableCell>
+                                        </TableRow>
+
+                                        {/* FILA EXPANDIBLE CON SELECCIÓN DE CAMPOS */}
+                                        <TableRow className="bg-transparent dark:bg-transparent hover:bg-transparent dark:hover:bg-transparent">
+                                          <TableCell colSpan={7} className="p-0 border-0 h-auto">
+                                            <div
+                                              id={rowContentId}
+                                              role="region"
+                                              aria-labelledby={`row-${fuente.id}`}
+                                              className={cn(
+                                                "grid transition-all duration-300 ease-in-out overflow-hidden",
+                                                isExpanded
+                                                  ? "grid-rows-[1fr] opacity-100 py-3"
+                                                  : "grid-rows-[0fr] opacity-0 py-0"
+                                              )}
+                                            >
+                                              <div className="min-h-0 px-4 pb-2">
+                                                <div className="p-5 rounded-2xl border border-border/60 bg-surface shadow-sm space-y-5 text-xs text-left">
+                                                  {/* Cabecera del Expandable Row */}
+                                                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/40 pb-3">
+                                                    <div className="space-y-1">
+                                                      <span className="font-bold text-foreground text-sm flex items-center gap-2">
+                                                        <Database className="size-4 text-primary" />
+                                                        Seleccione los campos requeridos de {fuente.nombre} (
+                                                        {selectedInFuente} de {fuente.campos.length} seleccionados)
+                                                      </span>
+                                                      <p className="text-xs text-muted-foreground">
+                                                        {institucion.nombre} ({institucion.sigla}) • Modalidad:{" "}
+                                                        <strong className="text-foreground">
+                                                          {fuente.tipoConsumo}
+                                                        </strong>
+                                                      </p>
+                                                    </div>
+
+                                                    <div className="flex items-center gap-2 shrink-0">
+                                                      <Button
+                                                        type="button"
+                                                        variant="neutral"
+                                                        size="sm"
+                                                        onClick={() =>
+                                                          handleToggleAllFuente(
+                                                            fuente,
+                                                            institucion,
+                                                            !allSelectedInFuente
+                                                          )
+                                                        }
+                                                        className="gap-1.5 text-xs h-8"
+                                                      >
+                                                        <ListChecks className="size-3.5" />
+                                                        <span>
+                                                          {allSelectedInFuente
+                                                            ? "Quitar selección de esta fuente"
+                                                            : "Seleccionar todos los campos"}
+                                                        </span>
+                                                      </Button>
+                                                    </div>
+                                                  </div>
+
+                                                  {/* Sub-sección 1: Campos Accesibles */}
+                                                  {listaAccesibles.length > 0 && (
+                                                    <div className="space-y-2.5">
+                                                      <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 rounded-xl bg-success/10 border border-success/25">
+                                                        <span className="font-bold text-xs text-success flex items-center gap-1.5">
+                                                          <Unlock className="size-3.5" />
+                                                          Campos Accesibles ({listaAccesibles.length})
+                                                        </span>
+                                                        <span className="text-[11px] font-medium text-success">
+                                                          Requisito: Solo finalidad de uso (PAR-11)
+                                                        </span>
+                                                      </div>
+
+                                                      <div
+                                                        className={cn(
+                                                          "grid gap-3 w-full",
+                                                          listaAccesibles.length === 1
+                                                            ? "grid-cols-1"
+                                                            : listaAccesibles.length === 2
+                                                            ? "grid-cols-1 sm:grid-cols-2"
+                                                            : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+                                                        )}
+                                                      >
+                                                        {listaAccesibles.map((campo) => {
+                                                          const isSelected = !!selectedCampos[campo.id];
+                                                          return (
+                                                            <div
+                                                              key={campo.id}
+                                                              onClick={() =>
+                                                                handleSelectCampo(
+                                                                  campo.id,
+                                                                  !isSelected,
+                                                                  fuente.id,
+                                                                  fuenteDisplayLabel
+                                                                )
+                                                              }
+                                                              className={cn(
+                                                                "p-3.5 rounded-xl border flex flex-col justify-between gap-2.5 cursor-pointer transition-all w-full",
+                                                                isSelected
+                                                                  ? "bg-primary/5 border-primary/50 shadow-2xs"
+                                                                  : isDifferentFromActive
+                                                                  ? "bg-muted/15 border-border/50 opacity-75 hover:border-warning/50"
+                                                                  : "bg-muted/35 border-border/60 hover:border-success/40"
+                                                              )}
+                                                            >
+                                                              <div className="space-y-1.5">
+                                                                <div className="flex items-start justify-between gap-2">
+                                                                  <div className="flex items-center gap-2.5 min-w-0">
+                                                                    <div
+                                                                      onClick={(e) => e.stopPropagation()}
+                                                                      className="shrink-0 flex items-center"
+                                                                    >
+                                                                      <Checkbox
+                                                                        checked={isSelected}
+                                                                        variant="primary"
+                                                                        size="md"
+                                                                        onCheckedChange={(checked) =>
+                                                                          handleSelectCampo(
+                                                                            campo.id,
+                                                                            !!checked,
+                                                                            fuente.id,
+                                                                            fuenteDisplayLabel
+                                                                          )
+                                                                        }
+                                                                      />
+                                                                    </div>
+                                                                    <span className="font-mono font-bold text-xs text-foreground break-all">
+                                                                      {campo.nombre}
+                                                                    </span>
+                                                                  </div>
+                                                                  <Badge
+                                                                    tone="success"
+                                                                    appearance="soft"
+                                                                    size="sm"
+                                                                    className="gap-1 text-[10px] font-semibold shrink-0"
+                                                                  >
+                                                                    <Unlock className="size-3" />
+                                                                    ACCESIBLE
+                                                                  </Badge>
+                                                                </div>
+                                                                <p className="text-muted-foreground text-[11px] leading-relaxed pl-6">
+                                                                  {campo.descripcion}
+                                                                </p>
+                                                              </div>
+
+                                                              <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/40 text-[10px] pl-6">
+                                                                <span className="text-muted-foreground font-mono">
+                                                                  Tipo: {campo.tipo}
+                                                                </span>
+                                                                <span className="font-semibold text-success">
+                                                                  Solo finalidad (PAR-11)
+                                                                </span>
+                                                              </div>
+                                                            </div>
+                                                          );
+                                                        })}
+                                                      </div>
+                                                    </div>
+                                                  )}
+
+                                                  {/* Sub-sección 2: Campos Confidenciales */}
+                                                  {listaConfidenciales.length > 0 && (
+                                                    <div className="space-y-2.5">
+                                                      <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 rounded-xl bg-warning/10 border border-warning/25">
+                                                        <div className="flex items-center gap-2 flex-wrap">
+                                                          <span className="font-bold text-xs text-warning flex items-center gap-1.5">
+                                                            <Lock className="size-3.5" />
+                                                            Campos Confidenciales ({listaConfidenciales.length})
+                                                          </span>
+                                                          {camposSensibles > 0 && (
+                                                            <Badge
+                                                              tone="danger"
+                                                              appearance="soft"
+                                                              size="sm"
+                                                              className="gap-1 font-semibold text-[10px]"
+                                                            >
+                                                              <ShieldAlert className="size-3" />
+                                                              <span>
+                                                                Incluye {camposSensibles} Confidencial{camposSensibles === 1 ? "" : "es"} Sensible{camposSensibles === 1 ? "" : "s"} (LOPDP)
+                                                              </span>
+                                                            </Badge>
+                                                          )}
+                                                        </div>
+                                                        <span className="text-[11px] font-semibold text-warning-700 dark:text-warning-400">
+                                                          Requisito: Finalidad de uso + Justificación jurídica — Revisión DPI (PAR-12)
+                                                        </span>
+                                                      </div>
+
+                                                      <div
+                                                        className={cn(
+                                                          "grid gap-3 w-full",
+                                                          listaConfidenciales.length === 1
+                                                            ? "grid-cols-1"
+                                                            : listaConfidenciales.length === 2
+                                                            ? "grid-cols-1 sm:grid-cols-2"
+                                                            : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+                                                        )}
+                                                      >
+                                                        {listaConfidenciales.map((campo) => {
+                                                          const isSelected = !!selectedCampos[campo.id];
+                                                          const isSensible = Boolean(campo.esSensible);
+                                                          return (
+                                                            <div
+                                                              key={campo.id}
+                                                              onClick={() =>
+                                                                handleSelectCampo(
+                                                                  campo.id,
+                                                                  !isSelected,
+                                                                  fuente.id,
+                                                                  fuenteDisplayLabel
+                                                                )
+                                                              }
+                                                              className={cn(
+                                                                "p-3.5 rounded-xl border flex flex-col justify-between gap-2.5 cursor-pointer transition-all w-full",
+                                                                isSelected
+                                                                  ? "bg-primary/5 border-primary/50 shadow-2xs"
+                                                                  : isDifferentFromActive
+                                                                  ? "bg-muted/15 border-border/50 opacity-75 hover:border-warning/50"
+                                                                  : isSensible
+                                                                  ? "bg-danger/10 dark:bg-danger-900/25 border-2 border-danger/55 hover:border-danger shadow-2xs"
+                                                                  : "bg-warning-50/60 dark:bg-warning-900/10 border-warning-300/80 hover:border-warning"
+                                                              )}
+                                                            >
+                                                              <div className="space-y-1.5">
+                                                                <div className="flex items-start justify-between gap-2">
+                                                                  <div className="flex items-center gap-2.5 min-w-0">
+                                                                    <div
+                                                                      onClick={(e) => e.stopPropagation()}
+                                                                      className="shrink-0 flex items-center"
+                                                                    >
+                                                                      <Checkbox
+                                                                        checked={isSelected}
+                                                                        variant="primary"
+                                                                        size="md"
+                                                                        onCheckedChange={(checked) =>
+                                                                          handleSelectCampo(
+                                                                            campo.id,
+                                                                            !!checked,
+                                                                            fuente.id,
+                                                                            fuenteDisplayLabel
+                                                                          )
+                                                                        }
+                                                                      />
+                                                                    </div>
+                                                                    <span className="font-mono font-bold text-xs text-foreground break-all">
+                                                                      {campo.nombre}
+                                                                    </span>
+                                                                  </div>
+                                                                  <div className="flex items-center gap-1 flex-wrap justify-end shrink-0">
+                                                                    <Badge
+                                                                      tone="warning"
+                                                                      appearance="soft"
+                                                                      size="sm"
+                                                                      className="gap-1 text-[10px] font-semibold shrink-0"
+                                                                    >
+                                                                      <Lock className="size-3" />
+                                                                      CONFIDENCIAL
+                                                                    </Badge>
+                                                                    {isSensible && (
+                                                                      <Badge
+                                                                        tone="danger"
+                                                                        appearance="solid"
+                                                                        size="sm"
+                                                                        className="gap-1 text-[10px] font-bold shrink-0"
+                                                                      >
+                                                                        <ShieldAlert className="size-3" />
+                                                                        SENSIBLE · LOPDP
+                                                                      </Badge>
+                                                                    )}
+                                                                  </div>
+                                                                </div>
+                                                                <p className="text-muted-foreground text-[11px] leading-relaxed pl-6">
+                                                                  {campo.descripcion}
+                                                                </p>
+                                                                {isSensible && (
+                                                                  <div className="ml-6 px-2.5 py-1.5 rounded-lg bg-danger/15 border border-danger/35 flex items-center gap-1.5 text-[10px] text-danger font-bold">
+                                                                    <ShieldAlert className="size-3 shrink-0" />
+                                                                    <span>
+                                                                      Dato confidencial sensible con tratamiento especial según la Ley de Protección de Datos (Revisión DPI).
+                                                                    </span>
+                                                                  </div>
+                                                                )}
+                                                              </div>
+
+                                                              <div className={cn("flex items-center justify-between gap-2 pt-2 border-t text-[10px] pl-6", isSensible ? "border-danger/30" : "border-border/40")}>
+                                                                <span className="text-muted-foreground font-mono">
+                                                                  Tipo: {campo.tipo}
+                                                                </span>
+                                                                <span className={cn("font-bold", isSensible ? "text-danger" : "text-warning-700 dark:text-warning-400")}>
+                                                                  {isSensible
+                                                                    ? "Finalidad + Jurídica · Tratamiento especial LOPDP"
+                                                                    : "Finalidad + Jurídica (PAR-12)"}
+                                                                </span>
+                                                              </div>
+                                                            </div>
+                                                          );
+                                                        })}
+                                                      </div>
+                                                    </div>
+                                                  )}
+                                                </div>
+                                              </div>
+                                            </div>
+                                          </TableCell>
+                                        </TableRow>
+                                      </React.Fragment>
+                                    );
+                                  }
+                                )}
+                              </TableBody>
+                            </Table>
+                          </div>
+
+                          {/* 2. VISTA DE TARJETAS (viewMode === "cards" o Mobile <md) */}
+                          <div
+                            className={cn(
+                              "w-full",
+                              viewMode === "cards"
+                                ? flattenedFuentes.length === 1
+                                  ? "grid grid-cols-1 gap-4"
+                                  : "grid grid-cols-1 lg:grid-cols-2 gap-4"
+                                : "grid grid-cols-1 gap-4 md:hidden"
+                            )}
+                          >
+                            {flattenedFuentes.map(
+                              ({
+                                fuente,
+                                institucion,
+                                camposAccesibles,
+                                camposConfidenciales,
+                                camposSensibles,
+                              }) => {
+                                const isExpanded = expandedFuentes[fuente.id] ?? false;
+                                const listaAccesibles = fuente.campos.filter(
+                                  (c) => c.clasificacion === "Accesible"
+                                );
+                                const listaConfidenciales = fuente.campos.filter(
+                                  (c) => c.clasificacion === "Confidencial"
+                                );
+                                const tieneConfidenciales = camposConfidenciales > 0;
+                                const selectedInFuente = selectedCamposDetails.filter(
+                                  (d) => d.servicioId === fuente.id
+                                ).length;
+                                const isCurrentActiveFuente = activeFuente?.id === fuente.id;
+                                const isDifferentFromActive = Boolean(
+                                  activeFuente && !isCurrentActiveFuente
+                                );
+                                const allSelectedInFuente =
+                                  fuente.campos.length > 0 &&
+                                  fuente.campos.every((c) => !!selectedCampos[c.id]);
+                                const fuenteDisplayLabel = `${fuente.nombre} (${
+                                  institucion.sigla || institucion.nombre
+                                })`;
+
+                                return (
+                                  <InteractiveCard
+                                    key={fuente.id}
+                                    color="default"
+                                    decorativeIcon={<Database className="size-full stroke-[0.8]" />}
+                                    decorativeIconClassName="size-20 -bottom-2 -right-2 opacity-25 dark:opacity-15 group-hover:opacity-40"
+                                    className={cn(
+                                      "p-4 sm:p-5 bg-surface hover:bg-surface border-border shadow-xs hover:border-primary/40 flex flex-col justify-between gap-4 w-full",
+                                      isExpanded && "lg:col-span-2",
+                                      isCurrentActiveFuente && "border-primary/50",
+                                      isDifferentFromActive && "opacity-80"
+                                    )}
+                                  >
+                                    <div className="space-y-3.5 w-full">
+                                      {/* Cabecera de la Card */}
+                                      <div className="flex items-start justify-between gap-3 pb-3 border-b border-border/70 w-full">
+                                        <div className="min-w-0 flex-1 space-y-1">
+                                          <div className="flex items-center gap-2 flex-wrap">
+                                            <Badge
+                                              tone="primary"
+                                              appearance="solid"
+                                              size="sm"
+                                              className="font-bold text-[10px] tracking-wider !text-white px-2 py-0.5 shadow-2xs"
+                                            >
+                                              {institucion.sigla}
+                                            </Badge>
+                                            <span className="text-[11px] font-mono font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded">
+                                              {fuente.codigoServicio}
+                                            </span>
+                                            <Badge
+                                              tone="neutral"
+                                              appearance="outline"
+                                              size="sm"
+                                              className="text-[10px] font-mono"
+                                            >
+                                              v{fuente.version}
+                                            </Badge>
+                                            {selectedInFuente > 0 && (
+                                              <Badge
+                                                tone="primary"
+                                                appearance="soft"
+                                                size="sm"
+                                                className="gap-1 font-semibold text-[10px]"
+                                              >
+                                                <Check className="size-3" />
+                                                <span>{selectedInFuente} seleccionados</span>
+                                              </Badge>
+                                            )}
+                                          </div>
+                                          <h3 className="font-heading text-sm sm:text-base font-bold text-foreground leading-snug pt-0.5">
+                                            {fuente.nombre}
+                                          </h3>
+                                        </div>
+
+                                        <Badge
+                                          tone={tieneConfidenciales ? "warning" : "success"}
+                                          appearance="soft"
+                                          size="sm"
+                                          className="shrink-0 font-semibold text-[10px] gap-1"
+                                        >
+                                          {tieneConfidenciales ? (
+                                            <>
+                                              <Lock className="size-3" />
+                                              <span>Con Reserva</span>
+                                            </>
+                                          ) : (
+                                            <>
+                                              <Unlock className="size-3" />
+                                              <span>100% Accesible</span>
+                                            </>
+                                          )}
+                                        </Badge>
+                                      </div>
+
+                                      {/* Descripción */}
+                                      <p className="text-xs text-muted-foreground leading-relaxed">
+                                        {fuente.descripcion}
+                                      </p>
+
+                                      {/* Metadatos en 2 bloques */}
+                                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs w-full">
+                                        <div className="p-2.5 rounded-lg bg-muted/25 border border-border/50 space-y-1">
+                                          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                                            <Building2 className="size-3 text-primary" />
+                                            Institución Proveedora
+                                          </span>
+                                          <span className="text-xs font-semibold text-foreground block leading-tight">
+                                            {institucion.nombre}
+                                          </span>
+                                          <span className="text-[11px] text-muted-foreground font-mono block">
+                                            RUC: {institucion.codigoInstitucion}
+                                          </span>
+                                        </div>
+
+                                        <div className="p-2.5 rounded-lg bg-muted/25 border border-border/50 space-y-1">
+                                          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                                            <Scale className="size-3 text-primary" />
+                                            Base Legal y Modalidad
+                                          </span>
+                                          <span
+                                            className="text-xs font-medium text-foreground block line-clamp-1"
+                                            title={fuente.baseLegal}
+                                          >
+                                            {fuente.baseLegal}
+                                          </span>
+                                          <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+                                            <Clock className="size-3 shrink-0" />
+                                            Actualizado: {fuente.ultimaActualizacion}
+                                          </span>
+                                        </div>
+                                      </div>
+
+                                      {/* Resumen de Clasificación de Campos */}
+                                      <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-lg bg-muted/30 border border-border/50">
+                                        <span className="text-[11px] font-semibold text-muted-foreground">
+                                          Desglose de {fuente.campos.length} campos:
+                                        </span>
+                                        <div className="flex flex-wrap items-center gap-2">
+                                          {camposAccesibles > 0 && (
+                                            <Badge
+                                              tone="success"
+                                              appearance="soft"
+                                              size="sm"
+                                              className="gap-1 font-semibold text-[10px]"
+                                            >
+                                              <Unlock className="size-3" />
+                                              <span>{camposAccesibles} ACCESIBLES</span>
+                                            </Badge>
+                                          )}
+                                          {camposConfidenciales > 0 && (
+                                            <Badge
+                                              tone="warning"
+                                              appearance="soft"
+                                              size="sm"
+                                              className="gap-1 font-semibold text-[10px]"
+                                            >
+                                              <Lock className="size-3" />
+                                              <span>{camposConfidenciales} CONFIDENCIALES</span>
+                                            </Badge>
+                                          )}
+                                          {camposSensibles > 0 && (
+                                            <Badge
+                                              tone="danger"
+                                              appearance="soft"
+                                              size="sm"
+                                              className="gap-1 font-semibold text-[10px]"
+                                            >
+                                              <ShieldAlert className="size-3" />
+                                              <span>{camposSensibles} SENSIBLE{camposSensibles === 1 ? "" : "S"} · LOPDP</span>
+                                            </Badge>
+                                          )}
+                                        </div>
+                                      </div>
+
+                                      {/* Sección Expandible de Selección de Campos dentro de la Card */}
+                                      <div
+                                        className={cn(
+                                          "grid transition-all duration-300 ease-in-out overflow-hidden",
+                                          isExpanded
+                                            ? "grid-rows-[1fr] opacity-100 pt-1"
+                                            : "grid-rows-[0fr] opacity-0 pt-0"
+                                        )}
+                                      >
+                                        <div className="min-h-0">
+                                          <div className="p-3.5 rounded-xl border border-border/60 bg-surface space-y-3">
+                                            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/40 pb-2.5">
+                                              <span className="text-[11px] font-bold uppercase tracking-wider text-foreground flex items-center gap-1.5">
+                                                <FileText className="size-3.5 text-primary" />
+                                                Seleccione campos ({selectedInFuente}/{fuente.campos.length})
+                                              </span>
+                                              <Button
+                                                type="button"
+                                                variant="neutral"
+                                                size="sm"
+                                                onClick={() =>
+                                                  handleToggleAllFuente(
+                                                    fuente,
+                                                    institucion,
+                                                    !allSelectedInFuente
+                                                  )
+                                                }
+                                                className="h-7 px-2.5 text-[11px] gap-1"
+                                              >
+                                                <ListChecks className="size-3" />
+                                                <span>
+                                                  {allSelectedInFuente
+                                                    ? "Quitar todos"
+                                                    : "Seleccionar todos"}
+                                                </span>
+                                              </Button>
+                                            </div>
+
+                                            <div className="space-y-3">
+                                              {/* Bloque 1: Campos Accesibles */}
+                                              {listaAccesibles.length > 0 && (
+                                                <div className="space-y-2">
+                                                  <div className="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg bg-success/10 border border-success/25">
+                                                    <span className="text-[11px] font-bold text-success flex items-center gap-1.5">
+                                                      <Unlock className="size-3.5" />
+                                                      Campos Accesibles ({listaAccesibles.length})
+                                                    </span>
+                                                    <span className="text-[10px] font-medium text-success">
+                                                      Solo finalidad de uso (PAR-11)
+                                                    </span>
+                                                  </div>
+                                                  <div
+                                                    className={cn(
+                                                      "grid gap-2.5 w-full",
+                                                      listaAccesibles.length === 1
+                                                        ? "grid-cols-1"
+                                                        : listaAccesibles.length === 2
+                                                        ? "grid-cols-1 sm:grid-cols-2"
+                                                        : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+                                                    )}
+                                                  >
+                                                    {listaAccesibles.map((campo) => {
+                                                      const isSelected = !!selectedCampos[campo.id];
+                                                      return (
+                                                        <div
+                                                          key={campo.id}
+                                                          onClick={() =>
+                                                            handleSelectCampo(
+                                                              campo.id,
+                                                              !isSelected,
+                                                              fuente.id,
+                                                              fuenteDisplayLabel
+                                                            )
+                                                          }
+                                                          className={cn(
+                                                            "p-2.5 rounded-lg border flex flex-col justify-between gap-1.5 cursor-pointer transition-all w-full",
+                                                            isSelected
+                                                              ? "bg-primary/5 border-primary/50 shadow-2xs"
+                                                              : "bg-muted/35 border-border/60 hover:border-success/40"
+                                                          )}
+                                                        >
+                                                          <div className="flex items-center justify-between gap-2">
+                                                            <div className="flex items-center gap-2 min-w-0">
+                                                              <div
+                                                                onClick={(e) => e.stopPropagation()}
+                                                                className="shrink-0 flex items-center"
+                                                              >
+                                                                <Checkbox
+                                                                  checked={isSelected}
+                                                                  variant="primary"
+                                                                  size="sm"
+                                                                  onCheckedChange={(checked) =>
+                                                                    handleSelectCampo(
+                                                                      campo.id,
+                                                                      !!checked,
+                                                                      fuente.id,
+                                                                      fuenteDisplayLabel
+                                                                    )
+                                                                  }
+                                                                />
+                                                              </div>
+                                                              <span className="font-mono font-bold text-xs text-foreground truncate">
+                                                                {campo.nombre}
+                                                              </span>
+                                                            </div>
+                                                            <Badge
+                                                              tone="success"
+                                                              appearance="soft"
+                                                              size="sm"
+                                                              className="gap-1 text-[10px] font-semibold shrink-0"
+                                                            >
+                                                              <Unlock className="size-2.5" />
+                                                              ACCESIBLE
+                                                            </Badge>
+                                                          </div>
+                                                          <p className="text-[11px] text-muted-foreground leading-relaxed pl-6">
+                                                            {campo.descripcion}
+                                                          </p>
+                                                        </div>
+                                                      );
+                                                    })}
+                                                  </div>
+                                                </div>
+                                              )}
+
+                                              {/* Bloque 2: Campos Confidenciales */}
+                                              {listaConfidenciales.length > 0 && (
+                                                <div className="space-y-2">
+                                                  <div className="flex flex-wrap items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg bg-warning/10 border border-warning/25">
+                                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                                      <span className="text-[11px] font-bold text-warning flex items-center gap-1.5">
+                                                        <Lock className="size-3.5" />
+                                                        Campos Confidenciales ({listaConfidenciales.length})
+                                                      </span>
+                                                      {camposSensibles > 0 && (
+                                                        <Badge
+                                                          tone="danger"
+                                                          appearance="soft"
+                                                          size="sm"
+                                                          className="gap-1 font-semibold text-[10px]"
+                                                        >
+                                                          <ShieldAlert className="size-2.5" />
+                                                          <span>{camposSensibles} Sensible{camposSensibles === 1 ? "" : "s"} · LOPDP</span>
+                                                        </Badge>
+                                                      )}
+                                                    </div>
+                                                    <span className="text-[10px] font-medium text-warning">
+                                                      Finalidad + Base jurídica (PAR-12)
+                                                    </span>
+                                                  </div>
+                                                  <div
+                                                    className={cn(
+                                                      "grid gap-2.5 w-full",
+                                                      listaConfidenciales.length === 1
+                                                        ? "grid-cols-1"
+                                                        : listaConfidenciales.length === 2
+                                                        ? "grid-cols-1 sm:grid-cols-2"
+                                                        : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+                                                    )}
+                                                  >
+                                                    {listaConfidenciales.map((campo) => {
+                                                      const isSelected = !!selectedCampos[campo.id];
+                                                      const isSensible = Boolean(campo.esSensible);
+                                                      return (
+                                                        <div
+                                                          key={campo.id}
+                                                          onClick={() =>
+                                                            handleSelectCampo(
+                                                              campo.id,
+                                                              !isSelected,
+                                                              fuente.id,
+                                                              fuenteDisplayLabel
+                                                            )
+                                                          }
+                                                          className={cn(
+                                                            "p-2.5 rounded-lg border flex flex-col justify-between gap-1.5 cursor-pointer transition-all w-full",
+                                                            isSelected
+                                                              ? "bg-primary/5 border-primary/50 shadow-2xs"
+                                                              : isSensible
+                                                              ? "bg-danger/10 dark:bg-danger-900/25 border-2 border-danger/55 hover:border-danger shadow-2xs"
+                                                              : "bg-warning-50/60 dark:bg-warning-900/10 border-warning-300/80 hover:border-warning"
+                                                          )}
+                                                        >
+                                                          <div className="flex items-center justify-between gap-2">
+                                                            <div className="flex items-center gap-2 min-w-0">
+                                                              <div
+                                                                onClick={(e) => e.stopPropagation()}
+                                                                className="shrink-0 flex items-center"
+                                                              >
+                                                                <Checkbox
+                                                                  checked={isSelected}
+                                                                  variant="primary"
+                                                                  size="sm"
+                                                                  onCheckedChange={(checked) =>
+                                                                    handleSelectCampo(
+                                                                      campo.id,
+                                                                      !!checked,
+                                                                      fuente.id,
+                                                                      fuenteDisplayLabel
+                                                                    )
+                                                                  }
+                                                                />
+                                                              </div>
+                                                              <span className="font-mono font-bold text-xs text-foreground truncate">
+                                                                {campo.nombre}
+                                                              </span>
+                                                            </div>
+                                                            <div className="flex items-center gap-1 flex-wrap justify-end shrink-0">
+                                                              <Badge
+                                                                tone="warning"
+                                                                appearance="soft"
+                                                                size="sm"
+                                                                className="gap-1 text-[10px] font-semibold shrink-0"
+                                                              >
+                                                                <Lock className="size-2.5" />
+                                                                CONFIDENCIAL
+                                                              </Badge>
+                                                              {isSensible && (
+                                                                <Badge
+                                                                  tone="danger"
+                                                                  appearance="solid"
+                                                                  size="sm"
+                                                                  className="gap-1 text-[10px] font-bold shrink-0"
+                                                                >
+                                                                  <ShieldAlert className="size-2.5" />
+                                                                  SENSIBLE · LOPDP
+                                                                </Badge>
+                                                              )}
+                                                            </div>
+                                                          </div>
+                                                          <p className="text-[11px] text-muted-foreground leading-relaxed pl-6">
+                                                            {campo.descripcion}
+                                                          </p>
+                                                          {isSensible && (
+                                                            <div className="ml-6 px-2 py-1 rounded-md bg-danger/15 border border-danger/35 flex items-center gap-1 text-[10px] text-danger font-bold">
+                                                              <ShieldAlert className="size-3 shrink-0" />
+                                                              <span>Tratamiento especial según Ley de Protección de Datos (Revisión DPI).</span>
+                                                            </div>
+                                                          )}
+                                                        </div>
+                                                      );
+                                                    })}
+                                                  </div>
+                                                </div>
+                                              )}
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    {/* Acciones de la Card */}
+                                    <div className="pt-2 border-t border-border/60 w-full flex flex-wrap items-center gap-2">
+                                      <Button
+                                        type="button"
+                                        variant="neutral"
+                                        size="sm"
+                                        onClick={() => toggleFuente(fuente.id)}
+                                        className="flex-1 text-xs font-semibold gap-1.5 h-9 justify-center"
+                                      >
+                                        {isExpanded ? (
+                                          <>
+                                            <EyeOff className="size-3.5 text-muted-foreground" />
+                                            <span>Ocultar campos ({fuente.campos.length})</span>
+                                          </>
+                                        ) : (
+                                          <>
+                                            <Eye className="size-3.5 text-primary" />
+                                            <span>
+                                              Seleccionar campos ({selectedInFuente}/{fuente.campos.length})
+                                            </span>
+                                          </>
+                                        )}
+                                      </Button>
+                                    </div>
+                                  </InteractiveCard>
+                                );
+                              }
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                  </div>
+
+                  {/* Barra de navegación inferior del Paso 2 */}
+                  <div className="p-4 sm:p-6 bg-muted/20 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3 w-full">
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <Button
+                        variant="neutral"
+                        size="sm"
+                        onClick={prevStep}
+                        className="gap-1.5"
+                      >
+                        <ArrowLeft className="size-3.5" />
+                        <span>Atrás</span>
+                      </Button>
+                      <span className="font-bold text-foreground text-xs sm:text-sm">
+                        Campos seleccionados: {selectedCount}
+                      </span>
+                      {selectedCount > 0 && (
+                        <span className="text-xs text-muted-foreground hidden lg:inline">
+                          ({selectedCamposDetails.filter(c => c.campo.clasificacion === "Accesible").length} accesibles · {selectedCamposDetails.filter(c => c.campo.clasificacion === "Confidencial").length} confidenciales)
+                        </span>
+                      )}
+                      {activeFuente && (
+                        <Badge tone="neutral" appearance="soft" size="sm" className="hidden sm:inline-flex text-xs gap-1.5 bg-muted text-foreground border border-border">
+                          <Database className="size-3 text-muted-foreground" />
+                          <span>Fuente: {activeFuente.nombre}</span>
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2.5 shrink-0 w-full sm:w-auto justify-end">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={handleGuardarBorrador}
+                        className="gap-1.5 text-xs font-semibold"
+                      >
+                        <FileText className="size-3.5" />
+                        <span>Guardar como borrador</span>
+                      </Button>
+                      <Button
+                        variant="primary"
+                        onClick={nextStep}
+                        disabled={selectedCount === 0}
+                        size="sm"
+                        className="gap-2 text-xs font-semibold shrink-0"
+                      >
+                        <span>Siguiente: Justificar campos</span>
+                        <ChevronRight className="size-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* PASO 3: JUSTIFICAR CAMPOS */}
+              {step === 3 && (
+                <div className="flex flex-col w-full" id="justificacion-step">
+                  {/* Cabecera de Sección III */}
+                  <div className="bg-primary/5 dark:bg-primary-950/20 border-b border-border p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 w-full">
+                    <div className="flex items-center gap-3.5 min-w-0">
+                      <div className="size-10 rounded-xl bg-primary/15 text-primary flex items-center justify-center shrink-0 shadow-2xs">
+                        <Scale className="size-5 text-primary" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h2 className="font-heading text-base font-bold text-primary leading-snug">
+                            Sección III — Finalidad de Uso y Justificación Jurídica de Campos
+                          </h2>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Declare la finalidad institucional de cada campo y la base legal habilitante para datos confidenciales.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 flex-wrap shrink-0">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        asChild
+                        className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground bg-surface gap-1.5"
+                      >
+                        <Link href="/parametros-ayuda-bn07">
+                          <Settings2 className="size-3.5 text-primary" />
+                          Configurar textos de ayuda (DPI)
+                        </Link>
+                      </Button>
                       {selectedCamposDetails.length > 1 && (
-                        <div className="flex items-center gap-2 shrink-0">
+                        <>
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={expandAllJustificaciones}
-                            className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground"
+                            className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground bg-surface"
                           >
                             Expandir todos
                           </Button>
@@ -1263,132 +2674,169 @@ export function AccesoSolicitudNuevaView() {
                             variant="outline"
                             size="sm"
                             onClick={collapseAllJustificaciones}
-                            className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground"
+                            className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground bg-surface"
                           >
                             Colapsar todos
                           </Button>
-                        </div>
+                        </>
                       )}
                     </div>
+                  </div>
 
-                    {/* Nota de distinción clara y documento de respaldo */}
-                    <div className="mx-4 sm:mx-6 mt-4 p-3.5 rounded-xl border border-primary/20 bg-primary/5 flex items-start gap-3">
-                      <Info className="size-4 text-primary shrink-0 mt-0.5" />
-                      <div className="text-xs space-y-1">
-                        <p className="font-semibold text-foreground">
-                          Requisitos según clasificación del campo:
-                        </p>
-                        <ul className="text-muted-foreground list-disc list-inside space-y-0.5">
-                          <li><strong className="text-foreground">Campos Accesibles:</strong> Requieren únicamente <span className="text-foreground font-medium">Finalidad de uso</span>.</li>
-                          <li><strong className="text-foreground">Campos Confidenciales:</strong> Requieren <span className="text-foreground font-medium">Finalidad de uso</span> y <span className="text-foreground font-medium">Justificación jurídica</span> obligatoria.</li>
-                        </ul>
-                        <p className="text-[11px] text-muted-foreground pt-0.5 italic">
-                          * Nota: Queda pendiente de confirmar si en este paso será obligatorio cargar algún documento de respaldo jurídico adicional.
-                        </p>
+                  {/* Cuerpo del Paso 3 */}
+                  <div className="p-4 sm:p-6 flex flex-col gap-5 w-full">
+                    {/* Nota de distinción en 2 columnas laterales */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 w-full">
+                      <div className="p-3.5 rounded-xl border border-success/25 bg-success/5 flex items-start gap-3">
+                        <Unlock className="size-4 text-success shrink-0 mt-0.5" />
+                        <div className="text-xs space-y-0.5">
+                          <p className="font-semibold text-foreground">Campos Accesibles (Evaluación Gestión)</p>
+                          <p className="text-muted-foreground leading-relaxed">
+                            Requieren únicamente declarar la <strong className="text-foreground font-medium">Finalidad de uso</strong> indicando el campo, el proceso institucional y la necesidad específica.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="p-3.5 rounded-xl border border-warning/30 bg-warning/5 flex items-start gap-3">
+                        <Lock className="size-4 text-warning shrink-0 mt-0.5" />
+                        <div className="text-xs space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="font-semibold text-foreground">Campos Confidenciales (Evaluación Gestión + DPI)</p>
+                            <Badge tone="danger" appearance="soft" size="sm" className="gap-1 text-[10px] font-semibold">
+                              <ShieldAlert className="size-3" /> Incluye subclasificación Sensible · LOPDP
+                            </Badge>
+                          </div>
+                          <p className="text-muted-foreground leading-relaxed">
+                            Requieren <strong className="text-foreground font-medium">Finalidad de uso</strong> y <strong className="text-foreground font-medium">Justificación jurídica</strong> relacionando la norma aplicable con el acceso solicitado. Los campos <strong className="text-danger font-medium">Confidenciales sensibles</strong> pertenecen a esta categoría y mantienen la revisión por DPI bajo tratamiento especial LOPDP.
+                          </p>
+                        </div>
                       </div>
                     </div>
 
-                    {/* Nivel 2 y 3: Fuentes y Campos dentro del Contenedor */}
-                    <div className="p-4 sm:p-6 flex flex-col gap-6 bg-card divide-y divide-border/60">
-                      {selectedCamposByServicio.map((group, groupIdx) => (
-                        <div key={group.servicioId} className={`flex flex-col gap-4 ${groupIdx > 0 ? "pt-6" : ""}`}>
-                          {/* Identificador de Fuente */}
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="flex items-center gap-2.5 flex-wrap">
-                              <Badge tone="neutral" appearance="outline" size="sm" className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                                Fuente
-                              </Badge>
-                              <h3 className="font-heading text-sm sm:text-base font-bold text-foreground flex items-center gap-2">
-                                <Database className="size-4 text-primary" />
-                                {group.servicioNombre}
-                              </h3>
-                              <span className="text-xs text-muted-foreground">
-                                ({group.items.length} {group.items.length === 1 ? "campo" : "campos"})
-                              </span>
+                    {selectedCamposDetails.length === 0 ? (
+                      <div className="p-8 text-center text-sm text-muted-foreground border border-dashed border-border rounded-xl w-full">
+                        No hay campos seleccionados. Vuelva al paso anterior para seleccionar campos.
+                      </div>
+                    ) : (
+                      <div className="border border-border rounded-2xl bg-card overflow-hidden shadow-xs w-full">
+                        {/* Nivel 1: Institución / Fuente */}
+                        <div className="p-4 sm:p-5 bg-muted/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border w-full">
+                          <div className="flex items-center gap-3.5 min-w-0">
+                            <div className="size-9 rounded-lg bg-surface border border-border flex items-center justify-center shrink-0 shadow-2xs">
+                              <Building2 className="size-4.5 text-primary" />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <h3 className="font-heading text-base font-bold text-foreground">
+                                  {activeFuente ? activeFuente.nombre : (selectedCamposDetails[0]?.fuenteNombre || "Dirección General de Registro Civil, Identificación y Cedulación")}
+                                </h3>
+                                <Badge tone="primary" appearance="soft" size="sm" className="gap-1 text-[10px] font-semibold">
+                                  <Check className="size-2.5" /> Fuente en uso
+                                </Badge>
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                {selectedCamposDetails.length} {selectedCamposDetails.length === 1 ? "campo seleccionado para justificar" : "campos seleccionados para justificar"}
+                              </p>
                             </div>
                           </div>
+                        </div>
 
-                          {/* Lista de campos a justificar de este servicio */}
-                          <div className="flex flex-col gap-3">
-                            {group.items.map((item) => {
-                              const isExpanded = expandedCamposJustificacion[item.campo.id] ?? true;
-                              const isFinalidadFilled = Boolean(justificaciones[item.campo.id]?.finalidad?.trim());
-                              const isFundamentoFilled = item.campo.clasificacion === "Confidencial"
-                                ? Boolean(justificaciones[item.campo.id]?.fundamento?.trim())
-                                : true;
-                              const isCompleted = isFinalidadFilled && isFundamentoFilled;
+                        {/* Nivel 2 y 3: Fuentes y Campos dentro del Contenedor */}
+                        <div className="p-4 sm:p-6 flex flex-col gap-6 bg-card divide-y divide-border/60 w-full">
+                          {selectedCamposByServicio.map((group, groupIdx) => (
+                            <div key={group.servicioId} className={`flex flex-col gap-4 w-full ${groupIdx > 0 ? "pt-6" : ""}`}>
+                              {/* Identificador de Fuente */}
+                              <div className="flex items-center justify-between gap-3">
+                                <div className="flex items-center gap-2.5 flex-wrap">
+                                  <Badge tone="neutral" appearance="outline" size="sm" className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                                    Fuente
+                                  </Badge>
+                                  <h4 className="font-heading text-sm sm:text-base font-bold text-foreground flex items-center gap-2">
+                                    <Database className="size-4 text-primary" />
+                                    {group.servicioNombre}
+                                  </h4>
+                                  <span className="text-xs text-muted-foreground">
+                                    ({group.items.length} {group.items.length === 1 ? "campo" : "campos"})
+                                  </span>
+                                </div>
+                              </div>
 
-                              return (
-                                <div
-                                  key={item.campo.id}
-                                  className="border border-border/80 rounded-xl bg-surface/50 overflow-hidden shadow-2xs transition-all"
-                                >
-                                  {/* Fila del campo: click expande / colapsa */}
-                                  <div
-                                    onClick={() => toggleCampoJustificacion(item.campo.id)}
-                                    className="p-4 hover:bg-muted/30 transition-colors cursor-pointer flex items-center justify-between gap-3 select-none"
-                                  >
-                                    <div className="flex items-center gap-2.5 flex-wrap min-w-0">
-                                      <span className="font-mono font-bold text-sm text-foreground">{item.campo.nombre}</span>
-                                      {item.campo.clasificacion === "Accesible" ? (
-                                        <Badge
-                                          tone="success"
-                                          appearance="soft"
-                                          size="sm"
-                                          className="gap-1 inline-flex font-semibold"
-                                        >
-                                          <Unlock className="size-3" /> ACCESIBLE
-                                        </Badge>
-                                      ) : (
-                                        <Badge
-                                          tone="warning"
-                                          appearance="soft"
-                                          size="sm"
-                                          className="gap-1 inline-flex font-semibold"
-                                        >
-                                          <Lock className="size-3" /> CONFIDENCIAL
-                                        </Badge>
+                              {/* Lista de campos a justificar de este servicio */}
+                              <div className="flex flex-col gap-3 w-full">
+                                {group.items.map((item) => {
+                                  const isExpanded = expandedCamposJustificacion[item.campo.id] ?? true;
+                                  const isFinalidadFilled = Boolean(justificaciones[item.campo.id]?.finalidad?.trim());
+                                  const isFundamentoFilled = item.campo.clasificacion === "Confidencial"
+                                    ? Boolean(justificaciones[item.campo.id]?.fundamento?.trim())
+                                    : true;
+                                  const isCompleted = isFinalidadFilled && isFundamentoFilled;
+                                  const ayudaCampo = resolverAyudaParaCampo(configAyudaBN07, item.campo);
+
+                                  return (
+                                    <div
+                                      key={item.campo.id}
+                                      className={cn(
+                                        "rounded-xl overflow-hidden shadow-2xs transition-all w-full",
+                                        item.campo.clasificacion === "Confidencial" && item.campo.esSensible
+                                          ? "border-2 border-danger/55 bg-danger/5 dark:bg-danger-900/15"
+                                          : "border border-border/80 bg-surface/50"
                                       )}
-                                      <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <span
-                                            role="button"
-                                            tabIndex={0}
-                                            onClick={(e) => e.stopPropagation()}
-                                            className="inline-flex items-center text-muted-foreground hover:text-primary transition-colors cursor-help p-0.5 rounded-full hover:bg-muted ml-0.5"
-                                            aria-label="Información de requisitos"
-                                          >
-                                            <Info className="size-3.5" />
+                                    >
+                                      {/* Fila del campo: click expande / colapsa */}
+                                      <div
+                                        onClick={() => toggleCampoJustificacion(item.campo.id)}
+                                        className="p-4 hover:bg-muted/30 transition-colors cursor-pointer flex items-center justify-between gap-3 select-none w-full"
+                                      >
+                                        <div className="flex items-center gap-2.5 flex-wrap min-w-0">
+                                          <span className="font-mono font-bold text-sm text-foreground">{item.campo.nombre}</span>
+                                          {item.campo.clasificacion === "Accesible" ? (
+                                            <Badge
+                                              tone="success"
+                                              appearance="soft"
+                                              size="sm"
+                                              className="gap-1 inline-flex font-semibold"
+                                            >
+                                              <Unlock className="size-3" /> ACCESIBLE
+                                            </Badge>
+                                          ) : (
+                                            <div className="inline-flex items-center gap-1.5 flex-wrap">
+                                              <Badge
+                                                tone="warning"
+                                                appearance="soft"
+                                                size="sm"
+                                                className="gap-1 inline-flex font-semibold"
+                                              >
+                                                <Lock className="size-3" /> CONFIDENCIAL
+                                              </Badge>
+                                              {item.campo.esSensible && (
+                                                <Badge
+                                                  tone="danger"
+                                                  appearance="solid"
+                                                  size="sm"
+                                                  className="gap-1 inline-flex font-bold"
+                                                >
+                                                  <ShieldAlert className="size-3" /> SENSIBLE · LOPDP
+                                                </Badge>
+                                              )}
+                                            </div>
+                                          )}
+                                          <span className="text-xs text-muted-foreground line-clamp-1">— {item.campo.descripcion}</span>
+                                        </div>
+
+                                        <div className="flex items-center gap-2.5 shrink-0 ml-2">
+                                          {isCompleted ? (
+                                            <Badge appearance="soft" tone="success" className="h-6 px-2 text-[10px] font-semibold gap-1 hidden sm:inline-flex">
+                                              <Check className="size-3" /> Justificado
+                                            </Badge>
+                                          ) : (
+                                            <Badge appearance="soft" tone="neutral" className="h-6 px-2 text-[10px] font-semibold hidden sm:inline-flex text-muted-foreground">
+                                              Pendiente
+                                            </Badge>
+                                          )}
+
+                                          <span className="text-xs font-medium text-muted-foreground hidden lg:inline-block">
+                                            {isExpanded ? "Ocultar" : "Desplegar"}
                                           </span>
-                                        </TooltipTrigger>
-                                        <TooltipContent side="top">
-                                          <span>
-                                            {item.campo.clasificacion === "Confidencial"
-                                              ? "Requiere: Finalidad de uso y justificación jurídica"
-                                              : "Requiere: Solo finalidad de uso"}
-                                          </span>
-                                        </TooltipContent>
-                                      </Tooltip>
-                                      <span className="text-xs text-muted-foreground line-clamp-1">— {item.campo.descripcion}</span>
-                                    </div>
 
-                                    <div className="flex items-center gap-2.5 shrink-0 ml-2">
-                                      {isCompleted ? (
-                                        <Badge appearance="soft" tone="success" className="h-6 px-2 text-[10px] font-semibold gap-1 hidden sm:inline-flex">
-                                          <Check className="size-3" /> Justificado
-                                        </Badge>
-                                      ) : (
-                                        <Badge appearance="soft" tone="neutral" className="h-6 px-2 text-[10px] font-semibold hidden sm:inline-flex text-muted-foreground">
-                                          Pendiente
-                                        </Badge>
-                                      )}
-
-                                      <span className="text-xs font-medium text-muted-foreground hidden lg:inline-block">
-                                        {isExpanded ? "Ocultar" : "Desplegar"}
-                                      </span>
-
-                                      <Tooltip>
-                                        <TooltipTrigger asChild>
                                           <Button
                                             variant="ghost"
                                             size="icon"
@@ -1405,455 +2853,652 @@ export function AccesoSolicitudNuevaView() {
                                               <ChevronDown className="size-4" />
                                             )}
                                           </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent side="top">
-                                          <span>{isExpanded ? "Ocultar finalidad y justificación" : "Desplegar finalidad y justificación"}</span>
-                                        </TooltipContent>
-                                      </Tooltip>
-                                    </div>
-                                  </div>
-
-                                  {/* Contenido colapsable: textareas de justificación a ancho completo */}
-                                  {isExpanded && (
-                                    <div className="border-t border-border/70 p-5 sm:p-6 pt-4 flex flex-col gap-4 bg-muted/10 animate-in fade-in-50 duration-150">
-                                      <div className="flex flex-col gap-1.5 w-full">
-                                        <div className="flex items-center justify-between gap-2 flex-wrap">
-                                          <label className="text-xs font-semibold text-foreground flex items-center gap-1">
-                                            Finalidad de uso declarada <span className="text-destructive">*</span>
-                                          </label>
-                                          <Badge tone="neutral" appearance="outline" size="sm" className="text-[10px]">
-                                            Texto de ayuda parametrizable (PAR-11)
-                                          </Badge>
                                         </div>
-                                        <div className="p-2.5 rounded-lg bg-info/10 border border-info/25 text-[11px] text-muted-foreground flex items-start gap-2">
-                                          <Info className="size-3.5 text-info shrink-0 mt-0.5" />
-                                          <span>
-                                            <strong className="text-foreground">Guía permanente (PAR-11):</strong> Especifique el proceso o trámite institucional en el que se consumirá este dato, el beneficio directo para el ciudadano y la unidad administrativa responsable.
-                                          </span>
-                                        </div>
-                                        <Textarea
-                                          className="w-full rounded-xl min-h-[95px] text-xs sm:text-sm bg-background border-border"
-                                          placeholder="Describa con precisión la finalidad de uso para este campo..."
-                                          value={justificaciones[item.campo.id]?.finalidad || ""}
-                                          onChange={(e) =>
-                                            setJustificaciones(prev => ({
-                                              ...prev,
-                                              [item.campo.id]: {
-                                                ...prev[item.campo.id],
-                                                finalidad: e.target.value
-                                              }
-                                            }))
-                                          }
-                                        />
                                       </div>
 
-                                      {item.campo.clasificacion === "Confidencial" && (
-                                        <div className="flex flex-col gap-1.5 w-full">
-                                          <div className="flex items-center justify-between gap-2 flex-wrap">
-                                            <label className="text-xs font-semibold text-foreground flex items-center gap-1">
-                                              Justificación jurídica adicional (Campo Confidencial) <span className="text-destructive">*</span>
-                                            </label>
-                                            <Badge tone="warning" appearance="soft" size="sm" className="text-[10px]">
-                                              Evaluado por Protección de la Información - DPI (PAR-12)
-                                            </Badge>
+                                      {/* Contenido colapsable: aprovecha laterales en 2 columnas si es Confidencial */}
+                                      {isExpanded && (
+                                        <div
+                                          className={cn(
+                                            "border-t border-border/70 p-4 sm:p-5 bg-muted/10 animate-in fade-in-50 duration-150 w-full",
+                                            item.campo.clasificacion === "Confidencial"
+                                              ? "grid grid-cols-1 lg:grid-cols-2 gap-4 items-start"
+                                              : "flex flex-col gap-4"
+                                          )}
+                                        >
+                                          <div className="flex flex-col gap-2 w-full">
+                                            <div className="flex items-center justify-between gap-2 flex-wrap">
+                                              <label className="text-xs font-semibold text-foreground flex items-center gap-1">
+                                                Finalidad de uso <span className="text-destructive">*</span>
+                                              </label>
+                                            </div>
+                                            <Textarea
+                                              className="w-full rounded-xl min-h-[95px] text-xs sm:text-sm bg-background border-border"
+                                              placeholder={`Indique el proceso institucional y la necesidad específica para el campo ${item.campo.nombre}...`}
+                                              value={justificaciones[item.campo.id]?.finalidad || ""}
+                                              onChange={(e) =>
+                                                setJustificaciones(prev => ({
+                                                  ...prev,
+                                                  [item.campo.id]: {
+                                                    ...prev[item.campo.id],
+                                                    finalidad: e.target.value
+                                                  }
+                                                }))
+                                              }
+                                            />
+                                            <AyudaPermanenteCampoBN07
+                                              tipoCampoFormulario="finalidad"
+                                              clasificacion={item.campo.clasificacion}
+                                              esSensible={item.campo.esSensible}
+                                              codigoParametro={ayudaCampo.finalidad.codigoParametro}
+                                              titulo={ayudaCampo.finalidad.titulo}
+                                              criterioOrientacion={ayudaCampo.finalidad.criterioOrientacion}
+                                              instruccion={ayudaCampo.finalidad.instruccion}
+                                              ejemploReferencial={ayudaCampo.finalidad.ejemploReferencial}
+                                              mostrarEjemplo={configAyudaBN07.mostrarEjemplosReferenciales}
+                                              esProvisional={ayudaCampo.finalidad.esProvisional}
+                                              etiquetaProvisional={ayudaCampo.finalidad.etiquetaProvisional}
+                                              tieneOverrideCampo={ayudaCampo.finalidad.tieneOverrideCampo}
+                                              campoNombre={item.campo.nombre}
+                                            />
                                           </div>
-                                          <div className="p-2.5 rounded-lg bg-warning/10 border border-warning/30 text-[11px] text-muted-foreground flex items-start gap-2">
-                                            <Scale className="size-3.5 text-warning shrink-0 mt-0.5" />
-                                            <span>
-                                              <strong className="text-foreground">Guía permanente (PAR-12):</strong> Cite de forma expresa la ley, artículo, decreto o competencia legal vigente (ej. LOPDP, COESC) que faculta a su institución a tratar este dato confidencial. Será evaluado por la <strong>Dirección de Protección de la Información (DPI)</strong>.
-                                            </span>
-                                          </div>
-                                          <Textarea
-                                            className="w-full rounded-xl min-h-[95px] text-xs sm:text-sm bg-background border-warning/40"
-                                            placeholder="Indique el fundamento legal o norma jurídica que autoriza el acceso a este campo confidencial..."
-                                            value={justificaciones[item.campo.id]?.fundamento || ""}
-                                            onChange={(e) =>
-                                              setJustificaciones(prev => ({
-                                                ...prev,
-                                                [item.campo.id]: {
-                                                  ...prev[item.campo.id],
-                                                  fundamento: e.target.value
+
+                                          {item.campo.clasificacion === "Confidencial" && ayudaCampo.justificacion && (
+                                            <div className="flex flex-col gap-2 w-full">
+                                              <div className="flex items-center justify-between gap-2 flex-wrap">
+                                                <label className="text-xs font-semibold text-foreground flex items-center gap-1">
+                                                  Justificación jurídica <span className="text-destructive">*</span>
+                                                </label>
+                                                <div className="flex items-center gap-1.5 flex-wrap">
+                                                  {item.campo.esSensible && (
+                                                    <Badge tone="danger" appearance="soft" size="sm" className="text-[10px] gap-1 font-semibold">
+                                                      <ShieldAlert className="size-3" /> Tratamiento especial LOPDP
+                                                    </Badge>
+                                                  )}
+                                                  <Badge tone="warning" appearance="soft" size="sm" className="text-[10px]">
+                                                    Revisión DPI
+                                                  </Badge>
+                                                </div>
+                                              </div>
+                                              <Textarea
+                                                className={cn(
+                                                  "w-full rounded-xl min-h-[95px] text-xs sm:text-sm bg-background",
+                                                  item.campo.esSensible ? "border-danger/40" : "border-warning/40"
+                                                )}
+                                                placeholder={`Indique la norma aplicable y su relación con el acceso al campo ${item.campo.nombre}...`}
+                                                value={justificaciones[item.campo.id]?.fundamento || ""}
+                                                onChange={(e) =>
+                                                  setJustificaciones(prev => ({
+                                                    ...prev,
+                                                    [item.campo.id]: {
+                                                      ...prev[item.campo.id],
+                                                      fundamento: e.target.value
+                                                    }
+                                                  }))
                                                 }
-                                              }))
-                                            }
-                                          />
+                                              />
+                                              <AyudaPermanenteCampoBN07
+                                                tipoCampoFormulario="justificacion"
+                                                clasificacion={item.campo.clasificacion}
+                                                esSensible={item.campo.esSensible}
+                                                codigoParametro={ayudaCampo.justificacion.codigoParametro}
+                                                titulo={ayudaCampo.justificacion.titulo}
+                                                criterioOrientacion={ayudaCampo.justificacion.criterioOrientacion}
+                                                instruccion={ayudaCampo.justificacion.instruccion}
+                                                ejemploReferencial={ayudaCampo.justificacion.ejemploReferencial}
+                                                mostrarEjemplo={configAyudaBN07.mostrarEjemplosReferenciales}
+                                                esProvisional={ayudaCampo.justificacion.esProvisional}
+                                                etiquetaProvisional={ayudaCampo.justificacion.etiquetaProvisional}
+                                                tieneOverrideCampo={ayudaCampo.justificacion.tieneOverrideCampo}
+                                                campoNombre={item.campo.nombre}
+                                              />
+                                            </div>
+                                          )}
                                         </div>
                                       )}
                                     </div>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex flex-wrap justify-between items-center gap-3 pt-2">
-                  <Button variant="outline" size="sm" onClick={prevStep} className="gap-2">
-                    <ArrowLeft className="size-4" />
-                    Atrás
-                  </Button>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleGuardarBorrador}
-                      className="gap-1.5 font-semibold"
-                    >
-                      <FileText className="size-4" />
-                      <span>Guardar borrador</span>
-                    </Button>
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      onClick={nextStep}
-                      disabled={!isStep2Valid}
-                      className="gap-2"
-                    >
-                      <span>Revisar y enviar</span>
-                      <ChevronRight className="size-4" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* PASO 3: REVISAR Y ENVIAR (RESUMEN EN INPUTS UI KIT Y JUSTIFICACIONES EN TEXTAREAS CON ICONOS) */}
-            {step === 3 && (
-              <div className="flex flex-col gap-6" id="resumen-step">
-                <div>
-                  <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
-                    <FileText className="size-5 text-primary" />
-                    Resumen de la solicitud
-                  </h2>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Revisión de toda la información y justificaciones ingresadas en los pasos anteriores antes del envío formal a Gestión DINARP.
-                  </p>
-                </div>
-
-                {/* Ficha Resumen de la Solicitud */}
-                <Card className="p-6 bg-surface border-border shadow-xs space-y-4 rounded-2xl">
-                  <div className="flex items-center justify-between pb-3 border-b border-border/70">
-                    <div className="flex items-center gap-2.5">
-                      <div className="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
-                        <Building2 className="size-4" />
-                      </div>
-                      <div>
-                        <h3 className="font-bold text-base text-foreground">
-                          Ficha ejecutiva de la solicitud
-                        </h3>
-                        <p className="text-xs text-muted-foreground">
-                          Datos institucionales consolidados para emisión y revisión en Gestión y DPI
-                        </p>
-                      </div>
-                    </div>
-                    <Badge tone="info" appearance="soft" size="sm" className="font-semibold text-xs">
-                      Trámite de Interoperabilidad
-                    </Badge>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
-                    <div className="p-3 rounded-xl bg-muted/30 border border-border/60">
-                      <span className="text-muted-foreground block text-[11px] mb-0.5">Proyecto institucional:</span>
-                      <strong className="text-foreground text-xs sm:text-sm truncate block" title={activeProyecto.nombre}>
-                        {activeProyecto.nombre}
-                      </strong>
-                      <span className="text-[10px] text-muted-foreground">Ministerio de Salud Pública ({activeProyecto.id})</span>
-                    </div>
-
-                    <div className="p-3 rounded-xl bg-muted/30 border border-border/60">
-                      <span className="text-muted-foreground block text-[11px] mb-0.5">Fuente seleccionada:</span>
-                      <strong className="text-foreground text-xs sm:text-sm truncate block" title={activeFuente ? activeFuente.nombre : (selectedCamposDetails[0]?.fuenteNombre || "Registro Civil")}>
-                        {activeFuente ? activeFuente.nombre : (selectedCamposDetails[0]?.fuenteNombre || "Registro Civil")}
-                      </strong>
-                      <span className="text-[10px] text-muted-foreground truncate block">
-                        {selectedCamposDetails[0]?.servicioNombre || "Consulta de Datos de Identidad"}
-                      </span>
-                    </div>
-
-                    <div className="p-3 rounded-xl bg-muted/30 border border-border/60">
-                      <span className="text-muted-foreground block text-[11px] mb-0.5">Modalidad y cupo:</span>
-                      <strong className="text-foreground text-xs sm:text-sm truncate block">
-                        {modalidadSolicitada}
-                      </strong>
-                      <span className="text-[10px] text-muted-foreground">Cupo: {cupoSolicitado}</span>
-                    </div>
-
-                    <div className="p-3 rounded-xl bg-muted/30 border border-border/60">
-                      <span className="text-muted-foreground block text-[11px] mb-0.5">Documentos adjuntos ({documentosAdjuntos.length}):</span>
-                      <div className="flex items-center gap-1.5 text-foreground font-semibold">
-                        <FileText className="size-3.5 text-primary shrink-0" />
-                        <span className="truncate">{documentosAdjuntos[0]?.nombre || "Oficio_Solicitud_Acceso.pdf"}</span>
-                      </div>
-                      <span className="text-[10px] text-muted-foreground">Respaldo técnico-jurídico</span>
-                    </div>
-                  </div>
-                </Card>
-
-                {/* PASO 1: Campos seleccionados en el Paso 1 */}
-                <Card className="p-6 bg-card border-border shadow-xs space-y-4 rounded-2xl">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-border/70 gap-2">
-                    <div className="flex items-center gap-2.5">
-                      <span className="flex items-center justify-center size-6 rounded-full bg-primary/10 text-primary font-bold text-xs shrink-0">
-                        1
-                      </span>
-                      <div>
-                        <h3 className="font-bold text-base text-foreground">
-                          Paso 1: Campos seleccionados
-                        </h3>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          Institución: <strong className="text-foreground font-semibold">{activeFuente ? activeFuente.nombre : (selectedCamposDetails[0]?.fuenteNombre || "Registro Civil")}</strong>
-                          {selectedCamposDetails[0]?.servicioNombre && (
-                            <span className="text-muted-foreground font-normal"> · Fuente: <strong className="text-foreground font-semibold">{selectedCamposDetails[0].servicioNombre}</strong></span>
-                          )}
-                        </p>
-                      </div>
-                    </div>
-                    <Badge tone="neutral" appearance="outline" className="text-xs font-semibold w-fit">
-                      {selectedCamposDetails.length} campo(s)
-                    </Badge>
-                  </div>
-
-                  {/* Campos seleccionados */}
-                  <div className="space-y-2">
-                    <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
-                      <ListChecks className="size-3.5 text-muted-foreground" />
-                      Campos seleccionados de la fuente:
-                    </label>
-                    <div className={cn(
-                      "grid gap-3 w-full",
-                      selectedCamposDetails.length === 1
-                        ? "grid-cols-1"
-                        : selectedCamposDetails.length === 2
-                        ? "grid-cols-1 sm:grid-cols-2"
-                        : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
-                    )}>
-                      {selectedCamposDetails.map((item) => (
-                        <div
-                          key={`p1-res-${item.campo.id}`}
-                          className="flex items-center justify-between p-3.5 rounded-xl border border-border/80 bg-muted/20 gap-3"
-                        >
-                          <div className="min-w-0 flex-1">
-                            <p className="font-mono font-bold text-xs text-foreground truncate">
-                              {item.campo.nombre}
-                            </p>
-                            <p className="text-[11px] text-muted-foreground truncate">
-                              {item.campo.descripcion}
-                            </p>
-                          </div>
-                          <Badge
-                            tone={item.campo.clasificacion === "Confidencial" ? "warning" : "success"}
-                            appearance="soft"
-                            size="sm"
-                            className="gap-1 inline-flex font-semibold shrink-0"
-                          >
-                            {item.campo.clasificacion === "Confidencial" ? (
-                              <Lock className="size-3" />
-                            ) : (
-                              <Unlock className="size-3" />
-                            )}
-                            {item.campo.clasificacion.toUpperCase()}
-                          </Badge>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </Card>
-
-                {/* PASO 2: Justificaciones declaradas */}
-                <Card className="p-6 bg-card border-border shadow-xs space-y-5 rounded-2xl">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-border/70 gap-2">
-                    <div className="flex items-center gap-2.5">
-                      <span className="flex items-center justify-center size-6 rounded-full bg-primary/10 text-primary font-bold text-xs shrink-0">
-                        2
-                      </span>
-                      <div>
-                        <h3 className="font-bold text-base text-foreground">
-                          Paso 2: Finalidad de uso y justificación jurídica declaradas
-                        </h3>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          Finalidad de uso (campos accesibles) y justificación jurídica (campos confidenciales)
-                        </p>
-                      </div>
-                    </div>
-                    <Badge tone="neutral" appearance="outline" className="text-xs font-semibold w-fit">
-                      {selectedCamposDetails.length} justificado(s)
-                    </Badge>
-                  </div>
-
-                  <div className="flex flex-col gap-4">
-                    {selectedCamposDetails.map((item) => (
-                      <div
-                        key={`p2-res-${item.fuenteId}-${item.campo.id}`}
-                        className="p-4 sm:p-5 border border-border/80 bg-muted/10 space-y-3.5 rounded-xl w-full"
-                      >
-                        <div className="flex items-center justify-between gap-2 pb-2 border-b border-border/60">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <span className="font-mono font-bold text-sm text-foreground">
-                              {item.campo.nombre}
-                            </span>
-                            <span className="text-xs text-muted-foreground hidden sm:inline truncate">
-                              — {item.campo.descripcion}
-                            </span>
-                          </div>
-                          <Badge
-                            tone={item.campo.clasificacion === "Confidencial" ? "warning" : "success"}
-                            appearance="soft"
-                            size="sm"
-                            className="gap-1 inline-flex font-semibold shrink-0"
-                          >
-                            {item.campo.clasificacion === "Confidencial" ? (
-                              <Lock className="size-3" />
-                            ) : (
-                              <Unlock className="size-3" />
-                            )}
-                            {item.campo.clasificacion.toUpperCase()}
-                          </Badge>
-                        </div>
-
-                        <div className={cn(
-                          "w-full",
-                          item.campo.clasificacion === "Confidencial"
-                            ? "grid grid-cols-1 md:grid-cols-2 gap-4"
-                            : "flex flex-col"
-                        )}>
-                          <div className="space-y-1.5 w-full">
-                            <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
-                              <FileText className="size-3.5 text-primary" />
-                              Finalidad de uso declarada
-                            </label>
-                            <Textarea
-                              disabled
-                              className="w-full rounded-xl min-h-[75px] text-xs sm:text-sm bg-background border-border/80 opacity-90 cursor-not-allowed"
-                              value={justificaciones[item.campo.id]?.finalidad || "Finalidad de verificación institucional y consulta de elegibilidad."}
-                            />
-                          </div>
-
-                          {item.campo.clasificacion === "Confidencial" && (
-                            <div className="space-y-1.5 w-full">
-                              <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
-                                <Scale className="size-3.5 text-warning" />
-                                Justificación jurídica requerida
-                              </label>
-                              <Textarea
-                                disabled
-                                className="w-full rounded-xl min-h-[75px] text-xs sm:text-sm bg-background border-warning/30 opacity-90 cursor-not-allowed"
-                                value={justificaciones[item.campo.id]?.fundamento || "Art. 89 del Código Orgánico de la Economía Social de los Conocimientos y Ley Orgánica de Protección de Datos Personales."}
-                              />
+                                  );
+                                })}
+                              </div>
                             </div>
-                          )}
+                          ))}
                         </div>
                       </div>
-                    ))}
+                    )}
                   </div>
-                </Card>
 
-                <div className="flex flex-wrap justify-between items-center gap-3 pt-2">
-                  <Button variant="outline" size="sm" onClick={prevStep} className="gap-2">
-                    <ArrowLeft className="size-4" />
-                    Volver a editar
-                  </Button>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleGuardarBorrador}
-                      className="gap-1.5 font-semibold"
-                    >
-                      <FileText className="size-4" />
-                      <span>Guardar borrador</span>
+                  {/* Barra de navegación inferior del Paso 3 */}
+                  <div className="p-4 sm:p-6 bg-muted/20 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3 w-full">
+                    <Button variant="neutral" size="sm" onClick={prevStep} className="gap-2">
+                      <ArrowLeft className="size-4" />
+                      Atrás
                     </Button>
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      onClick={() => setIsModalConfirmacionOpen(true)}
-                      id="btn-enviar-solicitud"
-                      className="gap-2 font-semibold shadow-sm"
-                    >
-                      <Send className="size-4" />
-                      <span>Crear y enviar solicitud</span>
-                    </Button>
-                  </div>
-                </div>
-
-                {/* MODAL DE CONFIRMACIÓN: ENVÍO DE SOLICITUD */}
-                <Dialog open={isModalConfirmacionOpen} onOpenChange={setIsModalConfirmacionOpen}>
-                  <DialogContent
-                    variant="success"
-                    size="lg"
-                    className="p-6 sm:p-7 max-w-lg max-h-[90vh] flex flex-col overflow-hidden"
-                    icon={<Check className="size-10 text-success stroke-[2px]" />}
-                  >
-                    <DialogHeader className="items-center text-center gap-1.5 shrink-0 pb-3 border-b border-border/50">
-                      <DialogTitle className="font-heading text-xl font-bold text-foreground">
-                        Solicitud lista para enviarse a Gestión
-                      </DialogTitle>
-                      <DialogDescription className="text-sm text-muted-foreground max-w-md mx-auto">
-                        Tu solicitud será radicada y enviada formalmente a la bandeja de la Dirección de Gestión DINARP para su asignación y revisión (SOL-01).
-                      </DialogDescription>
-                    </DialogHeader>
-
-                    <div className="modal-scroll-area overflow-y-auto pr-2 py-2.5 space-y-3 w-full flex-1 min-h-0 text-left">
-                      <div className="p-3.5 rounded-2xl bg-muted/40 border border-border text-xs space-y-2">
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Proyecto activo:</span>
-                          <strong className="text-foreground truncate max-w-[200px]">{activeProyecto.nombre}</strong>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Fuente:</span>
-                          <strong className="text-foreground truncate max-w-[200px]">
-                            {activeFuente ? activeFuente.nombre : (selectedCamposDetails[0]?.fuenteNombre || "Registro Civil")}
-                          </strong>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Modalidad / Cupo:</span>
-                          <strong className="text-foreground truncate max-w-[200px]">
-                            {cupoSolicitado}
-                          </strong>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Campos solicitados:</span>
-                          <strong className="text-foreground">{selectedCamposDetails.length} campo(s)</strong>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Estado inicial:</span>
-                          <Badge tone="info" appearance="soft" size="sm">Pendiente de asignación en Gestión</Badge>
-                        </div>
-                      </div>
-                    </div>
-
-                    <DialogFooter className="mt-3 pt-4 border-t border-border flex flex-col-reverse sm:flex-row gap-2.5 w-full shrink-0">
+                    <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
                       <Button
-                        variant="ghost"
-                        onClick={() => setIsModalConfirmacionOpen(false)}
-                        className="w-full sm:w-1/2 font-semibold"
+                        variant="secondary"
+                        size="sm"
+                        onClick={handleGuardarBorrador}
+                        className="gap-1.5 text-xs font-semibold"
                       >
-                        Seguir revisando
+                        <FileText className="size-4" />
+                        <span>Guardar como borrador</span>
                       </Button>
                       <Button
-                        variant="success"
-                        onClick={() => {
-                          const fuenteNombre = activeFuente ? activeFuente.nombre : (selectedCamposDetails[0]?.fuenteNombre || "Dirección General de Registro Civil, Identificación y Cedulación");
-                          const servicioNombre = selectedCamposDetails[0]?.servicioNombre || "Consulta de Datos de Identidad";
-                          
-                          crearNuevaSolicitud({
-                            institucion: "Ministerio de Salud Pública",
-                            tipoInstitucion: "Pública",
-                            proyectoId: activeProyecto.id,
-                            proyectoNombre: activeProyecto.nombre,
-                            modalidad: modalidadSolicitada,
-                            cupo: cupoSolicitado,
-                            estado: "Por revisar",
-                            documentos: documentosAdjuntos,
-                            fuentePrincipal: fuenteNombre,
-                            servicioPrincipal: servicioNombre,
-                            camposCount: selectedCamposDetails.length,
-                            fuentes: [
+                        variant="primary"
+                        size="sm"
+                        onClick={nextStep}
+                        disabled={!isStep3Valid}
+                        className="gap-2 text-xs font-semibold"
+                      >
+                        <span>Siguiente: Revisar y enviar</span>
+                        <ChevronRight className="size-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* PASO 4: REVISAR Y ENVIAR */}
+              {step === 4 && (
+                <div className="flex flex-col w-full" id="resumen-step">
+                  {/* Cabecera de Sección IV */}
+                  <div className="bg-primary/5 dark:bg-primary-950/20 border-b border-border p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 w-full">
+                    <div className="flex items-center gap-3.5 min-w-0">
+                      <div className="size-10 rounded-xl bg-primary/15 text-primary flex items-center justify-center shrink-0 shadow-2xs">
+                        <FileText className="size-5 text-primary" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h2 className="font-heading text-base font-bold text-primary leading-snug">
+                            Sección IV — Revisión Integral y Envío de la Solicitud
+                          </h2>
+                          <Badge tone="info" appearance="soft" size="sm" className="font-semibold text-[10px]">
+                            Trámite de Interoperabilidad
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Verifique toda la información y justificaciones ingresadas antes del envío formal a Gestión DINARP.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Badge tone="success" appearance="soft" size="sm" className="font-semibold px-2.5 py-1 gap-1">
+                        <Check className="size-3" /> Lista para envío
+                      </Badge>
+                    </div>
+                  </div>
+
+                  {/* Cuerpo del Paso 4 */}
+                  <div className="p-4 sm:p-6 flex flex-col gap-6 w-full">
+                    {/* 4.1 Proyecto, modalidad, cupo y documentos */}
+                    <div className="w-full rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-2xs flex flex-col gap-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-border/70 gap-2">
+                        <div className="flex items-center gap-2.5">
+                          <span className="flex items-center justify-center size-6 rounded-md bg-primary/10 text-primary font-bold text-xs shrink-0">
+                            4.1
+                          </span>
+                          <div>
+                            <h3 className="font-heading font-bold text-sm sm:text-base text-foreground">
+                              Proyecto institucional, modalidad y respaldo
+                            </h3>
+                            <p className="text-xs text-muted-foreground">
+                              Datos institucionales consolidados para emisión y revisión en Gestión y DPI
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setStep(1)}
+                          className="h-7 px-2.5 text-caption text-primary hover:text-primary shrink-0 w-fit"
+                        >
+                          Editar paso 1
+                        </Button>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs w-full">
+                        <div className="p-3.5 rounded-xl bg-muted/25 border border-border/60">
+                          <span className="text-muted-foreground block text-[11px] mb-0.5">Proyecto institucional:</span>
+                          <strong className="text-foreground text-xs sm:text-sm truncate block" title={activeProyecto.nombre}>
+                            {activeProyecto.nombre}
+                          </strong>
+                          <span className="text-[10px] text-muted-foreground">Ministerio de Salud Pública ({activeProyecto.id})</span>
+                        </div>
+
+                        <div className="p-3.5 rounded-xl bg-muted/25 border border-border/60">
+                          <span className="text-muted-foreground block text-[11px] mb-0.5">Fuente seleccionada:</span>
+                          <strong className="text-foreground text-xs sm:text-sm truncate block" title={activeFuente ? activeFuente.nombre : (selectedCamposDetails[0]?.fuenteNombre || "Registro Civil")}>
+                            {activeFuente ? activeFuente.nombre : (selectedCamposDetails[0]?.fuenteNombre || "Registro Civil")}
+                          </strong>
+                          <span className="text-[10px] text-muted-foreground truncate block">
+                            {selectedCamposDetails[0]?.servicioNombre || "Consulta de Datos de Identidad"}
+                          </span>
+                        </div>
+
+                        <div className="p-3.5 rounded-xl bg-muted/25 border border-border/60">
+                          <span className="text-muted-foreground block text-[11px] mb-0.5">Modalidad y cupo:</span>
+                          <strong className="text-foreground text-xs sm:text-sm truncate block">
+                            {modalidadSolicitada}
+                          </strong>
+                          <span className="text-[10px] text-muted-foreground">Cupo: {cupoSolicitado} reg./mes</span>
+                        </div>
+
+                        <div className="p-3.5 rounded-xl bg-muted/25 border border-border/60">
+                          <span className="text-muted-foreground block text-[11px] mb-0.5">Documentos adjuntos ({documentosAdjuntos.length}):</span>
+                          <div className="flex items-center gap-1.5 text-foreground font-semibold">
+                            <FileText className="size-3.5 text-primary shrink-0" />
+                            <span className="truncate">{documentosAdjuntos[0]?.nombre || "Oficio_Solicitud_Acceso.pdf"}</span>
+                          </div>
+                          <span className="text-[10px] text-muted-foreground">Respaldo técnico-jurídico</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 4.2 Campos seleccionados */}
+                    <div className="w-full rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-2xs flex flex-col gap-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-border/70 gap-2">
+                        <div className="flex items-center gap-2.5">
+                          <span className="flex items-center justify-center size-6 rounded-md bg-primary/10 text-primary font-bold text-xs shrink-0">
+                            4.2
+                          </span>
+                          <div>
+                            <h3 className="font-heading font-bold text-sm sm:text-base text-foreground">
+                              Fuente y campos seleccionados ({selectedCamposDetails.length})
+                            </h3>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              Institución: <strong className="text-foreground font-semibold">{activeFuente ? activeFuente.nombre : (selectedCamposDetails[0]?.fuenteNombre || "Registro Civil")}</strong>
+                              {selectedCamposDetails[0]?.servicioNombre && (
+                                <span className="text-muted-foreground font-normal"> · Fuente: <strong className="text-foreground font-semibold">{selectedCamposDetails[0].servicioNombre}</strong></span>
+                              )}
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setStep(2)}
+                          className="h-7 px-2.5 text-caption text-primary hover:text-primary shrink-0 w-fit"
+                        >
+                          Editar paso 2
+                        </Button>
+                      </div>
+
+                      <div className={cn(
+                        "grid gap-3 w-full",
+                        selectedCamposDetails.length === 1
+                          ? "grid-cols-1"
+                          : selectedCamposDetails.length === 2
+                          ? "grid-cols-1 sm:grid-cols-2"
+                          : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+                      )}>
+                        {selectedCamposDetails.map((item) => (
+                          <div
+                            key={`p1-res-${item.campo.id}`}
+                            className={cn(
+                              "flex items-center justify-between p-3.5 rounded-xl border gap-3",
+                              item.campo.clasificacion === "Confidencial" && item.campo.esSensible
+                                ? "border-2 border-danger/55 bg-danger/10 dark:bg-danger-900/20"
+                                : "border-border/80 bg-muted/20"
+                            )}
+                          >
+                            <div className="min-w-0 flex-1">
+                              <p className="font-mono font-bold text-xs text-foreground truncate">
+                                {item.campo.nombre}
+                              </p>
+                              <p className="text-[11px] text-muted-foreground truncate">
+                                {item.campo.descripcion}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-1 flex-wrap justify-end shrink-0">
+                              <Badge
+                                tone={item.campo.clasificacion === "Confidencial" ? "warning" : "success"}
+                                appearance="soft"
+                                size="sm"
+                                className="gap-1 inline-flex font-semibold shrink-0"
+                              >
+                                {item.campo.clasificacion === "Confidencial" ? (
+                                  <Lock className="size-3" />
+                                ) : (
+                                  <Unlock className="size-3" />
+                                )}
+                                {item.campo.clasificacion.toUpperCase()}
+                              </Badge>
+                              {item.campo.clasificacion === "Confidencial" && item.campo.esSensible && (
+                                <Badge
+                                  tone="danger"
+                                  appearance="solid"
+                                  size="sm"
+                                  className="gap-1 inline-flex font-bold shrink-0"
+                                >
+                                  <ShieldAlert className="size-3" />
+                                  SENSIBLE · LOPDP
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* 4.3 Justificaciones declaradas */}
+                    <div className="w-full rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-2xs flex flex-col gap-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-border/70 gap-2">
+                        <div className="flex items-center gap-2.5">
+                          <span className="flex items-center justify-center size-6 rounded-md bg-primary/10 text-primary font-bold text-xs shrink-0">
+                            4.3
+                          </span>
+                          <div>
+                            <h3 className="font-heading font-bold text-sm sm:text-base text-foreground">
+                              Finalidad de uso y justificación jurídica declaradas ({selectedCamposDetails.length})
+                            </h3>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              Finalidad de uso (campos accesibles) y justificación jurídica (campos confidenciales)
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setStep(3)}
+                          className="h-7 px-2.5 text-caption text-primary hover:text-primary shrink-0 w-fit"
+                        >
+                          Editar paso 3
+                        </Button>
+                      </div>
+
+                      <div className="flex flex-col gap-3.5 w-full">
+                        {selectedCamposDetails.map((item) => (
+                          <div
+                            key={`p2-res-${item.fuenteId}-${item.campo.id}`}
+                            className={cn(
+                              "p-4 space-y-3 rounded-xl w-full",
+                              item.campo.clasificacion === "Confidencial" && item.campo.esSensible
+                                ? "border-2 border-danger/55 bg-danger/5 dark:bg-danger-900/15"
+                                : "border border-border/80 bg-muted/10"
+                            )}
+                          >
+                            <div className="flex items-center justify-between gap-2 pb-2 border-b border-border/60">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <span className="font-mono font-bold text-sm text-foreground">
+                                  {item.campo.nombre}
+                                </span>
+                                <span className="text-xs text-muted-foreground hidden sm:inline truncate">
+                                  — {item.campo.descripcion}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1.5 flex-wrap justify-end shrink-0">
+                                <Badge
+                                  tone={item.campo.clasificacion === "Confidencial" ? "warning" : "success"}
+                                  appearance="soft"
+                                  size="sm"
+                                  className="gap-1 inline-flex font-semibold shrink-0"
+                                >
+                                  {item.campo.clasificacion === "Confidencial" ? (
+                                    <Lock className="size-3" />
+                                  ) : (
+                                    <Unlock className="size-3" />
+                                  )}
+                                  {item.campo.clasificacion.toUpperCase()}
+                                </Badge>
+                                {item.campo.clasificacion === "Confidencial" && item.campo.esSensible && (
+                                  <Badge
+                                    tone="danger"
+                                    appearance="solid"
+                                    size="sm"
+                                    className="gap-1 inline-flex font-bold shrink-0"
+                                  >
+                                    <ShieldAlert className="size-3" />
+                                    SENSIBLE · LOPDP
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className={cn(
+                              "w-full",
+                              item.campo.clasificacion === "Confidencial"
+                                ? "grid grid-cols-1 md:grid-cols-2 gap-4"
+                                : "flex flex-col"
+                            )}>
+                              <div className="space-y-1.5 w-full">
+                                <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
+                                  <FileText className="size-3.5 text-primary" />
+                                  Finalidad de uso declarada
+                                </label>
+                                <Textarea
+                                  disabled
+                                  className="w-full rounded-xl min-h-[75px] text-xs sm:text-sm bg-background border-border/80 opacity-90 cursor-not-allowed"
+                                  value={justificaciones[item.campo.id]?.finalidad || "Finalidad de verificación institucional y consulta de elegibilidad."}
+                                />
+                              </div>
+
+                              {item.campo.clasificacion === "Confidencial" && (
+                                <div className="space-y-1.5 w-full">
+                                  <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
+                                    <Scale className="size-3.5 text-warning" />
+                                    Justificación jurídica requerida
+                                  </label>
+                                  <Textarea
+                                    disabled
+                                    className="w-full rounded-xl min-h-[75px] text-xs sm:text-sm bg-background border-warning/30 opacity-90 cursor-not-allowed"
+                                    value={justificaciones[item.campo.id]?.fundamento || "Art. 89 del Código Orgánico de la Economía Social de los Conocimientos y Ley Orgánica de Protección de Datos Personales."}
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* 4.4 Resumen de la subsanación (Solo modo Subsanación) */}
+                    {esModoSubsanacion && (
+                      <div className="w-full rounded-2xl border-2 border-warning/40 bg-warning/5 dark:bg-warning-950/20 p-4 sm:p-5 shadow-2xs flex flex-col gap-4 animate-in fade-in duration-150">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-warning/20 gap-2">
+                          <div className="flex items-center gap-2.5">
+                            <span className="flex items-center justify-center size-6 rounded-md bg-warning/20 text-warning font-bold text-xs shrink-0">
+                              4.4
+                            </span>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h3 className="font-heading font-bold text-sm sm:text-base text-foreground">
+                                  Resumen de la subsanación realizada para el Revisor (SOL-05)
+                                </h3>
+                                <Badge tone="warning" appearance="soft" size="sm" className="font-semibold text-[10px]">
+                                  Obligatorio
+                                </Badge>
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                Describa las correcciones aplicadas en el expediente en respuesta a las observaciones de Gestión y DPI
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Recordatorio de observaciones previas */}
+                        {targetSolicitud && (
+                          <div className="p-3.5 rounded-xl bg-surface/80 border border-warning/30 text-xs space-y-1">
+                            <div className="flex items-center gap-1.5 font-semibold text-warning">
+                              <AlertTriangle className="size-3.5 shrink-0" />
+                              <span>Observación a subsanar:</span>
+                            </div>
+                            <p className="text-muted-foreground text-[11px] leading-relaxed">
+                              {targetSolicitud.motivoRechazo || targetSolicitud.observaciones || "Ajuste de justificaciones o campos observados."}
+                            </p>
+                          </div>
+                        )}
+
+                        <div className="space-y-1.5 w-full">
+                          <label className="text-xs font-semibold text-foreground flex items-center justify-between">
+                            <span>Detalle de correcciones realizadas <span className="text-destructive">*</span></span>
+                            <span className="text-[11px] text-muted-foreground font-normal">
+                              {comentarioSubsanacion.length} caracteres
+                            </span>
+                          </label>
+                          <Textarea
+                            className="w-full rounded-xl min-h-[100px] text-xs sm:text-sm bg-background border-warning/40 focus-visible:ring-warning"
+                            placeholder="Ej: Se ajustó la finalidad de uso para el campo cedulaCiudadania especificando el proceso institucional de registro de matrículas y se fundamentó el campo confidencial con el Art. 47 LOEI..."
+                            value={comentarioSubsanacion}
+                            onChange={(e) => setComentarioSubsanacion(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Barra de navegación inferior del Paso 4 */}
+                  <div className="p-4 sm:p-6 bg-muted/20 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3 w-full">
+                    <Button variant="neutral" size="sm" onClick={prevStep} className="gap-2">
+                      <ArrowLeft className="size-4" />
+                      Volver a editar
+                    </Button>
+                    <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
+                      {esModoSubsanacion ? (
+                        <>
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => {
+                              if (onCancel) {
+                                onCancel();
+                              } else if (targetSolicitud?.id) {
+                                router.push(`/acceso-interoperabilidad/solicitudes/${targetSolicitud.id}`);
+                              } else {
+                                router.push("/acceso-interoperabilidad/solicitudes");
+                              }
+                            }}
+                            className="gap-1.5 text-xs font-semibold"
+                          >
+                            <X className="size-4" />
+                            <span>Cancelar subsanación</span>
+                          </Button>
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            onClick={() => setIsModalConfirmacionOpen(true)}
+                            id="btn-subsanar-reenviar"
+                            disabled={!comentarioSubsanacion.trim()}
+                            className="gap-2 text-xs font-semibold shadow-sm"
+                          >
+                            <RotateCcw className="size-4" />
+                            <span>Subsanar y reenviar a Gestión (SOL-05)</span>
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={handleGuardarBorrador}
+                            className="gap-1.5 text-xs font-semibold"
+                          >
+                            <FileText className="size-4" />
+                            <span>Guardar como borrador</span>
+                          </Button>
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            onClick={() => setIsModalConfirmacionOpen(true)}
+                            id="btn-enviar-solicitud"
+                            className="gap-2 text-xs font-semibold shadow-sm"
+                          >
+                            <Send className="size-4" />
+                            <span>Crear y enviar solicitud</span>
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* MODAL DE CONFIRMACIÓN: ENVÍO / SUBSANACIÓN */}
+                  <Dialog open={isModalConfirmacionOpen} onOpenChange={setIsModalConfirmacionOpen}>
+                    <DialogContent
+                      variant="success"
+                      size="lg"
+                      className="p-6 sm:p-7 max-w-lg max-h-[90vh] flex flex-col overflow-hidden"
+                      icon={<Check className="size-10 text-success stroke-[2px]" />}
+                    >
+                      <DialogHeader className="items-center text-center gap-1.5 shrink-0 pb-3 border-b border-border/50">
+                        <DialogTitle className="font-heading text-xl font-bold text-foreground">
+                          {esModoSubsanacion
+                            ? "Confirmar reenvío de expediente subsanado (SOL-05)"
+                            : "Solicitud lista para enviarse a Gestión"}
+                        </DialogTitle>
+                        <DialogDescription className="text-sm text-muted-foreground max-w-md mx-auto">
+                          {esModoSubsanacion
+                            ? `El expediente pasará a la versión v${(targetSolicitud?.versionExpediente || 1) + 1} y retornará a la bandeja de Gestión DINARP para validación y reasignación de revisión.`
+                            : "Tu solicitud será radicada y enviada formalmente a la bandeja de la Dirección de Gestión DINARP para su asignación y revisión (SOL-01)."}
+                        </DialogDescription>
+                      </DialogHeader>
+
+                      <div className="modal-scroll-area overflow-y-auto pr-2 py-2.5 space-y-3 w-full flex-1 min-h-0 text-left">
+                        <div className="p-3.5 rounded-2xl bg-muted/40 border border-border text-xs space-y-2">
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Proyecto activo:</span>
+                            <strong className="text-foreground truncate max-w-[200px]">{activeProyecto.nombre}</strong>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Fuente:</span>
+                            <strong className="text-foreground truncate max-w-[200px]">
+                              {activeFuente ? activeFuente.nombre : (selectedCamposDetails[0]?.fuenteNombre || "Registro Civil")}
+                            </strong>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Modalidad / Cupo:</span>
+                            <strong className="text-foreground truncate max-w-[200px]">
+                              {modalidadSolicitada} · {cupoSolicitado} reg./mes
+                            </strong>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Campos solicitados:</span>
+                            <strong className="text-foreground">{selectedCamposDetails.length} campo(s)</strong>
+                          </div>
+                          {esModoSubsanacion && targetSolicitud && (
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Nueva versión:</span>
+                              <Badge tone="warning" appearance="soft" size="sm" className="font-semibold">
+                                v{(targetSolicitud.versionExpediente || 1) + 1} (Subsanación)
+                              </Badge>
+                            </div>
+                          )}
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Estado resultante:</span>
+                            <Badge tone="info" appearance="soft" size="sm">
+                              {esModoSubsanacion ? "Pendiente de nueva asignación en Gestión" : "Pendiente de asignación en Gestión"}
+                            </Badge>
+                          </div>
+                        </div>
+
+                        {esModoSubsanacion && comentarioSubsanacion && (
+                          <div className="p-3 rounded-xl bg-warning/10 border border-warning/30 text-xs space-y-1">
+                            <span className="font-semibold text-warning block">Comentario de subsanación:</span>
+                            <p className="text-muted-foreground text-[11px] leading-relaxed line-clamp-3">
+                              {comentarioSubsanacion}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+
+                      <DialogFooter className="mt-3 pt-4 border-t border-border flex flex-col-reverse sm:flex-row gap-2.5 w-full shrink-0">
+                        <Button
+                          variant="ghost"
+                          onClick={() => setIsModalConfirmacionOpen(false)}
+                          className="w-full sm:w-1/2 font-semibold"
+                        >
+                          Seguir revisando
+                        </Button>
+                        <Button
+                          variant={esModoSubsanacion ? "primary" : "success"}
+                          onClick={() => {
+                            const fuenteNombre = activeFuente ? activeFuente.nombre : (selectedCamposDetails[0]?.fuenteNombre || "Dirección General de Registro Civil, Identificación y Cedulación");
+                            const servicioNombre = selectedCamposDetails[0]?.servicioNombre || "Consulta de Datos de Identidad";
+                            const fuentesActualizadas: FuenteDetalle[] = [
                               {
-                                id: activeFuente?.id || "f-regciv",
+                                id: activeFuente?.id || targetSolicitud?.fuentes?.[0]?.id || "f-regciv",
                                 nombre: fuenteNombre,
                                 institucion: fuenteNombre,
                                 campos: selectedCamposDetails.map(c => ({
@@ -1862,25 +3507,59 @@ export function AccesoSolicitudNuevaView() {
                                   descripcion: c.campo.descripcion || "",
                                   tipo: c.campo.tipo,
                                   clasificacion: (c.campo.clasificacion === "Confidencial" ? "Confidencial" : "Accesible") as "Accesible" | "Confidencial",
+                                  esSensible: Boolean(c.campo.esSensible),
+                                  etiquetaSensibilidad: c.campo.esSensible ? "Sensible" : undefined,
                                   finalidad: justificaciones[c.campo.id]?.finalidad || "Finalidad institucional requerida.",
-                                  fundamento: justificaciones[c.campo.id]?.fundamento || "Base legal de interoperabilidad."
+                                  fundamento: justificaciones[c.campo.id]?.fundamento || (c.campo.clasificacion === "Confidencial" ? "Base legal de interoperabilidad." : undefined)
                                 }))
                               }
-                            ]
-                          });
-                          setIsModalConfirmacionOpen(false);
-                          toast.success("Solicitud creada y enviada exitosamente a Gestión DINARP");
-                          router.push('/acceso-interoperabilidad/solicitudes');
-                        }}
-                        className="w-full sm:w-1/2 font-bold shadow-xs"
-                      >
-                        Confirmar y Enviar
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
-              </div>
-            )}
+                            ];
+
+                            if (esModoSubsanacion) {
+                              if (onReenviar) {
+                                onReenviar(comentarioSubsanacion, fuentesActualizadas);
+                              } else if (targetSolicitud?.id) {
+                                subsanarYReenviar(targetSolicitud.id, {
+                                  comentario: comentarioSubsanacion,
+                                  fuentesActualizadas,
+                                  modalidad: modalidadSolicitada,
+                                  cupo: cupoSolicitado,
+                                  documentos: documentosAdjuntos,
+                                });
+                              }
+                              setIsModalConfirmacionOpen(false);
+                              toast.success(`Expediente subsanado y reenviado exitosamente a Gestión DINARP (v${(targetSolicitud?.versionExpediente || 1) + 1})`);
+                              router.push("/acceso-interoperabilidad/solicitudes");
+                            } else {
+                              crearNuevaSolicitud({
+                                institucion: "Ministerio de Salud Pública",
+                                tipoInstitucion: "Pública",
+                                proyectoId: activeProyecto.id,
+                                proyectoNombre: activeProyecto.nombre,
+                                modalidad: modalidadSolicitada,
+                                cupo: cupoSolicitado,
+                                estado: "Por revisar",
+                                documentos: documentosAdjuntos,
+                                fuentePrincipal: fuenteNombre,
+                                servicioPrincipal: servicioNombre,
+                                camposCount: selectedCamposDetails.length,
+                                fuentes: fuentesActualizadas,
+                              });
+                              setIsModalConfirmacionOpen(false);
+                              toast.success("Solicitud creada y enviada exitosamente a Gestión DINARP");
+                              router.push("/acceso-interoperabilidad/solicitudes");
+                            }
+                          }}
+                          className="w-full sm:w-1/2 font-bold shadow-xs"
+                        >
+                          {esModoSubsanacion ? "Subsanar y reenviar" : "Confirmar y Enviar"}
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+              )}
+            </div>
           </Card>
         </main>
       </WireframeDashboardLayout>

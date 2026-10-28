@@ -1,61 +1,52 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from "react";
-import Link from "next/link";
+import React, { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import {
-  FileSignature,
-  Clock,
   Database,
+  CheckCircle2,
+  AlertTriangle,
+  Eye,
   Lock,
   Unlock,
-  AlertTriangle,
-  CheckCircle2,
-  X,
-  Eye,
-  FileSearch,
-  Building2,
-  FolderKanban,
-  ShieldAlert,
-  History,
-  FileText,
+  Clock,
+  Layers,
+  RotateCcw,
   Sparkles,
-  Check,
-  Send,
+  FileSearch,
+  FileText,
+  Building2,
+  User,
+  X,
+  Search as SearchIcon,
 } from "lucide-react";
+import { WireframeDashboardLayout } from "@/components/layout/wireframes/wireframe-dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { InteractiveCard } from "@/components/ui/data-display";
 import { Search } from "@/components/ui/search";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableHead,
-  TableRow,
-  TableCell,
-} from "@/components/ui/table";
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   Combobox,
-  ComboboxSelectTrigger,
   ComboboxInput,
   ComboboxContent,
-  ComboboxGroup,
-  ComboboxLabel,
-  ComboboxEmpty,
   ComboboxList,
   ComboboxItem,
+  ComboboxEmpty,
 } from "@/components/ui/combobox";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   Pagination,
   PaginationContent,
@@ -66,1257 +57,1110 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { WireframeDashboardLayout } from "@/components/layout/wireframes/wireframe-dashboard-layout";
-import { MOCK_USERS_BY_ROLE } from "@/modules/catalogo-interoperabilidad/data/catalogo-data";
+import { ViewModeToggle, type ViewMode } from "@/components/shared/view-mode-toggle";
+import { cn } from "@/lib/utils";
 import {
   useSolicitudesStore,
-  SolicitudAcceso,
-  ObservacionItem,
+  type SolicitudAcceso,
 } from "@/modules/acceso-interoperabilidad/data/solicitudes-store";
-import { cn } from "@/lib/utils";
-import { ViewModeToggle, type ViewMode } from "@/components/shared/view-mode-toggle";
 
-const REVISORES_GESTION = [
-  { id: "U-EQGEST", nombre: "Ana Torres", cargo: "Revisora Técnica de Gestión" },
-  { id: "U-EQGEST2", nombre: "Marcos Silva", cargo: "Revisor Funcional" },
-  { id: "U-EQGEST3", nombre: "Elena Viteri", cargo: "Analista de Integración" },
-];
+type KpiFilter = "ALL" | "POR_EVALUAR" | "SUBSANADAS" | "OBSERVADAS" | "APROBADAS";
 
-const ESTADOS_FILTRO = [
-  "Pendientes de evaluación",
-  "Asignada a revisión de Gestión",
-  "En revisión de Gestión",
-  "Observada",
-  "Aprobadas funcionalmente",
-  "Aprobada por Gestión",
-  "Pendiente de asignación en Normatividad",
-];
+interface FilterComboboxProps {
+  value: string;
+  onChange: (val: string) => void;
+  options: { value: string; label: string }[];
+  placeholder?: string;
+}
 
-const CLASIFICACION_FILTRO = [
-  "Contiene campos confidenciales",
-  "Solo campos accesibles",
-];
+function FilterCombobox({
+  value,
+  onChange,
+  options,
+  placeholder = "Seleccionar...",
+}: FilterComboboxProps) {
+  const selectedLabel = options.find((o) => o.value === value)?.label ?? value;
+  const [inputValue, setInputValue] = useState(selectedLabel);
+  const [isFiltering, setIsFiltering] = useState(false);
 
-type ExpedienteTabId = "resumen" | "campos" | "confidencial" | "trazabilidad";
+  React.useEffect(() => {
+    setInputValue(options.find((o) => o.value === value)?.label ?? value);
+    setIsFiltering(false);
+  }, [value, options]);
+
+  const filtered = isFiltering
+    ? options.filter((o) => o.label.toLowerCase().includes(inputValue.toLowerCase()))
+    : options;
+
+  return (
+    <Combobox
+      value={value}
+      onValueChange={(val: string | null) => {
+        if (val !== null) {
+          onChange(val);
+          const match = options.find((o) => o.value === val);
+          if (match) setInputValue(match.label);
+          setIsFiltering(false);
+        }
+      }}
+      onOpenChange={(open: boolean) => {
+        if (!open) {
+          setInputValue(selectedLabel);
+          setIsFiltering(false);
+        }
+      }}
+    >
+      <ComboboxInput
+        placeholder={placeholder}
+        value={inputValue}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+          setInputValue(e.target.value);
+          setIsFiltering(true);
+        }}
+        onFocus={(e: React.FocusEvent<HTMLInputElement>) => {
+          e.target.select();
+          setIsFiltering(false);
+        }}
+        showTrigger
+        className="h-9 text-xs bg-surface border-border/80 shadow-2xs w-full rounded-full [&_input]:text-xs [&_input]:font-medium [&_input]:text-foreground [&_input]:px-3.5"
+      />
+      <ComboboxContent className="min-w-[200px]">
+        <ComboboxList>
+          {filtered.length === 0 ? (
+            <ComboboxEmpty>Sin coincidencias</ComboboxEmpty>
+          ) : (
+            filtered.map((opt) => (
+              <ComboboxItem key={opt.value} value={opt.value} className="text-xs">
+                {opt.label}
+              </ComboboxItem>
+            ))
+          )}
+        </ComboboxList>
+      </ComboboxContent>
+    </Combobox>
+  );
+}
 
 export function RevisionGestionView() {
-  const {
-    solicitudes,
-    aprobarGestion,
-    observarGestion,
-  } = useSolicitudesStore();
-
-  const [activeRevisorId, setActiveRevisorId] = useState<string>("U-EQGEST");
-  const activeRevisor =
-    REVISORES_GESTION.find((r) => r.id === activeRevisorId) ||
-    REVISORES_GESTION[0];
+  const router = useRouter();
+  const { solicitudes } = useSolicitudesStore();
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [estadoFilter, setEstadoFilter] = useState<string>("");
-  const [confidencialFilter, setConfidencialFilter] = useState<string>("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(5);
+  const [kpiFilter, setKpiFilter] = useState<KpiFilter>("ALL");
+  const [estadoFilter, setEstadoFilter] = useState<string>("TODOS");
+  const [institucionFilter, setInstitucionFilter] = useState<string>("TODAS");
+  const [sensibilidadFilter, setSensibilidadFilter] = useState<string>("TODAS");
+  const [sortOrder, setSortOrder] = useState<"recientes" | "antiguos">("recientes");
   const [viewMode, setViewMode] = useState<ViewMode>("table");
-  const [feedbackBanner, setFeedbackBanner] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState<number>(10);
 
-  // Estados de Modales (Homologados con Cuentas Internas y Solicitudes Pendientes)
-  const [expedienteOpen, setExpedienteOpen] = useState(false);
-  const [selectedSolicitudId, setSelectedSolicitudId] = useState<string | null>(null);
-  const [activeExpedienteTab, setActiveExpedienteTab] =
-    useState<ExpedienteTabId>("resumen");
-
-  const [aprobarOpen, setAprobarOpen] = useState(false);
-  const [comentarioAprobacion, setComentarioAprobacion] = useState("");
-
-  const [observarOpen, setObservarOpen] = useState(false);
-  const [observacionGeneral, setObservacionGeneral] = useState("");
-  const [campoObservadoTarget, setCampoObservadoTarget] = useState<string>("");
-  const [campoObservadoTexto, setCampoObservadoTexto] = useState<string>("");
-
-  const selectedSolicitud = useMemo(
-    () => solicitudes.find((s) => s.id === selectedSolicitudId) || null,
-    [solicitudes, selectedSolicitudId]
-  );
-
-  const tieneConfidenciales = (s: SolicitudAcceso) => {
-    return (
-      s.fuentes?.some((f) =>
-        f.campos?.some((c) => c.clasificacion === "Confidencial")
-      ) || false
-    );
-  };
-
-  // Solicitudes asignadas exclusivamente al revisor autenticado (SOL-04)
-  const asignadasAlRevisor = useMemo(() => {
+  // Bandeja del Revisor del Equipo de Gestión
+  const bandejaGestion = useMemo(() => {
     return solicitudes.filter(
       (s) =>
-        s.revisorAsignadoId === activeRevisor.id ||
-        s.revisorAsignado === activeRevisor.nombre
+        s.estado === "Asignada a revisión de Gestión" ||
+        s.estado === "En revisión de Gestión" ||
+        s.estado === "En revisión" ||
+        s.estado === "Por revisar" ||
+        s.estado === "Reenviada" ||
+        s.estado === "Observada" ||
+        s.estado === "Con observaciones" ||
+        s.estado === "Requiere corrección" ||
+        s.estado === "Aprobada por Gestión" ||
+        s.estado === "Pendiente de asignación en Normatividad" ||
+        s.estado === "En revisión normativa" ||
+        s.estado === "Aprobada por Normatividad" ||
+        s.estado === "Cerrada" ||
+        s.estado === "Cerrada por vencimiento" ||
+        Boolean(s.revisorAsignado)
     );
-  }, [solicitudes, activeRevisor]);
+  }, [solicitudes]);
+
+  const isPorEvaluar = (s: SolicitudAcceso) =>
+    s.estado === "Asignada a revisión de Gestión" ||
+    s.estado === "En revisión de Gestión" ||
+    s.estado === "En revisión" ||
+    s.estado === "Por revisar" ||
+    s.estado === "Reenviada";
+
+  const isObservada = (s: SolicitudAcceso) =>
+    s.estado === "Observada" ||
+    s.estado === "Con observaciones" ||
+    s.estado === "Requiere corrección" ||
+    s.estado === "Cerrada" ||
+    s.estado === "Cerrada por vencimiento";
+
+  const isAprobadaGestion = (s: SolicitudAcceso) =>
+    s.estado === "Aprobada por Gestión" ||
+    s.estado === "Pendiente de asignación en Normatividad" ||
+    s.estado === "En revisión normativa" ||
+    s.estado === "Aprobada por Normatividad" ||
+    s.estado === "En formalización" ||
+    s.estado === "Pendiente de firma" ||
+    s.estado === "Acceso habilitado" ||
+    s.estado === "Acceso generado";
+
+  const hasConfidenciales = (s: SolicitudAcceso) =>
+    s.fuentes?.some((f) => f.campos?.some((c) => c.clasificacion === "Confidencial")) ?? false;
+
+  const hasSensibles = (s: SolicitudAcceso) =>
+    s.fuentes?.some((f) => f.campos?.some((c) => c.esSensible)) ?? false;
+
+  // Métricas KPI
+  const kpis = useMemo(() => {
+    const porEvaluar = bandejaGestion.filter(isPorEvaluar).length;
+    const subsanadas = bandejaGestion.filter(
+      (s) => (s.versionExpediente && s.versionExpediente > 1) || s.estado === "Reenviada"
+    ).length;
+    const observadas = bandejaGestion.filter(isObservada).length;
+    const aprobadas = bandejaGestion.filter(isAprobadaGestion).length;
+
+    return {
+      total: bandejaGestion.length,
+      porEvaluar,
+      subsanadas,
+      observadas,
+      aprobadas,
+    };
+  }, [bandejaGestion]);
+
+  const institucionesUnicas = useMemo(() => {
+    const set = new Set<string>();
+    bandejaGestion.forEach((s) => {
+      if (s.institucion) set.add(s.institucion);
+    });
+    return Array.from(set);
+  }, [bandejaGestion]);
 
   const filteredSolicitudes = useMemo(() => {
-    return asignadasAlRevisor.filter((s) => {
-      if (searchTerm.trim() !== "") {
-        const term = searchTerm.toLowerCase();
-        const matchesId = s.id.toLowerCase().includes(term);
-        const matchesInst = s.institucion.toLowerCase().includes(term);
-        const matchesFuente = (s.fuentePrincipal || "").toLowerCase().includes(term);
-        const matchesProyecto = (s.proyectoNombre || "").toLowerCase().includes(term);
-        if (!matchesId && !matchesInst && !matchesFuente && !matchesProyecto) {
-          return false;
-        }
-      }
+    const filtered = bandejaGestion.filter((s) => {
+      const q = searchTerm.trim().toLowerCase();
+      const fuenteNombre = s.fuentePrincipal || s.fuentes?.[0]?.nombre || "";
+      const matchSearch =
+        !q ||
+        s.id.toLowerCase().includes(q) ||
+        fuenteNombre.toLowerCase().includes(q) ||
+        s.institucion.toLowerCase().includes(q) ||
+        s.coordinador.toLowerCase().includes(q) ||
+        (s.proyectoNombre || "").toLowerCase().includes(q);
 
-      if (estadoFilter !== "") {
-        if (
-          estadoFilter === "Pendientes de evaluación" &&
-          (s.estado === "Asignada a revisión de Gestión" ||
-            s.estado === "En revisión de Gestión")
-        ) {
-          // Agrupa asignadas y en revisión funcional
-        } else if (
-          estadoFilter === "Aprobadas funcionalmente" &&
-          (s.estado === "Aprobada por Gestión" ||
-            s.estado === "Pendiente de asignación en Normatividad")
-        ) {
-          // Agrupa aprobadas por Gestión (accesibles o derivadas a DPI)
-        } else if (s.estado !== estadoFilter) {
-          return false;
-        }
-      }
+      if (!matchSearch) return false;
 
+      if (kpiFilter === "POR_EVALUAR" && !isPorEvaluar(s)) return false;
       if (
-        confidencialFilter === "Contiene campos confidenciales" &&
-        !tieneConfidenciales(s)
+        kpiFilter === "SUBSANADAS" &&
+        !((s.versionExpediente && s.versionExpediente > 1) || s.estado === "Reenviada")
       ) {
         return false;
       }
-      if (
-        confidencialFilter === "Solo campos accesibles" &&
-        tieneConfidenciales(s)
-      ) {
+      if (kpiFilter === "OBSERVADAS" && !isObservada(s)) return false;
+      if (kpiFilter === "APROBADAS" && !isAprobadaGestion(s)) return false;
+
+      if (estadoFilter === "POR_EVALUAR" && !isPorEvaluar(s)) return false;
+      if (estadoFilter === "OBSERVADAS" && !isObservada(s)) return false;
+      if (estadoFilter === "APROBADAS" && !isAprobadaGestion(s)) return false;
+
+      if (institucionFilter !== "TODAS" && s.institucion !== institucionFilter) {
         return false;
       }
+
+      const tieneConf = hasConfidenciales(s);
+      const tieneSens = hasSensibles(s);
+      if (sensibilidadFilter === "SENSIBLE" && !tieneSens) return false;
+      if (sensibilidadFilter === "CONFIDENCIAL" && !tieneConf) return false;
+      if (sensibilidadFilter === "SOLO_ACCESIBLES" && tieneConf) return false;
 
       return true;
     });
-  }, [asignadasAlRevisor, searchTerm, estadoFilter, confidencialFilter]);
 
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, estadoFilter, confidencialFilter, activeRevisorId]);
+    return filtered.sort((a, b) => {
+      const aPorEval = isPorEvaluar(a) ? 0 : 1;
+      const bPorEval = isPorEvaluar(b) ? 0 : 1;
+      if (aPorEval !== bPorEval) return aPorEval - bPorEval;
+      const cmp = b.id.localeCompare(a.id);
+      return sortOrder === "recientes" ? cmp : -cmp;
+    });
+  }, [
+    bandejaGestion,
+    searchTerm,
+    kpiFilter,
+    estadoFilter,
+    institucionFilter,
+    sensibilidadFilter,
+    sortOrder,
+  ]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredSolicitudes.length / pageSize));
-
+  const totalPages = Math.max(1, Math.ceil(filteredSolicitudes.length / itemsPerPage));
   const paginatedSolicitudes = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    return filteredSolicitudes.slice(start, start + pageSize);
-  }, [filteredSolicitudes, currentPage, pageSize]);
-
-  const metricas = useMemo(() => {
-    const total = asignadasAlRevisor.length;
-    const pendientesRevision = asignadasAlRevisor.filter(
-      (s) =>
-        s.estado === "Asignada a revisión de Gestión" ||
-        s.estado === "En revisión de Gestión"
-    ).length;
-    const observadas = asignadasAlRevisor.filter(
-      (s) => s.estado === "Observada"
-    ).length;
-    const aprobadas = asignadasAlRevisor.filter(
-      (s) =>
-        s.estado === "Aprobada por Gestión" ||
-        s.estado === "Pendiente de asignación en Normatividad"
-    ).length;
-    return { total, pendientesRevision, observadas, aprobadas };
-  }, [asignadasAlRevisor]);
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredSolicitudes.slice(start, start + itemsPerPage);
+  }, [filteredSolicitudes, currentPage, itemsPerPage]);
 
   const hasActiveFilters =
-    searchTerm !== "" || estadoFilter !== "" || confidencialFilter !== "";
+    searchTerm.trim() !== "" ||
+    kpiFilter !== "ALL" ||
+    estadoFilter !== "TODOS" ||
+    institucionFilter !== "TODAS" ||
+    sensibilidadFilter !== "TODAS";
 
-  const handleClearFilters = () => {
+  const handleResetFilters = () => {
     setSearchTerm("");
-    setEstadoFilter("");
-    setConfidencialFilter("");
+    setKpiFilter("ALL");
+    setEstadoFilter("TODOS");
+    setInstitucionFilter("TODAS");
+    setSensibilidadFilter("TODAS");
+    setSortOrder("recientes");
+    setCurrentPage(1);
   };
 
-  const openExpedienteModal = (
-    solicitud: SolicitudAcceso,
-    tab: ExpedienteTabId = "resumen"
-  ) => {
-    setSelectedSolicitudId(solicitud.id);
-    setActiveExpedienteTab(tab);
-    setExpedienteOpen(true);
-  };
-
-  const openAprobarModal = (solicitud: SolicitudAcceso) => {
-    setSelectedSolicitudId(solicitud.id);
-    setComentarioAprobacion(
-      "Se verifica la pertinencia funcional de cada campo solicitado, su finalidad de uso institucional y la justificación normativa adjunta."
-    );
-    setAprobarOpen(true);
-  };
-
-  const openObservarModal = (solicitud: SolicitudAcceso) => {
-    setSelectedSolicitudId(solicitud.id);
-    setObservacionGeneral("");
-    const firstField =
-      solicitud.fuentes?.[0]?.campos?.[0]?.nombre ||
-      solicitud.fuentes?.[0]?.campos?.[0]?.nombreCampo ||
-      "";
-    setCampoObservadoTarget(firstField);
-    setCampoObservadoTexto("");
-    setObservarOpen(true);
-  };
-
-  const handleConfirmAprobar = () => {
-    if (!selectedSolicitud) return;
-    const hasConf = tieneConfidenciales(selectedSolicitud);
-    const camposAprobados =
-      selectedSolicitud.fuentes?.[0]?.campos?.map(
-        (c) => c.nombre || c.nombreCampo || c.id
-      ) || [];
-    aprobarGestion(selectedSolicitud.id, {
-      revisor: activeRevisor.nombre,
-      camposAprobados,
-      modalidadesAutorizadas: selectedSolicitud.modalidad || "API individual",
-      cupoAprobado: selectedSolicitud.cupo || 50000,
-    });
-    setAprobarOpen(false);
-    setExpedienteOpen(false);
-    setFeedbackBanner(
-      hasConf
-        ? `Solicitud ${selectedSolicitud.id} aprobada funcionalmente por ${activeRevisor.nombre}. Al contener campos confidenciales, fue derivada automáticamente al Director DPI (SOL-07).`
-        : `Solicitud ${selectedSolicitud.id} aprobada funcionalmente por ${activeRevisor.nombre}. Al contener solo campos accesibles, avanza a Formalización e Instrumentación (BN-08).`
-    );
-  };
-
-  const handleConfirmObservar = () => {
-    if (!selectedSolicitud || !observacionGeneral.trim()) return;
-    const today = new Date().toISOString().substring(0, 10);
-    const observaciones: ObservacionItem[] = [
-      {
-        id: `obs-gen-${Date.now()}`,
-        tipo: "general",
-        elementoNombre: "Expediente general",
-        descripcion: observacionGeneral.trim(),
-        fecha: today,
-        revisor: activeRevisor.nombre,
-        etapa: "Gestión",
-      },
-    ];
-    if (campoObservadoTarget && campoObservadoTexto.trim()) {
-      observaciones.push({
-        id: `obs-cmp-${Date.now() + 1}`,
-        tipo: "campo",
-        elementoNombre: campoObservadoTarget,
-        descripcion: campoObservadoTexto.trim(),
-        fecha: today,
-        revisor: activeRevisor.nombre,
-        etapa: "Gestión",
-      });
+  const renderEstadoBadge = (sol: SolicitudAcceso) => {
+    if (isPorEvaluar(sol)) {
+      if ((sol.versionExpediente && sol.versionExpediente > 1) || sol.estado === "Reenviada") {
+        return (
+          <Badge tone="info" appearance="soft" size="sm" dot>
+            Subsanada · Pendiente por revisar (v{sol.versionExpediente || 2})
+          </Badge>
+        );
+      }
+      return (
+        <Badge tone="warning" appearance="soft" size="sm" dot>
+          Pendiente por revisar
+        </Badge>
+      );
     }
-    observarGestion(selectedSolicitud.id, {
-      revisor: activeRevisor.nombre,
-      observaciones,
-      diasPlazo: 3,
-    });
-    setObservarOpen(false);
-    setExpedienteOpen(false);
-    setFeedbackBanner(
-      `Observaciones registradas en ${selectedSolicitud.id}. El expediente cambió a estado Observada y se notificó al Coordinador SINARP con plazo de 3 días hábiles (PAR-13).`
+
+    if (sol.estado === "Cerrada" || sol.estado === "Cerrada por vencimiento") {
+      return (
+        <Badge tone="danger" appearance="soft" size="sm" dot>
+          Cerrada
+        </Badge>
+      );
+    }
+
+    if (isObservada(sol)) {
+      const obsDpi = sol.observacionesEstructuradas?.some(
+        (o) => o.etapa === "Protección de la Información (DPI)"
+      );
+      return (
+        <Badge tone="warning" appearance="soft" size="sm" dot>
+          {obsDpi ? "Observada en DPI" : "Observada por Gestión"}
+        </Badge>
+      );
+    }
+
+    if (sol.estado === "Pendiente de asignación en Normatividad") {
+      return (
+        <Badge tone="info" appearance="soft" size="sm" dot>
+          Aprobada en Gestión · Por asignar en DPI
+        </Badge>
+      );
+    }
+
+    if (sol.estado === "En revisión normativa") {
+      const pendienteFirmaDir =
+        sol.informeNormativa?.firmadoRevisor && !sol.informeNormativa?.firmadoDirector;
+      return (
+        <Badge tone="info" appearance="soft" size="sm" dot>
+          {pendienteFirmaDir
+            ? "Aprobada en Gestión · Firma Directora DPI"
+            : "Aprobada en Gestión · En revisión DPI"}
+        </Badge>
+      );
+    }
+
+    if (sol.estado === "Aprobada por Normatividad") {
+      return (
+        <Badge tone="success" appearance="soft" size="sm" dot>
+          Aprobada por Gestión y DPI
+        </Badge>
+      );
+    }
+
+    if (isAprobadaGestion(sol)) {
+      return (
+        <Badge tone="success" appearance="soft" size="sm" dot>
+          Aprobada por Gestión
+        </Badge>
+      );
+    }
+
+    return (
+      <Badge tone="neutral" appearance="soft" size="sm" dot>
+        {sol.estado}
+      </Badge>
     );
   };
 
   return (
     <WireframeDashboardLayout
       activeMenu="revision-gestion"
-      currentRole="EQ_GESTION"
-      currentUser={{
-        ...MOCK_USERS_BY_ROLE.EQ_GESTION,
-        name: activeRevisor.nombre,
-        roleTitle: activeRevisor.cargo,
-      }}
       breadcrumbs={[
-        { label: "Inicio", href: "/" },
-        { label: "Equipo de Gestión", href: "/revision-gestion" },
-        { label: "Revisión de Solicitudes de Acceso" },
+        { label: "Acceso a fuentes" },
+        { label: "Revisar solicitudes de acceso" },
       ]}
     >
-      <main className="w-full pr-3 pl-2 pb-3 pt-1.5 flex-1 min-h-0 flex flex-col overflow-hidden">
-        <Card
-          className="bg-surface rounded-2xl border border-border shadow-xs flex-1 min-h-0 overflow-hidden flex flex-col my-0"
-          innerClassName="p-4 sm:p-6 lg:p-8 flex flex-col gap-6 overflow-y-auto flex-1 min-h-0 w-full"
-        >
-          {/* CABECERA */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
-            <div className="space-y-1">
-              <h1 className="font-heading font-extrabold text-2xl sm:text-3xl tracking-tight text-primary">
-                Revisar accesos
-              </h1>
-              <p className="text-sm text-muted-foreground max-w-3xl">
-                Consulta y evalúa la finalidad de uso por campo, modalidad, cupo y documentos justificativos de las solicitudes de acceso que tienes asignadas.
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2.5 shrink-0 self-start sm:self-center">
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground hidden xl:inline">
-                  Revisor activo:
-                </span>
-                <Combobox
-                  items={REVISORES_GESTION.map((r) => ({
-                    value: r.id,
-                    label: `${r.nombre} (${r.cargo})`,
-                  }))}
-                  value={{
-                    value: activeRevisor.id,
-                    label: `${activeRevisor.nombre} (${activeRevisor.cargo})`,
-                  }}
-                  onValueChange={(val: any) => {
-                    if (val) {
-                      setActiveRevisorId(typeof val === "string" ? val : val.value);
-                    }
-                  }}
-                >
-                  <ComboboxSelectTrigger className="h-9 text-xs min-w-[220px] bg-background border-border/80" />
-                  <ComboboxContent align="end" className="w-[300px]">
-                    <ComboboxList>
-                      {REVISORES_GESTION.map((r) => (
-                        <ComboboxItem
-                          key={r.id}
-                          value={{ value: r.id, label: `${r.nombre} (${r.cargo})` }}
-                          className="text-xs"
-                        >
-                          <div>
-                            <p className="font-semibold text-foreground">{r.nombre}</p>
-                            <p className="text-[10px] text-muted-foreground">{r.cargo}</p>
-                          </div>
-                        </ComboboxItem>
-                      ))}
-                    </ComboboxList>
-                  </ComboboxContent>
-                </Combobox>
-              </div>
-              <Badge
-                tone="info"
-                appearance="soft"
-                size="md"
-                className="font-semibold px-3 py-1.5 text-xs"
-              >
-                {metricas.pendientesRevision} pendiente(s) de evaluación
-              </Badge>
-            </div>
-          </div>
-
-          {feedbackBanner && (
-            <div className="flex items-center justify-between gap-3 rounded-xl border border-success/40 bg-success/10 px-4 py-3 text-xs text-foreground animate-fade-in shrink-0">
-              <div className="flex items-center gap-2.5">
-                <CheckCircle2 className="size-4 text-success shrink-0" />
-                <span className="font-medium">{feedbackBanner}</span>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon-xs"
-                onClick={() => setFeedbackBanner(null)}
-                aria-label="Cerrar notificación"
-              >
-                <X className="size-3.5" />
-              </Button>
-            </div>
-          )}
-
-          {/* TARJETAS KPI INTERACTIVAS (Homologadas 100% con Cuentas Internas) */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 shrink-0">
-            {/* KPI 1: Total Asignadas */}
-            <Card
-              variant="featured"
-              role="button"
-              tabIndex={0}
-              onClick={handleClearFilters}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  handleClearFilters();
-                }
-              }}
-              aria-pressed={!hasActiveFilters}
-              className={cn(
-                "group relative overflow-hidden cursor-pointer transition-all duration-200 border rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring select-none",
-                "hover:-translate-y-0.5 hover:shadow-md",
-                !hasActiveFilters
-                  ? "bg-primary/15 border-primary ring-2 ring-primary/40 shadow-xs"
-                  : "bg-primary/5 hover:bg-primary/10 border-primary/25 shadow-2xs"
-              )}
-              innerClassName="p-3 sm:p-4 flex flex-col justify-between gap-2.5 h-full"
-            >
-              <div className="flex items-center justify-between gap-2 w-full">
-                <div
-                  className={cn(
-                    "size-10 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200",
-                    !hasActiveFilters
-                      ? "bg-primary text-white shadow-xs"
-                      : "bg-primary/15 text-primary group-hover:scale-105 group-hover:bg-primary group-hover:text-white"
-                  )}
-                >
-                  <Database className="size-5" />
-                </div>
-                <Badge
-                  tone="primary"
-                  appearance="soft"
-                  size="sm"
-                  className="text-[10px] font-bold px-2 py-0.5"
-                >
-                  Mi bandeja
-                </Badge>
-              </div>
-              <div className="space-y-0.5 text-left w-full">
-                <p className="text-xs font-semibold text-muted-foreground group-hover:text-foreground transition-colors truncate">
-                  Asignadas a mi cargo
-                </p>
-                <p className="text-2xl sm:text-3xl font-extrabold font-heading text-foreground leading-none tracking-tight">
-                  {metricas.total}
-                </p>
-              </div>
-            </Card>
-
-            {/* KPI 2: Pendientes de Evaluación */}
-            <Card
-              variant="featured"
-              role="button"
-              tabIndex={0}
-              onClick={() =>
-                setEstadoFilter(
-                  estadoFilter === "Pendientes de evaluación"
-                    ? ""
-                    : "Pendientes de evaluación"
-                )
-              }
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  setEstadoFilter(
-                    estadoFilter === "Pendientes de evaluación"
-                      ? ""
-                      : "Pendientes de evaluación"
-                  );
-                }
-              }}
-              aria-pressed={estadoFilter === "Pendientes de evaluación"}
-              className={cn(
-                "group relative overflow-hidden cursor-pointer transition-all duration-200 border rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring select-none",
-                "hover:-translate-y-0.5 hover:shadow-md",
-                estadoFilter === "Pendientes de evaluación"
-                  ? "bg-warning/15 border-warning ring-2 ring-warning/40 shadow-xs"
-                  : "bg-warning/5 hover:bg-warning/10 border-warning/25 shadow-2xs"
-              )}
-              innerClassName="p-3 sm:p-4 flex flex-col justify-between gap-2.5 h-full"
-            >
-              <div className="flex items-center justify-between gap-2 w-full">
-                <div
-                  className={cn(
-                    "size-10 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200",
-                    estadoFilter === "Pendientes de evaluación"
-                      ? "bg-warning text-white shadow-xs"
-                      : "bg-warning/15 text-warning group-hover:scale-105 group-hover:bg-warning group-hover:text-white"
-                  )}
-                >
-                  <Clock className="size-5" />
-                </div>
-                <Badge
-                  tone="warning"
-                  appearance="soft"
-                  size="sm"
-                  className="text-[10px] font-bold px-2 py-0.5"
-                >
-                  Por evaluar
-                </Badge>
-              </div>
-              <div className="space-y-0.5 text-left w-full">
-                <p className="text-xs font-semibold text-muted-foreground group-hover:text-foreground transition-colors truncate">
-                  Pendientes de Evaluación
-                </p>
-                <p className="text-2xl sm:text-3xl font-extrabold font-heading text-foreground leading-none tracking-tight">
-                  {metricas.pendientesRevision}
-                </p>
-              </div>
-            </Card>
-
-            {/* KPI 3: Observadas en Subsanación */}
-            <Card
-              variant="featured"
-              role="button"
-              tabIndex={0}
-              onClick={() =>
-                setEstadoFilter(
-                  estadoFilter === "Observada" ? "" : "Observada"
-                )
-              }
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  setEstadoFilter(
-                    estadoFilter === "Observada" ? "" : "Observada"
-                  );
-                }
-              }}
-              aria-pressed={estadoFilter === "Observada"}
-              className={cn(
-                "group relative overflow-hidden cursor-pointer transition-all duration-200 border rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring select-none",
-                "hover:-translate-y-0.5 hover:shadow-md",
-                estadoFilter === "Observada"
-                  ? "bg-danger/15 border-danger ring-2 ring-danger/40 shadow-xs"
-                  : "bg-danger/5 hover:bg-danger/10 border-danger/25 shadow-2xs"
-              )}
-              innerClassName="p-3 sm:p-4 flex flex-col justify-between gap-2.5 h-full"
-            >
-              <div className="flex items-center justify-between gap-2 w-full">
-                <div
-                  className={cn(
-                    "size-10 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200",
-                    estadoFilter === "Observada"
-                      ? "bg-danger text-white shadow-xs"
-                      : "bg-danger/15 text-danger group-hover:scale-105 group-hover:bg-danger group-hover:text-white"
-                  )}
-                >
-                  <AlertTriangle className="size-5" />
-                </div>
-                <Badge
-                  tone="danger"
-                  appearance="soft"
-                  size="sm"
-                  className="text-[10px] font-bold px-2 py-0.5"
-                >
-                  Plazo 3 días
-                </Badge>
-              </div>
-              <div className="space-y-0.5 text-left w-full">
-                <p className="text-xs font-semibold text-muted-foreground group-hover:text-foreground transition-colors truncate">
-                  Observadas en Subsanación
-                </p>
-                <p className="text-2xl sm:text-3xl font-extrabold font-heading text-foreground leading-none tracking-tight">
-                  {metricas.observadas}
-                </p>
-              </div>
-            </Card>
-
-            {/* KPI 4: Aprobadas Funcionalmente */}
-            <Card
-              variant="featured"
-              role="button"
-              tabIndex={0}
-              onClick={() =>
-                setEstadoFilter(
-                  estadoFilter === "Aprobadas funcionalmente"
-                    ? ""
-                    : "Aprobadas funcionalmente"
-                )
-              }
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  setEstadoFilter(
-                    estadoFilter === "Aprobadas funcionalmente"
-                      ? ""
-                      : "Aprobadas funcionalmente"
-                  );
-                }
-              }}
-              aria-pressed={estadoFilter === "Aprobadas funcionalmente"}
-              className={cn(
-                "group relative overflow-hidden cursor-pointer transition-all duration-200 border rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring select-none",
-                "hover:-translate-y-0.5 hover:shadow-md",
-                estadoFilter === "Aprobadas funcionalmente"
-                  ? "bg-success/15 border-success ring-2 ring-success/40 shadow-xs"
-                  : "bg-success/5 hover:bg-success/10 border-success/25 shadow-2xs"
-              )}
-              innerClassName="p-3 sm:p-4 flex flex-col justify-between gap-2.5 h-full"
-            >
-              <div className="flex items-center justify-between gap-2 w-full">
-                <div
-                  className={cn(
-                    "size-10 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200",
-                    estadoFilter === "Aprobadas funcionalmente"
-                      ? "bg-success text-white shadow-xs"
-                      : "bg-success/15 text-success group-hover:scale-105 group-hover:bg-success group-hover:text-white"
-                  )}
-                >
-                  <CheckCircle2 className="size-5" />
-                </div>
-                <Badge
-                  tone="success"
-                  appearance="soft"
-                  size="sm"
-                  className="text-[10px] font-bold px-2 py-0.5"
-                >
-                  Dictaminadas
-                </Badge>
-              </div>
-              <div className="space-y-0.5 text-left w-full">
-                <p className="text-xs font-semibold text-muted-foreground group-hover:text-foreground transition-colors truncate">
-                  Aprobadas Funcionalmente
-                </p>
-                <p className="text-2xl sm:text-3xl font-extrabold font-heading text-foreground leading-none tracking-tight">
-                  {metricas.aprobadas}
-                </p>
-              </div>
-            </Card>
-          </div>
-
-          {/* BARRA DE BÚSQUEDA Y FILTROS */}
-          <div className="flex flex-col gap-3 shrink-0 w-full">
-            <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5 w-full">
-              <div className="flex-1 min-w-[200px]">
-                <Search
-                  size="sm"
-                  placeholder="Buscar por ID, institución, fuente o proyecto..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  onClear={() => setSearchTerm("")}
-                  className="w-full"
-                />
-              </div>
-
-              <div className="flex flex-wrap md:flex-nowrap items-center gap-2 shrink-0">
-                <div className="w-full sm:w-52 lg:w-56 min-w-0">
-                  <Combobox
-                    items={ESTADOS_FILTRO}
-                    value={estadoFilter || null}
-                    onValueChange={(val) => setEstadoFilter(val || "")}
-                  >
-                    <ComboboxInput
-                      size="sm"
-                      placeholder="Estado de revisión"
-                      showTrigger
-                      showClear={!!estadoFilter}
-                      className="w-full"
-                    />
-                    <ComboboxContent className="min-w-[260px] z-[80]">
-                      <ComboboxList>
-                        <ComboboxGroup>
-                          <ComboboxLabel>Filtrar por estado</ComboboxLabel>
-                          {ESTADOS_FILTRO.map((item) => (
-                            <ComboboxItem
-                              key={item}
-                              value={item}
-                              className="text-xs py-1.5 cursor-pointer"
-                            >
-                              {item === "Pendiente de asignación en Normatividad"
-                                ? "Derivada a DPI (Confidencial)"
-                                : item}
-                            </ComboboxItem>
-                          ))}
-                        </ComboboxGroup>
-                        <ComboboxEmpty>No se encontraron estados.</ComboboxEmpty>
-                      </ComboboxList>
-                    </ComboboxContent>
-                  </Combobox>
-                </div>
-
-                <div className="w-full sm:w-48 lg:w-52 min-w-0">
-                  <Combobox
-                    items={CLASIFICACION_FILTRO}
-                    value={confidencialFilter || null}
-                    onValueChange={(val) => setConfidencialFilter(val || "")}
-                  >
-                    <ComboboxInput
-                      size="sm"
-                      placeholder="Sensibilidad de campos"
-                      showTrigger
-                      showClear={!!confidencialFilter}
-                      className="w-full"
-                    />
-                    <ComboboxContent className="min-w-[250px] z-[80]">
-                      <ComboboxList>
-                        <ComboboxGroup>
-                          <ComboboxLabel>Filtrar por sensibilidad</ComboboxLabel>
-                          {CLASIFICACION_FILTRO.map((item) => (
-                            <ComboboxItem
-                              key={item}
-                              value={item}
-                              className="text-xs py-1.5 cursor-pointer"
-                            >
-                              {item}
-                            </ComboboxItem>
-                          ))}
-                        </ComboboxGroup>
-                        <ComboboxEmpty>No se encontraron opciones.</ComboboxEmpty>
-                      </ComboboxList>
-                    </ComboboxContent>
-                  </Combobox>
-                </div>
-
-                <ViewModeToggle value={viewMode} onChange={setViewMode} />
-              </div>
-            </div>
-
-            {hasActiveFilters && (
-              <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="text-xs text-muted-foreground mr-1">
-                    Filtros activos:
-                  </span>
-                  {searchTerm && (
-                    <Badge tone="neutral" appearance="soft" size="sm" className="gap-1">
-                      Búsqueda: {searchTerm}
-                      <button
-                        type="button"
-                        onClick={() => setSearchTerm("")}
-                        className="hover:text-foreground"
-                        aria-label="Quitar filtro de búsqueda"
-                      >
-                        <X className="size-3" />
-                      </button>
-                    </Badge>
-                  )}
-                  {estadoFilter && (
-                    <Badge tone="primary" appearance="soft" size="sm" className="gap-1">
-                      Estado: {estadoFilter}
-                      <button
-                        type="button"
-                        onClick={() => setEstadoFilter("")}
-                        className="hover:text-foreground"
-                        aria-label="Quitar filtro de estado"
-                      >
-                        <X className="size-3" />
-                      </button>
-                    </Badge>
-                  )}
-                  {confidencialFilter && (
-                    <Badge tone="warning" appearance="soft" size="sm" className="gap-1">
-                      Sensibilidad: {confidencialFilter}
-                      <button
-                        type="button"
-                        onClick={() => setConfidencialFilter("")}
-                        className="hover:text-foreground"
-                        aria-label="Quitar filtro de sensibilidad"
-                      >
-                        <X className="size-3" />
-                      </button>
-                    </Badge>
-                  )}
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleClearFilters}
-                  className="text-muted-foreground hover:text-foreground"
-                >
-                  Limpiar filtros
-                </Button>
-              </div>
-            )}
-          </div>
-
-          {/* VISTA TARJETAS (CARDS - Homologada 100% con Cuentas Internas) */}
-          <div
-            className={cn(
-              "grid grid-cols-1 gap-3",
-              viewMode === "cards" ? "md:grid-cols-2" : "md:hidden"
-            )}
+      <TooltipProvider delayDuration={180}>
+        <main className="w-full pr-3 pl-2 pb-3 pt-1.5 flex-1 min-h-0 flex flex-col overflow-hidden">
+          <Card
+            className="bg-surface rounded-2xl border border-border shadow-xs flex-1 min-h-0 overflow-hidden flex flex-col my-0"
+            innerClassName="p-4 sm:p-6 lg:p-8 pr-6 sm:pr-8 lg:pr-10 flex flex-col gap-6 overflow-y-auto flex-1 min-h-0 w-full"
           >
-            {paginatedSolicitudes.length === 0 ? (
-              <Card
-                className="col-span-full"
-                innerClassName="p-8 text-center flex flex-col items-center gap-2"
-              >
-                <FileSignature className="size-8 text-muted-foreground/50" />
-                <p className="text-sm font-semibold text-foreground">
-                  No tienes solicitudes asignadas con estos filtros
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Ajusta los criterios de búsqueda o limpia los filtros activos.
-                </p>
-              </Card>
-            ) : (
-              paginatedSolicitudes.map((solicitud) => {
-                const hasConfidencial = tieneConfidenciales(solicitud);
-                const isEvaluable =
-                  solicitud.estado === "Asignada a revisión de Gestión" ||
-                  solicitud.estado === "En revisión de Gestión";
-                const cardColor = isEvaluable
-                  ? "warning"
-                  : solicitud.estado === "Observada"
-                  ? "danger"
-                  : "success";
-
-                return (
-                  <InteractiveCard
-                    key={solicitud.id}
-                    color={cardColor}
-                    decorativeIcon={<FileSignature className="size-full" />}
-                    decorativeIconClassName="size-20 -bottom-2 -right-2 opacity-40 dark:opacity-25 group-hover:opacity-60"
-                    className="p-4 rounded-xl flex flex-col justify-between gap-3 shadow-2xs transition-all"
+            {/* ── 1. Encabezado Principal ── */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1.5 w-full">
+                <div className="flex items-center gap-2">
+                  <Badge
+                    tone="primary"
+                    appearance="soft"
+                    size="sm"
+                    className="font-semibold text-[11px]"
                   >
-                    <div className="space-y-3 relative z-10 w-full">
-                      {/* Header Tarjeta */}
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="font-mono text-xs font-bold text-primary">
-                              {solicitud.id}
-                            </span>
-                            {solicitud.versionExpediente &&
-                              solicitud.versionExpediente > 1 && (
-                                <Badge
-                                  tone="info"
-                                  appearance="outline"
-                                  size="sm"
-                                  className="font-mono text-[10px] px-1.5 py-0"
-                                >
-                                  v{solicitud.versionExpediente}
-                                </Badge>
-                              )}
-                            <span className="text-[11px] text-muted-foreground">
-                              • {solicitud.fecha}
-                            </span>
-                          </div>
-                          <p className="font-bold text-sm text-foreground truncate mt-0.5">
-                            {solicitud.institucion}
-                          </p>
-                        </div>
-                        <Badge
-                          tone={
-                            isEvaluable
-                              ? "warning"
-                              : solicitud.estado === "Observada"
-                              ? "danger"
-                              : "success"
-                          }
-                          appearance="soft"
-                          size="sm"
-                          className="shrink-0"
-                        >
-                          {solicitud.estado ===
-                          "Pendiente de asignación en Normatividad"
-                            ? "Derivada a DPI"
-                            : solicitud.estado}
-                        </Badge>
-                      </div>
+                    Acceso a fuentes · Solicitudes de acceso
+                  </Badge>
+                </div>
+                <h1 className="font-heading font-extrabold text-2xl sm:text-3xl tracking-tight text-primary">
+                  Revisar solicitudes de acceso
+                </h1>
+                <p className="text-xs sm:text-sm text-muted-foreground w-full max-w-none leading-relaxed font-normal">
+                  Evalúa la pertinencia funcional, modalidad de consumo, cupo y documentos de soporte de las solicitudes de acceso a fuentes asignadas a tu bandeja. Ingresa al detalle de cada solicitud para revisar el expediente y registrar tu decisión en la columna derecha.
+                </p>
+              </div>
+            </div>
 
-                      {/* Cuerpo de información estructurado */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs bg-surface/80 backdrop-blur-xs rounded-lg p-2.5 border border-border/40">
-                        <div className="space-y-1 min-w-0">
-                          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                            Fuente y Proyecto
-                          </p>
-                          <p className="font-semibold text-foreground truncate">
-                            {solicitud.fuentePrincipal}
-                          </p>
-                          <p className="text-[11px] text-muted-foreground truncate">
-                            {solicitud.proyectoNombre || "Proyecto institucional"}
-                          </p>
-                        </div>
-                        <div className="space-y-1 min-w-0 sm:border-l sm:border-border/50 sm:pl-2.5">
-                          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                            Campos y Modalidad
-                          </p>
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="font-bold font-mono text-foreground">
-                              {solicitud.camposCount ||
-                                solicitud.fuentes?.[0]?.campos?.length ||
-                                0}{" "}
-                              campos
-                            </span>
-                            <Badge
-                              tone={hasConfidencial ? "warning" : "neutral"}
-                              appearance="soft"
-                              size="sm"
-                              className="text-[10px] gap-1 px-1.5 py-0"
-                            >
-                              {hasConfidencial ? (
-                                <Lock className="size-2.5" />
-                              ) : (
-                                <Unlock className="size-2.5" />
-                              )}
-                              {hasConfidencial ? "Confidencial" : "Accesibles"}
-                            </Badge>
-                          </div>
-                          <p className="text-[11px] text-muted-foreground truncate">
-                            {solicitud.modalidad || "API individual"} •{" "}
-                            {(solicitud.cupo || 50000).toLocaleString()} reg.
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Acciones de Tarjeta */}
-                      <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/40">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="w-full h-8 text-xs justify-center gap-1.5 text-foreground"
-                          onClick={() => openExpedienteModal(solicitud)}
-                        >
-                          <Eye className="size-3.5 text-primary shrink-0" />
-                          <span className="truncate">Ver expediente</span>
-                        </Button>
-
-                        <Link
-                          href={`/revision-gestion/${solicitud.id}`}
-                          className="w-full"
-                        >
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="w-full h-8 text-xs justify-center gap-1.5 text-foreground"
-                          >
-                            <FileSearch className="size-3.5 text-info shrink-0" />
-                            <span className="truncate">Evaluar detalle</span>
-                          </Button>
-                        </Link>
-
-                        {isEvaluable && (
-                          <>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="w-full h-8 text-xs justify-center gap-1.5 text-foreground"
-                              onClick={() => openObservarModal(solicitud)}
-                            >
-                              <AlertTriangle className="size-3.5 text-warning shrink-0" />
-                              <span className="truncate">Observar</span>
-                            </Button>
-
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="w-full h-8 text-xs justify-center gap-1.5 text-foreground"
-                              onClick={() => openAprobarModal(solicitud)}
-                            >
-                              <CheckCircle2 className="size-3.5 text-success shrink-0" />
-                              <span className="truncate">Aprobar</span>
-                            </Button>
-                          </>
+            {/* ── 2. Resumen Superior (Tarjetas Interactivas con Layout Horizontal Optimizado) ── */}
+            <div
+              aria-label="Indicadores de revisión de solicitudes de acceso"
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 w-full shrink-0"
+            >
+              {/* Card 1: Total asignadas */}
+              <Card
+                variant="featured"
+                role="button"
+                tabIndex={0}
+                onClick={() => {
+                  setKpiFilter("ALL");
+                  setCurrentPage(1);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setKpiFilter("ALL");
+                    setCurrentPage(1);
+                  }
+                }}
+                className={cn(
+                  "group relative overflow-hidden cursor-pointer transition-all duration-200 border rounded-xl outline-none select-none p-4 sm:p-4.5 w-full",
+                  "hover:-translate-y-0.5 hover:shadow-md",
+                  kpiFilter === "ALL"
+                    ? "bg-primary/15 border-primary ring-2 ring-primary/40 shadow-xs"
+                    : "bg-surface hover:bg-muted/30 border-border/70 shadow-2xs"
+                )}
+                innerClassName="p-0 h-full justify-center"
+              >
+                <div className="flex items-center justify-between gap-3 w-full">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div
+                      className={cn(
+                        "size-11 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200",
+                        kpiFilter === "ALL"
+                          ? "bg-primary text-white shadow-xs"
+                          : "bg-primary/10 text-primary group-hover:scale-105 group-hover:bg-primary group-hover:text-white"
+                      )}
+                    >
+                      <FileText className="size-5" />
+                    </div>
+                    <div className="min-w-0 space-y-0.5">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <h3 className="text-sm font-bold text-foreground group-hover:text-primary transition-colors truncate">
+                          Total asignadas
+                        </h3>
+                        {kpiFilter === "ALL" && (
+                          <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded-full bg-primary/20 text-primary border border-primary/30 shrink-0">
+                            Activo
+                          </span>
                         )}
                       </div>
+                      <p className="text-xs text-muted-foreground font-normal truncate">
+                        Todas las solicitudes
+                      </p>
                     </div>
-                  </InteractiveCard>
-                );
-              })
-            )}
-          </div>
+                  </div>
 
-          {/* TABLA DESKTOP (Homologada 100% con Cuentas Internas) */}
-          <div
-            className={cn(
-              "w-full",
-              viewMode === "table" ? "hidden md:block" : "hidden"
-            )}
-          >
-            <TooltipProvider>
+                  <div className="text-right shrink-0 pl-2">
+                    <span className="font-heading font-extrabold text-3xl sm:text-4xl text-foreground tracking-tight block leading-none">
+                      {kpis.total}
+                    </span>
+                    <span className="text-[10px] sm:text-[11px] text-muted-foreground font-medium block mt-1">
+                      solicitudes
+                    </span>
+                  </div>
+                </div>
+              </Card>
+
+              {/* Card 2: Pendientes por revisar */}
+              <Card
+                variant="featured"
+                role="button"
+                tabIndex={0}
+                onClick={() => {
+                  setKpiFilter((prev) => (prev === "POR_EVALUAR" ? "ALL" : "POR_EVALUAR"));
+                  setCurrentPage(1);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setKpiFilter((prev) => (prev === "POR_EVALUAR" ? "ALL" : "POR_EVALUAR"));
+                    setCurrentPage(1);
+                  }
+                }}
+                className={cn(
+                  "group relative overflow-hidden cursor-pointer transition-all duration-200 border rounded-xl outline-none select-none p-4 sm:p-4.5 w-full",
+                  "hover:-translate-y-0.5 hover:shadow-md",
+                  kpiFilter === "POR_EVALUAR"
+                    ? "bg-warning/15 border-warning ring-2 ring-warning/40 shadow-xs"
+                    : "bg-warning/5 hover:bg-warning/10 border-warning/25 shadow-2xs"
+                )}
+                innerClassName="p-0 h-full justify-center"
+              >
+                <div className="flex items-center justify-between gap-3 w-full">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div
+                      className={cn(
+                        "size-11 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200",
+                        kpiFilter === "POR_EVALUAR"
+                          ? "bg-warning text-white shadow-xs"
+                          : "bg-warning/15 text-warning group-hover:scale-105 group-hover:bg-warning group-hover:text-white"
+                      )}
+                    >
+                      <Clock className="size-5" />
+                    </div>
+                    <div className="min-w-0 space-y-0.5">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <h3 className="text-sm font-bold text-foreground group-hover:text-warning transition-colors truncate">
+                          Pendientes por revisar
+                        </h3>
+                        {kpiFilter === "POR_EVALUAR" && (
+                          <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded-full bg-warning/20 text-warning border border-warning/30 shrink-0">
+                            Activo
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground font-normal truncate">
+                        Por evaluar y resolver
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="text-right shrink-0 pl-2">
+                    <span className="font-heading font-extrabold text-3xl sm:text-4xl text-warning tracking-tight block leading-none">
+                      {kpis.porEvaluar}
+                    </span>
+                    <span className="text-[10px] sm:text-[11px] text-muted-foreground font-medium block mt-1">
+                      solicitudes
+                    </span>
+                  </div>
+                </div>
+              </Card>
+
+              {/* Card 3: Aprobadas en Gestión */}
+              <Card
+                variant="featured"
+                role="button"
+                tabIndex={0}
+                onClick={() => {
+                  setKpiFilter((prev) => (prev === "APROBADAS" ? "ALL" : "APROBADAS"));
+                  setCurrentPage(1);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setKpiFilter((prev) => (prev === "APROBADAS" ? "ALL" : "APROBADAS"));
+                    setCurrentPage(1);
+                  }
+                }}
+                className={cn(
+                  "group relative overflow-hidden cursor-pointer transition-all duration-200 border rounded-xl outline-none select-none p-4 sm:p-4.5 w-full",
+                  "hover:-translate-y-0.5 hover:shadow-md",
+                  kpiFilter === "APROBADAS"
+                    ? "bg-success/15 border-success ring-2 ring-success/40 shadow-xs"
+                    : "bg-success/5 hover:bg-success/10 border-success/25 shadow-2xs"
+                )}
+                innerClassName="p-0 h-full justify-center"
+              >
+                <div className="flex items-center justify-between gap-3 w-full">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div
+                      className={cn(
+                        "size-11 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200",
+                        kpiFilter === "APROBADAS"
+                          ? "bg-success text-white shadow-xs"
+                          : "bg-success/15 text-success group-hover:scale-105 group-hover:bg-success group-hover:text-white"
+                      )}
+                    >
+                      <CheckCircle2 className="size-5" />
+                    </div>
+                    <div className="min-w-0 space-y-0.5">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <h3 className="text-sm font-bold text-foreground group-hover:text-success transition-colors truncate">
+                          Aprobadas en Gestión
+                        </h3>
+                        {kpiFilter === "APROBADAS" && (
+                          <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded-full bg-success/20 text-success border border-success/30 shrink-0">
+                            Activo
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground font-normal truncate">
+                        Dictamen funcional favorable
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="text-right shrink-0 pl-2">
+                    <span className="font-heading font-extrabold text-3xl sm:text-4xl text-success tracking-tight block leading-none">
+                      {kpis.aprobadas}
+                    </span>
+                    <span className="text-[10px] sm:text-[11px] text-muted-foreground font-medium block mt-1">
+                      solicitudes
+                    </span>
+                  </div>
+                </div>
+              </Card>
+
+              {/* Card 4: Observadas */}
+              <Card
+                variant="featured"
+                role="button"
+                tabIndex={0}
+                onClick={() => {
+                  setKpiFilter((prev) => (prev === "OBSERVADAS" ? "ALL" : "OBSERVADAS"));
+                  setCurrentPage(1);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setKpiFilter((prev) => (prev === "OBSERVADAS" ? "ALL" : "OBSERVADAS"));
+                    setCurrentPage(1);
+                  }
+                }}
+                className={cn(
+                  "group relative overflow-hidden cursor-pointer transition-all duration-200 border rounded-xl outline-none select-none p-4 sm:p-4.5 w-full",
+                  "hover:-translate-y-0.5 hover:shadow-md",
+                  kpiFilter === "OBSERVADAS"
+                    ? "bg-danger/15 border-danger ring-2 ring-danger/40 shadow-xs"
+                    : "bg-danger/5 hover:bg-danger/10 border-danger/25 shadow-2xs"
+                )}
+                innerClassName="p-0 h-full justify-center"
+              >
+                <div className="flex items-center justify-between gap-3 w-full">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div
+                      className={cn(
+                        "size-11 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200",
+                        kpiFilter === "OBSERVADAS"
+                          ? "bg-danger text-white shadow-xs"
+                          : "bg-danger/15 text-danger group-hover:scale-105 group-hover:bg-danger group-hover:text-white"
+                      )}
+                    >
+                      <AlertTriangle className="size-5" />
+                    </div>
+                    <div className="min-w-0 space-y-0.5">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <h3 className="text-sm font-bold text-foreground group-hover:text-danger transition-colors truncate">
+                          Observadas
+                        </h3>
+                        {kpiFilter === "OBSERVADAS" && (
+                          <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded-full bg-danger/20 text-danger border border-danger/30 shrink-0">
+                            Activo
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground font-normal truncate">
+                        En espera de subsanación
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="text-right shrink-0 pl-2">
+                    <span className="font-heading font-extrabold text-3xl sm:text-4xl text-danger tracking-tight block leading-none">
+                      {kpis.observadas}
+                    </span>
+                    <span className="text-[10px] sm:text-[11px] text-muted-foreground font-medium block mt-1">
+                      solicitudes
+                    </span>
+                  </div>
+                </div>
+              </Card>
+            </div>
+
+            {/* ── Línea separadora entre KPI Cards y Filtros ── */}
+            <div className="w-full h-[1.5px] bg-border my-1 shrink-0" />
+
+            {/* ── 3. Buscador y Filtros por Combobox en Una Fila Sin Caja ── */}
+            <div className="space-y-3 shrink-0">
+              <div className="flex flex-col lg:flex-row items-stretch lg:items-end justify-between gap-3 w-full">
+                {/* Buscador amplio y flexible */}
+                <div className="flex-1 min-w-[260px] sm:min-w-[340px] lg:min-w-[420px]">
+                  <Search
+                    value={searchTerm}
+                    onChange={(e) => {
+                      setSearchTerm(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    onClear={() => {
+                      setSearchTerm("");
+                      setCurrentPage(1);
+                    }}
+                    placeholder="Buscar por código SOL, fuente, institución, coordinador o proyecto..."
+                    className="bg-surface border-border/80 shadow-2xs h-9 text-xs w-full rounded-full"
+                  />
+                </div>
+
+                {/* Filtros Combobox del UI Kit anchos e independientes */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-nowrap items-end gap-2.5">
+                  <div className="flex flex-col gap-1 w-full lg:w-[195px]">
+                    <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider text-left ml-1 truncate">
+                      Estado
+                    </span>
+                    <FilterCombobox
+                      value={estadoFilter}
+                      onChange={(val) => {
+                        setEstadoFilter(val || "TODOS");
+                        setCurrentPage(1);
+                      }}
+                      options={[
+                        { value: "TODOS", label: "Todos los estados" },
+                        { value: "POR_EVALUAR", label: "Pendiente por revisar" },
+                        { value: "OBSERVADAS", label: "Observadas / Subsanación" },
+                        { value: "APROBADAS", label: "Aprobadas / En DPI" },
+                      ]}
+                      placeholder="Estado"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1 w-full lg:w-[210px]">
+                    <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider text-left ml-1 truncate">
+                      Institución
+                    </span>
+                    <FilterCombobox
+                      value={institucionFilter}
+                      onChange={(val) => {
+                        setInstitucionFilter(val || "TODAS");
+                        setCurrentPage(1);
+                      }}
+                      options={[
+                        { value: "TODAS", label: "Todas las instituciones" },
+                        ...institucionesUnicas.map((inst) => ({ value: inst, label: inst })),
+                      ]}
+                      placeholder="Institución"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1 w-full lg:w-[190px]">
+                    <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider text-left ml-1 truncate">
+                      Sensibilidad
+                    </span>
+                    <FilterCombobox
+                      value={sensibilidadFilter}
+                      onChange={(val) => {
+                        setSensibilidadFilter(val || "TODAS");
+                        setCurrentPage(1);
+                      }}
+                      options={[
+                        { value: "TODAS", label: "Todas las sensibilidades" },
+                        { value: "CONFIDENCIAL", label: "Contiene Confidenciales (DPI)" },
+                        { value: "SENSIBLE", label: "Contiene Datos Sensibles (LOPDP)" },
+                        { value: "SOLO_ACCESIBLES", label: "Solo Accesibles" },
+                      ]}
+                      placeholder="Sensibilidad"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1 w-full lg:w-[165px]">
+                    <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider text-left ml-1 truncate">
+                      Orden
+                    </span>
+                    <FilterCombobox
+                      value={sortOrder}
+                      onChange={(val) => {
+                        if (val === "recientes" || val === "antiguos") setSortOrder(val);
+                      }}
+                      options={[
+                        { value: "recientes", label: "Más recientes" },
+                        { value: "antiguos", label: "Más antiguos" },
+                      ]}
+                      placeholder="Ordenar por"
+                    />
+                  </div>
+
+                  <ViewModeToggle value={viewMode} onChange={setViewMode} />
+                </div>
+              </div>
+
+              {/* Badges / Chips de filtros activos */}
+              {hasActiveFilters && (
+                <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border/60">
+                  <span className="text-xs font-semibold text-muted-foreground mr-1">
+                    Mostrando resultados filtrados por:
+                  </span>
+
+                  {searchTerm.trim() !== "" && (
+                    <Badge
+                      tone="neutral"
+                      appearance="soft"
+                      className="gap-1.5 px-3 py-1 font-semibold text-xs rounded-full border border-border"
+                    >
+                      <span>Búsqueda: &quot;{searchTerm}&quot;</span>
+                      <X
+                        className="size-3.5 cursor-pointer hover:text-foreground/80 transition-colors"
+                        onClick={() => setSearchTerm("")}
+                      />
+                    </Badge>
+                  )}
+
+                  {kpiFilter !== "ALL" && (
+                    <Badge
+                      tone="primary"
+                      appearance="soft"
+                      dot
+                      className="gap-1.5 px-3 py-1 font-semibold text-xs rounded-full"
+                    >
+                      <span>
+                        Indicador:{" "}
+                        {kpiFilter === "POR_EVALUAR"
+                          ? "Pendientes por revisar"
+                          : kpiFilter === "APROBADAS"
+                            ? "Aprobadas en Gestión"
+                            : kpiFilter === "OBSERVADAS"
+                              ? "Observadas"
+                              : "Subsanadas (v2+)"}
+                      </span>
+                      <X
+                        className="size-3.5 cursor-pointer hover:opacity-80 transition-opacity"
+                        onClick={() => setKpiFilter("ALL")}
+                      />
+                    </Badge>
+                  )}
+
+                  {estadoFilter !== "TODOS" && (
+                    <Badge
+                      tone="info"
+                      appearance="soft"
+                      dot
+                      className="gap-1.5 px-3 py-1 font-semibold text-xs rounded-full"
+                    >
+                      <span>Estado: {estadoFilter}</span>
+                      <X
+                        className="size-3.5 cursor-pointer hover:opacity-80 transition-opacity"
+                        onClick={() => setEstadoFilter("TODOS")}
+                      />
+                    </Badge>
+                  )}
+
+                  {institucionFilter !== "TODAS" && (
+                    <Badge
+                      tone="neutral"
+                      appearance="soft"
+                      className="gap-1.5 px-3 py-1 font-semibold text-xs rounded-full border border-border"
+                    >
+                      <span>Institución: {institucionFilter}</span>
+                      <X
+                        className="size-3.5 cursor-pointer hover:text-foreground/80 transition-colors"
+                        onClick={() => setInstitucionFilter("TODAS")}
+                      />
+                    </Badge>
+                  )}
+
+                  {sensibilidadFilter !== "TODAS" && (
+                    <Badge
+                      tone="warning"
+                      appearance="soft"
+                      className="gap-1.5 px-3 py-1 font-semibold text-xs rounded-full"
+                    >
+                      <span>Sensibilidad: {sensibilidadFilter}</span>
+                      <X
+                        className="size-3.5 cursor-pointer hover:opacity-80 transition-opacity"
+                        onClick={() => setSensibilidadFilter("TODAS")}
+                      />
+                    </Badge>
+                  )}
+
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleResetFilters}
+                    className="h-7 text-xs font-semibold text-muted-foreground hover:text-foreground px-2 rounded-full"
+                  >
+                    Restablecer todos
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {/* ── 4. Tabla de Solicitudes (Sin contenedor extra, idéntica a Cuentas Internas) ── */}
+            {/* Vista de Tabla para Escritorio */}
+            <div className={cn("w-full", viewMode === "table" ? "hidden md:block" : "hidden")}>
               <Table
-                className="w-full min-w-[1280px]"
-                containerClassName="overflow-x-auto w-full"
+                className="w-full min-w-[1080px] table-fixed"
+                containerClassName="overflow-x-auto rounded-xl"
               >
                 <TableHeader>
-                  <TableRow className="border-0">
-                    <TableHead className="w-[14%] min-w-[165px] pl-6">
-                      ID SOLICITUD
+                  <TableRow className="border-0 h-11">
+                    <TableHead className="w-[135px] px-2 py-2.5 whitespace-nowrap">
+                      TRÁMITE
                     </TableHead>
-                    <TableHead className="w-[20%] min-w-[210px]">
-                      INSTITUCIÓN SOLICITANTE
+                    <TableHead className="w-[210px] px-2 py-2.5 whitespace-nowrap">
+                      FUENTE Y PROYECTO
                     </TableHead>
-                    <TableHead className="w-[21%] min-w-[220px]">
-                      PROYECTO / FUENTE
+                    <TableHead className="w-[180px] px-2 py-2.5 whitespace-nowrap">
+                      SOLICITANTE
                     </TableHead>
-                    <TableHead className="w-[14%] min-w-[165px]">
-                      CAMPOS / SENSIBILIDAD
+                    <TableHead className="w-[210px] px-2 py-2.5 whitespace-nowrap">
+                      INSTITUCIÓN
                     </TableHead>
-                    <TableHead className="w-[12%] min-w-[140px]">
-                      MODALIDAD Y CUPO
+                    <TableHead className="w-[175px] px-2 py-2.5 whitespace-nowrap">
+                      SENSIBILIDAD
                     </TableHead>
-                    <TableHead className="w-[11%] min-w-[155px]">
+                    <TableHead className="w-[130px] px-2 py-2.5 whitespace-nowrap">
+                      FECHA ASIGNACIÓN
+                    </TableHead>
+                    <TableHead className="w-[195px] px-2 py-2.5 whitespace-nowrap">
                       ESTADO
                     </TableHead>
-                    <TableHead className="w-[160px] min-w-[155px] pr-6 text-right">
-                      ACCIONES
-                    </TableHead>
+                    <TableHead className="w-20 text-right pr-4">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {paginatedSolicitudes.length === 0 ? (
                     <TableRow>
-                      <TableCell
-                        colSpan={7}
-                        className="h-40 text-center text-muted-foreground text-sm"
-                      >
-                        No tienes solicitudes asignadas que coincidan con los filtros aplicados.
+                      <TableCell colSpan={8} className="text-center py-12">
+                        <div className="flex flex-col items-center justify-center max-w-sm mx-auto text-center space-y-2">
+                          <div className="size-12 rounded-full bg-muted/60 flex items-center justify-center text-muted-foreground mb-1">
+                            <SearchIcon className="size-6" />
+                          </div>
+                          <h3 className="font-heading font-bold text-base text-foreground">
+                            No hay solicitudes registradas
+                          </h3>
+                          <p className="text-xs text-muted-foreground leading-relaxed">
+                            No se encontraron solicitudes que coincidan con los filtros seleccionados.
+                          </p>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ) : (
-                    paginatedSolicitudes.map((solicitud) => {
-                      const hasConfidencial = tieneConfidenciales(solicitud);
-                      const isEvaluable =
-                        solicitud.estado === "Asignada a revisión de Gestión" ||
-                        solicitud.estado === "En revisión de Gestión";
+                    paginatedSolicitudes.map((sol) => {
+                      const fuenteNombre =
+                        sol.fuentePrincipal || sol.fuentes?.[0]?.nombre || "Fuente SINARP";
+                      const tieneConfidenciales = hasConfidenciales(sol);
+                      const tieneSensibles = hasSensibles(sol);
+                      const totalCampos =
+                        sol.fuentes?.reduce((acc, f) => acc + (f.campos?.length || 0), 0) ||
+                        sol.camposCount ||
+                        0;
+                      const modalidadTexto = sol.modalidadAprobada || sol.modalidad || "API individual";
 
                       return (
                         <TableRow
-                          key={solicitud.id}
-                          className="group transition-colors"
+                          key={sol.id}
+                          className="cursor-pointer transition-colors hover:bg-muted/40"
+                          onClick={() => router.push(`/revision-gestion/${sol.id}`)}
                         >
-                          {/* ID SOLICITUD */}
-                          <TableCell className="pl-6 align-middle">
+                          {/* 1. Trámite */}
+                          <TableCell className="px-2 font-mono text-xs overflow-hidden">
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <button
-                                  type="button"
-                                  onClick={() => openExpedienteModal(solicitud)}
-                                  className="text-left group/id cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
-                                >
-                                  <div className="flex items-center gap-1.5">
-                                    <span className="font-mono font-bold text-xs text-primary group-hover/id:underline">
-                                      {solicitud.id}
-                                    </span>
-                                    {solicitud.versionExpediente &&
-                                      solicitud.versionExpediente > 1 && (
-                                        <Badge
-                                          tone="info"
-                                          appearance="outline"
-                                          size="sm"
-                                          className="font-mono text-[10px] px-1 py-0"
-                                        >
-                                          v{solicitud.versionExpediente}
-                                        </Badge>
-                                      )}
-                                  </div>
-                                  <span className="text-[11px] font-normal text-muted-foreground block mt-0.5">
-                                    {solicitud.fecha}
+                                <div className="flex items-center gap-1.5 truncate cursor-pointer">
+                                  <span className="font-bold text-foreground truncate">{sol.id}</span>
+                                  <Badge
+                                    tone={sol.versionExpediente && sol.versionExpediente > 1 ? "info" : "neutral"}
+                                    appearance="soft"
+                                    size="sm"
+                                    className="text-[10px] px-1.5 py-0 font-mono shrink-0"
+                                  >
+                                    v{sol.versionExpediente || 1}
+                                  </Badge>
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" variant="surface" className="p-2.5 max-w-xs flex flex-col items-start gap-0.5">
+                                <p className="font-bold text-xs text-foreground font-sans">Identificador de solicitud</p>
+                                <p className="font-mono text-xs text-primary font-bold">
+                                  {sol.id} · Versión v{sol.versionExpediente || 1}
+                                </p>
+                                <p className="font-mono text-[10px] text-muted-foreground">
+                                  Instrumento: {sol.instrumento || "Convenio"}
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TableCell>
+
+                          {/* 2. Fuente y Proyecto */}
+                          <TableCell className="px-2 overflow-hidden">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div className="flex flex-col min-w-0 group/proc cursor-pointer">
+                                  <span
+                                    className="font-semibold text-foreground text-xs leading-snug truncate"
+                                    title={fuenteNombre}
+                                  >
+                                    {fuenteNombre}
                                   </span>
-                                </button>
-                              </TooltipTrigger>
-                              <TooltipContent
-                                side="top"
-                                align="start"
-                                variant="surface"
-                                className="max-w-xs space-y-1"
-                              >
-                                <p className="font-bold text-xs text-foreground">
-                                  Expediente {solicitud.id}
-                                </p>
-                                <p className="text-[11px] text-muted-foreground">
-                                  Haz clic para abrir la vista rápida en modal o usa las acciones a la derecha.
-                                </p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TableCell>
-
-                          {/* INSTITUCIÓN SOLICITANTE */}
-                          <TableCell className="align-middle">
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <div className="space-y-0.5 max-w-[230px] cursor-default">
-                                  <p className="font-semibold text-xs text-foreground truncate">
-                                    {solicitud.institucion}
-                                  </p>
-                                  <p className="text-[11px] text-muted-foreground truncate">
-                                    {solicitud.solicitanteNombre} • {solicitud.tipoInstitucion}
-                                  </p>
+                                  <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                                    <span className="truncate">
+                                      {sol.proyectoNombre || "Interoperabilidad Institucional"}
+                                    </span>
+                                    <span className="text-[9px] px-1 rounded bg-muted/60 text-muted-foreground font-sans font-semibold group-hover/proc:bg-primary/10 group-hover/proc:text-primary transition-colors shrink-0">
+                                      +
+                                    </span>
+                                  </div>
                                 </div>
                               </TooltipTrigger>
-                              <TooltipContent
-                                side="top"
-                                align="start"
-                                variant="surface"
-                                className="max-w-xs space-y-1"
-                              >
-                                <p className="font-semibold text-xs">
-                                  {solicitud.institucion}
-                                </p>
+                              <TooltipContent side="top" variant="surface" className="p-2.5 max-w-xs flex flex-col items-start gap-0.5">
+                                <p className="font-bold text-xs text-foreground font-sans">{fuenteNombre}</p>
                                 <p className="text-[11px] text-muted-foreground">
-                                  Coordinador: {solicitud.solicitanteNombre} ({solicitud.solicitanteCargo})
+                                  Proyecto: {sol.proyectoNombre || "Interoperabilidad Institucional"}
+                                </p>
+                                <p className="font-mono text-[10px] text-primary mt-1 border-t border-border/60 pt-1">
+                                  {totalCampos} campos · {modalidadTexto} · Cupo {(sol.cupoAprobado || sol.cupo || 0).toLocaleString()}
                                 </p>
                               </TooltipContent>
                             </Tooltip>
                           </TableCell>
 
-                          {/* PROYECTO / FUENTE */}
-                          <TableCell className="align-middle">
+                          {/* 3. Solicitante */}
+                          <TableCell className="px-2 overflow-hidden">
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <div className="space-y-0.5 max-w-[240px] cursor-default">
-                                  <p className="font-semibold text-xs text-foreground truncate">
-                                    {solicitud.fuentePrincipal}
-                                  </p>
-                                  <p className="text-[11px] text-muted-foreground truncate">
-                                    {solicitud.proyectoNombre || "Proyecto institucional"}
-                                  </p>
+                                <div className="flex flex-col min-w-0 group/sol cursor-pointer">
+                                  <span
+                                    className="font-bold text-foreground text-xs leading-snug truncate"
+                                    title={sol.coordinador}
+                                  >
+                                    {sol.coordinador}
+                                  </span>
+                                  <div className="flex items-center gap-1 text-[10px] text-muted-foreground font-mono">
+                                    <span className="truncate">
+                                      {sol.tipoInstitucion} · {modalidadTexto}
+                                    </span>
+                                    <span className="text-[9px] px-1 rounded bg-muted/60 text-muted-foreground font-sans font-semibold group-hover/sol:bg-primary/10 group-hover/sol:text-primary transition-colors shrink-0">
+                                      +
+                                    </span>
+                                  </div>
                                 </div>
                               </TooltipTrigger>
-                              <TooltipContent
-                                side="top"
-                                align="start"
-                                variant="surface"
-                                className="max-w-xs space-y-1"
-                              >
-                                <p className="font-semibold text-xs">
-                                  {solicitud.fuentePrincipal}
+                              <TooltipContent side="top" variant="surface" className="p-3 max-w-xs flex flex-col items-start gap-1">
+                                <p className="font-bold text-xs text-foreground font-sans">{sol.coordinador}</p>
+                                <p className="font-mono text-[11px] text-muted-foreground">
+                                  Coordinador SINARP · Entidad {sol.tipoInstitucion}
                                 </p>
-                                <p className="text-[11px] text-muted-foreground">
-                                  Proyecto: {solicitud.proyectoNombre} ({solicitud.proyectoCodigo})
+                                <p className="text-[10px] text-muted-foreground border-t border-border/60 pt-1 mt-1">
+                                  {sol.institucion}
                                 </p>
                               </TooltipContent>
                             </Tooltip>
                           </TableCell>
 
-                          {/* CAMPOS / SENSIBILIDAD */}
-                          <TableCell className="align-middle">
-                            <div className="flex flex-col items-start gap-1">
-                              <span className="font-bold text-xs text-foreground font-mono">
-                                {solicitud.camposCount ||
-                                  solicitud.fuentes?.[0]?.campos?.length ||
-                                  0}{" "}
-                                campos solicitados
-                              </span>
-                              {hasConfidencial ? (
-                                <Badge
-                                  tone="warning"
-                                  appearance="soft"
-                                  size="sm"
-                                  className="text-[10px] gap-1 px-2 py-0.5"
-                                >
-                                  <Lock className="size-2.5" />
-                                  Confidencial (Pasa a DPI)
-                                </Badge>
-                              ) : (
-                                <Badge
-                                  tone="neutral"
-                                  appearance="soft"
-                                  size="sm"
-                                  className="text-[10px] gap-1 px-2 py-0.5"
-                                >
-                                  <Unlock className="size-2.5" />
-                                  Solo Accesibles
-                                </Badge>
-                              )}
-                            </div>
+                          {/* 4. Institución */}
+                          <TableCell className="px-2 text-muted-foreground text-xs font-medium overflow-hidden">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div className="flex flex-col truncate cursor-pointer group/inst">
+                                  <span className="truncate font-semibold text-foreground group-hover/inst:text-primary transition-colors">
+                                    {sol.institucion}
+                                  </span>
+                                  <div className="flex items-center gap-1 text-[10px] text-muted-foreground font-mono">
+                                    <span className="truncate">
+                                      {totalCampos} campos ({sol.fuentesCount || sol.fuentes?.length || 1} fuente)
+                                    </span>
+                                    <span className="text-[9px] px-1 rounded bg-muted/60 text-muted-foreground font-sans font-semibold group-hover/inst:bg-primary/10 group-hover/inst:text-primary transition-colors shrink-0">
+                                      +
+                                    </span>
+                                  </div>
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" variant="surface" className="p-2.5 max-w-xs flex flex-col items-start gap-1">
+                                <p className="font-bold text-xs text-foreground leading-snug font-sans">
+                                  {sol.institucion}
+                                </p>
+                                <p className="font-mono text-[11px] text-muted-foreground">
+                                  Tipo: {sol.tipoInstitucion} · Instrumento: {sol.instrumento}
+                                </p>
+                                <p className="text-[10px] text-muted-foreground border-t border-border/60 pt-1 mt-0.5">
+                                  Revisor asignado: {sol.revisorAsignado || "Ana Torres (Equipo de Gestión)"}
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
                           </TableCell>
 
-                          {/* MODALIDAD Y CUPO */}
-                          <TableCell className="align-middle">
-                            <span className="font-semibold text-xs text-foreground block">
-                              {solicitud.modalidad || "API individual"}
-                            </span>
-                            <span className="text-[11px] font-mono text-muted-foreground">
-                              {(solicitud.cupo || 50000).toLocaleString()} reg./mes
-                            </span>
+                          {/* 5. Sensibilidad */}
+                          <TableCell className="px-2 overflow-hidden">
+                            {tieneSensibles ? (
+                              <Badge tone="danger" appearance="soft" size="sm" className="gap-1">
+                                <Lock className="size-3" />
+                                <span>Confidencial · Sensible</span>
+                              </Badge>
+                            ) : tieneConfidenciales ? (
+                              <Badge tone="warning" appearance="soft" size="sm" className="gap-1">
+                                <Lock className="size-3" />
+                                <span>Confidencial (DPI)</span>
+                              </Badge>
+                            ) : (
+                              <Badge tone="success" appearance="soft" size="sm" className="gap-1">
+                                <Unlock className="size-3" />
+                                <span>Solo Accesibles</span>
+                              </Badge>
+                            )}
                           </TableCell>
 
-                          {/* ESTADO */}
-                          <TableCell className="align-middle">
-                            <Badge
-                              tone={
-                                isEvaluable
-                                  ? "warning"
-                                  : solicitud.estado.includes("Aprobada") ||
-                                    solicitud.estado ===
-                                      "Pendiente de asignación en Normatividad"
-                                  ? "success"
-                                  : solicitud.estado === "Observada"
-                                  ? "danger"
-                                  : "info"
-                              }
-                              appearance="soft"
-                              size="sm"
-                              className="font-semibold"
-                            >
-                              {solicitud.estado ===
-                              "Pendiente de asignación en Normatividad"
-                                ? "Derivada a DPI (Confidencial)"
-                                : solicitud.estado}
-                            </Badge>
+                          {/* 6. Fecha de asignación */}
+                          <TableCell className="px-2 text-muted-foreground font-mono text-xs overflow-hidden">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="block truncate cursor-pointer hover:text-foreground transition-colors">
+                                  {sol.fecha}
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" variant="surface" className="p-2.5 max-w-xs flex flex-col items-start gap-0.5">
+                                <p className="font-bold text-xs text-foreground font-sans">Fecha de registro</p>
+                                <p className="font-mono text-xs text-muted-foreground">{sol.fecha}</p>
+                                {sol.ultimaActualizacion && (
+                                  <p className="text-[10px] text-muted-foreground">
+                                    Actualizado: {sol.ultimaActualizacion}
+                                  </p>
+                                )}
+                              </TooltipContent>
+                            </Tooltip>
                           </TableCell>
 
-                          {/* ACCIONES (Iconos con Tooltip idénticos a Cuentas Internas) */}
-                          <TableCell className="w-[160px] min-w-[155px] pr-6 text-right align-middle">
-                            <div className="inline-flex items-center gap-0.5 justify-end w-full">
-                              {/* 1. Ver expediente en Modal */}
+                          {/* 7. Estado */}
+                          <TableCell className="px-2 overflow-hidden">
+                            {renderEstadoBadge(sol)}
+                          </TableCell>
+
+                          {/* 8. Acciones */}
+                          <TableCell
+                            className="text-right pr-4"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <div className="flex items-center justify-end gap-1.5">
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <Button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      router.push(`/revision-gestion/${sol.id}`);
+                                    }}
+                                    aria-label={`Ver detalle de solicitud ${sol.id}`}
                                     variant="ghost"
                                     size="icon-sm"
-                                    aria-label={`Ver expediente de ${solicitud.id}`}
-                                    onClick={() => openExpedienteModal(solicitud)}
                                     className="text-muted-foreground hover:text-primary hover:bg-primary/10"
                                   >
                                     <Eye className="size-4" />
                                   </Button>
                                 </TooltipTrigger>
-                                <TooltipContent>
-                                  Ver expediente en modal
-                                </TooltipContent>
-                              </Tooltip>
-
-                              {/* 2. Evaluar campo por campo en página de detalle */}
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Link href={`/revision-gestion/${solicitud.id}`}>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon-sm"
-                                      aria-label={`Evaluar campo por campo ${solicitud.id}`}
-                                      className="text-muted-foreground hover:text-info hover:bg-info/15"
-                                    >
-                                      <FileSearch className="size-4" />
-                                    </Button>
-                                  </Link>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  Evaluación detallada línea por línea
-                                </TooltipContent>
-                              </Tooltip>
-
-                              {/* 3. Aprobar solicitud directo con Modal */}
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <span>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon-sm"
-                                      disabled={!isEvaluable}
-                                      aria-label={`Aprobar revisión funcional de ${solicitud.id}`}
-                                      onClick={() => openAprobarModal(solicitud)}
-                                      className="text-success hover:text-success hover:bg-success/15 disabled:opacity-35"
-                                    >
-                                      <CheckCircle2 className="size-4" />
-                                    </Button>
-                                  </span>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  {isEvaluable
-                                    ? "Aprobar revisión funcional (SOL-04)"
-                                    : "Ya dictaminada o en subsanación"}
-                                </TooltipContent>
-                              </Tooltip>
-
-                              {/* 4. Observar / Solicitar subsanación con Modal */}
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <span>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon-sm"
-                                      disabled={!isEvaluable}
-                                      aria-label={`Observar solicitud ${solicitud.id}`}
-                                      onClick={() => openObservarModal(solicitud)}
-                                      className="text-warning hover:text-warning hover:bg-warning/15 disabled:opacity-35"
-                                    >
-                                      <AlertTriangle className="size-4" />
-                                    </Button>
-                                  </span>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  {isEvaluable
-                                    ? "Observar y solicitar subsanación (3 días hábiles)"
-                                    : "Solo disponible en solicitudes por evaluar"}
-                                </TooltipContent>
+                                <TooltipContent side="top">Ver detalle</TooltipContent>
                               </Tooltip>
                             </div>
                           </TableCell>
@@ -1326,655 +1170,268 @@ export function RevisionGestionView() {
                   )}
                 </TableBody>
               </Table>
-            </TooltipProvider>
-          </div>
-
-          {/* PAGINACIÓN (Idéntica a Cuentas Internas) */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-border/80 w-full shrink-0">
-            <div className="flex flex-wrap items-center gap-4 order-2 sm:order-1">
-              <p className="text-xs text-muted-foreground">
-                Mostrando{" "}
-                <span className="font-semibold text-foreground">
-                  {filteredSolicitudes.length === 0
-                    ? 0
-                    : (currentPage - 1) * pageSize + 1}
-                </span>{" "}
-                a{" "}
-                <span className="font-semibold text-foreground">
-                  {Math.min(currentPage * pageSize, filteredSolicitudes.length)}
-                </span>{" "}
-                de{" "}
-                <span className="font-semibold text-foreground">
-                  {filteredSolicitudes.length}
-                </span>{" "}
-                solicitudes
-              </p>
-
-              {/* Selector de filas por página: 5, 10, 15 */}
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span>Filas:</span>
-                <div className="inline-flex rounded-full border border-border/80 p-0.5 bg-surface shadow-2xs">
-                  {[5, 10, 15].map((size) => (
-                    <button
-                      key={size}
-                      type="button"
-                      onClick={() => {
-                        setPageSize(size);
-                        setCurrentPage(1);
-                      }}
-                      className={cn(
-                        "px-2.5 py-0.5 text-xs font-semibold rounded-full transition-all cursor-pointer",
-                        pageSize === size
-                          ? "bg-surface text-primary shadow-2xs font-bold border border-border/80"
-                          : "text-muted-foreground hover:text-foreground"
-                      )}
-                    >
-                      {size}
-                    </button>
-                  ))}
-                </div>
-              </div>
             </div>
 
-            <div className="order-1 sm:order-2">
-              <Pagination>
-                <PaginationContent>
-                  <PaginationItem>
-                    <PaginationFirst
-                      onClick={() => setCurrentPage(1)}
-                      className={cn(
-                        currentPage === 1 &&
-                          "pointer-events-none opacity-50 cursor-not-allowed"
-                      )}
-                    />
-                  </PaginationItem>
-                  <PaginationItem>
-                    <PaginationPrevious
-                      onClick={() =>
-                        setCurrentPage((p) => Math.max(1, p - 1))
-                      }
-                      className={cn(
-                        currentPage === 1 &&
-                          "pointer-events-none opacity-50 cursor-not-allowed"
-                      )}
-                    />
-                  </PaginationItem>
-                  {Array.from({ length: totalPages }, (_, idx) => idx + 1).map(
-                    (page) => (
+            {/* Vista Mobile / Cards (Idéntica a Cuentas Internas) */}
+            <div className={cn("w-full", viewMode === "cards" ? "block" : "block md:hidden")}>
+              {paginatedSolicitudes.length === 0 ? (
+                <div className="col-span-full flex flex-col items-center justify-center p-8 bg-surface border border-border rounded-xl text-center space-y-2">
+                  <div className="size-12 rounded-full bg-muted/60 flex items-center justify-center text-muted-foreground mb-1">
+                    <SearchIcon className="size-6" />
+                  </div>
+                  <h3 className="font-heading font-bold text-base text-foreground">
+                    No hay solicitudes registradas
+                  </h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    No se encontraron solicitudes asignadas que coincidan con los filtros seleccionados.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {paginatedSolicitudes.map((sol) => {
+                    const fuenteNombre =
+                      sol.fuentePrincipal || sol.fuentes?.[0]?.nombre || "Fuente SINARP";
+                    const tieneConfidenciales = hasConfidenciales(sol);
+                    const totalCampos =
+                      sol.fuentes?.reduce((acc, f) => acc + (f.campos?.length || 0), 0) ||
+                      sol.camposCount ||
+                      0;
+
+                    return (
+                      <div
+                        key={sol.id}
+                        onClick={() => router.push(`/revision-gestion/${sol.id}`)}
+                        className="p-4 rounded-xl border border-border bg-surface space-y-3 text-left transition-all duration-200 hover:border-primary/40 hover:shadow-xs cursor-pointer"
+                      >
+                        {/* Cabecera: ID + Versión + Badge de Estado */}
+                        <div className="flex items-center justify-between gap-2 pb-2 border-b border-border/50 min-w-0">
+                          <div className="flex items-center gap-1.5 min-w-0 shrink-0">
+                            <span className="font-bold text-xs font-mono text-primary whitespace-nowrap">
+                              {sol.id}
+                            </span>
+                            <Badge
+                              tone={sol.versionExpediente && sol.versionExpediente > 1 ? "info" : "neutral"}
+                              appearance="soft"
+                              size="sm"
+                              className="text-[10px] px-1.5 py-0 font-mono"
+                            >
+                              v{sol.versionExpediente || 1}
+                            </Badge>
+                          </div>
+                          <div className="min-w-0 flex justify-end shrink">
+                            {renderEstadoBadge(sol)}
+                          </div>
+                        </div>
+
+                        {/* Cuerpo: Fuente + Institución + Solicitante */}
+                        <div className="space-y-2 py-0.5">
+                          <div>
+                            <p className="font-bold text-sm text-foreground leading-snug">
+                              {fuenteNombre}
+                            </p>
+                            <p className="text-[11px] text-muted-foreground truncate">
+                              Proyecto: {sol.proyectoNombre || "Interoperabilidad Institucional"}
+                            </p>
+                          </div>
+
+                          <div className="space-y-1.5 text-xs">
+                            <div className="flex items-start gap-2 text-foreground font-medium">
+                              <Building2 className="size-3.5 text-primary shrink-0 mt-0.5" />
+                              <div className="flex flex-col min-w-0">
+                                <span className="break-words leading-tight">{sol.institucion}</span>
+                                <span className="text-[10px] font-mono text-muted-foreground">
+                                  {sol.tipoInstitucion} · {totalCampos} campos · {sol.modalidadAprobada || sol.modalidad || "API individual"}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-start gap-2 text-muted-foreground">
+                              <User className="size-3.5 text-muted-foreground shrink-0 mt-0.5" />
+                              <div className="flex flex-col min-w-0">
+                                <span className="text-foreground font-medium break-words leading-tight">
+                                  {sol.coordinador}
+                                </span>
+                                <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[10px] text-muted-foreground mt-0.5">
+                                  {tieneConfidenciales ? (
+                                    <span className="text-warning font-semibold">Contiene Confidenciales (DPI)</span>
+                                  ) : (
+                                    <span className="text-success font-semibold">Solo Accesibles</span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Pie: Fecha + Botón Acción */}
+                        <div className="flex items-center justify-between pt-2.5 border-t border-border/60 gap-2 flex-wrap sm:flex-nowrap">
+                          <div className="flex flex-col min-w-0">
+                            <span className="text-[10px] text-muted-foreground">Fecha de registro:</span>
+                            <span className="font-mono text-xs text-foreground font-medium whitespace-nowrap">
+                              {sol.fecha}
+                            </span>
+                          </div>
+
+                          <div className="shrink-0 ml-auto" onClick={(e) => e.stopPropagation()}>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    router.push(`/revision-gestion/${sol.id}`);
+                                  }}
+                                  className="text-muted-foreground hover:text-primary hover:bg-primary/10"
+                                  aria-label={`Ver detalle de solicitud ${sol.id}`}
+                                >
+                                  <Eye className="size-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top">Ver detalle</TooltipContent>
+                            </Tooltip>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* ── 5. Paginación y Contador de filas (Idéntico a Cuentas Internas) ── */}
+            <div className="flex flex-col md:flex-row items-center justify-center md:justify-between gap-3 sm:gap-4 pt-4 pb-2 w-full border-t border-border/50">
+              {/* Información y Selector de filas */}
+              <div className="flex flex-col sm:flex-row items-center justify-center md:justify-start gap-2.5 sm:gap-4 w-full md:w-auto text-center md:text-left">
+                <p className="text-xs text-muted-foreground font-medium text-center md:text-left">
+                  Mostrando{" "}
+                  <span className="font-bold text-foreground">
+                    {filteredSolicitudes.length === 0
+                      ? 0
+                      : (currentPage - 1) * itemsPerPage + 1}{" "}
+                    - {Math.min(currentPage * itemsPerPage, filteredSolicitudes.length)}
+                  </span>{" "}
+                  de{" "}
+                  <span className="font-bold text-foreground">
+                    {filteredSolicitudes.length}
+                  </span>{" "}
+                  solicitudes
+                </p>
+
+                {/* Selector de filas por página */}
+                <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                  <span>Filas:</span>
+                  <div className="inline-flex rounded-full border border-border/80 p-0.5 bg-surface shadow-2xs">
+                    {[5, 10, 20, 50].map((size) => (
+                      <button
+                        key={size}
+                        type="button"
+                        onClick={() => {
+                          setItemsPerPage(size);
+                          setCurrentPage(1);
+                        }}
+                        className={cn(
+                          "px-2.5 py-0.5 text-xs font-semibold rounded-full transition-all",
+                          itemsPerPage === size
+                            ? "bg-surface text-primary shadow-2xs font-bold border border-border/80"
+                            : "text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        {size}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Controles de paginación */}
+              <div className="w-full md:w-auto flex items-center justify-center md:justify-end overflow-x-auto py-1">
+                <Pagination className="mx-auto md:mx-0 w-auto justify-center">
+                  <PaginationContent className="gap-1 sm:gap-1.5 flex-nowrap justify-center">
+                    <PaginationItem className="hidden sm:inline-flex">
+                      <PaginationFirst
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (currentPage > 1) setCurrentPage(1);
+                        }}
+                        className={cn(
+                          "size-8 rounded-full border border-border/70 hover:bg-muted/30 transition-colors",
+                          currentPage <= 1 ? "pointer-events-none opacity-40 cursor-not-allowed" : ""
+                        )}
+                      />
+                    </PaginationItem>
+
+                    <PaginationItem>
+                      <PaginationPrevious
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (currentPage > 1) setCurrentPage(currentPage - 1);
+                        }}
+                        className={cn(
+                          "size-8 rounded-full border border-border/70 hover:bg-muted/30 transition-colors",
+                          currentPage <= 1 ? "pointer-events-none opacity-40 cursor-not-allowed" : ""
+                        )}
+                      />
+                    </PaginationItem>
+
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                       <PaginationItem key={page}>
                         <PaginationLink
-                          isActive={currentPage === page}
-                          onClick={() => setCurrentPage(page)}
+                          href="#"
+                          isActive={page === currentPage}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setCurrentPage(page);
+                          }}
+                          className={cn(
+                            "size-8 rounded-full font-semibold text-xs transition-all",
+                            page === currentPage
+                              ? "bg-primary text-white font-bold shadow-2xs"
+                              : "border border-border/70 hover:bg-muted/30 text-foreground"
+                          )}
                         >
                           {page}
                         </PaginationLink>
                       </PaginationItem>
-                    )
-                  )}
-                  <PaginationItem>
-                    <PaginationNext
-                      onClick={() =>
-                        setCurrentPage((p) => Math.min(totalPages, p + 1))
-                      }
-                      className={cn(
-                        currentPage === totalPages &&
-                          "pointer-events-none opacity-50 cursor-not-allowed"
-                      )}
-                    />
-                  </PaginationItem>
-                  <PaginationItem>
-                    <PaginationLast
-                      onClick={() => setCurrentPage(totalPages)}
-                      className={cn(
-                        currentPage === totalPages &&
-                          "pointer-events-none opacity-50 cursor-not-allowed"
-                      )}
-                    />
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
-            </div>
-          </div>
-        </Card>
-      </main>
-
-      {/* ======================================================================= */}
-      {/* MODAL 1: EXPEDIENTE DE SOLICITUD DE ACCESO (Homologado con Cuentas Internas) */}
-      {/* ======================================================================= */}
-      <Dialog open={expedienteOpen} onOpenChange={setExpedienteOpen}>
-        <DialogContent
-          variant="standard"
-          size="3xl"
-          className="p-6 sm:p-7 rounded-3xl border border-border bg-background shadow-2xl max-h-[90vh] flex flex-col gap-4 overflow-hidden"
-        >
-          {selectedSolicitud && (
-            <>
-              <DialogHeader className="border-b border-border/60 pb-4 shrink-0">
-                <div className="flex flex-wrap items-center justify-between gap-2 pr-6">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-mono text-xs font-extrabold text-primary bg-primary/10 px-2.5 py-1 rounded-md border border-primary/20">
-                      {selectedSolicitud.id}
-                    </span>
-                    {selectedSolicitud.versionExpediente &&
-                      selectedSolicitud.versionExpediente > 1 && (
-                        <Badge tone="info" appearance="outline" size="sm">
-                          Versión v{selectedSolicitud.versionExpediente}
-                        </Badge>
-                      )}
-                    <Badge
-                      tone={
-                        selectedSolicitud.estado.includes("Aprobada") ||
-                        selectedSolicitud.estado ===
-                          "Pendiente de asignación en Normatividad"
-                          ? "success"
-                          : selectedSolicitud.estado === "Observada"
-                          ? "danger"
-                          : "warning"
-                      }
-                      appearance="soft"
-                      size="sm"
-                    >
-                      {selectedSolicitud.estado ===
-                      "Pendiente de asignación en Normatividad"
-                        ? "Derivada a DPI (Confidencial)"
-                        : selectedSolicitud.estado}
-                    </Badge>
-                  </div>
-                  <Badge
-                    tone={tieneConfidenciales(selectedSolicitud) ? "warning" : "neutral"}
-                    appearance="soft"
-                    size="sm"
-                    className="gap-1"
-                  >
-                    {tieneConfidenciales(selectedSolicitud) ? (
-                      <Lock className="size-3" />
-                    ) : (
-                      <Unlock className="size-3" />
-                    )}
-                    {tieneConfidenciales(selectedSolicitud)
-                      ? "Contiene Campos Confidenciales (Pasa a DPI)"
-                      : "Solo Campos Accesibles (Pasa a Formalización)"}
-                  </Badge>
-                </div>
-                <DialogTitle className="font-heading font-extrabold text-lg sm:text-xl text-foreground mt-2 text-left">
-                  {selectedSolicitud.institucion} — {selectedSolicitud.fuentePrincipal}
-                </DialogTitle>
-                <DialogDescription className="text-xs text-muted-foreground text-left">
-                  Proyecto vinculado:{" "}
-                  <strong className="text-foreground">
-                    {selectedSolicitud.proyectoNombre} ({selectedSolicitud.proyectoCodigo})
-                  </strong>{" "}
-                  • Solicitante: {selectedSolicitud.solicitanteNombre}
-                </DialogDescription>
-              </DialogHeader>
-
-              {/* Navegación por Pestañas tipo Píldora (Idéntico a ExpedienteCuentaModal) */}
-              <div className="p-1 rounded-xl sm:rounded-full bg-muted/40 border border-border/60 flex items-center gap-1 shrink-0 overflow-x-auto modal-scroll-area max-w-full">
-                {[
-                  {
-                    id: "resumen" as const,
-                    label: "1. Resumen y Proyecto",
-                    icon: Building2,
-                  },
-                  {
-                    id: "campos" as const,
-                    label: `2. Campos y Finalidad (${
-                      selectedSolicitud.fuentes?.[0]?.campos?.length || 0
-                    })`,
-                    icon: Database,
-                  },
-                  {
-                    id: "confidencial" as const,
-                    label: "3. Justificación Confidencial",
-                    icon: ShieldAlert,
-                  },
-                  {
-                    id: "trazabilidad" as const,
-                    label: `4. Trazabilidad (${
-                      selectedSolicitud.trazabilidad?.length || 0
-                    })`,
-                    icon: History,
-                  },
-                ].map((tab) => {
-                  const Icon = tab.icon;
-                  const active = activeExpedienteTab === tab.id;
-                  return (
-                    <Button
-                      key={tab.id}
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setActiveExpedienteTab(tab.id)}
-                      className={cn(
-                        "flex-1 min-w-fit rounded-lg sm:rounded-full py-2 px-3 sm:px-4 text-xs sm:text-sm transition-all gap-1.5 h-auto whitespace-nowrap",
-                        active
-                          ? "bg-primary text-white shadow-xs font-bold hover:bg-primary hover:text-white"
-                          : "text-muted-foreground hover:text-foreground hover:bg-muted/40 font-medium"
-                      )}
-                    >
-                      <Icon className="size-3.5 sm:size-4 shrink-0" />
-                      <span>{tab.label}</span>
-                    </Button>
-                  );
-                })}
-              </div>
-
-              {/* Contenido del Modal */}
-              <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-4">
-                {activeExpedienteTab === "resumen" && (
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div className="rounded-xl border border-border/70 bg-surface p-3.5 space-y-1">
-                        <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                          Institución Consumidora
-                        </p>
-                        <p className="text-sm font-bold text-foreground">
-                          {selectedSolicitud.institucion}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {selectedSolicitud.tipoInstitucion} • Coordinador:{" "}
-                          {selectedSolicitud.solicitanteNombre}
-                        </p>
-                      </div>
-                      <div className="rounded-xl border border-border/70 bg-surface p-3.5 space-y-1">
-                        <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                          Parámetros Técnicos Solicitados
-                        </p>
-                        <p className="text-sm font-bold text-foreground">
-                          {selectedSolicitud.modalidad} •{" "}
-                          {(selectedSolicitud.cupo || 50000).toLocaleString()}{" "}
-                          consultas/mes
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          Revisor asignado:{" "}
-                          <strong>{selectedSolicitud.revisorAsignado}</strong>
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="rounded-xl border border-border/70 bg-surface p-4 space-y-2">
-                      <p className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-1.5">
-                        <FolderKanban className="size-4" />
-                        Justificación General y Objetivo del Proyecto
-                      </p>
-                      <p className="text-xs text-foreground leading-relaxed">
-                        {selectedSolicitud.justificacionGeneral ||
-                          selectedSolicitud.proyectoObjetivo}
-                      </p>
-                      <div className="pt-2 border-t border-border/50 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
-                        <span>
-                          Documento de sustento:{" "}
-                          <strong className="text-foreground font-mono">
-                            {selectedSolicitud.documentoSustentoNombre ||
-                              "Oficio_Justificacion_Institucional.pdf"}
-                          </strong>
-                        </span>
-                        <Badge tone="success" appearance="soft" size="sm">
-                          Verificado en repositorio
-                        </Badge>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {activeExpedienteTab === "campos" && (
-                  <div className="space-y-3">
-                    {(selectedSolicitud.fuentes?.[0]?.campos || []).map((c) => (
-                      <div
-                        key={c.nombreCampo}
-                        className="rounded-xl border border-border/70 bg-surface p-3.5 space-y-2"
-                      >
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono text-xs font-bold text-primary">
-                              {c.nombreCampo}
-                            </span>
-                            <span className="text-xs font-semibold text-foreground">
-                              — {c.etiquetaFuncional}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <Badge
-                              tone={
-                                c.clasificacion === "Confidencial"
-                                  ? "warning"
-                                  : "success"
-                              }
-                              appearance="soft"
-                              size="sm"
-                            >
-                              {c.clasificacion}
-                            </Badge>
-                            {c.etiquetaSensibilidad && (
-                              <Badge tone="info" appearance="outline" size="sm">
-                                {c.etiquetaSensibilidad}
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                        <div className="rounded-lg bg-surface-muted/40 p-2.5 text-xs">
-                          <span className="font-semibold text-muted-foreground block mb-0.5">
-                            Finalidad de uso funcional (SOL-01 / SOL-04):
-                          </span>
-                          <p className="text-foreground">{c.finalidadUso}</p>
-                        </div>
-                      </div>
                     ))}
-                  </div>
-                )}
 
-                {activeExpedienteTab === "confidencial" && (
-                  <div className="space-y-3">
-                    {!tieneConfidenciales(selectedSolicitud) ? (
-                      <div className="rounded-xl border border-border/70 bg-surface p-6 text-center space-y-1.5">
-                        <Unlock className="size-7 text-success mx-auto" />
-                        <p className="text-sm font-bold text-foreground">
-                          Esta solicitud solo requiere campos Accesibles
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          Al aprobar la revisión funcional en Gestión, pasará directamente a Formalización (BN-08) sin requerir dictamen de la DPI.
-                        </p>
-                      </div>
-                    ) : (
-                      (selectedSolicitud.fuentes?.[0]?.campos || [])
-                        .filter((c) => c.clasificacion === "Confidencial")
-                        .map((c) => (
-                          <div
-                            key={c.nombreCampo}
-                            className="rounded-xl border border-warning/40 bg-warning/5 p-4 space-y-2"
-                          >
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="font-mono text-xs font-bold text-foreground flex items-center gap-1.5">
-                                <Lock className="size-3.5 text-warning" />
-                                {c.nombreCampo} ({c.etiquetaFuncional})
-                              </span>
-                              <Badge tone="warning" appearance="soft" size="sm">
-                                {c.etiquetaSensibilidad || "Dato Confidencial"}
-                              </Badge>
-                            </div>
-                            <p className="text-xs text-foreground">
-                              <strong>Base legal / Justificación jurídica:</strong>{" "}
-                              {c.justificacionConfidencial ||
-                                "Sustentado en atribuciones legales vigentes y documento adjunto."}
-                            </p>
-                            {c.adjuntoConfidencialNombre && (
-                              <p className="text-[11px] text-muted-foreground font-mono">
-                                Adjunto legal: {c.adjuntoConfidencialNombre}
-                              </p>
-                            )}
-                          </div>
-                        ))
-                    )}
-                  </div>
-                )}
+                    <PaginationItem>
+                      <PaginationNext
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+                        }}
+                        className={cn(
+                          "size-8 rounded-full border border-border/70 hover:bg-muted/30 transition-colors",
+                          currentPage >= totalPages ? "pointer-events-none opacity-40 cursor-not-allowed" : ""
+                        )}
+                      />
+                    </PaginationItem>
 
-                {activeExpedienteTab === "trazabilidad" && (
-                  <div className="space-y-2.5">
-                    {(selectedSolicitud.historial || []).map((ev, idx) => (
-                      <div
-                        key={`${ev.fecha}-${idx}`}
-                        className="rounded-xl border border-border/70 bg-surface p-3 flex items-start justify-between gap-3 text-xs"
-                      >
-                        <div className="space-y-0.5">
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-foreground">
-                              {ev.evento}
-                            </span>
-                            <Badge tone="neutral" appearance="outline" size="sm">
-                              {ev.actor}
-                            </Badge>
-                          </div>
-                          {ev.detalle && (
-                            <p className="text-muted-foreground">{ev.detalle}</p>
-                          )}
-                        </div>
-                        <span className="font-mono text-[11px] text-muted-foreground shrink-0">
-                          {ev.fecha}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <DialogFooter className="border-t border-border/60 pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shrink-0">
-                <Link href={`/revision-gestion/${selectedSolicitud.id}`}>
-                  <Button variant="outline" size="sm" className="gap-1.5 w-full sm:w-auto">
-                    <FileSearch className="size-4 text-primary" />
-                    <span>Evaluación línea por línea</span>
-                  </Button>
-                </Link>
-
-                <div className="flex items-center justify-end gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setExpedienteOpen(false)}
-                  >
-                    Cerrar
-                  </Button>
-                  {(selectedSolicitud.estado ===
-                    "Asignada a revisión de Gestión" ||
-                    selectedSolicitud.estado === "En revisión de Gestión") && (
-                    <>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="gap-1.5 border-warning/50 text-warning hover:bg-warning/10"
-                        onClick={() => openObservarModal(selectedSolicitud)}
-                      >
-                        <AlertTriangle className="size-3.5" />
-                        <span>Observar solicitud</span>
-                      </Button>
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        className="gap-1.5"
-                        onClick={() => openAprobarModal(selectedSolicitud)}
-                      >
-                        <CheckCircle2 className="size-3.5" />
-                        <span>Aprobar revisión funcional</span>
-                      </Button>
-                    </>
-                  )}
-                </div>
-              </DialogFooter>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* ======================================================================= */}
-      {/* MODAL 2: CONFIRMAR APROBACIÓN FUNCIONAL (Homologado con AccionCuentaDialog) */}
-      {/* ======================================================================= */}
-      <Dialog open={aprobarOpen} onOpenChange={setAprobarOpen}>
-        <DialogContent
-          variant="success"
-          size="lg"
-          className="p-6 sm:p-7 max-w-lg max-h-[90vh] flex flex-col overflow-hidden"
-          icon={<CheckCircle2 className="size-10 text-success stroke-[2px]" />}
-        >
-          {selectedSolicitud && (
-            <>
-              <DialogHeader className="items-center text-center gap-1.5 shrink-0 pb-3 border-b border-border/50">
-                <DialogTitle className="font-heading font-bold text-xl text-foreground">
-                  ¿Aprobar revisión funcional de la solicitud?
-                </DialogTitle>
-                <DialogDescription className="text-sm text-muted-foreground max-w-md mx-auto">
-                  Confirmas que la finalidad de uso por campo, modalidad, cupo y documentos de respaldo cumplen con los criterios funcionales de la Dirección de Gestión (SOL-04).
-                </DialogDescription>
-              </DialogHeader>
-
-              <div className="modal-scroll-area overflow-y-auto pr-2 py-2.5 space-y-3 w-full flex-1 min-h-0 text-left">
-                <div className="rounded-xl border border-border bg-surface-muted/40 p-3.5 text-xs space-y-1.5">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-mono font-bold text-primary">
-                      {selectedSolicitud.id}
-                    </span>
-                    <Badge
-                      tone={
-                        tieneConfidenciales(selectedSolicitud) ? "warning" : "success"
-                      }
-                      appearance="soft"
-                      size="sm"
-                    >
-                      {tieneConfidenciales(selectedSolicitud)
-                        ? "Pasa a Director DPI (SOL-07)"
-                        : "Pasa a Formalización (BN-08)"}
-                    </Badge>
-                  </div>
-                  <p className="font-bold text-foreground">
-                    {selectedSolicitud.institucion}
-                  </p>
-                  <p className="text-muted-foreground">
-                    Fuente: {selectedSolicitud.fuentePrincipal} (
-                    {selectedSolicitud.camposCount ||
-                      selectedSolicitud.fuentes?.[0]?.campos?.length ||
-                      0}{" "}
-                    campos)
-                  </p>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">
-                    Dictamen / Comentario de aprobación funcional
-                  </Label>
-                  <Textarea
-                    rows={3}
-                    value={comentarioAprobacion}
-                    onChange={(e) => setComentarioAprobacion(e.target.value)}
-                    placeholder="Ingrese el comentario técnico de aprobación..."
-                    className="text-xs"
-                  />
-                </div>
-              </div>
-
-              <DialogFooter className="mt-3 pt-4 border-t border-border flex flex-col-reverse sm:flex-row gap-2.5 w-full shrink-0">
-                <Button
-                  variant="ghost"
-                  className="w-full sm:w-1/2 font-semibold"
-                  onClick={() => setAprobarOpen(false)}
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  variant="success"
-                  className="w-full sm:w-1/2 font-bold shadow-xs gap-1.5"
-                  onClick={handleConfirmAprobar}
-                >
-                  <CheckCircle2 className="size-4" />
-                  <span>Confirmar Aprobación</span>
-                </Button>
-              </DialogFooter>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* ======================================================================= */}
-      {/* MODAL 3: OBSERVAR SOLICITUD Y SOLICITAR SUBSANACIÓN (SOL-04 / PAR-13)   */}
-      {/* ======================================================================= */}
-      <Dialog open={observarOpen} onOpenChange={setObservarOpen}>
-        <DialogContent
-          variant="warning"
-          size="lg"
-          className="p-6 sm:p-7 max-w-lg max-h-[90vh] flex flex-col overflow-hidden"
-        >
-          <DialogHeader className="items-center text-center gap-1.5 shrink-0 pb-3 border-b border-border/50">
-            <DialogTitle className="font-heading font-bold text-xl text-foreground">
-              Registrar observaciones y solicitar subsanación
-            </DialogTitle>
-            <DialogDescription className="text-sm text-muted-foreground max-w-md mx-auto">
-              La solicitud cambiará a estado <strong>Observada</strong> y se notificará al Coordinador SINARP con un plazo de <strong>3 días hábiles (PAR-13)</strong> para subsanar únicamente los elementos observados.
-            </DialogDescription>
-          </DialogHeader>
-
-          {selectedSolicitud && (
-            <div className="modal-scroll-area overflow-y-auto pr-2 py-2.5 space-y-3.5 w-full flex-1 min-h-0 text-left">
-              <div className="rounded-xl border border-border bg-surface-muted/40 p-3 text-xs space-y-1">
-                <p className="font-mono font-bold text-primary">
-                  {selectedSolicitud.id} • {selectedSolicitud.institucion}
-                </p>
-                <p className="text-muted-foreground">
-                  Fuente: {selectedSolicitud.fuentePrincipal}
-                </p>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">
-                  Observación general del expediente <span className="text-danger">*</span>
-                </Label>
-                <Textarea
-                  rows={3}
-                  value={observacionGeneral}
-                  onChange={(e) => setObservacionGeneral(e.target.value)}
-                  placeholder="Detalle qué elementos de la finalidad de uso, cupo o sustento normativo deben ser subsanados por el Coordinador SINARP..."
-                  className="text-xs"
-                />
-              </div>
-
-              <div className="rounded-xl border border-border/80 bg-surface p-3 space-y-2.5">
-                <Label className="text-xs font-semibold block">
-                  Observación puntual sobre un campo (Opcional)
-                </Label>
-                <Combobox
-                  items={(selectedSolicitud.fuentes?.[0]?.campos || []).map(
-                    (c) => c.nombreCampo
-                  )}
-                  value={campoObservadoTarget || null}
-                  onValueChange={(val) => setCampoObservadoTarget(val || "")}
-                >
-                  <ComboboxInput
-                    size="sm"
-                    placeholder="Seleccionar campo específico..."
-                    showTrigger
-                    showClear={!!campoObservadoTarget}
-                  />
-                  <ComboboxContent>
-                    <ComboboxEmpty>Sin campos</ComboboxEmpty>
-                    <ComboboxList>
-                      {(item) => (
-                        <ComboboxItem key={item} value={item}>
-                          {item}
-                        </ComboboxItem>
-                      )}
-                    </ComboboxList>
-                  </ComboboxContent>
-                </Combobox>
-
-                {campoObservadoTarget && (
-                  <Textarea
-                    rows={2}
-                    value={campoObservadoTexto}
-                    onChange={(e) => setCampoObservadoTexto(e.target.value)}
-                    placeholder={`Observación específica para el campo "${campoObservadoTarget}"...`}
-                    className="text-xs"
-                  />
-                )}
+                    <PaginationItem className="hidden sm:inline-flex">
+                      <PaginationLast
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (currentPage < totalPages) setCurrentPage(totalPages);
+                        }}
+                        className={cn(
+                          "size-8 rounded-full border border-border/70 hover:bg-muted/30 transition-colors",
+                          currentPage >= totalPages ? "pointer-events-none opacity-40 cursor-not-allowed" : ""
+                        )}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
               </div>
             </div>
-          )}
-
-          <DialogFooter className="mt-3 pt-4 border-t border-border flex flex-col-reverse sm:flex-row gap-2.5 w-full shrink-0">
-            <Button
-              variant="ghost"
-              className="w-full sm:w-1/2 font-semibold"
-              onClick={() => setObservarOpen(false)}
-            >
-              Cancelar
-            </Button>
-            <Button
-              variant="warning"
-              className="w-full sm:w-1/2 font-bold shadow-xs gap-1.5"
-              disabled={!observacionGeneral.trim()}
-              onClick={handleConfirmObservar}
-            >
-              <Send className="size-3.5" />
-              <span>Notificar Subsanación</span>
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </Card>
+        </main>
+      </TooltipProvider>
     </WireframeDashboardLayout>
   );
 }

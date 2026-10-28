@@ -24,6 +24,8 @@ export function WireframeRoleSelector({ activeRole, onRoleChange }: WireframeRol
     "EQ_GESTION",
     "DIR_NORMATIVA",
     "EQ_NORMATIVA",
+    "DIR_DPI",
+    "EQ_DPI",
     "JURIDICA",
     "TI",
     "ADMIN",

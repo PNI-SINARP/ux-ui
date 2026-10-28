@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   UserCheck,
   Eye,
@@ -14,13 +15,21 @@ import {
   X,
   History,
   RotateCcw,
+  UserPlus,
+  Building2,
+  User,
+  Mail,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { InteractiveCard } from "@/components/ui/data-display";
 import { Search } from "@/components/ui/search";
 import { Textarea } from "@/components/ui/textarea";
+import { Alert } from "@/components/ui/alert";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import {
   Table,
   TableHeader,
@@ -124,22 +133,45 @@ export function AsignacionNormativaFuentesView() {
   const [selectedRevisorNormId, setSelectedRevisorNormId] =
     useState<string>("U-EQNORM");
   const [observacionAsignacion, setObservacionAsignacion] = useState("");
+  const [revisorDpiSearchQuery, setRevisorDpiSearchQuery] = useState("");
+
+  // Estados para simulación de FirmaEC (homologado a RegistroInstitucion)
+  const [firmaModalOpen, setFirmaModalOpen] = useState(false);
+  const [solicitudAFirmar, setSolicitudAFirmar] =
+    useState<SolicitudAcceso | null>(null);
+  const [firmaEstado, setFirmaEstado] =
+    useState<"validando" | "firmado">("validando");
+  const [isConsultandoFirma, setIsConsultandoFirma] = useState(false);
+  const [firmaTimestamp, setFirmaTimestamp] = useState<string>("");
+  const [firmaCertId, setFirmaCertId] = useState<string>("");
+
+  const filteredRevisoresDpiModal = useMemo(() => {
+    const q = revisorDpiSearchQuery.trim().toLowerCase();
+    const list = q
+      ? REVISORES_DPI.filter(
+          (r) =>
+            r.nombre.toLowerCase().includes(q) ||
+            r.cargo.toLowerCase().includes(q) ||
+            r.especialidad.toLowerCase().includes(q)
+        )
+      : [...REVISORES_DPI];
+    return list.sort((a, b) => a.nombre.localeCompare(b.nombre));
+  }, [revisorDpiSearchQuery]);
   const [solicitudInspecting, setSolicitudInspecting] =
     useState<SolicitudAcceso | null>(null);
   const [tabExpedienteDpi, setTabExpedienteDpi] = useState<"campos" | "informe" | "historial">("campos");
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab");
 
-  // Sincronizar con ?tab=informes o ?tab=seguimiento del sidebar
+  // Sincronizar con ?tab=informes o ruta base del sidebar
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      const tab = params.get("tab");
-      if (tab === "informes") {
-        setEstadoFilter("Pendiente firma Director DPI");
-      } else if (tab === "seguimiento") {
-        setEstadoFilter("En revisión en DPI");
-      }
+    if (tabParam === "informes") {
+      setEstadoFilter("Pendiente firma Director DPI");
+    } else if (!tabParam) {
+      setEstadoFilter("");
     }
-  }, []);
+    setCurrentPage(1);
+  }, [tabParam]);
 
   // Expedientes que llegan al carril de DPI (con campos confidenciales y aprobados por Gestión)
   const solicitudesDpiBase = useMemo(() => {
@@ -294,22 +326,95 @@ export function AsignacionNormativaFuentesView() {
     setObservacionAsignacion("");
   };
 
-  const handleFirmarDirector = (solicitudId: string) => {
-    firmarInformeNormativa(
-      solicitudId,
-      "DIRECTOR",
-      "Dr. Roberto Méndez (Director DPI)"
+  const handleOpenFirmaDirector = (solicitud: SolicitudAcceso) => {
+    setSolicitudAFirmar(solicitud);
+    setFirmaEstado("validando");
+    setIsConsultandoFirma(false);
+    setFirmaTimestamp("");
+    setFirmaCertId(
+      `FEC-DPI-2026-${Math.floor(100000 + Math.random() * 900000)}`
     );
-    toast.success(
-      "Informe firmado electrónicamente por el Director DPI (SOL-08)",
-      {
-        description:
-          "Doble firma completada (Revisor DPI + Director DPI). La solicitud quedó aprobada por DPI y lista para formalización (BN-08).",
-      }
-    );
-    if (solicitudInspecting?.id === solicitudId) {
-      setSolicitudInspecting(null);
-    }
+    setFirmaModalOpen(true);
+  };
+
+  // Simulación en vivo: Validación con FirmaEC tras notificación por correo
+  useEffect(() => {
+    if (!firmaModalOpen || firmaEstado !== "validando" || !solicitudAFirmar)
+      return;
+
+    const timer = setTimeout(() => {
+      const now = new Date();
+      const fechaHoraFormatted = `${now.toLocaleDateString("es-EC", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      })} ${now.toLocaleTimeString("es-EC", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      })}`;
+
+      setFirmaTimestamp(fechaHoraFormatted);
+      setFirmaEstado("firmado");
+
+      firmarInformeNormativa(
+        solicitudAFirmar.id,
+        "DIRECTOR",
+        "Dr. Roberto Méndez (Director DPI)"
+      );
+
+      toast.success(
+        "Firma electrónica validada con éxito en FirmaEC (SOL-08)",
+        {
+          description: `El expediente ${solicitudAFirmar.id} cuenta con doble firma y quedó aprobado por DPI.`,
+        }
+      );
+    }, 2800);
+
+    return () => clearTimeout(timer);
+  }, [firmaModalOpen, firmaEstado, solicitudAFirmar, firmarInformeNormativa]);
+
+  const handleConsultarEstadoFirmaManual = () => {
+    if (isConsultandoFirma || firmaEstado === "firmado" || !solicitudAFirmar)
+      return;
+    setIsConsultandoFirma(true);
+
+    setTimeout(() => {
+      const now = new Date();
+      const fechaHoraFormatted = `${now.toLocaleDateString("es-EC", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      })} ${now.toLocaleTimeString("es-EC", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      })}`;
+
+      setFirmaTimestamp(fechaHoraFormatted);
+      setFirmaEstado("firmado");
+      setIsConsultandoFirma(false);
+
+      firmarInformeNormativa(
+        solicitudAFirmar.id,
+        "DIRECTOR",
+        "Dr. Roberto Méndez (Director DPI)"
+      );
+
+      toast.success(
+        "Firma electrónica validada con éxito en FirmaEC (SOL-08)",
+        {
+          description: `El expediente ${solicitudAFirmar.id} cuenta con doble firma y quedó aprobado por DPI.`,
+        }
+      );
+    }, 600);
+  };
+
+  const handleCerrarModalFirma = () => {
+    setFirmaModalOpen(false);
+    setSolicitudAFirmar(null);
+    setFirmaEstado("validando");
+    setIsConsultandoFirma(false);
   };
 
   const getEstadoDpiLabel = (estado: string) => {
@@ -325,15 +430,232 @@ export function AsignacionNormativaFuentesView() {
     return estado;
   };
 
+  const isFirmarInformesView =
+    tabParam === "informes" || estadoFilter === "Pendiente firma Director DPI";
+
+  // Renderizado uniforme de Tarjeta Interactiva (UI Kit) para cada expediente DPI
+  const renderSolicitudCard = (solicitud: SolicitudAcceso) => {
+    const camposConf =
+      solicitud.fuentes?.[0]?.campos?.filter(
+        (c) => c.clasificacion === "Confidencial"
+      ) || [];
+    const tieneInforme = Boolean(solicitud.informeNormativa);
+    const firmaRevisorOk = Boolean(
+      solicitud.informeNormativa?.firmadoRevisor
+    );
+    const firmaDirectorOk = Boolean(
+      solicitud.informeNormativa?.firmadoDirector
+    );
+    const estadoTone: "success" | "warning" | "info" | "neutral" =
+      solicitud.estado === "Aprobada por Normatividad"
+        ? "success"
+        : solicitud.estado === "Pendiente de asignación en Normatividad"
+        ? "warning"
+        : "info";
+
+    const cardColor: "default" | "primary" | "info" | "warning" | "success" | "danger" =
+      solicitud.estado === "Aprobada por Normatividad"
+        ? "success"
+        : tieneInforme && firmaRevisorOk && !firmaDirectorOk
+        ? "info"
+        : solicitud.estado === "Pendiente de asignación en Normatividad"
+        ? "warning"
+        : "default";
+
+    return (
+      <InteractiveCard
+        key={solicitud.id}
+        color={cardColor}
+        decorativeIcon={
+          solicitud.estado === "Aprobada por Normatividad" ? (
+            <CheckCircle2 className="size-full stroke-[0.8]" />
+          ) : solicitud.estado === "Pendiente de asignación en Normatividad" ? (
+            <UserCheck className="size-full stroke-[0.8]" />
+          ) : (
+            <ShieldCheck className="size-full stroke-[0.8]" />
+          )
+        }
+        decorativeIconClassName="size-20 -bottom-2 -right-2 opacity-40 dark:opacity-25 group-hover:opacity-60"
+        className="p-4 sm:p-5 border-border shadow-xs hover:border-primary/40 space-y-3.5 w-full"
+      >
+        {/* Cabecera: Institución, ID y Estado */}
+        <div className="flex items-start justify-between gap-3 pb-3 border-b border-border/70 w-full">
+          <div className="min-w-0 flex-1 space-y-1">
+            <button
+              type="button"
+              onClick={() => setSolicitudInspecting(solicitud)}
+              className="text-sm font-bold text-foreground hover:text-primary transition-colors text-left line-clamp-2 leading-snug cursor-pointer block"
+            >
+              {solicitud.institucion}
+            </button>
+            <div className="flex items-center gap-2 text-[11px] text-muted-foreground font-mono">
+              <span>ID: {solicitud.id}</span>
+              <span className="text-muted-foreground/40 font-bold">•</span>
+              <span>v{solicitud.versionExpediente || 1}</span>
+              <span className="text-muted-foreground/40 font-bold">•</span>
+              <span>{solicitud.proyectoCodigo || "BN-07"}</span>
+            </div>
+          </div>
+          <div className="shrink-0 pt-0.5">
+            <Badge
+              tone={estadoTone}
+              appearance="soft"
+              size="sm"
+              className="font-semibold"
+            >
+              {getEstadoDpiLabel(solicitud.estado)}
+            </Badge>
+          </div>
+        </div>
+
+        {/* Bloque 1: Fuente principal solicitada */}
+        <div className="flex items-center gap-2 text-xs text-muted-foreground bg-surface/80 backdrop-blur-xs px-3 py-2 rounded-lg border border-border/50 w-full">
+          <Building2 className="size-3.5 text-primary shrink-0" />
+          <span className="text-foreground font-semibold text-[11px] truncate flex-1 min-w-0">
+            {solicitud.fuentePrincipal}
+          </span>
+        </div>
+
+        {/* Bloque 2: Campos confidenciales LOPDP y Revisor Equipo DPI */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs w-full">
+          <div className="p-2.5 rounded-lg bg-surface/80 backdrop-blur-xs border border-border/40 space-y-1">
+            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block">
+              Datos confidenciales
+            </span>
+            <div className="flex items-center gap-1.5">
+              <Lock className="size-3.5 text-warning shrink-0" />
+              <span className="font-bold text-warning text-xs">
+                {camposConf.length} campo(s) LOPDP
+              </span>
+            </div>
+          </div>
+
+          <div className="p-2.5 rounded-lg bg-surface/80 backdrop-blur-xs border border-border/40 space-y-1">
+            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block">
+              Revisor Equipo DPI
+            </span>
+            <div className="flex items-center gap-1.5 min-w-0">
+              <User className="size-3.5 text-primary shrink-0" />
+              <span className="text-xs font-semibold text-foreground truncate">
+                {solicitud.revisorNormativoAsignado || "Sin asignar"}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Bloque 3: Estado de firmas electrónicas e Información de fecha */}
+        <div className="space-y-2 pt-2 border-t border-border/50 text-xs w-full">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <span className="text-[11px] text-muted-foreground font-medium">Firmas del informe:</span>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full border font-medium",
+                  firmaRevisorOk
+                    ? "bg-success/15 text-success border-success/30"
+                    : "bg-warning/15 text-warning border-warning/30"
+                )}
+              >
+                <ShieldCheck className="size-3" />
+                <span>{firmaRevisorOk ? "1.ª Revisor OK" : "1.ª Revisor pendiente"}</span>
+              </span>
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full border font-medium",
+                  firmaDirectorOk
+                    ? "bg-success/15 text-success border-success/30"
+                    : firmaRevisorOk
+                    ? "bg-info/15 text-info border-info/30"
+                    : "bg-muted text-muted-foreground border-border/50"
+                )}
+              >
+                <FileSignature className="size-3" />
+                <span>{firmaDirectorOk ? "2.ª Director OK" : "2.ª Director pendiente"}</span>
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between gap-2 pt-1 border-t border-border/30">
+            <span className="text-[11px] text-muted-foreground font-medium">Fecha de solicitud:</span>
+            <span className="text-[11px] font-mono text-muted-foreground">
+              {solicitud.fecha || "—"}
+            </span>
+          </div>
+        </div>
+
+        {/* Bloque 4: Acciones organizadas en grilla del UI Kit */}
+        <div className="pt-2 border-t border-border/60 w-full">
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSolicitudInspecting(solicitud)}
+              className="w-full text-xs font-semibold gap-1.5 cursor-pointer h-9 justify-center hover:text-primary hover:border-primary/50"
+            >
+              <Eye className="size-3.5 text-muted-foreground" />
+              <span>Ver expediente</span>
+            </Button>
+
+            {tieneInforme && firmaRevisorOk && !firmaDirectorOk ? (
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => handleOpenFirmaDirector(solicitud)}
+                className="w-full text-xs font-semibold gap-1.5 cursor-pointer h-9 justify-center shadow-xs"
+              >
+                <FileSignature className="size-3.5" />
+                <span>Firmar informe</span>
+              </Button>
+            ) : (
+              <Button
+                variant={
+                  solicitud.estado === "Pendiente de asignación en Normatividad"
+                    ? "primary"
+                    : "outline"
+                }
+                size="sm"
+                onClick={() => {
+                  setSolicitudToAssign(solicitud);
+                  setSelectedRevisorNormId("");
+                  setObservacionAsignacion("");
+                }}
+                className={cn(
+                  "w-full text-xs font-semibold gap-1.5 cursor-pointer h-9 justify-center",
+                  solicitud.revisorNormativoAsignado &&
+                    "hover:text-primary hover:border-primary/50"
+                )}
+              >
+                {solicitud.revisorNormativoAsignado ? (
+                  <RotateCcw className="size-3.5" />
+                ) : (
+                  <UserCheck className="size-3.5" />
+                )}
+                <span>
+                  {solicitud.revisorNormativoAsignado
+                    ? "Reasignar"
+                    : "Asignar"}
+                </span>
+              </Button>
+            )}
+          </div>
+        </div>
+      </InteractiveCard>
+    );
+  };
+
   return (
     <WireframeDashboardLayout
-      activeMenu="asignacion-normativa-fuentes"
-      currentRole="DIR_NORMATIVA"
-      currentUser={MOCK_USERS_BY_ROLE.DIR_NORMATIVA}
+      activeMenu={
+        isFirmarInformesView
+          ? "informes-aprobacion-dpi"
+          : "asignacion-normativa-fuentes"
+      }
+      currentRole="DIR_DPI"
+      currentUser={MOCK_USERS_BY_ROLE.DIR_DPI}
       breadcrumbs={[
         { label: "Inicio", href: "/" },
-        { label: "Dirección DPI", href: "/revision-normativa/asignacion" },
-        { label: "Asignación y Firma DPI" },
+        { label: "Solicitudes de acceso a fuentes", href: "/revision-normativa/asignacion" },
+        { label: isFirmarInformesView ? "Firmar informes DPI" : "Asignar revisiones DPI" },
       ]}
     >
       <main className="w-full pr-3 pl-2 pb-3 pt-1.5 flex-1 min-h-0 flex flex-col overflow-hidden">
@@ -343,36 +665,32 @@ export function AsignacionNormativaFuentesView() {
         >
           {/* CABECERA */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
-            <div className="space-y-1">
+            <div className="space-y-1.5 w-full">
+              <div className="flex items-center gap-2">
+                <Badge
+                  tone="primary"
+                  appearance="soft"
+                  size="sm"
+                  className="font-semibold text-[11px]"
+                >
+                  Acceso a fuentes · Solicitudes de acceso
+                </Badge>
+              </div>
               <h1 className="font-heading font-extrabold text-2xl sm:text-3xl tracking-tight text-primary">
-                {estadoFilter === "Pendiente firma Director DPI"
-                  ? "Informes de aprobación"
-                  : estadoFilter === "En revisión en DPI"
-                  ? "Seguimiento DPI"
+                {isFirmarInformesView
+                  ? "Firmar informes DPI"
                   : "Asignar revisiones DPI"}
               </h1>
-              <p className="text-sm text-muted-foreground max-w-3xl">
-                {estadoFilter === "Pendiente firma Director DPI"
-                  ? "Revisa y suscribe electrónicamente los informes favorables de campos confidenciales elaborados por el equipo de Protección de la Información."
-                  : estadoFilter === "En revisión en DPI"
-                  ? "Consulta la trazabilidad y el estado de evaluación de las solicitudes de acceso con campos confidenciales en Protección de la Información."
-                  : "Gestiona y asigna a los revisores de Protección de la Información las solicitudes de acceso que contienen campos confidenciales."}
+              <p className="text-xs sm:text-sm text-muted-foreground w-full max-w-none leading-relaxed font-normal">
+                {isFirmarInformesView
+                  ? "Revisa los informes favorables de evaluación de datos confidenciales elaborados por los revisores DPI y suscribe la segunda firma electrónica para autorizar su formalización."
+                  : "Gestiona y asigna o reasigna a los revisores de Protección de la Información las solicitudes de acceso aprobadas por Gestión que contienen datos confidenciales."}
               </p>
-            </div>
-            <div className="flex items-center gap-2 shrink-0 self-start sm:self-center">
-              <Badge
-                tone="primary"
-                appearance="soft"
-                size="md"
-                className="font-semibold px-3 py-1.5 text-xs"
-              >
-                Rol: Director DPI
-              </Badge>
             </div>
           </div>
 
           {/* TARJETAS KPI INTERACTIVAS (Homologadas 100% con Cuentas Internas) */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 shrink-0">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 w-full">
             {/* KPI 1: Expedientes en DPI */}
             <Card
               variant="featured"
@@ -387,41 +705,43 @@ export function AsignacionNormativaFuentesView() {
               }}
               aria-pressed={!hasActiveFilters}
               className={cn(
-                "group relative overflow-hidden cursor-pointer transition-all duration-200 border rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring select-none",
+                "group relative overflow-hidden cursor-pointer transition-all duration-200 border rounded-xl outline-none select-none p-4 w-full",
                 "hover:-translate-y-0.5 hover:shadow-md",
                 !hasActiveFilters
                   ? "bg-primary/15 border-primary ring-2 ring-primary/40 shadow-xs"
                   : "bg-primary/5 hover:bg-primary/10 border-primary/25 shadow-2xs"
               )}
-              innerClassName="p-3 sm:p-4 flex flex-col justify-between gap-2.5 h-full"
+              innerClassName="p-0 h-full"
             >
-              <div className="flex items-center justify-between gap-2 w-full">
-                <div
-                  className={cn(
-                    "size-10 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200",
-                    !hasActiveFilters
-                      ? "bg-primary text-white shadow-xs"
-                      : "bg-primary/15 text-primary group-hover:scale-105 group-hover:bg-primary group-hover:text-white"
-                  )}
-                >
-                  <Lock className="size-5" />
+              <div className="flex flex-col justify-between h-full gap-3 w-full">
+                <div className="flex items-center justify-between gap-2 w-full">
+                  <div
+                    className={cn(
+                      "size-10 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200",
+                      !hasActiveFilters
+                        ? "bg-primary text-white shadow-xs"
+                        : "bg-primary/15 text-primary group-hover:scale-105 group-hover:bg-primary group-hover:text-white"
+                    )}
+                  >
+                    <Lock className="size-5" />
+                  </div>
+                  <Badge
+                    tone="primary"
+                    appearance="soft"
+                    size="sm"
+                    className="shrink-0 text-[10px] font-bold px-2 py-0.5"
+                  >
+                    Confidenciales
+                  </Badge>
                 </div>
-                <Badge
-                  tone="primary"
-                  appearance="soft"
-                  size="sm"
-                  className="text-[10px] font-bold px-2 py-0.5"
-                >
-                  Confidenciales
-                </Badge>
-              </div>
-              <div className="space-y-0.5 text-left w-full">
-                <p className="text-xs font-semibold text-muted-foreground group-hover:text-foreground transition-colors truncate">
-                  Expedientes en DPI
-                </p>
-                <p className="text-2xl sm:text-3xl font-extrabold font-heading text-foreground leading-none tracking-tight">
-                  {metricas.total}
-                </p>
+                <div className="space-y-0.5 text-left w-full">
+                  <p className="text-xs font-semibold text-muted-foreground group-hover:text-foreground transition-colors truncate">
+                    Expedientes en DPI
+                  </p>
+                  <p className="text-2xl sm:text-3xl font-extrabold font-heading text-foreground leading-none tracking-tight">
+                    {metricas.total}
+                  </p>
+                </div>
               </div>
             </Card>
 
@@ -449,41 +769,43 @@ export function AsignacionNormativaFuentesView() {
               }}
               aria-pressed={estadoFilter === "Pendiente de asignación en DPI"}
               className={cn(
-                "group relative overflow-hidden cursor-pointer transition-all duration-200 border rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring select-none",
+                "group relative overflow-hidden cursor-pointer transition-all duration-200 border rounded-xl outline-none select-none p-4 w-full",
                 "hover:-translate-y-0.5 hover:shadow-md",
                 estadoFilter === "Pendiente de asignación en DPI"
                   ? "bg-warning/15 border-warning ring-2 ring-warning/40 shadow-xs"
                   : "bg-warning/5 hover:bg-warning/10 border-warning/25 shadow-2xs"
               )}
-              innerClassName="p-3 sm:p-4 flex flex-col justify-between gap-2.5 h-full"
+              innerClassName="p-0 h-full"
             >
-              <div className="flex items-center justify-between gap-2 w-full">
-                <div
-                  className={cn(
-                    "size-10 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200",
-                    estadoFilter === "Pendiente de asignación en DPI"
-                      ? "bg-warning text-white shadow-xs"
-                      : "bg-warning/15 text-warning group-hover:scale-105 group-hover:bg-warning group-hover:text-white"
-                  )}
-                >
-                  <UserCheck className="size-5" />
+              <div className="flex flex-col justify-between h-full gap-3 w-full">
+                <div className="flex items-center justify-between gap-2 w-full">
+                  <div
+                    className={cn(
+                      "size-10 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200",
+                      estadoFilter === "Pendiente de asignación en DPI"
+                        ? "bg-warning text-white shadow-xs"
+                        : "bg-warning/15 text-warning group-hover:scale-105 group-hover:bg-warning group-hover:text-white"
+                    )}
+                  >
+                    <UserCheck className="size-5" />
+                  </div>
+                  <Badge
+                    tone="warning"
+                    appearance="soft"
+                    size="sm"
+                    className="shrink-0 text-[10px] font-bold px-2 py-0.5"
+                  >
+                    SOL-07
+                  </Badge>
                 </div>
-                <Badge
-                  tone="warning"
-                  appearance="soft"
-                  size="sm"
-                  className="text-[10px] font-bold px-2 py-0.5"
-                >
-                  SOL-07
-                </Badge>
-              </div>
-              <div className="space-y-0.5 text-left w-full">
-                <p className="text-xs font-semibold text-muted-foreground group-hover:text-foreground transition-colors truncate">
-                  Por Asignar Revisor DPI
-                </p>
-                <p className="text-2xl sm:text-3xl font-extrabold font-heading text-foreground leading-none tracking-tight">
-                  {metricas.pendientesAsig}
-                </p>
+                <div className="space-y-0.5 text-left w-full">
+                  <p className="text-xs font-semibold text-muted-foreground group-hover:text-foreground transition-colors truncate">
+                    Por Asignar Revisor DPI
+                  </p>
+                  <p className="text-2xl sm:text-3xl font-extrabold font-heading text-foreground leading-none tracking-tight">
+                    {metricas.pendientesAsig}
+                  </p>
+                </div>
               </div>
             </Card>
 
@@ -511,41 +833,43 @@ export function AsignacionNormativaFuentesView() {
               }}
               aria-pressed={estadoFilter === "Pendiente firma Director DPI"}
               className={cn(
-                "group relative overflow-hidden cursor-pointer transition-all duration-200 border rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring select-none",
+                "group relative overflow-hidden cursor-pointer transition-all duration-200 border rounded-xl outline-none select-none p-4 w-full",
                 "hover:-translate-y-0.5 hover:shadow-md",
                 estadoFilter === "Pendiente firma Director DPI"
                   ? "bg-info/15 border-info ring-2 ring-info/40 shadow-xs"
                   : "bg-info/5 hover:bg-info/10 border-info/25 shadow-2xs"
               )}
-              innerClassName="p-3 sm:p-4 flex flex-col justify-between gap-2.5 h-full"
+              innerClassName="p-0 h-full"
             >
-              <div className="flex items-center justify-between gap-2 w-full">
-                <div
-                  className={cn(
-                    "size-10 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200",
-                    estadoFilter === "Pendiente firma Director DPI"
-                      ? "bg-info text-white shadow-xs"
-                      : "bg-info/15 text-info group-hover:scale-105 group-hover:bg-info group-hover:text-white"
-                  )}
-                >
-                  <FileSignature className="size-5" />
+              <div className="flex flex-col justify-between h-full gap-3 w-full">
+                <div className="flex items-center justify-between gap-2 w-full">
+                  <div
+                    className={cn(
+                      "size-10 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200",
+                      estadoFilter === "Pendiente firma Director DPI"
+                        ? "bg-info text-white shadow-xs"
+                        : "bg-info/15 text-info group-hover:scale-105 group-hover:bg-info group-hover:text-white"
+                    )}
+                  >
+                    <FileSignature className="size-5" />
+                  </div>
+                  <Badge
+                    tone="info"
+                    appearance="soft"
+                    size="sm"
+                    className="shrink-0 text-[10px] font-bold px-2 py-0.5"
+                  >
+                    2.ª Firma
+                  </Badge>
                 </div>
-                <Badge
-                  tone="info"
-                  appearance="soft"
-                  size="sm"
-                  className="text-[10px] font-bold px-2 py-0.5"
-                >
-                  2.ª Firma
-                </Badge>
-              </div>
-              <div className="space-y-0.5 text-left w-full">
-                <p className="text-xs font-semibold text-muted-foreground group-hover:text-foreground transition-colors truncate">
-                  Informes por Firmar (SOL-08)
-                </p>
-                <p className="text-2xl sm:text-3xl font-extrabold font-heading text-foreground leading-none tracking-tight">
-                  {metricas.pendientesFirmaDirector}
-                </p>
+                <div className="space-y-0.5 text-left w-full">
+                  <p className="text-xs font-semibold text-muted-foreground group-hover:text-foreground transition-colors truncate">
+                    Informes por Firmar (SOL-08)
+                  </p>
+                  <p className="text-2xl sm:text-3xl font-extrabold font-heading text-foreground leading-none tracking-tight">
+                    {metricas.pendientesFirmaDirector}
+                  </p>
+                </div>
               </div>
             </Card>
 
@@ -575,41 +899,43 @@ export function AsignacionNormativaFuentesView() {
                 estadoFilter === "Aprobada por DPI (Lista para formalización)"
               }
               className={cn(
-                "group relative overflow-hidden cursor-pointer transition-all duration-200 border rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring select-none",
+                "group relative overflow-hidden cursor-pointer transition-all duration-200 border rounded-xl outline-none select-none p-4 w-full",
                 "hover:-translate-y-0.5 hover:shadow-md",
                 estadoFilter === "Aprobada por DPI (Lista para formalización)"
                   ? "bg-success/15 border-success ring-2 ring-success/40 shadow-xs"
                   : "bg-success/5 hover:bg-success/10 border-success/25 shadow-2xs"
               )}
-              innerClassName="p-3 sm:p-4 flex flex-col justify-between gap-2.5 h-full"
+              innerClassName="p-0 h-full"
             >
-              <div className="flex items-center justify-between gap-2 w-full">
-                <div
-                  className={cn(
-                    "size-10 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200",
-                    estadoFilter === "Aprobada por DPI (Lista para formalización)"
-                      ? "bg-success text-white shadow-xs"
-                      : "bg-success/15 text-success group-hover:scale-105 group-hover:bg-success group-hover:text-white"
-                  )}
-                >
-                  <CheckCircle2 className="size-5" />
+              <div className="flex flex-col justify-between h-full gap-3 w-full">
+                <div className="flex items-center justify-between gap-2 w-full">
+                  <div
+                    className={cn(
+                      "size-10 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200",
+                      estadoFilter === "Aprobada por DPI (Lista para formalización)"
+                        ? "bg-success text-white shadow-xs"
+                        : "bg-success/15 text-success group-hover:scale-105 group-hover:bg-success group-hover:text-white"
+                    )}
+                  >
+                    <CheckCircle2 className="size-5" />
+                  </div>
+                  <Badge
+                    tone="success"
+                    appearance="soft"
+                    size="sm"
+                    className="shrink-0 text-[10px] font-bold px-2 py-0.5"
+                  >
+                    Habilitadas
+                  </Badge>
                 </div>
-                <Badge
-                  tone="success"
-                  appearance="soft"
-                  size="sm"
-                  className="text-[10px] font-bold px-2 py-0.5"
-                >
-                  Habilitadas
-                </Badge>
-              </div>
-              <div className="space-y-0.5 text-left w-full">
-                <p className="text-xs font-semibold text-muted-foreground group-hover:text-foreground transition-colors truncate">
-                  Aprobadas por DPI
-                </p>
-                <p className="text-2xl sm:text-3xl font-extrabold font-heading text-foreground leading-none tracking-tight">
-                  {metricas.aprobadas}
-                </p>
+                <div className="space-y-0.5 text-left w-full">
+                  <p className="text-xs font-semibold text-muted-foreground group-hover:text-foreground transition-colors truncate">
+                    Aprobadas por DPI
+                  </p>
+                  <p className="text-2xl sm:text-3xl font-extrabold font-heading text-foreground leading-none tracking-tight">
+                    {metricas.aprobadas}
+                  </p>
+                </div>
               </div>
             </Card>
           </div>
@@ -760,156 +1086,24 @@ export function AsignacionNormativaFuentesView() {
           {/* VISTA TARJETAS (CARDS — Idéntica a Cuentas Internas) */}
           <div
             className={cn(
-              "grid grid-cols-1 gap-3",
-              viewMode === "cards" ? "md:grid-cols-2" : "md:hidden"
+              "w-full",
+              viewMode === "cards"
+                ? "grid grid-cols-1 md:grid-cols-2 gap-4"
+                : "block md:hidden space-y-3.5"
             )}
           >
             {paginatedSolicitudes.length === 0 ? (
-              <Card
-                className="col-span-full"
-                innerClassName="p-8 text-center flex flex-col items-center gap-2"
-              >
-                <ShieldCheck className="size-8 text-muted-foreground/50" />
+              <div className="col-span-full flex flex-col items-center justify-center p-8 bg-surface border border-border rounded-xl text-center space-y-2">
+                <ShieldCheck className="size-8 stroke-[1.5] text-muted-foreground/60" />
                 <p className="text-sm font-semibold text-foreground">
-                  No existen expedientes en DPI con estos filtros
+                  No se encontraron expedientes en DPI
                 </p>
-              </Card>
+                <p className="text-xs text-muted-foreground">
+                  Ajusta los filtros de búsqueda para consultar otros expedientes.
+                </p>
+              </div>
             ) : (
-              paginatedSolicitudes.map((solicitud) => {
-                const camposConf =
-                  solicitud.fuentes?.[0]?.campos?.filter(
-                    (c) => c.clasificacion === "Confidencial"
-                  ) || [];
-                const tieneInforme = Boolean(solicitud.informeNormativa);
-                const firmaRevisorOk = Boolean(
-                  solicitud.informeNormativa?.firmadoRevisor
-                );
-                const firmaDirectorOk = Boolean(
-                  solicitud.informeNormativa?.firmadoDirector
-                );
-                const cardColor =
-                  solicitud.estado === "Aprobada por Normatividad"
-                    ? "success"
-                    : solicitud.estado ===
-                      "Pendiente de asignación en Normatividad"
-                    ? "warning"
-                    : "info";
-
-                return (
-                  <InteractiveCard
-                    key={solicitud.id}
-                    color={cardColor}
-                    decorativeIcon={<ShieldCheck className="size-full" />}
-                    decorativeIconClassName="size-20 -bottom-2 -right-2 opacity-40 dark:opacity-25 group-hover:opacity-60"
-                    className="p-4 flex flex-col justify-between gap-3.5"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-mono text-xs font-bold text-primary">
-                            {solicitud.id}
-                          </span>
-                          <Badge
-                            tone="neutral"
-                            appearance="outline"
-                            size="sm"
-                            className="text-[10px] px-1.5 py-0"
-                          >
-                            v{solicitud.versionExpediente || 1}
-                          </Badge>
-                        </div>
-                        <p className="font-bold text-sm text-foreground mt-1 truncate">
-                          {solicitud.institucion}
-                        </p>
-                        <p className="text-xs text-muted-foreground truncate mt-0.5">
-                          {solicitud.fuentePrincipal}
-                        </p>
-                      </div>
-                      <Badge
-                        tone={cardColor}
-                        appearance="soft"
-                        size="sm"
-                        className="shrink-0 font-semibold"
-                      >
-                        {getEstadoDpiLabel(solicitud.estado)}
-                      </Badge>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2 text-xs bg-surface/80 backdrop-blur-xs rounded-lg p-2.5 border border-border/40">
-                      <div className="min-w-0">
-                        <span className="text-[11px] text-muted-foreground block">
-                          Campos confidenciales
-                        </span>
-                        <span className="font-bold text-warning truncate block">
-                          {camposConf.length} campo(s) LOPDP
-                        </span>
-                      </div>
-                      <div className="min-w-0">
-                        <span className="text-[11px] text-muted-foreground block">
-                          Revisor Equipo DPI
-                        </span>
-                        <span className="font-semibold text-foreground truncate block">
-                          {solicitud.revisorNormativoAsignado || "Sin asignar"}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-1.5 pt-2 border-t border-border/60">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setSolicitudInspecting(solicitud)}
-                        className="w-full justify-center gap-1.5 font-semibold bg-surface/80 text-xs"
-                      >
-                        <Eye className="size-3.5 text-primary" />
-                        <span>Ver expediente</span>
-                      </Button>
-
-                      {tieneInforme && firmaRevisorOk && !firmaDirectorOk ? (
-                        <Button
-                          variant="primary"
-                          size="sm"
-                          onClick={() => handleFirmarDirector(solicitud.id)}
-                          className="w-full justify-center gap-1.5 font-semibold text-xs"
-                        >
-                          <FileSignature className="size-3.5" />
-                          <span>Firmar informe</span>
-                        </Button>
-                      ) : (
-                        <Button
-                          variant={
-                            solicitud.estado ===
-                            "Pendiente de asignación en Normatividad"
-                              ? "primary"
-                              : "outline"
-                          }
-                          size="sm"
-                          onClick={() => {
-                            setSolicitudToAssign(solicitud);
-                            setSelectedRevisorNormId(
-                              solicitud.revisorNormativoAsignadoId ||
-                                "U-EQNORM"
-                            );
-                            setObservacionAsignacion("");
-                          }}
-                          className="w-full justify-center gap-1.5 font-semibold text-xs"
-                        >
-                          {solicitud.revisorNormativoAsignado ? (
-                            <RotateCcw className="size-3.5" />
-                          ) : (
-                            <UserCheck className="size-3.5" />
-                          )}
-                          <span>
-                            {solicitud.revisorNormativoAsignado
-                              ? "Reasignar"
-                              : "Asignar"}
-                          </span>
-                        </Button>
-                      )}
-                    </div>
-                  </InteractiveCard>
-                );
-              })
+              paginatedSolicitudes.map((solicitud) => renderSolicitudCard(solicitud))
             )}
           </div>
 
@@ -1160,10 +1354,7 @@ export function AsignacionNormativaFuentesView() {
                                       size="icon-sm"
                                       onClick={() => {
                                         setSolicitudToAssign(solicitud);
-                                        setSelectedRevisorNormId(
-                                          solicitud.revisorNormativoAsignadoId ||
-                                            "U-EQNORM"
-                                        );
+                                        setSelectedRevisorNormId("");
                                         setObservacionAsignacion("");
                                       }}
                                       aria-label={
@@ -1202,7 +1393,7 @@ export function AsignacionNormativaFuentesView() {
                                         variant="ghost"
                                         size="icon-sm"
                                         onClick={() =>
-                                          handleFirmarDirector(solicitud.id)
+                                          handleOpenFirmaDirector(solicitud)
                                         }
                                         aria-label="Firmar informe como Director DPI"
                                         className="text-success hover:bg-success/10"
@@ -1334,161 +1525,343 @@ export function AsignacionNormativaFuentesView() {
           </div>
         </Card>
 
-        {/* MODAL: ASIGNAR O REASIGNAR REVISOR DEL EQUIPO DPI (SOL-07 — Homologado AccionCuentaDialog) */}
+        {/* MODAL: ASIGNAR O REASIGNAR REVISOR DEL EQUIPO DPI (SOL-07 — Homologado AsignarRevisorDialog de Anexo A/B) */}
         <Dialog
           open={Boolean(solicitudToAssign)}
-          onOpenChange={(open) => !open && setSolicitudToAssign(null)}
+          onOpenChange={(open) => {
+            if (!open) {
+              setSolicitudToAssign(null);
+              setRevisorDpiSearchQuery("");
+            }
+          }}
         >
-          <DialogContent
-            variant="info"
-            size="lg"
-            className="p-6 sm:p-7 max-w-lg max-h-[90vh] flex flex-col overflow-hidden"
-            icon={<UserCheck className="size-10 text-info stroke-[2px]" />}
-          >
-            <DialogHeader className="items-center text-center gap-1.5 shrink-0 pb-3 border-b border-border/50">
-              <DialogTitle className="font-heading font-bold text-xl text-foreground">
-                {solicitudToAssign?.revisorNormativoAsignado
-                  ? "Recuperar y Reasignar Revisión DPI"
-                  : "Asignar Revisor del Equipo DPI"}
-              </DialogTitle>
-              <DialogDescription className="text-sm text-muted-foreground max-w-md mx-auto">
-                Seleccione al especialista activo del Equipo de Protección de la Información (DPI) que evaluará la justificación legal de los campos confidenciales (SOL-07).
-              </DialogDescription>
-            </DialogHeader>
+          <DialogContent className="max-w-4xl w-full p-4 sm:p-7 max-h-[90vh] overflow-y-auto">
+            {solicitudToAssign && (() => {
+              const esReasignacion = Boolean(
+                solicitudToAssign.revisorNormativoAsignado
+              );
+              const selectedRevisorObj = REVISORES_DPI.find(
+                (r) => r.id === selectedRevisorNormId
+              );
 
-            {solicitudToAssign && (
-              <div className="modal-scroll-area overflow-y-auto pr-2 py-2.5 space-y-4 text-xs flex-1 min-h-0 text-left">
-                <div className="p-3.5 rounded-2xl bg-muted/30 border border-border/70 space-y-1.5">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Solicitud:</span>
-                    <strong className="text-foreground font-mono">
-                      {solicitudToAssign.id} (v
-                      {solicitudToAssign.versionExpediente || 1})
-                    </strong>
+              return (
+                <div className="space-y-5 text-left">
+                  {/* ── 1. CABECERA CON LÍNEA INFERIOR DIVISORIA ── */}
+                  <div className="flex items-start justify-between gap-4 pb-4 border-b border-border pr-6">
+                    <div className="flex items-center gap-3">
+                      <div className="size-10 rounded-full flex items-center justify-center shrink-0 border bg-primary/10 text-primary border-primary/20">
+                        {esReasignacion ? (
+                          <RotateCcw className="size-5 text-primary" />
+                        ) : (
+                          <UserPlus className="size-5 text-primary" />
+                        )}
+                      </div>
+                      <div>
+                        <DialogTitle className="text-base sm:text-lg font-bold font-heading text-foreground leading-tight">
+                          {esReasignacion
+                            ? "Reasignar Revisor — Equipo DPI"
+                            : "Asignar Revisor — Equipo DPI"}
+                        </DialogTitle>
+                        <DialogDescription className="text-xs text-muted-foreground mt-0.5 leading-snug">
+                          {esReasignacion
+                            ? "Selecciona un nuevo especialista del Equipo DPI y registra el motivo de la reasignación."
+                            : "Selecciona el especialista facultado que evaluará la justificación legal de los campos confidenciales."}
+                        </DialogDescription>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Institución:</span>
-                    <strong className="text-foreground">
-                      {solicitudToAssign.institucion}
-                    </strong>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Fuente:</span>
-                    <strong className="text-foreground truncate max-w-56">
-                      {solicitudToAssign.fuentePrincipal}
-                    </strong>
-                  </div>
-                </div>
 
-                {solicitudToAssign.revisorNormativoAsignado && (
-                  <div className="rounded-2xl border border-border/80 bg-surface-muted/50 p-3 text-xs text-muted-foreground">
-                    <span className="font-semibold text-foreground">
-                      Revisor DPI actual:{" "}
-                    </span>
-                    {solicitudToAssign.revisorNormativoAsignado}
-                    <p className="text-[11px] mt-0.5">
-                      Al recuperar y reasignar la solicitud, se conserva íntegro el trabajo previo y el historial de evaluación en DPI (SOL-07).
-                    </p>
-                  </div>
-                )}
+                  {/* ── AVISO DE REASIGNACIÓN ── */}
+                  {esReasignacion && (
+                    <div className="p-3.5 bg-info/10 border border-info/30 rounded-xl flex items-start gap-3 text-xs text-foreground">
+                      <RotateCcw className="size-4 text-info shrink-0 mt-0.5" />
+                      <div className="space-y-1">
+                        <strong className="font-semibold block text-info font-heading">
+                          Reasignación de trámite en DPI
+                        </strong>
+                        <p className="text-muted-foreground text-[11px] leading-relaxed">
+                          Revisor actual:{" "}
+                          <strong className="text-foreground">
+                            {solicitudToAssign.revisorNormativoAsignado}
+                          </strong>
+                          . Al recuperar y reasignar la solicitud se conserva íntegro el historial de evaluación previa. Selecciona un nuevo especialista y registra el motivo de la reasignación.
+                        </p>
+                      </div>
+                    </div>
+                  )}
 
-                <div className="space-y-2">
-                  <label className="font-semibold text-foreground block">
-                    Seleccione Especialista del Equipo DPI{" "}
-                    <span className="text-destructive">*</span>
-                  </label>
-                  <RadioGroup
-                    value={selectedRevisorNormId}
-                    onValueChange={setSelectedRevisorNormId}
-                    className="space-y-2"
-                  >
-                    {REVISORES_DPI.map((rev) => {
-                      const isSel = selectedRevisorNormId === rev.id;
-                      return (
-                        <label
-                          key={rev.id}
-                          htmlFor={`rev-dpi-${rev.id}`}
-                          className={cn(
-                            "w-full flex items-center justify-between p-3 rounded-2xl border text-left cursor-pointer transition-all",
-                            isSel
-                              ? "border-primary bg-primary/5 text-foreground ring-1 ring-primary/40 shadow-xs"
-                              : "border-border bg-background hover:bg-muted/40 text-muted-foreground"
+                  {/* ── 2. TARJETA INFORMATIVA INSTITUCIÓN, SOLICITUD Y FUENTE ── */}
+                  <div className="p-3 bg-surface rounded-xl border border-border/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
+                    <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                      <Building2 className="size-4 text-primary shrink-0" />
+                      <span className="font-semibold text-foreground truncate">
+                        {solicitudToAssign.institucion}
+                      </span>
+                      <Badge
+                        tone="primary"
+                        appearance="outline"
+                        size="sm"
+                        className="font-mono text-[10px]"
+                      >
+                        {solicitudToAssign.id} (v
+                        {solicitudToAssign.versionExpediente || 1})
+                      </Badge>
+                      {solicitudToAssign.fuentePrincipal && (
+                        <span className="text-muted-foreground truncate">
+                          · {solicitudToAssign.fuentePrincipal}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2 text-muted-foreground shrink-0">
+                      <User className="size-3.5 text-muted-foreground shrink-0" />
+                      <span>
+                        {solicitudToAssign.coordinador || "Coordinador SINARP"}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* ── 3. TABLA DE REVISORES DISPONIBLES (UI KIT) ── */}
+                  <div className="space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                        Revisores disponibles
+                      </span>
+
+                      <div className="w-full sm:w-64">
+                        <Search
+                          size="sm"
+                          value={revisorDpiSearchQuery}
+                          onChange={(e) =>
+                            setRevisorDpiSearchQuery(e.target.value)
+                          }
+                          onClear={() => setRevisorDpiSearchQuery("")}
+                          placeholder="Buscar funcionario..."
+                          aria-label="Buscar funcionario DPI"
+                          className="w-full"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="hover:bg-transparent">
+                            <TableHead className="py-3 px-4 text-xs font-bold">
+                              Revisor / Funcionario
+                            </TableHead>
+                            <TableHead className="py-3 px-4 text-xs font-bold">
+                              Cargo
+                            </TableHead>
+                            <TableHead className="py-3 px-4 text-xs font-bold text-center w-28">
+                              Estado
+                            </TableHead>
+                            <TableHead className="py-3 px-4 text-xs font-bold text-center w-24">
+                              Acción
+                            </TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {filteredRevisoresDpiModal.length === 0 ? (
+                            <TableRow>
+                              <TableCell
+                                colSpan={4}
+                                className="py-6 text-center text-xs text-muted-foreground"
+                              >
+                                No se encontraron revisores con el término ingresado.
+                              </TableCell>
+                            </TableRow>
+                          ) : (
+                            filteredRevisoresDpiModal.map((rev) => {
+                              const isSelected = selectedRevisorNormId === rev.id;
+                              const isCurrent =
+                                rev.nombre ===
+                                solicitudToAssign.revisorNormativoAsignado;
+                              const inicial = rev.nombre.charAt(0).toUpperCase();
+
+                              return (
+                                <TableRow
+                                  key={rev.id}
+                                  data-state={isSelected ? "selected" : undefined}
+                                  onClick={() => setSelectedRevisorNormId(rev.id)}
+                                  className={cn(
+                                    "cursor-pointer transition-colors",
+                                    isSelected
+                                      ? "bg-primary/15 font-semibold"
+                                      : "hover:bg-primary/10"
+                                  )}
+                                >
+                                  <TableCell className="py-2.5 px-4 h-auto">
+                                    <div className="flex items-center gap-3">
+                                      <div
+                                        className={cn(
+                                          "size-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 transition-colors",
+                                          isSelected
+                                            ? "bg-primary text-primary-foreground shadow-2xs"
+                                            : "bg-primary/10 text-primary border border-primary/20"
+                                        )}
+                                      >
+                                        {inicial}
+                                      </div>
+                                      <div className="min-w-0">
+                                        <div className="flex items-center gap-1.5">
+                                          <span className="text-xs font-bold text-foreground truncate">
+                                            {rev.nombre}
+                                          </span>
+                                          {isCurrent && (
+                                            <Badge
+                                              tone="primary"
+                                              appearance="soft"
+                                              size="sm"
+                                              className="text-[9px] h-4 px-1.5 font-bold uppercase tracking-wider"
+                                            >
+                                              Actual
+                                            </Badge>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </TableCell>
+
+                                  <TableCell className="py-2.5 px-4 h-auto text-xs text-muted-foreground">
+                                    {rev.cargo} · {rev.especialidad}
+                                  </TableCell>
+
+                                  <TableCell className="py-2.5 px-4 h-auto text-center">
+                                    <Badge
+                                      tone="success"
+                                      appearance="soft"
+                                      size="sm"
+                                      className="h-5 px-2 text-[10px] font-medium"
+                                    >
+                                      Activo
+                                    </Badge>
+                                  </TableCell>
+
+                                  <TableCell className="py-2.5 h-auto text-center">
+                                    <div
+                                      className="flex items-center justify-center gap-3"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      <TooltipProvider>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <Button
+                                              type="button"
+                                              onClick={() =>
+                                                setSelectedRevisorNormId(rev.id)
+                                              }
+                                              aria-label={`Seleccionar a ${rev.nombre}`}
+                                              variant="ghost"
+                                              size="icon-sm"
+                                              className="text-muted-foreground hover:text-primary hover:bg-primary/10"
+                                            >
+                                              {isSelected ? (
+                                                <Check className="size-4 text-primary" />
+                                              ) : (
+                                                <UserPlus className="size-4" />
+                                              )}
+                                            </Button>
+                                          </TooltipTrigger>
+                                          <TooltipContent side="top">
+                                            {isSelected
+                                              ? "Revisor seleccionado"
+                                              : "Seleccionar para asignar"}
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </TooltipProvider>
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })
                           )}
-                        >
-                          <div className="flex items-center gap-3">
-                            <RadioGroupItem
-                              value={rev.id}
-                              id={`rev-dpi-${rev.id}`}
-                            />
-                            <div>
-                              <p className="font-bold text-foreground text-xs">
-                                {rev.nombre}
-                              </p>
-                              <p className="text-[11px] text-muted-foreground">
-                                {rev.cargo} · {rev.especialidad}
-                              </p>
-                            </div>
-                          </div>
-                          {isSel && (
-                            <CheckCircle2 className="size-4 text-primary" />
-                          )}
-                        </label>
-                      );
-                    })}
-                  </RadioGroup>
-                </div>
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
 
-                <div className="space-y-1.5">
-                  <label className="font-semibold text-foreground block">
-                    {solicitudToAssign.revisorNormativoAsignado ? (
-                      <>
-                        Motivo de reasignación en DPI{" "}
-                        <span className="text-destructive">*</span>
-                      </>
-                    ) : (
-                      "Instrucciones u observaciones para el Revisor DPI (Opcional):"
-                    )}
-                  </label>
-                  <Textarea
-                    rows={2}
-                    value={observacionAsignacion}
-                    onChange={(e) => setObservacionAsignacion(e.target.value)}
-                    placeholder={
-                      solicitudToAssign.revisorNormativoAsignado
-                        ? "Indique el motivo de recuperación y reasignación del expediente..."
-                        : "Instrucciones de evaluación de LOPDP o prioridad..."
-                    }
-                    className="text-xs bg-background border-border"
-                  />
-                </div>
-              </div>
-            )}
+                  {/* ── 4. CAMPO DE OBSERVACIONES / MOTIVO DE REASIGNACIÓN ── */}
+                  <div className="space-y-1.5 pt-2">
+                    <Label
+                      htmlFor="motivo-asignacion-dpi"
+                      className="text-xs font-semibold text-foreground flex items-center justify-between"
+                    >
+                      <span>
+                        {esReasignacion
+                          ? "Motivo de la reasignación"
+                          : "Observaciones de asignación"}
+                        {esReasignacion && (
+                          <span className="text-danger ml-1">*</span>
+                        )}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground font-normal">
+                        {esReasignacion ? "Obligatorio" : "Opcional"}
+                      </span>
+                    </Label>
+                    <Textarea
+                      id="motivo-asignacion-dpi"
+                      rows={2}
+                      value={observacionAsignacion}
+                      onChange={(e) => setObservacionAsignacion(e.target.value)}
+                      placeholder={
+                        esReasignacion
+                          ? "Describe la razón por la cual se reasigna el expediente..."
+                          : "Instrucciones u observaciones adicionales para el revisor (opcional)..."
+                      }
+                      className="text-xs bg-surface border-border rounded-xl resize-none"
+                    />
+                  </div>
 
-            <DialogFooter className="mt-3 pt-4 border-t border-border flex flex-col-reverse sm:flex-row gap-2.5 w-full shrink-0">
-              <Button
-                variant="ghost"
-                className="w-full sm:w-1/2 font-semibold"
-                onClick={() => setSolicitudToAssign(null)}
-              >
-                Cancelar
-              </Button>
-              <Button
-                variant="primary"
-                onClick={handleConfirmarAsignacionDpi}
-                disabled={
-                  Boolean(solicitudToAssign?.revisorNormativoAsignado) &&
-                  !observacionAsignacion.trim()
-                }
-                className="w-full sm:w-1/2 font-bold gap-1.5 shadow-xs"
-              >
-                <UserCheck className="size-4" />
-                <span>
-                  {solicitudToAssign?.revisorNormativoAsignado
-                    ? "Confirmar Reasignación DPI"
-                    : "Confirmar Asignación DPI"}
-                </span>
-              </Button>
-            </DialogFooter>
+                  {/* ── 5. FOOTER CON LÍNEA SUPERIOR DIVISORIA Y ACCIONES ── */}
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-border">
+                    <div className="text-xs text-muted-foreground w-full sm:w-auto text-left" />
+
+                    <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center gap-2.5 w-full sm:w-auto justify-end">
+                      <Button
+                        type="button"
+                        variant="neutral"
+                        size="sm"
+                        onClick={() => setSolicitudToAssign(null)}
+                        className="w-full sm:w-auto text-xs font-semibold h-10 px-6 rounded-full"
+                      >
+                        Cancelar
+                      </Button>
+
+                      <Button
+                        type="button"
+                        variant="primary"
+                        size="sm"
+                        disabled={
+                          !selectedRevisorNormId ||
+                          (esReasignacion &&
+                            (!observacionAsignacion.trim() ||
+                              selectedRevisorObj?.nombre ===
+                                solicitudToAssign.revisorNormativoAsignado))
+                        }
+                        onClick={handleConfirmarAsignacionDpi}
+                        className="w-full sm:w-auto text-xs font-semibold h-10 px-6 gap-2 rounded-full shadow-xs"
+                      >
+                        {esReasignacion ? (
+                          <RotateCcw className="size-4" />
+                        ) : (
+                          <UserPlus className="size-4" />
+                        )}
+                        <span>
+                          {esReasignacion
+                            ? `Reasignar a ${
+                                selectedRevisorObj
+                                  ? selectedRevisorObj.nombre.split(" ")[0]
+                                  : "revisor"
+                              }`
+                            : "Asignar revisión"}
+                        </span>
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
           </DialogContent>
         </Dialog>
 
@@ -1747,9 +2120,11 @@ export function AsignacionNormativaFuentesView() {
                       <Button
                         variant="primary"
                         size="sm"
-                        onClick={() =>
-                          handleFirmarDirector(solicitudInspecting.id)
-                        }
+                        onClick={() => {
+                          const sol = solicitudInspecting;
+                          setSolicitudInspecting(null);
+                          handleOpenFirmaDirector(sol);
+                        }}
                         className="font-semibold gap-1.5 h-9 px-5 text-xs !rounded-full shadow-xs"
                       >
                         <FileSignature className="size-4" />
@@ -1760,6 +2135,248 @@ export function AsignacionNormativaFuentesView() {
                     )}
                 </DialogFooter>
               </>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* MODAL: SIMULACIÓN DE FIRMA ELECTRÓNICA CON FIRMAEC (DIRECTOR DPI — Homologado a RegistroInstitucion) */}
+        <Dialog
+          open={firmaModalOpen}
+          onOpenChange={(open) => {
+            if (!open) {
+              handleCerrarModalFirma();
+            }
+          }}
+        >
+          <DialogContent
+            variant="standard"
+            size="lg"
+            className="p-6 sm:p-7 rounded-3xl border border-border bg-background shadow-2xl max-w-xl w-full flex flex-col gap-4 overflow-hidden"
+            showCloseButton={true}
+          >
+            {solicitudAFirmar && (
+              <div className="space-y-4 text-left">
+                {/* 1. Cabecera */}
+                <DialogHeader className="gap-2 text-left items-start pb-2 border-b border-border/50 shrink-0">
+                  <div className="flex items-start justify-between w-full gap-3 pr-6">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 rounded-2xl bg-primary/10 text-primary border border-primary/20 shrink-0">
+                        <FileSignature className="size-6 text-primary stroke-[2.2px]" />
+                      </div>
+                      <div>
+                        <DialogTitle className="font-heading font-extrabold text-base sm:text-lg text-foreground leading-tight">
+                          Firma Electrónica del Informe DPI (FirmaEC)
+                        </DialogTitle>
+                        <DialogDescription className="text-xs text-muted-foreground mt-0.5 leading-snug">
+                          Suscripción digital oficial del Director de Protección de la Información (2.ª Firma requerida - SOL-08).
+                        </DialogDescription>
+                      </div>
+                    </div>
+                  </div>
+                </DialogHeader>
+
+                {/* 2. Tarjeta resumen del expediente e informe */}
+                <div className="p-3.5 bg-surface rounded-2xl border border-border/80 space-y-2 text-xs">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Building2 className="size-4 text-primary shrink-0" />
+                      <span className="font-bold text-foreground truncate">
+                        {solicitudAFirmar.institucion}
+                      </span>
+                    </div>
+                    <Badge
+                      tone="primary"
+                      appearance="outline"
+                      size="sm"
+                      className="font-mono text-[10px]"
+                    >
+                      {solicitudAFirmar.id}
+                    </Badge>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 border-t border-border/50 text-[11px]">
+                    <div>
+                      <span className="text-muted-foreground block text-[10px]">
+                        Informe a firmar:
+                      </span>
+                      <strong className="text-foreground font-semibold">
+                        {solicitudAFirmar.informeNormativa?.numero ||
+                          "INF-DPI-2026-004"}
+                      </strong>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block text-[10px]">
+                        1.ª Firma emitida por:
+                      </span>
+                      <strong className="text-foreground font-semibold truncate block">
+                        {solicitudAFirmar.informeNormativa?.revisorNombre ||
+                          solicitudAFirmar.revisorNormativoAsignado ||
+                          "Revisor DPI"}{" "}
+                        (OK)
+                      </strong>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Estados Dinámicos: Validando con FirmaEC vs Firmado con Éxito */}
+                {firmaEstado === "validando" ? (
+                  <div className="space-y-3.5 animate-in fade-in duration-200">
+                    {/* Alerta de notificación por correo (idéntica a registro-institución) */}
+                    <div className="p-4 rounded-2xl border border-primary/25 bg-primary/5 space-y-2 text-xs">
+                      <div className="flex items-center gap-2 font-bold text-primary">
+                        <Mail className="size-4 shrink-0" />
+                        <span>Notificación de firma enviada al correo institucional</span>
+                      </div>
+                      <p className="text-[11px] leading-relaxed text-muted-foreground">
+                        Se ha remitido la solicitud de suscripción digital al correo institucional{" "}
+                        <strong className="text-foreground font-semibold">
+                          roberto.mendez@dinarp.gob.ec
+                        </strong>{" "}
+                        (Director DPI).
+                      </p>
+                      <p className="text-[11px] font-semibold text-primary flex items-center gap-1.5 pt-1">
+                        <RefreshCw className="size-3.5 animate-spin shrink-0" />
+                        <span>
+                          Revisa tu correo. Cuando firmes con FirmaEC o Token criptográfico, el estado de esta pantalla se actualizará automáticamente.
+                        </span>
+                      </p>
+                    </div>
+
+                    {/* Barra interactiva de validación en vivo */}
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 rounded-2xl bg-surface border border-border shadow-2xs">
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                        <LoadingSpinner size="sm" className="size-4 text-primary shrink-0" />
+                        <div>
+                          <p className="text-xs font-semibold text-foreground">
+                            Validando firma con FirmaEC en vivo...
+                          </p>
+                          <p className="text-[11px] text-muted-foreground">
+                            Comprobando certificado digital en la pasarela gubernamental oficial.
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleConsultarEstadoFirmaManual}
+                        disabled={isConsultandoFirma}
+                        className="text-xs font-semibold gap-1.5 w-full sm:w-auto shrink-0"
+                      >
+                        <RefreshCw
+                          className={cn(
+                            "size-3.5",
+                            isConsultandoFirma && "animate-spin"
+                          )}
+                        />
+                        <span>
+                          {isConsultandoFirma
+                            ? "Consultando..."
+                            : "Consultar estado ahora"}
+                        </span>
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3.5 animate-in fade-in duration-200">
+                    {/* Alerta de éxito con detalles del certificado (idéntica a registro-institución) */}
+                    <Alert
+                      variant="success"
+                      icon={<CheckCircle2 className="size-4" />}
+                      title="Firma electrónica validada con éxito en FirmaEC"
+                    >
+                      <div className="space-y-2.5 w-full">
+                        <p className="text-[11px] leading-relaxed text-muted-foreground">
+                          El informe favorable ha sido suscrito digitalmente de forma válida por{" "}
+                          <strong className="text-foreground font-semibold">
+                            Dr. Roberto Méndez (Director DPI)
+                          </strong>
+                          . La doble firma institucional ha quedado completada.
+                        </p>
+
+                        <div className="flex flex-wrap items-center gap-2 pt-1 text-xs w-full">
+                          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface/80 dark:bg-surface/40 border border-success/30 shadow-2xs text-foreground font-mono text-[11px]">
+                            <span className="font-sans font-medium text-muted-foreground">
+                              Fecha y Hora:
+                            </span>
+                            <strong className="text-foreground font-bold">
+                              {firmaTimestamp || "28/10/2026 13:25:00"}
+                            </strong>
+                          </div>
+                          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface/80 dark:bg-surface/40 border border-success/30 shadow-2xs text-foreground font-mono text-[11px]">
+                            <span className="font-sans font-medium text-muted-foreground">
+                              Serie Certificado / ID:
+                            </span>
+                            <strong className="text-foreground font-bold">
+                              {firmaCertId || "FEC-DPI-2026-902142"}
+                            </strong>
+                          </div>
+                        </div>
+                      </div>
+                    </Alert>
+
+                    {/* Banner de trámite habilitado para formalización */}
+                    <div className="p-3.5 rounded-2xl border border-primary/30 bg-primary/5 space-y-1 text-xs">
+                      <div className="flex items-center gap-2 font-bold text-primary text-xs">
+                        <ShieldCheck className="size-4 shrink-0" />
+                        <span>
+                          Expediente habilitado para formalización de acceso (BN-08)
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground leading-relaxed">
+                        El informe cuenta con el dictamen favorable del Revisor DPI y la aprobación del Director DPI. El trámite ha avanzado a estado{" "}
+                        <strong className="text-foreground">
+                          Aprobada por DPI
+                        </strong>
+                        .
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* 4. Footer con acciones */}
+                <DialogFooter className="pt-3 w-full flex items-center justify-between border-t border-border/50 shrink-0 mt-2">
+                  <Button
+                    type="button"
+                    variant="neutral"
+                    size="sm"
+                    onClick={handleCerrarModalFirma}
+                    className="h-9 px-5 text-xs !rounded-full font-semibold cursor-pointer"
+                  >
+                    {firmaEstado === "firmado" ? "Cerrar" : "Cancelar"}
+                  </Button>
+
+                  {firmaEstado === "validando" ? (
+                    <Button
+                      type="button"
+                      variant="primary"
+                      size="sm"
+                      onClick={handleConsultarEstadoFirmaManual}
+                      disabled={isConsultandoFirma}
+                      className="font-semibold gap-1.5 h-9 px-5 text-xs !rounded-full shadow-xs"
+                    >
+                      <RefreshCw
+                        className={cn(
+                          "size-3.5",
+                          isConsultandoFirma && "animate-spin"
+                        )}
+                      />
+                      <span>Simular validación inmediata</span>
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="primary"
+                      size="sm"
+                      onClick={handleCerrarModalFirma}
+                      className="font-semibold gap-1.5 h-9 px-5 text-xs !rounded-full shadow-xs"
+                    >
+                      <Check className="size-4" />
+                      <span>Aceptar y ver expediente aprobado</span>
+                    </Button>
+                  )}
+                </DialogFooter>
+              </div>
             )}
           </DialogContent>
         </Dialog>

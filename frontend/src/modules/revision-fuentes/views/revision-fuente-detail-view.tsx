@@ -118,9 +118,17 @@ export function RevisionFuenteDetailView({ currentUser }: RevisionFuenteDetailVi
 
   const isEnRevision = fuente.estado === "EN_REVISION";
 
-  const handleClasificarIndividual = (campoId: string, clasificacion: ClasificacionCampo) => {
-    clasificarCampo(fuente.id, campoId, clasificacion);
-    toast.success(`Campo clasificado como ${clasificacion}`);
+  const handleClasificarIndividual = (
+    campoId: string,
+    clasificacion: ClasificacionCampo,
+    esSensible?: boolean
+  ) => {
+    clasificarCampo(fuente.id, campoId, clasificacion, esSensible);
+    toast.success(
+      esSensible
+        ? "Campo clasificado como Confidencial sensible (tratamiento especial LOPDP)"
+        : `Campo clasificado como ${clasificacion}`
+    );
   };
 
   const getEstadoBadge = (estado: EstadoFuente) => {

@@ -18,13 +18,14 @@ interface CardProps extends React.ComponentProps<"div"> {
   size?: CardSize
   variant?: CardVariant
   glow?: CardGlow
+  accentColor?: string
   innerClassName?: string
   disableHover?: boolean
 }
 
 // ─── Card ─────────────────────────────────────────────────────────────────────
 
-function Card({ className, innerClassName, size = "default", variant = "default", glow = "none", disableHover = false, children, ...props }: CardProps) {
+function Card({ className, innerClassName, size = "default", variant = "default", glow = "none", accentColor, disableHover = false, children, ...props }: CardProps) {
   const isDefault = variant === "default"
 
   const glowColors: Record<CardGlow, string> = {
@@ -249,3 +250,4 @@ export {
   CardBadge,
 }
 export type { CardGlow as GlowVariant }
+

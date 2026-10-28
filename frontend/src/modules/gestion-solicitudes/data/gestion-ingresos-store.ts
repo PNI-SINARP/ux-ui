@@ -57,10 +57,10 @@ export function getEstadoBadgeProps(
       return { tone: "danger", appearance: "soft", scale: "50", dot: true, label: "Rechazada" as const };
     }
     if (estado === "EN_REVISION_GESTION") {
-      return { tone: "warning", appearance: "soft", scale: "50", dot: true, label: "Pendiente" as const };
+      return { tone: "warning", appearance: "soft", scale: "50", dot: true, label: "Pendiente por revisar" as const };
     }
     if (estado === "Pendiente" || estado === "PENDIENTE_ASIGNACION_GESTION" || estado === "PENDIENTE_ENVIO") {
-      return { tone: "warning", appearance: "soft", scale: "50", dot: true, label: "Pendiente" as const };
+      return { tone: "warning", appearance: "soft", scale: "50", dot: true, label: "Pendiente por revisar" as const };
     }
   }
 

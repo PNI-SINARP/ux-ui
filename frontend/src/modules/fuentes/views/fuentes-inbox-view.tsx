@@ -95,6 +95,7 @@ import {
   GitFork,
   AlertOctagon,
   Network,
+  Eye,
 } from "lucide-react";
 
 interface FuentesInboxViewProps {
@@ -1541,212 +1542,201 @@ export function FuentesInboxView({ currentUser, openNuevaOnInit = false }: Fuent
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between gap-2 pt-1 border-t border-border/60">
-                        <Link href={`/proveedor/fuentes/${fuente.id}`}>
-                          <Button variant="outline" size="sm" className="text-xs h-8 cursor-pointer">
-                            Ver detalle
-                          </Button>
-                        </Link>
+                      <div className="pt-2 border-t border-border/60 w-full flex flex-wrap items-center gap-2">
+                        <Button
+                          asChild
+                          variant="neutral"
+                          size="sm"
+                          className="flex-1 text-xs font-semibold gap-1.5 h-9 justify-center cursor-pointer"
+                        >
+                          <Link href={`/proveedor/fuentes/${fuente.id}`}>
+                            <Eye className="size-3.5" />
+                            <span>Ver detalle</span>
+                          </Link>
+                        </Button>
 
-                        <div className="inline-flex items-center gap-1">
-                          {isCoordinadorConsumidor ? (
-                            ["BORRADOR", "DEVUELTA", "CONFIGURACION"].includes(fuente.estado) ? (
+                        {isCoordinadorConsumidor ? (
+                          ["BORRADOR", "DEVUELTA", "CONFIGURACION"].includes(fuente.estado) ? (
+                            <Button
+                              variant="primary"
+                              size="sm"
+                              onClick={() => {
+                                setFuenteAEditar(fuente);
+                                setInitialStepForModal(0);
+                                setIsFormModalOpen(true);
+                              }}
+                              className="flex-1 text-xs font-semibold gap-1.5 h-9 justify-center cursor-pointer"
+                              aria-label={`Editar borrador de ${fuente.nombre}`}
+                            >
+                              <FileEdit className="size-3.5" />
+                              <span>Editar</span>
+                            </Button>
+                          ) : null
+                        ) : (
+                          <>
+                            {isBorrador && (
                               <Button
-                                variant="ghost"
-                                size="icon-sm"
+                                variant="primary"
+                                size="sm"
+                                onClick={() => setFuenteAConectar(fuente)}
+                                className="flex-1 text-xs font-semibold gap-1.5 h-9 justify-center cursor-pointer"
+                                aria-label={`Configurar conexión de ${fuente.nombre}`}
+                              >
+                                <Plug className="size-3.5" />
+                                <span>Configurar conexión</span>
+                              </Button>
+                            )}
+
+                            {isConexionFallida && (
+                              <>
+                                <Button
+                                  variant="warning"
+                                  size="sm"
+                                  onClick={() => setFuenteAConectar(fuente)}
+                                  className="flex-1 text-xs font-semibold gap-1.5 h-9 justify-center cursor-pointer"
+                                  aria-label={`Corregir configuración de ${fuente.nombre}`}
+                                >
+                                  <Wrench className="size-3.5" />
+                                  <span>Corregir</span>
+                                </Button>
+                                <Button
+                                  variant="primary"
+                                  size="sm"
+                                  onClick={() => handleReintentarPruebaConexion(fuente)}
+                                  className="flex-1 text-xs font-semibold gap-1.5 h-9 justify-center cursor-pointer"
+                                  aria-label={`Reintentar prueba de conexión de ${fuente.nombre}`}
+                                >
+                                  <RotateCw className="size-3.5" />
+                                  <span>Reintentar</span>
+                                </Button>
+                              </>
+                            )}
+
+                            {isConexionVerificada && (
+                              <Button
+                                variant="primary"
+                                size="sm"
+                                onClick={() => setFuenteAEsquema(fuente)}
+                                className="flex-1 text-xs font-semibold gap-1.5 h-9 justify-center cursor-pointer"
+                                aria-label={`Definir esquema y campos de ${fuente.nombre}`}
+                              >
+                                <Layers className="size-3.5" />
+                                <span>Definir esquema</span>
+                              </Button>
+                            )}
+
+                            {isEsquemaPendiente && (
+                              <>
+                                <Button
+                                  variant="warning"
+                                  size="sm"
+                                  onClick={() => setFuenteAEsquema(fuente)}
+                                  className="flex-1 text-xs font-semibold gap-1.5 h-9 justify-center cursor-pointer"
+                                  aria-label={`Corregir esquema de ${fuente.nombre}`}
+                                >
+                                  <Layers className="size-3.5" />
+                                  <span>Corregir esquema</span>
+                                </Button>
+                                <Button
+                                  variant="primary"
+                                  size="sm"
+                                  onClick={() => handleVolverAProbarEsquema(fuente)}
+                                  className="flex-1 text-xs font-semibold gap-1.5 h-9 justify-center cursor-pointer"
+                                  aria-label={`Volver a probar esquema de ${fuente.nombre}`}
+                                >
+                                  <RotateCw className="size-3.5" />
+                                  <span>Probar esquema</span>
+                                </Button>
+                              </>
+                            )}
+
+                            {isDevuelta && (
+                              <Button
+                                variant="danger"
+                                size="sm"
                                 onClick={() => {
                                   setFuenteAEditar(fuente);
                                   setInitialStepForModal(0);
                                   setIsFormModalOpen(true);
                                 }}
-                                className="text-primary hover:text-primary hover:bg-primary/10 cursor-pointer"
-                                aria-label={`Editar borrador de ${fuente.nombre}`}
+                                className="flex-1 text-xs font-semibold gap-1.5 h-9 justify-center cursor-pointer"
+                                aria-label={`Continuar corrección de ${fuente.nombre}`}
                               >
-                                <FileEdit className="size-4" />
+                                <FileEdit className="size-3.5" />
+                                <span>Corregir</span>
                               </Button>
-                            ) : (
-                              <span className="text-[11px] text-muted-foreground italic px-2">Solo lectura</span>
-                            )
-                          ) : (
-                            <>
-                              {isBorrador && (
-                                <Button
-                                  variant="ghost"
-                                  size="icon-sm"
-                                  onClick={() => setFuenteAConectar(fuente)}
-                                  className="text-primary hover:text-primary hover:bg-primary/10 cursor-pointer"
-                                  aria-label={`Configurar conexión de ${fuente.nombre}`}
-                                >
-                                  <Plug className="size-4" />
-                                </Button>
-                              )}
+                            )}
 
-                              {isConexionFallida && (
-                                <>
+                            {isAprobada && (
+                              <Button
+                                variant="primary"
+                                size="sm"
+                                onClick={() => setFuenteAPublicar(fuente)}
+                                className="flex-1 text-xs font-semibold gap-1.5 h-9 justify-center cursor-pointer"
+                                aria-label={`Publicar versión de ${fuente.nombre}`}
+                              >
+                                <Rocket className="size-3.5" />
+                                <span>Publicar</span>
+                              </Button>
+                            )}
+
+                            {isFallidaGateway && (
+                              <Button
+                                variant="warning"
+                                size="sm"
+                                onClick={() => setFuenteAPublicar(fuente)}
+                                className="flex-1 text-xs font-semibold gap-1.5 h-9 justify-center cursor-pointer"
+                                aria-label={`Reintentar despliegue de ${fuente.nombre}`}
+                              >
+                                <RotateCcw className="size-3.5" />
+                                <span>Reintentar despliegue</span>
+                              </Button>
+                            )}
+
+                            {isPublicada && (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
                                   <Button
-                                    variant="ghost"
-                                    size="icon-sm"
-                                    onClick={() => setFuenteAConectar(fuente)}
-                                    className="text-warning hover:text-warning hover:bg-warning/10 cursor-pointer"
-                                    aria-label={`Corregir configuración de ${fuente.nombre}`}
+                                    variant="secondary"
+                                    size="sm"
+                                    className="flex-1 text-xs font-semibold gap-1.5 h-9 justify-center cursor-pointer"
+                                    aria-label={`Más opciones para ${fuente.nombre}`}
                                   >
-                                    <Wrench className="size-4" />
+                                    <MoreHorizontal className="size-3.5" />
+                                    <span>Opciones</span>
                                   </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon-sm"
-                                    onClick={() => handleReintentarPruebaConexion(fuente)}
-                                    className="text-primary hover:text-primary hover:bg-primary/10 cursor-pointer"
-                                    aria-label={`Reintentar prueba de conexión de ${fuente.nombre}`}
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-56">
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      setFuenteParaNuevaVersion(fuente);
+                                      setIsNuevaVersionModalOpen(true);
+                                    }}
+                                    className="cursor-pointer gap-2 text-xs"
                                   >
-                                    <RotateCw className="size-4" />
-                                  </Button>
-                                </>
-                              )}
-
-                              {isConexionVerificada && (
-                                <Button
-                                  variant="ghost"
-                                  size="icon-sm"
-                                  onClick={() => setFuenteAEsquema(fuente)}
-                                  className="text-primary hover:text-primary hover:bg-primary/10 cursor-pointer"
-                                  aria-label={`Definir esquema y campos de ${fuente.nombre}`}
-                                >
-                                  <Layers className="size-4" />
-                                </Button>
-                              )}
-
-                              {isEsquemaPendiente && (
-                                <>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon-sm"
-                                    onClick={() => setFuenteAEsquema(fuente)}
-                                    className="text-warning hover:text-warning hover:bg-warning/10 cursor-pointer"
-                                    aria-label={`Corregir esquema de ${fuente.nombre}`}
-                                  >
-                                    <Layers className="size-4" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon-sm"
-                                    onClick={() => handleVolverAProbarEsquema(fuente)}
-                                    className="text-primary hover:text-primary hover:bg-primary/10 cursor-pointer"
-                                    aria-label={`Volver a probar esquema de ${fuente.nombre}`}
-                                  >
-                                    <RotateCw className="size-4" />
-                                  </Button>
-                                </>
-                              )}
-
-                              {isEnRevision && (
-                                <Button
-                                  variant="ghost"
-                                  size="icon-sm"
-                                  disabled
-                                  className="text-muted-foreground/60 cursor-not-allowed opacity-75"
-                                  aria-label="En revisión por Gestión"
-                                >
-                                  <Clock className="size-4" />
-                                </Button>
-                              )}
-
-                              {isDevuelta && (
-                                <Button
-                                  variant="ghost"
-                                  size="icon-sm"
-                                  onClick={() => {
-                                    setFuenteAEditar(fuente);
-                                    setInitialStepForModal(0);
-                                    setIsFormModalOpen(true);
-                                  }}
-                                  className="text-danger hover:text-danger hover:bg-danger/10 cursor-pointer"
-                                  aria-label={`Continuar corrección de ${fuente.nombre}`}
-                                >
-                                  <FileEdit className="size-4" />
-                                </Button>
-                              )}
-
-                              {isAprobada && (
-                                <Button
-                                  variant="ghost"
-                                  size="icon-sm"
-                                  onClick={() => setFuenteAPublicar(fuente)}
-                                  className="text-primary hover:text-primary hover:bg-primary/10 cursor-pointer"
-                                  aria-label={`Publicar versión de ${fuente.nombre}`}
-                                >
-                                  <Rocket className="size-4" />
-                                </Button>
-                              )}
-
-                              {isFallidaGateway && (
-                                <Button
-                                  variant="ghost"
-                                  size="icon-sm"
-                                  onClick={() => setFuenteAPublicar(fuente)}
-                                  className="text-warning hover:text-warning hover:bg-warning/10 cursor-pointer"
-                                  aria-label={`Reintentar despliegue de ${fuente.nombre}`}
-                                >
-                                  <RotateCcw className="size-4" />
-                                </Button>
-                              )}
-
-                              {isHomologacion && (
-                                <Button
-                                  variant="ghost"
-                                  size="icon-sm"
-                                  disabled
-                                  className="text-warning/80 cursor-default opacity-85"
-                                  aria-label={`En proceso de homologación técnica por TI: ${fuente.nombre}`}
-                                >
-                                  <Cpu className="size-4" />
-                                </Button>
-                              )}
-
-                              {isPublicada && (
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon-sm"
-                                      className="text-muted-foreground hover:text-foreground cursor-pointer"
-                                      aria-label={`Más opciones para ${fuente.nombre}`}
-                                    >
-                                      <MoreHorizontal className="size-4" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end" className="w-56">
-                                    <DropdownMenuItem
-                                      onClick={() => {
-                                        setFuenteParaNuevaVersion(fuente);
-                                        setIsNuevaVersionModalOpen(true);
-                                      }}
-                                      className="cursor-pointer gap-2 text-xs"
-                                    >
-                                      <GitFork className="size-4 text-primary" />
-                                      <span>FUE-06: Preparar nueva versión</span>
-                                    </DropdownMenuItem>
-                                    {responsableAutorizado && (
-                                      <>
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuItem
-                                          onClick={() => {
-                                            setFuenteParaBaja(fuente);
-                                            setIsBajaModalOpen(true);
-                                          }}
-                                          className="cursor-pointer gap-2 text-xs text-danger focus:text-danger focus:bg-danger/10"
-                                        >
-                                          <AlertOctagon className="size-4 text-danger" />
-                                          <span>FUE-08: Solicitar baja de fuente</span>
-                                        </DropdownMenuItem>
-                                      </>
-                                    )}
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              )}
-                            </>
-                          )}
-                        </div>
+                                    <GitFork className="size-4 text-primary" />
+                                    <span>FUE-06: Preparar nueva versión</span>
+                                  </DropdownMenuItem>
+                                  {responsableAutorizado && (
+                                    <>
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem
+                                        onClick={() => {
+                                          setFuenteParaBaja(fuente);
+                                          setIsBajaModalOpen(true);
+                                        }}
+                                        className="cursor-pointer gap-2 text-xs text-danger focus:text-danger focus:bg-danger/10"
+                                      >
+                                        <AlertOctagon className="size-4 text-danger" />
+                                        <span>FUE-08: Solicitar baja de fuente</span>
+                                      </DropdownMenuItem>
+                                    </>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            )}
+                          </>
+                        )}
                       </div>
                     </div>
                   </InteractiveCard>

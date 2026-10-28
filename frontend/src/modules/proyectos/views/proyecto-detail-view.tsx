@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { WireframeDashboardLayout } from "@/components/layout/wireframes/wireframe-dashboard-layout";
 import { Card } from "@/components/ui/card";
+import { InteractiveCard } from "@/components/ui/data-display";
+import { ViewModeToggle, type ViewMode } from "@/components/shared/view-mode-toggle";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -27,7 +29,6 @@ import {
   Building2,
   Lock,
   Calendar,
-  Hash,
   Copy,
   Check,
   Pencil,
@@ -37,7 +38,6 @@ import {
   ExternalLink,
   ShieldCheck,
   ShieldAlert,
-  Info,
   Network,
   FileText,
   GitBranch,
@@ -49,13 +49,20 @@ import {
   Layers,
   Eye,
   Sparkles,
+  Activity,
+  XCircle,
+  ArrowRight,
+  UserCheck,
 } from "lucide-react";
 import { useAuthStore } from "@/modules/gestion-solicitudes/data/auth-store";
 import { MOCK_USERS_BY_ROLE } from "@/modules/catalogo-interoperabilidad/data/catalogo-data";
 import {
   useProyectosStore,
-  type ProyectoInstitucional,
 } from "@/modules/proyectos/data/proyectos-store";
+import {
+  useSolicitudesStore,
+  type SolicitudAcceso,
+} from "@/modules/acceso-interoperabilidad/data/solicitudes-store";
 import {
   Tabs,
   TabsList,
@@ -72,6 +79,30 @@ interface ProyectoDetailViewProps {
 
 type TabKey = "info" | "solicitudes" | "trazabilidad";
 
+interface SolicitudProyectoEnriquecida {
+  id: string;
+  fuentePrincipal: string;
+  servicioPrincipal: string;
+  estado: string;
+  fecha: string;
+  ultimaActualizacion: string;
+  camposCount: number;
+  accesiblesCount: number;
+  confidencialesCount: number;
+  sensiblesCount: number;
+  modalidad: string;
+  coordinador: string;
+  etapaActual: string;
+  quePasoResumen: string;
+  ultimoActor: string;
+  trazabilidad: {
+    fecha: string;
+    actor: string;
+    accion: string;
+    detalle?: string;
+  }[];
+}
+
 export function ProyectoDetailView({ id: idProp, params }: ProyectoDetailViewProps) {
   const router = useRouter();
   const routeParams = useParams();
@@ -82,12 +113,14 @@ export function ProyectoDetailView({ id: idProp, params }: ProyectoDetailViewPro
 
   const { activeUser } = useAuthStore();
   const { getProyectoById, isLoaded } = useProyectosStore();
+  const { solicitudes: storeSolicitudes } = useSolicitudesStore();
 
   const coordinadorUser = activeUser || MOCK_USERS_BY_ROLE.COORDINADOR_SINARP;
   const coordinadorNombre = coordinadorUser?.name || "Mariana Almeida";
 
   // Estados locales
   const [activeTab, setActiveTab] = useState<TabKey>("info");
+  const [solicitudesViewMode, setSolicitudesViewMode] = useState<ViewMode>("cards");
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isTrazabilidadDialogOpen, setIsTrazabilidadDialogOpen] = useState(false);
   const [copiedId, setCopiedId] = useState(false);
@@ -96,10 +129,186 @@ export function ProyectoDetailView({ id: idProp, params }: ProyectoDetailViewPro
     return getProyectoById(id);
   }, [getProyectoById, id]);
 
+  // Cruzar solicitudes del proyecto con el store de Solicitudes para saber exactamente qué pasó con cada una
+  const solicitudesEnriquecidas = useMemo<SolicitudProyectoEnriquecida[]>(() => {
+    if (!proyecto) return [];
+
+    const mapById = new Map<string, SolicitudAcceso>();
+    storeSolicitudes.forEach((s) => {
+      mapById.set(s.id, s);
+    });
+
+    const baseSolicitudes = [...(proyecto.solicitudes || [])];
+
+    // Incorporar también solicitudes creadas en el store que apunten a este proyecto y no estén en el arreglo estático
+    storeSolicitudes.forEach((s) => {
+      const matchesProject =
+        s.proyectoId === proyecto.id ||
+        s.proyectoCodigo === proyecto.id ||
+        (s.proyectoNombre && s.proyectoNombre.toLowerCase() === proyecto.nombre.toLowerCase());
+      if (matchesProject && !baseSolicitudes.some((b) => b.id === s.id)) {
+        const firstFuente = s.fuentes?.[0];
+        baseSolicitudes.unshift({
+          id: s.id,
+          fuentePrincipal: firstFuente?.institucion || s.fuentePrincipal || "Catálogo Nacional SINARP",
+          servicioPrincipal: firstFuente?.nombre || s.servicioPrincipal || "Consumo de interoperabilidad institucional",
+          estado: s.estado,
+          fecha: s.fecha,
+          camposCount: s.camposCount,
+          coordinador: s.responsable || proyecto.creadoPor,
+        });
+      }
+    });
+
+    return baseSolicitudes.map((sol) => {
+      const match = mapById.get(sol.id);
+      const estadoActual = match?.estado || sol.estado;
+      const estadoLower = estadoActual.toLowerCase();
+
+      // Contabilizar campos por clasificación si existen en el store
+      let accesiblesCount = 0;
+      let confidencialesCount = 0;
+      let sensiblesCount = 0;
+
+      if (match?.fuentes && match.fuentes.length > 0) {
+        match.fuentes.forEach((f) => {
+          f.campos.forEach((c) => {
+            if (c.clasificacion === "Accesible") {
+              accesiblesCount += 1;
+            } else {
+              confidencialesCount += 1;
+              if (c.esSensible) {
+                sensiblesCount += 1;
+              }
+            }
+          });
+        });
+      } else {
+        // Desglose representativo cuando proviene del resumen del proyecto
+        const total = sol.camposCount || 6;
+        accesiblesCount = Math.max(1, Math.floor(total * 0.6));
+        confidencialesCount = Math.max(0, total - accesiblesCount);
+        sensiblesCount = confidencialesCount >= 3 ? 1 : 0;
+      }
+
+      const ultimoEventoStore = match?.trazabilidad?.[0];
+
+      let etapaActual = "En gestión institucional";
+      let quePasoResumen = "";
+      let ultimoActor = ultimoEventoStore?.actor || "Dirección de Interoperabilidad DINARP";
+
+      if (estadoLower === "acceso generado" || estadoLower === "aprobada") {
+        etapaActual = "Habilitación técnica activa · Credenciales emitidas";
+        quePasoResumen =
+          ultimoEventoStore?.detalle ||
+          match?.observaciones ||
+          `Solicitud aprobada por DINARP y DPI. Se autorizó el consumo de ${sol.camposCount} campos de ${sol.fuentePrincipal} y se generaron credenciales para el servicio "${sol.servicioPrincipal}".`;
+        ultimoActor = ultimoEventoStore?.actor || "Dirección de Protección de la Información (DPI)";
+      } else if (estadoLower === "en revisión" || estadoLower === "en proceso") {
+        etapaActual = "Evaluación técnica y jurídica (DPI) en curso";
+        quePasoResumen =
+          ultimoEventoStore?.detalle ||
+          match?.observaciones ||
+          `Expediente radicado y admitido a trámite. Actualmente en validación de finalidad de uso y base legal para los campos solicitados a ${sol.fuentePrincipal}.`;
+        ultimoActor = ultimoEventoStore?.actor || "Analista de Revisión / DPI DINARP";
+      } else if (estadoLower === "por revisar" || estadoLower === "pendiente") {
+        etapaActual = "Radicada en bandeja · Pendiente de asignación";
+        quePasoResumen =
+          ultimoEventoStore?.detalle ||
+          `Solicitud enviada por ${sol.coordinador} con documento habilitante firmado. En espera de apertura de revisión por parte de DINARP.`;
+        ultimoActor = ultimoEventoStore?.actor || sol.coordinador || "Coordinador SINARP";
+      } else if (estadoLower === "observada") {
+        etapaActual = "Subsanación requerida por la entidad solicitante";
+        quePasoResumen =
+          match?.observaciones ||
+          ultimoEventoStore?.detalle ||
+          `DINARP registró observaciones sobre la justificación normativa de campos confidenciales. Requiere alcance del coordinador SINARP.`;
+        ultimoActor = ultimoEventoStore?.actor || "Revisor Jurídico DINARP";
+      } else if (estadoLower === "rechazada") {
+        etapaActual = "Trámite denegado · Archivo normativo";
+        quePasoResumen =
+          match?.motivoRechazo ||
+          ultimoEventoStore?.detalle ||
+          `Solicitud no autorizada por falta de competencia legal expresa para los datos solicitados.`;
+        ultimoActor = ultimoEventoStore?.actor || "Dirección de Protección de la Información (DPI)";
+      } else {
+        etapaActual = `Estado: ${estadoActual}`;
+        quePasoResumen =
+          ultimoEventoStore?.detalle ||
+          `Trámite vinculado al proyecto para el servicio ${sol.servicioPrincipal}.`;
+      }
+
+      const trazabilidad =
+        match?.trazabilidad && match.trazabilidad.length > 0
+          ? match.trazabilidad
+          : [
+              {
+                fecha: `${sol.fecha} 15:40`,
+                actor: ultimoActor,
+                accion: etapaActual,
+                detalle: quePasoResumen,
+              },
+              {
+                fecha: `${sol.fecha} 09:15`,
+                actor: `${sol.coordinador} (Coordinador SINARP)`,
+                accion: "Vinculación y envío de solicitud a fuente",
+                detalle: `Se asoció el servicio "${sol.servicioPrincipal}" (${sol.fuentePrincipal}) al proyecto ${proyecto.id}.`,
+              },
+            ];
+
+      return {
+        id: sol.id,
+        fuentePrincipal: sol.fuentePrincipal,
+        servicioPrincipal: sol.servicioPrincipal,
+        estado: estadoActual,
+        fecha: sol.fecha,
+        ultimaActualizacion: match?.ultimaActualizacion || sol.fecha,
+        camposCount: match?.camposCount || sol.camposCount || 6,
+        accesiblesCount,
+        confidencialesCount,
+        sensiblesCount,
+        modalidad: match?.modalidad || "Consumo permanente",
+        coordinador: match?.responsable || sol.coordinador || proyecto.creadoPor,
+        etapaActual,
+        quePasoResumen,
+        ultimoActor,
+        trazabilidad,
+      };
+    });
+  }, [proyecto, storeSolicitudes]);
+
+  const resumenEstados = useMemo(() => {
+    let habilitadas = 0;
+    let enRevision = 0;
+    let observadasRechazadas = 0;
+    const fuentesUnicas = new Set<string>();
+
+    solicitudesEnriquecidas.forEach((s) => {
+      fuentesUnicas.add(s.fuentePrincipal);
+      const est = s.estado.toLowerCase();
+      if (est === "acceso generado" || est === "aprobada") {
+        habilitadas += 1;
+      } else if (est === "observada" || est === "rechazada") {
+        observadasRechazadas += 1;
+      } else {
+        enRevision += 1;
+      }
+    });
+
+    return {
+      total: solicitudesEnriquecidas.length,
+      habilitadas,
+      enRevision,
+      observadasRechazadas,
+      fuentesCount: fuentesUnicas.size,
+      fuentesLista: Array.from(fuentesUnicas),
+    };
+  }, [solicitudesEnriquecidas]);
+
   const breadcrumbs = useMemo(() => {
     return [
-      { label: "Proyectos institucionales", href: "/proyectos" },
-      { label: proyecto ? proyecto.id : id },
+      { label: "Gestión de proyectos", href: "/proyectos" },
+      { label: proyecto ? `Expediente ${proyecto.id}` : id },
     ];
   }, [proyecto, id]);
 
@@ -148,6 +357,20 @@ export function ProyectoDetailView({ id: idProp, params }: ProyectoDetailViewPro
             {estado}
           </Badge>
         );
+      case "observada":
+        return (
+          <Badge tone="warning" appearance="soft" size="sm" className="font-semibold text-xs">
+            <AlertCircle className="size-3 mr-1" />
+            {estado}
+          </Badge>
+        );
+      case "rechazada":
+        return (
+          <Badge tone="danger" appearance="solid" size="sm" className="font-semibold text-xs">
+            <XCircle className="size-3 mr-1" />
+            {estado}
+          </Badge>
+        );
       default:
         return (
           <Badge tone="neutral" appearance="soft" size="sm" className="font-semibold text-xs">
@@ -157,7 +380,7 @@ export function ProyectoDetailView({ id: idProp, params }: ProyectoDetailViewPro
     }
   };
 
-  const cantSolicitudes = proyecto?.solicitudes ? proyecto.solicitudes.length : 0;
+  const cantSolicitudes = solicitudesEnriquecidas.length;
   const cantVersiones = proyecto?.historialVersiones ? proyecto.historialVersiones.length : 1;
 
   return (
@@ -180,17 +403,18 @@ export function ProyectoDetailView({ id: idProp, params }: ProyectoDetailViewPro
                   <TooltipTrigger asChild>
                     <Button
                       asChild
-                      variant="outline"
-                      size="sm"
-                      className="size-9 p-0 shrink-0 mt-0.5 rounded-xl border-border/80"
+                      variant="ghost"
+                      size="icon-sm"
+                      className="text-muted-foreground hover:text-primary hover:bg-primary/10 shrink-0 mt-0.5 cursor-pointer"
+                      aria-label="Volver a Gestión de proyectos"
                     >
                       <Link href="/proyectos">
-                        <ArrowLeft className="size-4 text-foreground" />
+                        <ArrowLeft className="size-4" />
                       </Link>
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent side="bottom">
-                    Volver a la bandeja de proyectos
+                  <TooltipContent side="top">
+                    Volver a Gestión de proyectos
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -217,12 +441,23 @@ export function ProyectoDetailView({ id: idProp, params }: ProyectoDetailViewPro
                     className="font-bold gap-1.5 px-2.5 py-0.5 text-xs h-6"
                   >
                     <span className="size-1.5 rounded-full bg-success"></span>
-                    ACTIVO
+                    EXPEDIENTE ACTIVO
+                  </Badge>
+
+                  <Badge
+                    tone={cantSolicitudes > 0 ? "info" : "warning"}
+                    appearance="soft"
+                    size="sm"
+                    className="font-bold text-xs h-6"
+                  >
+                    {cantSolicitudes > 0
+                      ? `${cantSolicitudes} ${cantSolicitudes === 1 ? "solicitud a fuente asociada" : "solicitudes a fuentes asociadas"}`
+                      : "Sin solicitudes a fuentes"}
                   </Badge>
                 </div>
 
                 <h1 className="text-xl sm:text-2xl lg:text-3xl font-heading font-extrabold text-foreground tracking-tight leading-tight">
-                  {proyecto ? proyecto.nombre : "Detalle del proyecto"}
+                  {proyecto ? proyecto.nombre : "Expediente del proyecto"}
                 </h1>
 
                 <p className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1.5">
@@ -235,6 +470,16 @@ export function ProyectoDetailView({ id: idProp, params }: ProyectoDetailViewPro
             {/* Acciones de Cabecera */}
             {proyecto && (
               <div className="flex items-center gap-2.5 shrink-0 self-start sm:self-center sm:ml-auto">
+                <Button
+                  type="button"
+                  variant="neutral"
+                  size="sm"
+                  onClick={() => setIsEditDialogOpen(true)}
+                  leftIcon={<Pencil className="size-3.5" />}
+                  className="font-semibold cursor-pointer"
+                >
+                  Editar proyecto
+                </Button>
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -246,11 +491,11 @@ export function ProyectoDetailView({ id: idProp, params }: ProyectoDetailViewPro
                         leftIcon={<Plus className="size-4" />}
                         className="font-semibold shadow-xs cursor-pointer"
                       >
-                        Nueva solicitud
+                        Nueva solicitud a fuente
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent side="bottom" align="end" className="max-w-xs text-xs font-normal">
-                      Te llevará al formulario de solicitud de acceso a interoperabilidad vinculado a este proyecto
+                      Asociar una nueva solicitud de acceso a fuentes del Catálogo Nacional a este proyecto
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -262,7 +507,7 @@ export function ProyectoDetailView({ id: idProp, params }: ProyectoDetailViewPro
           {!isLoaded ? (
             <div className="py-24 text-center text-xs text-muted-foreground flex flex-col items-center justify-center gap-2">
               <Clock className="size-6 animate-spin text-primary" />
-              <span>Cargando información del proyecto institucional...</span>
+              <span>Cargando expediente del proyecto institucional...</span>
             </div>
           ) : !proyecto ? (
             <div className="flex flex-col items-center justify-center text-center py-20 px-4 rounded-2xl border border-dashed border-border bg-muted/10 space-y-4">
@@ -279,13 +524,13 @@ export function ProyectoDetailView({ id: idProp, params }: ProyectoDetailViewPro
                 </p>
               </div>
               <Button asChild variant="primary" size="sm">
-                <Link href="/proyectos">Volver a proyectos institucionales</Link>
+                <Link href="/proyectos">Volver a Gestión de proyectos</Link>
               </Button>
             </div>
           ) : (
             <>
-              {/* Navegación por Subtabs con Color Principal */}
-              <div className="w-full -mt-2 mb-2">
+              {/* Navegación por Subtabs Organizada */}
+              <div className="w-full -mt-2 mb-1">
                 <Tabs
                   value={activeTab}
                   onValueChange={(val) => setActiveTab(val as TabKey)}
@@ -297,7 +542,7 @@ export function ProyectoDetailView({ id: idProp, params }: ProyectoDetailViewPro
                       className="px-5 py-2 text-xs font-bold gap-2 rounded-full data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:[&_svg]:text-white whitespace-nowrap cursor-pointer shadow-none data-[state=active]:shadow-xs"
                     >
                       <FileText className="size-4 shrink-0" />
-                      <span>Información y metadatos</span>
+                      <span>Resumen del expediente</span>
                     </TabsTrigger>
 
                     <TabsTrigger
@@ -305,7 +550,7 @@ export function ProyectoDetailView({ id: idProp, params }: ProyectoDetailViewPro
                       className="px-5 py-2 text-xs font-bold gap-2 rounded-full data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:[&_svg]:text-white whitespace-nowrap cursor-pointer shadow-none data-[state=active]:shadow-xs"
                     >
                       <Network className="size-4 shrink-0" />
-                      <span>Solicitudes vinculadas</span>
+                      <span>Solicitudes a fuentes y seguimiento</span>
                       <span
                         className={cn(
                           "px-2 py-0.5 rounded-full text-[10px] font-bold transition-colors",
@@ -323,7 +568,7 @@ export function ProyectoDetailView({ id: idProp, params }: ProyectoDetailViewPro
                       className="px-5 py-2 text-xs font-bold gap-2 rounded-full data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:[&_svg]:text-white whitespace-nowrap cursor-pointer shadow-none data-[state=active]:shadow-xs"
                     >
                       <History className="size-4 shrink-0" />
-                      <span>Historial de versiones</span>
+                      <span>Trazabilidad y versiones</span>
                       <span
                         className={cn(
                           "px-2 py-0.5 rounded-full text-[10px] font-bold transition-colors",
@@ -332,26 +577,28 @@ export function ProyectoDetailView({ id: idProp, params }: ProyectoDetailViewPro
                             : "bg-muted text-muted-foreground"
                         )}
                       >
-                        {cantVersiones}
+                        {cantVersiones + cantSolicitudes}
                       </span>
                     </TabsTrigger>
                   </TabsList>
                 </Tabs>
               </div>
 
-              {/* 2. Contenido Dinámico: Pestaña 1 (Información y metadatos) */}
+              {/* =====================================================================
+                  PESTAÑA 1: RESUMEN DEL EXPEDIENTE (Visión general + ¿Qué pasó con las fuentes?)
+                 ===================================================================== */}
               {activeTab === "info" && (
                 <div className="space-y-5 pt-1">
-                  {/* Contenedor 1: Indicadores y Métricas Clave */}
+                  {/* Contenedor 1: Indicadores Clave del Expediente */}
                   <Card className="p-5 sm:p-6 rounded-2xl border border-border/80 bg-surface shadow-xs space-y-4">
                     <div className="flex items-center justify-between pb-2 border-b border-border/60">
                       <div className="space-y-0.5">
                         <h3 className="text-sm font-heading font-bold text-foreground flex items-center gap-2">
                           <Layers className="size-4 text-primary" />
-                          Indicadores clave del proyecto
+                          Indicadores generales del expediente
                         </h3>
                         <p className="text-xs text-muted-foreground">
-                          Parámetros vigentes, estado de versionamiento y volumen de trámites vinculados.
+                          Estado general del proyecto, fuentes de datos asociadas y versión institucional vigente.
                         </p>
                       </div>
                     </div>
@@ -394,7 +641,7 @@ export function ProyectoDetailView({ id: idProp, params }: ProyectoDetailViewPro
                           </div>
                           <div className="text-left w-full space-y-0.5">
                             <p className="text-xs font-semibold text-muted-foreground">
-                              Identificador
+                              Código de expediente
                             </p>
                             <p className="text-lg sm:text-xl font-extrabold font-mono text-primary leading-tight tracking-tight">
                               {proyecto.id}
@@ -406,7 +653,67 @@ export function ProyectoDetailView({ id: idProp, params }: ProyectoDetailViewPro
                         </div>
                       </Card>
 
-                      {/* Card 2: Versión Vigente */}
+                      {/* Card 2: Solicitudes a fuentes asociadas */}
+                      <Card
+                        variant="featured"
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => setActiveTab("solicitudes")}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            setActiveTab("solicitudes");
+                          }
+                        }}
+                        className={cn(
+                          "group relative overflow-hidden cursor-pointer transition-all duration-200 border rounded-2xl outline-none select-none p-4 w-full",
+                          "hover:-translate-y-0.5 hover:shadow-md",
+                          cantSolicitudes > 0
+                            ? "bg-success/5 hover:bg-success/10 border-success/25 shadow-2xs"
+                            : "bg-warning/5 hover:bg-warning/10 border-warning/25 shadow-2xs"
+                        )}
+                        innerClassName="p-0 h-full"
+                      >
+                        <div className="flex flex-col justify-between h-full gap-3 w-full">
+                          <div className="flex items-center justify-between gap-2 w-full">
+                            <div
+                              className={cn(
+                                "size-10 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200",
+                                cantSolicitudes > 0
+                                  ? "bg-success/15 text-success group-hover:scale-105 group-hover:bg-success group-hover:text-white"
+                                  : "bg-warning/15 text-warning group-hover:scale-105 group-hover:bg-warning group-hover:text-white"
+                              )}
+                            >
+                              <Network className="size-5" />
+                            </div>
+                            <Badge
+                              tone={cantSolicitudes > 0 ? "success" : "warning"}
+                              appearance="soft"
+                              size="sm"
+                              className="shrink-0 text-[10px] font-bold px-2 py-0.5"
+                            >
+                              {cantSolicitudes > 0
+                                ? `${resumenEstados.habilitadas} habilitada(s)`
+                                : "Sin solicitudes"}
+                            </Badge>
+                          </div>
+                          <div className="text-left w-full space-y-0.5">
+                            <p className="text-xs font-semibold text-muted-foreground">
+                              Solicitudes a fuentes
+                            </p>
+                            <p className="text-xl sm:text-2xl font-extrabold font-heading text-foreground leading-none tracking-tight">
+                              {cantSolicitudes}
+                            </p>
+                            <p className="text-[11px] text-muted-foreground truncate pt-0.5">
+                              {cantSolicitudes > 0
+                                ? `${resumenEstados.fuentesCount} fuente(s) · ${resumenEstados.enRevision} en revisión`
+                                : "Aún no se asocian fuentes"}
+                            </p>
+                          </div>
+                        </div>
+                      </Card>
+
+                      {/* Card 3: Versión Vigente */}
                       <Card
                         variant="featured"
                         role="button"
@@ -448,62 +755,6 @@ export function ProyectoDetailView({ id: idProp, params }: ProyectoDetailViewPro
                             </p>
                             <p className="text-[11px] text-muted-foreground truncate pt-0.5">
                               {cantVersiones} {cantVersiones === 1 ? "registro histórico" : "versiones registradas"}
-                            </p>
-                          </div>
-                        </div>
-                      </Card>
-
-                      {/* Card 3: Solicitudes */}
-                      <Card
-                        variant="featured"
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => setActiveTab("solicitudes")}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " ") {
-                            e.preventDefault();
-                            setActiveTab("solicitudes");
-                          }
-                        }}
-                        className={cn(
-                          "group relative overflow-hidden cursor-pointer transition-all duration-200 border rounded-2xl outline-none select-none p-4 w-full",
-                          "hover:-translate-y-0.5 hover:shadow-md",
-                          cantSolicitudes > 0
-                            ? "bg-success/5 hover:bg-success/10 border-success/25 shadow-2xs"
-                            : "bg-warning/5 hover:bg-warning/10 border-warning/25 shadow-2xs"
-                        )}
-                        innerClassName="p-0 h-full"
-                      >
-                        <div className="flex flex-col justify-between h-full gap-3 w-full">
-                          <div className="flex items-center justify-between gap-2 w-full">
-                            <div
-                              className={cn(
-                                "size-10 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200",
-                                cantSolicitudes > 0
-                                  ? "bg-success/15 text-success group-hover:scale-105 group-hover:bg-success group-hover:text-white"
-                                  : "bg-warning/15 text-warning group-hover:scale-105 group-hover:bg-warning group-hover:text-white"
-                              )}
-                            >
-                              <Network className="size-5" />
-                            </div>
-                            <Badge
-                              tone={cantSolicitudes > 0 ? "success" : "warning"}
-                              appearance="soft"
-                              size="sm"
-                              className="shrink-0 text-[10px] font-bold px-2 py-0.5"
-                            >
-                              {cantSolicitudes > 0 ? "Vinculadas" : "Sin solicitudes"}
-                            </Badge>
-                          </div>
-                          <div className="text-left w-full space-y-0.5">
-                            <p className="text-xs font-semibold text-muted-foreground">
-                              Solicitudes
-                            </p>
-                            <p className="text-xl sm:text-2xl font-extrabold font-heading text-foreground leading-none tracking-tight">
-                              {cantSolicitudes}
-                            </p>
-                            <p className="text-[11px] text-muted-foreground truncate pt-0.5">
-                              Intercambio de datos formalizado
                             </p>
                           </div>
                         </div>
@@ -560,17 +811,219 @@ export function ProyectoDetailView({ id: idProp, params }: ProyectoDetailViewPro
                     </div>
                   </Card>
 
-                  {/* Contenedor 2: Marco Normativo de Integridad SINARP */}
-                  <Card className="p-5 sm:p-6 rounded-2xl border border-primary/25 bg-primary/5 shadow-xs flex items-start gap-3.5">
-                    <ShieldAlert className="size-5 text-primary mt-0.5 shrink-0" />
-                    <div className="text-xs text-muted-foreground leading-relaxed space-y-1">
-                      <h4 className="text-sm font-heading font-bold text-foreground">
-                        Reglas institucionales de integridad del proyecto (SINARP)
-                      </h4>
-                      <p>
-                        El identificador <code className="font-mono text-primary font-bold">{proyecto.id}</code> y la entidad responsable (<strong>{proyecto.institucion}</strong>) son inmutables y de solo lectura. Para registrar cambios en la denominación o alcance del proyecto, utiliza la opción <strong>Crear nueva versión</strong> desde la pestaña de <em>Historial de versiones</em> con su debida justificación de trazabilidad.
-                      </p>
+                  {/* Contenedor 2 (NUEVO): Panorama general de Solicitudes a Fuentes Asociadas y ¿Qué pasó? */}
+                  <Card className="p-5 sm:p-6 rounded-2xl border border-border/80 bg-surface shadow-xs space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border/60">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="text-sm font-heading font-bold text-foreground flex items-center gap-2">
+                            <Activity className="size-4 text-primary" />
+                            Estado general de solicitudes a fuentes asociadas
+                          </h3>
+                          <Badge
+                            tone={cantSolicitudes > 0 ? "primary" : "warning"}
+                            appearance="soft"
+                            size="sm"
+                            className="text-xs font-bold"
+                          >
+                            {cantSolicitudes > 0
+                              ? `${cantSolicitudes} ${cantSolicitudes === 1 ? "trámite vinculado" : "trámites vinculados"}`
+                              : "Sin trámites asociados"}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Resumen ejecutivo de las fuentes del Catálogo Nacional asociadas a este proyecto, su estado actual y qué ocurrió en la última actuación.
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        {cantSolicitudes > 0 && (
+                          <Button
+                            type="button"
+                            variant="neutral"
+                            size="sm"
+                            onClick={() => setActiveTab("solicitudes")}
+                            rightIcon={<ArrowRight className="size-3.5" />}
+                            className="text-xs font-semibold cursor-pointer"
+                          >
+                            Ver pestaña de solicitudes
+                          </Button>
+                        )}
+                      </div>
                     </div>
+
+                    {cantSolicitudes === 0 ? (
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl border border-dashed border-warning/50 bg-warning/5">
+                        <div className="flex items-start gap-3">
+                          <div className="size-10 rounded-xl bg-warning/15 text-warning flex items-center justify-center shrink-0 mt-0.5">
+                            <AlertCircle className="size-5" />
+                          </div>
+                          <div className="space-y-1">
+                            <h4 className="text-xs sm:text-sm font-heading font-bold text-foreground">
+                              Este proyecto aún no tiene solicitudes a fuentes asociadas
+                            </h4>
+                            <p className="text-xs text-muted-foreground leading-relaxed">
+                              El proyecto institucional está creado y activo, pero todavía no se ha vinculado ninguna solicitud de acceso a datos del Catálogo Nacional de Interoperabilidad.
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="primary"
+                          size="sm"
+                          onClick={handleSolicitarAcceso}
+                          leftIcon={<Plus className="size-4" />}
+                          className="shrink-0 font-semibold cursor-pointer"
+                        >
+                          Asociar primera solicitud
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {/* Cinta de resumen rápido por resultado */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          <div className="p-3 rounded-xl border border-success/30 bg-success/5 flex items-center justify-between gap-3">
+                            <div className="space-y-0.5">
+                              <span className="text-[11px] font-semibold text-muted-foreground block">
+                                Con acceso generado / aprobadas
+                              </span>
+                              <span className="text-xs font-bold text-foreground">
+                                Consumo técnico habilitado
+                              </span>
+                            </div>
+                            <Badge tone="success" appearance="solid" size="md" className="font-mono font-bold">
+                              {resumenEstados.habilitadas}
+                            </Badge>
+                          </div>
+
+                          <div className="p-3 rounded-xl border border-info/30 bg-info/5 flex items-center justify-between gap-3">
+                            <div className="space-y-0.5">
+                              <span className="text-[11px] font-semibold text-muted-foreground block">
+                                En revisión / por revisar
+                              </span>
+                              <span className="text-xs font-bold text-foreground">
+                                Evaluación DINARP / DPI
+                              </span>
+                            </div>
+                            <Badge tone="info" appearance="solid" size="md" className="font-mono font-bold">
+                              {resumenEstados.enRevision}
+                            </Badge>
+                          </div>
+
+                          <div className="p-3 rounded-xl border border-border/80 bg-surface-subtle/60 flex items-center justify-between gap-3">
+                            <div className="space-y-0.5">
+                              <span className="text-[11px] font-semibold text-muted-foreground block">
+                                Observadas / rechazadas
+                              </span>
+                              <span className="text-xs font-bold text-foreground">
+                                Requieren atención o archivo
+                              </span>
+                            </div>
+                            <Badge
+                              tone={resumenEstados.observadasRechazadas > 0 ? "danger" : "neutral"}
+                              appearance={resumenEstados.observadasRechazadas > 0 ? "solid" : "soft"}
+                              size="md"
+                              className="font-mono font-bold"
+                            >
+                              {resumenEstados.observadasRechazadas}
+                            </Badge>
+                          </div>
+                        </div>
+
+                        {/* Lista general de "¿Qué pasó con cada solicitud vinculada?" */}
+                        <div className="rounded-xl border border-border/80 overflow-hidden bg-background">
+                          <Table>
+                            <TableHeader className="bg-surface-subtle/80">
+                              <TableRow>
+                                <TableHead className="text-xs font-bold w-[140px]">Solicitud</TableHead>
+                                <TableHead className="text-xs font-bold">Fuente y servicio asociado</TableHead>
+                                <TableHead className="text-xs font-bold w-[160px]">Estado actual</TableHead>
+                                <TableHead className="text-xs font-bold">¿Qué pasó? · Etapa y última actuación</TableHead>
+                                <TableHead className="text-xs font-bold text-right w-[130px]">Acciones</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {solicitudesEnriquecidas.map((sol) => (
+                                <TableRow key={sol.id} className="hover:bg-muted/30 transition-colors">
+                                  <TableCell className="align-top py-3.5">
+                                    <Link
+                                      href={`/acceso-interoperabilidad/solicitudes/${sol.id}`}
+                                      className="font-mono text-xs font-bold text-primary hover:underline flex items-center gap-1"
+                                    >
+                                      <span>{sol.id}</span>
+                                      <ExternalLink className="size-3 opacity-70" />
+                                    </Link>
+                                    <span className="text-[11px] text-muted-foreground block mt-0.5">
+                                      Radicada: {sol.fecha}
+                                    </span>
+                                  </TableCell>
+
+                                  <TableCell className="align-top py-3.5">
+                                    <div className="space-y-1">
+                                      <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
+                                        <Database className="size-3.5 text-primary shrink-0" />
+                                        <span>{sol.fuentePrincipal}</span>
+                                      </div>
+                                      <p className="text-xs text-muted-foreground leading-snug">
+                                        {sol.servicioPrincipal}
+                                      </p>
+                                      <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                                        <Badge tone="neutral" appearance="soft" size="sm" className="text-[10px]">
+                                          {sol.camposCount} campos
+                                        </Badge>
+                                        {sol.confidencialesCount > 0 && (
+                                          <Badge tone="warning" appearance="soft" size="sm" className="text-[10px]">
+                                            {sol.confidencialesCount} confidenciales
+                                          </Badge>
+                                        )}
+                                        {sol.sensiblesCount > 0 && (
+                                          <Badge tone="danger" appearance="solid" size="sm" className="text-[10px]">
+                                            {sol.sensiblesCount} sensible · LOPDP
+                                          </Badge>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </TableCell>
+
+                                  <TableCell className="align-top py-3.5">
+                                    {getBadgePorEstado(sol.estado)}
+                                  </TableCell>
+
+                                  <TableCell className="align-top py-3.5">
+                                    <div className="space-y-1 max-w-md">
+                                      <p className="text-xs font-bold text-foreground">
+                                        {sol.etapaActual}
+                                      </p>
+                                      <p className="text-xs text-muted-foreground leading-relaxed">
+                                        {sol.quePasoResumen}
+                                      </p>
+                                      <p className="text-[11px] text-muted-foreground/90 flex items-center gap-1 pt-0.5">
+                                        <UserCheck className="size-3 text-primary shrink-0" />
+                                        <span>Actuación: <strong>{sol.ultimoActor}</strong> ({sol.ultimaActualizacion})</span>
+                                      </p>
+                                    </div>
+                                  </TableCell>
+
+                                  <TableCell className="align-top py-3.5 text-right">
+                                    <Button
+                                      asChild
+                                      variant="neutral"
+                                      size="sm"
+                                      className="h-8 px-2.5 text-xs font-semibold gap-1.5 cursor-pointer"
+                                    >
+                                      <Link href={`/acceso-interoperabilidad/solicitudes/${sol.id}`}>
+                                        <Eye className="size-3.5" />
+                                        <span>Ver trámite</span>
+                                      </Link>
+                                    </Button>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      </div>
+                    )}
                   </Card>
 
                   {/* Contenedor 3: Propósito y Alcance Institucional */}
@@ -597,18 +1050,16 @@ export function ProyectoDetailView({ id: idProp, params }: ProyectoDetailViewPro
                         Metadatos normativos inmutables (Auditoría SINARP)
                       </h3>
                       <p className="text-xs text-muted-foreground">
-                        Campos normativos protegidos contra modificaciones no autorizadas. Haz clic en cada campo para consultar el detalle.
+                        Campos normativos protegidos contra modificaciones no autorizadas.
                       </p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
-                      {/* Campo 1: Código ID */}
                       <div
                         className="p-3.5 rounded-xl border border-border/80 bg-muted/40 hover:bg-muted/60 transition-colors cursor-not-allowed group"
                         onClick={() => {
                           toast.info("Esta información no se puede cambiar: el ID de proyecto es definitivo e inmutable.");
                         }}
-                        title="Campo de solo lectura. No se puede modificar."
                       >
                         <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
                           <span className="font-semibold">Código del proyecto</span>
@@ -622,13 +1073,11 @@ export function ProyectoDetailView({ id: idProp, params }: ProyectoDetailViewPro
                         </p>
                       </div>
 
-                      {/* Campo 2: Institución Responsable */}
                       <div
                         className="p-3.5 rounded-xl border border-border/80 bg-muted/40 hover:bg-muted/60 transition-colors cursor-not-allowed group"
                         onClick={() => {
                           toast.info("Esta información no se puede cambiar: la institución responsable es inmutable por normativa institucional.");
                         }}
-                        title="Campo de solo lectura. No se puede modificar."
                       >
                         <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
                           <span className="font-semibold">Institución responsable</span>
@@ -642,13 +1091,11 @@ export function ProyectoDetailView({ id: idProp, params }: ProyectoDetailViewPro
                         </p>
                       </div>
 
-                      {/* Campo 3: Registro Histórico */}
                       <div
                         className="p-3.5 rounded-xl border border-border/80 bg-muted/40 hover:bg-muted/60 transition-colors cursor-not-allowed group"
                         onClick={() => {
                           toast.info("Esta información no se puede cambiar: la fecha de radicación es histórica y permanente.");
                         }}
-                        title="Campo de solo lectura. No se puede modificar."
                       >
                         <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
                           <span className="font-semibold">Fecha de radicación</span>
@@ -666,7 +1113,9 @@ export function ProyectoDetailView({ id: idProp, params }: ProyectoDetailViewPro
                 </div>
               )}
 
-              {/* 3. Contenido Dinámico: Pestaña 2 (Solicitudes vinculadas) */}
+              {/* =====================================================================
+                  PESTAÑA 2: SOLICITUDES A FUENTES Y SEGUIMIENTO DETALLADO
+                 ===================================================================== */}
               {activeTab === "solicitudes" && (
                 <div className="space-y-5 pt-1">
                   <Card className="p-5 sm:p-6 rounded-2xl border border-border/80 bg-surface shadow-xs space-y-5">
@@ -674,24 +1123,32 @@ export function ProyectoDetailView({ id: idProp, params }: ProyectoDetailViewPro
                       <div className="space-y-0.5">
                         <h3 className="text-sm font-heading font-bold text-foreground flex items-center gap-2">
                           <Network className="size-4 text-primary" />
-                          Solicitudes de acceso a datos vinculadas ({cantSolicitudes})
+                          Solicitudes a fuentes asociadas y resultado de revisión ({cantSolicitudes})
                         </h3>
                         <p className="text-xs text-muted-foreground">
-                          Cada solicitud formalizada que consume datos del Catálogo Nacional de Interoperabilidad bajo este proyecto.
+                          Detalle de cada fuente solicitada bajo este proyecto, clasificación de datos requeridos y qué pasó en el flujo de aprobación DINARP / DPI.
                         </p>
                       </div>
 
-                      <Button
-                        type="button"
-                        variant="primary"
-                        size="sm"
-                        onClick={handleSolicitarAcceso}
-                        leftIcon={<Plus className="size-4" />}
-                        rightIcon={<ArrowUpRight className="size-3.5" />}
-                        className="font-semibold shadow-xs cursor-pointer"
-                      >
-                        Solicitar acceso a datos
-                      </Button>
+                      <div className="flex items-center gap-2.5 flex-wrap shrink-0">
+                        {cantSolicitudes > 0 && (
+                          <ViewModeToggle
+                            value={solicitudesViewMode}
+                            onChange={setSolicitudesViewMode}
+                          />
+                        )}
+                        <Button
+                          type="button"
+                          variant="primary"
+                          size="sm"
+                          onClick={handleSolicitarAcceso}
+                          leftIcon={<Plus className="size-4" />}
+                          rightIcon={<ArrowUpRight className="size-3.5" />}
+                          className="font-semibold shadow-xs cursor-pointer"
+                        >
+                          Solicitar acceso a fuente
+                        </Button>
+                      </div>
                     </div>
 
                     {cantSolicitudes === 0 ? (
@@ -701,7 +1158,7 @@ export function ProyectoDetailView({ id: idProp, params }: ProyectoDetailViewPro
                         </div>
                         <div className="space-y-1.5 max-w-md">
                           <h4 className="text-base font-heading font-bold text-foreground">
-                            No existen solicitudes vinculadas
+                            No existen solicitudes a fuentes asociadas
                           </h4>
                           <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
                             Este proyecto aún no registra solicitudes de acceso formalizadas. Inicia una nueva solicitud para seleccionar la institución proveedora y los campos requeridos.
@@ -718,20 +1175,128 @@ export function ProyectoDetailView({ id: idProp, params }: ProyectoDetailViewPro
                           Crear primera solicitud
                         </Button>
                       </div>
+                    ) : solicitudesViewMode === "table" ? (
+                      <div className="rounded-xl border border-border/80 overflow-hidden bg-background">
+                        <Table>
+                          <TableHeader className="bg-surface-subtle/80">
+                            <TableRow>
+                              <TableHead className="text-xs font-bold">Código / Fecha</TableHead>
+                              <TableHead className="text-xs font-bold">Fuente y Servicio</TableHead>
+                              <TableHead className="text-xs font-bold">Campos y Clasificación</TableHead>
+                              <TableHead className="text-xs font-bold">Estado</TableHead>
+                              <TableHead className="text-xs font-bold">¿Qué pasó? · Última actuación</TableHead>
+                              <TableHead className="text-xs font-bold text-right">Expediente</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {solicitudesEnriquecidas.map((sol) => (
+                              <TableRow key={sol.id} className="hover:bg-muted/30 transition-colors">
+                                <TableCell className="align-top py-4">
+                                  <Link
+                                    href={`/acceso-interoperabilidad/solicitudes/${sol.id}`}
+                                    className="font-mono text-xs font-bold text-primary hover:underline flex items-center gap-1"
+                                  >
+                                    <span>{sol.id}</span>
+                                    <ExternalLink className="size-3 opacity-70" />
+                                  </Link>
+                                  <span className="text-[11px] text-muted-foreground block mt-1">
+                                    Alta: {sol.fecha}
+                                  </span>
+                                  <span className="text-[11px] text-muted-foreground block">
+                                    Resp: {sol.coordinador}
+                                  </span>
+                                </TableCell>
+
+                                <TableCell className="align-top py-4">
+                                  <div className="space-y-1 max-w-xs">
+                                    <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
+                                      <Database className="size-3.5 text-primary shrink-0" />
+                                      <span>{sol.fuentePrincipal}</span>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground leading-snug">
+                                      {sol.servicioPrincipal}
+                                    </p>
+                                    <span className="text-[11px] text-muted-foreground/80 block">
+                                      Modalidad: {sol.modalidad}
+                                    </span>
+                                  </div>
+                                </TableCell>
+
+                                <TableCell className="align-top py-4">
+                                  <div className="flex flex-col gap-1.5 items-start">
+                                    <Badge tone="neutral" appearance="soft" size="sm" className="text-xs font-bold">
+                                      {sol.camposCount} campos totales
+                                    </Badge>
+                                    <div className="flex flex-wrap gap-1">
+                                      {sol.accesiblesCount > 0 && (
+                                        <Badge tone="success" appearance="soft" size="sm" className="text-[10px]">
+                                          {sol.accesiblesCount} Accesibles
+                                        </Badge>
+                                      )}
+                                      {sol.confidencialesCount > 0 && (
+                                        <Badge tone="warning" appearance="soft" size="sm" className="text-[10px]">
+                                          {sol.confidencialesCount} Confidenciales
+                                        </Badge>
+                                      )}
+                                      {sol.sensiblesCount > 0 && (
+                                        <Badge tone="danger" appearance="solid" size="sm" className="text-[10px]">
+                                          {sol.sensiblesCount} Sensibles LOPDP
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  </div>
+                                </TableCell>
+
+                                <TableCell className="align-top py-4">
+                                  {getBadgePorEstado(sol.estado)}
+                                </TableCell>
+
+                                <TableCell className="align-top py-4">
+                                  <div className="space-y-1 max-w-sm">
+                                    <p className="text-xs font-bold text-foreground">
+                                      {sol.etapaActual}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground leading-relaxed">
+                                      {sol.quePasoResumen}
+                                    </p>
+                                    <p className="text-[11px] text-muted-foreground pt-0.5">
+                                      Por: <strong className="text-foreground">{sol.ultimoActor}</strong> · {sol.ultimaActualizacion}
+                                    </p>
+                                  </div>
+                                </TableCell>
+
+                                <TableCell className="align-top py-4 text-right">
+                                  <Button
+                                    asChild
+                                    variant="neutral"
+                                    size="sm"
+                                    className="text-xs h-8 px-3 font-semibold gap-1.5 cursor-pointer"
+                                  >
+                                    <Link href={`/acceso-interoperabilidad/solicitudes/${sol.id}`}>
+                                      <Eye className="size-3.5" />
+                                      <span>Ver expediente</span>
+                                    </Link>
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
                     ) : (
-                      /* Cada solicitud dentro de su propio contenedor */
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {proyecto.solicitudes.map((sol) => (
-                          <Card
+                      /* Vista en Cards usando InteractiveCard y Button del UI Kit */
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        {solicitudesEnriquecidas.map((sol) => (
+                          <InteractiveCard
                             key={sol.id}
-                            className="bg-surface rounded-2xl border border-border/80 shadow-xs hover:border-primary/40 hover:shadow-sm transition-all p-5 flex flex-col justify-between gap-4"
+                            className="p-5 rounded-2xl border border-border/80 bg-surface flex flex-col justify-between gap-4 shadow-xs"
                           >
                             <div className="space-y-3.5">
-                              {/* Cabecera de la tarjeta: Código y Estado */}
-                              <div className="flex items-start justify-between gap-2">
+                              {/* Cabecera: Código + Estado */}
+                              <div className="flex items-start justify-between gap-2 pb-2.5 border-b border-border/60">
                                 <div className="space-y-1">
                                   <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block">
-                                    Código de trámite
+                                    Solicitud de acceso vinculada
                                   </span>
                                   <Link
                                     href={`/acceso-interoperabilidad/solicitudes/${sol.id}`}
@@ -744,47 +1309,97 @@ export function ProyectoDetailView({ id: idProp, params }: ProyectoDetailViewPro
                                 <div>{getBadgePorEstado(sol.estado)}</div>
                               </div>
 
-                              {/* Contenedor 1: Fuente proveedora */}
-                              <div className="p-3 rounded-xl bg-surface-subtle/80 border border-border/50 space-y-1">
-                                <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block">
-                                  Fuente de interoperabilidad
-                                </span>
-                                <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
-                                  <Database className="size-3.5 text-primary shrink-0" />
-                                  <span className="truncate">{sol.fuentePrincipal}</span>
+                              {/* Fuente y Servicio */}
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div className="p-3 rounded-xl bg-surface-subtle/80 border border-border/50 space-y-1">
+                                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block">
+                                    Fuente proveedora
+                                  </span>
+                                  <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
+                                    <Database className="size-3.5 text-primary shrink-0" />
+                                    <span className="truncate" title={sol.fuentePrincipal}>
+                                      {sol.fuentePrincipal}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                <div className="p-3 rounded-xl bg-surface-subtle/80 border border-border/50 space-y-1">
+                                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block">
+                                    Servicio consumido
+                                  </span>
+                                  <p className="text-xs font-semibold text-foreground line-clamp-2 leading-snug" title={sol.servicioPrincipal}>
+                                    {sol.servicioPrincipal}
+                                  </p>
                                 </div>
                               </div>
 
-                              {/* Contenedor 2: Servicio / Finalidad */}
-                              <div className="p-3 rounded-xl bg-surface-subtle/80 border border-border/50 space-y-1">
-                                <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block">
-                                  Servicio / Finalidad autorizada
+                              {/* Clasificación de campos solicitados */}
+                              <div className="flex items-center justify-between gap-2 flex-wrap px-3 py-2 rounded-xl bg-muted/40 border border-border/50">
+                                <span className="text-xs font-semibold text-muted-foreground">
+                                  Alcance de datos ({sol.camposCount} campos):
                                 </span>
-                                <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
-                                  {sol.servicioPrincipal}
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  {sol.accesiblesCount > 0 && (
+                                    <Badge tone="success" appearance="soft" size="sm" className="text-[10px]">
+                                      {sol.accesiblesCount} Accesibles
+                                    </Badge>
+                                  )}
+                                  {sol.confidencialesCount > 0 && (
+                                    <Badge tone="warning" appearance="soft" size="sm" className="text-[10px]">
+                                      {sol.confidencialesCount} Confidenciales
+                                    </Badge>
+                                  )}
+                                  {sol.sensiblesCount > 0 && (
+                                    <Badge tone="danger" appearance="solid" size="sm" className="text-[10px]">
+                                      {sol.sensiblesCount} Sensible · LOPDP
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Bloque Destacado: ¿Qué pasó con esta solicitud? */}
+                              <div className="p-3.5 rounded-xl bg-primary/5 border border-primary/25 space-y-1.5">
+                                <div className="flex items-center justify-between gap-2">
+                                  <span className="text-[10px] font-bold text-primary uppercase tracking-wider flex items-center gap-1">
+                                    <Activity className="size-3" />
+                                    ¿Qué pasó? · Estado y resolución
+                                  </span>
+                                  <span className="text-[11px] font-mono text-muted-foreground">
+                                    {sol.ultimaActualizacion}
+                                  </span>
+                                </div>
+                                <p className="text-xs font-bold text-foreground">
+                                  {sol.etapaActual}
+                                </p>
+                                <p className="text-xs text-muted-foreground leading-relaxed">
+                                  {sol.quePasoResumen}
+                                </p>
+                                <p className="text-[11px] text-muted-foreground pt-0.5 flex items-center gap-1">
+                                  <UserCheck className="size-3 text-primary shrink-0" />
+                                  <span>Responsable de actuación: <strong className="text-foreground">{sol.ultimoActor}</strong></span>
                                 </p>
                               </div>
                             </div>
 
-                            {/* Pie de la tarjeta: Fecha y Acción */}
+                            {/* Pie de tarjeta con botones del UI Kit */}
                             <div className="pt-3 border-t border-border/50 flex items-center justify-between gap-2">
                               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                                 <Calendar className="size-3.5 text-muted-foreground/70 shrink-0" />
-                                <span>{sol.fecha}</span>
+                                <span>Radicada: {sol.fecha}</span>
                               </div>
                               <Button
                                 asChild
-                                variant="outline"
+                                variant="neutral"
                                 size="sm"
-                                className="text-xs h-8 px-3 font-semibold gap-1.5 hover:text-primary hover:border-primary/50 cursor-pointer"
+                                className="text-xs h-8 px-3 font-semibold gap-1.5 cursor-pointer"
                               >
                                 <Link href={`/acceso-interoperabilidad/solicitudes/${sol.id}`}>
                                   <Eye className="size-3.5" />
-                                  <span>Ver expediente</span>
+                                  <span>Ver expediente de solicitud</span>
                                 </Link>
                               </Button>
                             </div>
-                          </Card>
+                          </InteractiveCard>
                         ))}
                       </div>
                     )}
@@ -792,16 +1407,83 @@ export function ProyectoDetailView({ id: idProp, params }: ProyectoDetailViewPro
                 </div>
               )}
 
-              {/* 4. Contenido Dinámico: Pestaña 3 (Historial de versiones) */}
+              {/* =====================================================================
+                  PESTAÑA 3: TRAZABILIDAD DE SOLICITUDES E HISTORIAL DE VERSIONES
+                 ===================================================================== */}
               {activeTab === "trazabilidad" && (
                 <div className="space-y-5 pt-1">
+                  {/* Bloque 1: Hitos de Solicitudes a Fuentes Asociadas */}
+                  <Card className="p-5 sm:p-6 rounded-2xl border border-border/80 bg-surface shadow-xs space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border/60">
+                      <div className="space-y-0.5">
+                        <h3 className="text-sm font-heading font-bold text-foreground flex items-center gap-2">
+                          <Network className="size-4 text-primary" />
+                          Bitácora de actuaciones en solicitudes a fuentes ({cantSolicitudes})
+                        </h3>
+                        <p className="text-xs text-muted-foreground">
+                          Seguimiento cronológico de qué ocurrió con cada solicitud de acceso a datos vinculada a este proyecto.
+                        </p>
+                      </div>
+                    </div>
+
+                    {cantSolicitudes === 0 ? (
+                      <p className="text-xs text-muted-foreground py-4">
+                        No se registran eventos de solicitudes porque el proyecto aún no tiene fuentes vinculadas.
+                      </p>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {solicitudesEnriquecidas.map((sol) => (
+                          <div
+                            key={sol.id}
+                            className="p-4 rounded-xl border border-border/80 bg-surface-subtle/50 space-y-3"
+                          >
+                            <div className="flex items-center justify-between gap-2 pb-2 border-b border-border/60">
+                              <div>
+                                <Link
+                                  href={`/acceso-interoperabilidad/solicitudes/${sol.id}`}
+                                  className="font-mono text-xs font-bold text-primary hover:underline flex items-center gap-1"
+                                >
+                                  <span>{sol.id}</span>
+                                  <ExternalLink className="size-3" />
+                                </Link>
+                                <p className="text-xs font-semibold text-foreground mt-0.5">
+                                  {sol.fuentePrincipal} · {sol.servicioPrincipal}
+                                </p>
+                              </div>
+                              {getBadgePorEstado(sol.estado)}
+                            </div>
+
+                            <div className="space-y-2.5 pl-2 border-l-2 border-primary/30">
+                              {sol.trazabilidad.slice(0, 3).map((ev, idx) => (
+                                <div key={idx} className="space-y-0.5">
+                                  <div className="flex items-center justify-between gap-2 text-[11px]">
+                                    <span className="font-bold text-foreground">{ev.accion}</span>
+                                    <span className="font-mono text-muted-foreground">{ev.fecha}</span>
+                                  </div>
+                                  <p className="text-[11px] text-muted-foreground">
+                                    {ev.actor}
+                                  </p>
+                                  {ev.detalle && (
+                                    <p className="text-xs text-muted-foreground/90 leading-snug">
+                                      {ev.detalle}
+                                    </p>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </Card>
+
+                  {/* Bloque 2: Historial de Versiones del Proyecto */}
                   <Card className="p-5 sm:p-6 rounded-2xl border border-border/80 bg-surface shadow-xs space-y-6">
-                    {/* Cabecera del Contenedor de Trazabilidad */}
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-border/60">
                       <div className="space-y-0.5">
                         <h3 className="text-sm font-heading font-bold text-foreground flex items-center gap-2">
                           <History className="size-4 text-primary" />
-                          Historial de cambios y control de versiones ({cantVersiones})
+                          Historial de versiones del proyecto ({cantVersiones})
                         </h3>
                         <p className="text-xs text-muted-foreground">
                           Registro cronológico inmutable de cada versión generada para este proyecto institucional bajo normativa SINARP.
@@ -810,11 +1492,11 @@ export function ProyectoDetailView({ id: idProp, params }: ProyectoDetailViewPro
 
                       <Button
                         type="button"
-                        variant="outline"
+                        variant="neutral"
                         size="sm"
                         onClick={() => setIsEditDialogOpen(true)}
                         leftIcon={<Pencil className="size-3.5" />}
-                        className="text-xs font-semibold cursor-pointer h-8 shadow-2xs"
+                        className="text-xs font-semibold cursor-pointer h-8"
                       >
                         Crear nueva versión
                       </Button>
@@ -829,9 +1511,7 @@ export function ProyectoDetailView({ id: idProp, params }: ProyectoDetailViewPro
 
                         return (
                           <div key={v.version} className="relative flex gap-3.5 sm:gap-5">
-                            {/* Columna Izquierda: Nodo y Línea Conectora */}
                             <div className="relative flex flex-col items-center shrink-0">
-                              {/* Nodo del Timeline */}
                               <div
                                 className={cn(
                                   "relative z-10 flex size-10 sm:size-11 shrink-0 items-center justify-center rounded-full border bg-surface transition-all shadow-xs",
@@ -853,13 +1533,11 @@ export function ProyectoDetailView({ id: idProp, params }: ProyectoDetailViewPro
                                 )}
                               </div>
 
-                              {/* Línea Conectora Vertical */}
                               {!isLast && (
                                 <div className="absolute top-11 bottom-[-28px] left-1/2 w-0.5 -translate-x-1/2 bg-border/80 dark:bg-border/60" />
                               )}
                             </div>
 
-                            {/* Columna Derecha: Tarjeta de Contenido de la Versión */}
                             <div className="flex-1 min-w-0">
                               <Card
                                 className={cn(
@@ -869,7 +1547,6 @@ export function ProyectoDetailView({ id: idProp, params }: ProyectoDetailViewPro
                                     : "border-border/70 bg-surface-subtle/50 hover:border-border"
                                 )}
                               >
-                                {/* Cabecera de la Versión */}
                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2.5 border-b border-border/50">
                                   <div className="flex items-center gap-2 flex-wrap">
                                     <Badge
@@ -912,7 +1589,6 @@ export function ProyectoDetailView({ id: idProp, params }: ProyectoDetailViewPro
                                   </div>
                                 </div>
 
-                                {/* Motivo o Justificación del Cambio si existe */}
                                 {v.motivo && (
                                   <div className="p-3 rounded-xl bg-primary/5 border border-primary/20 space-y-1">
                                     <span className="text-[10px] font-bold text-primary uppercase tracking-wider block">
@@ -924,7 +1600,6 @@ export function ProyectoDetailView({ id: idProp, params }: ProyectoDetailViewPro
                                   </div>
                                 )}
 
-                                {/* Contenedores de Información Registrada en esta Versión */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
                                   <div className="p-3 rounded-xl bg-surface-subtle/80 border border-border/50 space-y-1">
                                     <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block">

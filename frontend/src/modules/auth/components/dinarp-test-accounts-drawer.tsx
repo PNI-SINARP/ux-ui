@@ -54,6 +54,16 @@ export interface AccountRouteAction {
   huBadge?: string;
 }
 
+export interface FlowAccountOverride {
+  order: number;
+  roleName?: string;
+  userName?: string;
+  description?: string;
+  access?: string;
+  storiesBadge?: string;
+  actions?: AccountRouteAction[];
+}
+
 export interface TestAccountItem {
   roleName: string;
   userName: string;
@@ -63,6 +73,7 @@ export interface TestAccountItem {
   storiesBadge?: string;
   flows: FlowType[];
   actions: AccountRouteAction[];
+  flowOverrides?: Partial<Record<FlowType, FlowAccountOverride>>;
 }
 
 export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
@@ -146,7 +157,21 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
       { label: "Anexo C — Asignación", route: "/asignacion-anexo-c", huBadge: "CAM-02" },
       { label: "Asignar Revisor Fuente (BN-07)", route: "/acceso-interoperabilidad/asignacion", huBadge: "SOL-03" },
       { label: "Formalización de Acceso", route: "/formalizacion", huBadge: "FOR-01" },
-    ]
+    ],
+    flowOverrides: {
+      interoperabilidad: {
+        order: 2,
+        roleName: "2. Director de Gestión",
+        userName: "Director Gestión",
+        storiesBadge: "BN-07 · SOL-03",
+        description: "Paso 2 del flujo BPMN BN-07. Recibe las solicitudes enviadas y subsanadas por las instituciones consumidoras, consulta el expediente y asigna o recupera/reasigna un revisor activo del Equipo de Gestión conservando el historial (SOL-03).",
+        access: "Bandeja de Asignación de Acceso a Fuentes (/acceso-interoperabilidad/asignacion) y Formalización (/formalizacion).",
+        actions: [
+          { label: "Asignar / Reasignar Revisor (SOL-03)", route: "/acceso-interoperabilidad/asignacion", huBadge: "SOL-03" },
+          { label: "Formalización de Acceso", route: "/formalizacion", huBadge: "FOR-01" },
+        ],
+      },
+    },
   },
   {
     roleName: "Revisor Área de Gestión",
@@ -161,33 +186,98 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
       { label: "Anexo B — Revisión", route: "/revision-anexo-b", huBadge: "ENR-04" },
       { label: "Anexo C — Revisión", route: "/revision-anexo-c", huBadge: "CAM-03" },
       { label: "Revisar Solicitud Fuente (BN-07)", route: "/revision-gestion", huBadge: "SOL-04" },
-    ]
+    ],
+    flowOverrides: {
+      interoperabilidad: {
+        order: 3,
+        roleName: "3. Revisor del Equipo de Gestión",
+        userName: "Ana Torres (Revisor)",
+        storiesBadge: "BN-07 · SOL-04",
+        description: "Paso 3 del flujo BPMN BN-07. Evalúa la solicitud asignada (finalidad por campo, modalidad de consumo, cupo estimado y anexos). Registra observaciones estructuradas para subsanación en 3 días hábiles o aprueba la revisión (derivando a DPI si contiene campos confidenciales, o a formalización si solo tiene accesibles) (SOL-04).",
+        access: "Bandeja de Revisión del Equipo de Gestión (/revision-gestion).",
+        actions: [
+          { label: "Evaluar Solicitudes Asignadas (SOL-04)", route: "/revision-gestion", huBadge: "SOL-04" },
+        ],
+      },
+    },
   },
   {
     roleName: "Director Área de Normativa",
     userName: "Director Normativa",
     cedula: "2222222222",
-    description: "Recibe solicitudes de fuentes con campos confidenciales aprobadas por Gestión (BN-07), asigna revisor de Normatividad y suscribe la segunda firma del informe jurídico-normativo.",
-    access: "Asignación y Firma de Fuentes Confidenciales (/revision-normativa/asignacion) y Revisión Normativa Institucional (/revision-normativa).",
-    storiesBadge: "BN-01 (INS-06,07) · BN-07 (SOL-05,06)",
-    flows: ["anexo-a", "interoperabilidad"],
+    description: "Recibe expedientes de incorporación institucional (Anexo A) aprobados por Gestión y asigna o supervisa la elaboración de resoluciones normativas.",
+    access: "Elaborar resoluciones (/revision-normativa).",
+    storiesBadge: "BN-01 (INS-06, 07)",
+    flows: ["anexo-a"],
     actions: [
-      { label: "Asignar y Firmar Confidenciales (BN-07)", route: "/revision-normativa/asignacion", huBadge: "SOL-05, 06" },
-      { label: "Revisión Normativa (BN-01)", route: "/revision-normativa", huBadge: "INS-06, 07" },
-    ]
+      { label: "Elaborar resoluciones (Anexo A)", route: "/revision-normativa", huBadge: "INS-06, 07" },
+    ],
   },
   {
     roleName: "Revisor Área de Normativa",
     userName: "Revisor Normativa",
     cedula: "3333333333",
-    description: "Revisa la justificación y base legal de los campos confidenciales solicitados (BN-07). Aprueba emitiendo y firmando el informe técnico-jurídico (1ra firma), o notifica observación (3 días hábiles).",
-    access: "Evaluación de Fuentes Confidenciales (/revision-normativa/fuentes) y Expedientes Normativos (/revision-normativa).",
-    storiesBadge: "BN-01 (INS-06) · BN-07 (SOL-05,06)",
-    flows: ["anexo-a", "interoperabilidad"],
+    description: "Elabora los proyectos de resolución de incorporación institucional (Anexo A) aprobados por Gestión.",
+    access: "Elaborar resoluciones (/revision-normativa).",
+    storiesBadge: "BN-01 (INS-06)",
+    flows: ["anexo-a"],
     actions: [
-      { label: "Evaluar Confidenciales (BN-07)", route: "/revision-normativa/fuentes", huBadge: "SOL-05, 06" },
-      { label: "Expedientes Normativos (BN-01)", route: "/revision-normativa", huBadge: "INS-06" },
-    ]
+      { label: "Elaborar resoluciones (Anexo A)", route: "/revision-normativa", huBadge: "INS-06" },
+    ],
+  },
+  {
+    roleName: "Director de Protección de la Información (DPI)",
+    userName: "Director DPI",
+    cedula: "4444444444",
+    description: "Recibe solicitudes de acceso a fuentes con campos confidenciales aprobadas por Gestión (BN-07), asigna o reasigna revisores del Equipo DPI y suscribe la segunda firma electrónica del informe favorable (SOL-07, SOL-08).",
+    access: "Asignar revisiones DPI (/revision-normativa/asignacion) y Firmar informes DPI (/revision-normativa/asignacion?tab=informes).",
+    storiesBadge: "BN-07 (SOL-07, 08)",
+    flows: ["interoperabilidad"],
+    actions: [
+      { label: "Asignar revisiones DPI (SOL-07)", route: "/revision-normativa/asignacion", huBadge: "SOL-07" },
+      { label: "Firmar informes DPI (SOL-08)", route: "/revision-normativa/asignacion?tab=informes", huBadge: "SOL-08" },
+    ],
+    flowOverrides: {
+      interoperabilidad: {
+        order: 4,
+        roleName: "4. Director de Protección de la Información (DPI)",
+        userName: "Director DPI",
+        storiesBadge: "BN-07 · SOL-07, SOL-08",
+        description: "Paso 4 y Firma Final del flujo BPMN BN-07 (solicitudes con datos confidenciales aprobadas por Gestión). Recibe la solicitud, asigna o reasigna un revisor activo del Equipo DPI (SOL-07), revisa el informe favorable generado en plataforma y suscribe la 2.ª firma electrónica (SOL-08).",
+        access: "Asignar revisiones DPI (/revision-normativa/asignacion) y Firmar informes DPI (/revision-normativa/asignacion?tab=informes).",
+        actions: [
+          { label: "Asignar revisiones DPI (SOL-07)", route: "/revision-normativa/asignacion", huBadge: "SOL-07" },
+          { label: "Firmar informes DPI (SOL-08)", route: "/revision-normativa/asignacion?tab=informes", huBadge: "SOL-08" },
+        ],
+      },
+    },
+  },
+  {
+    roleName: "Revisor de Protección de la Información (DPI)",
+    userName: "Carlos Mora (Revisor DPI)",
+    cedula: "5555555555",
+    description: "Evalúa los campos confidenciales solicitados y su justificación jurídica LOPDP (BN-07). Registra observaciones para subsanación en 3 días hábiles (SOL-07) o elabora en plataforma y suscribe con primera firma electrónica el informe favorable para enviarlo al Director DPI (SOL-08).",
+    access: "Evaluar datos confidenciales (/revision-normativa/fuentes) y Elaborar informes DPI (/revision-normativa/fuentes?tab=informes).",
+    storiesBadge: "BN-07 (SOL-07, 08)",
+    flows: ["interoperabilidad"],
+    actions: [
+      { label: "Evaluar datos confidenciales (SOL-07)", route: "/revision-normativa/fuentes", huBadge: "SOL-07" },
+      { label: "Elaborar informes DPI (SOL-08)", route: "/revision-normativa/fuentes?tab=informes", huBadge: "SOL-08" },
+    ],
+    flowOverrides: {
+      interoperabilidad: {
+        order: 5,
+        roleName: "5. Revisor del Equipo de Protección de la Información (DPI)",
+        userName: "Carlos Mora (Revisor DPI)",
+        storiesBadge: "BN-07 · SOL-07, SOL-08",
+        description: "Paso 5 del flujo BPMN BN-07 (evaluación de datos confidenciales). Revisa en detalle los campos confidenciales solicitados, su finalidad y justificación jurídica LOPDP. Registra observaciones para subsanación en 3 días hábiles (SOL-07) o elabora el informe favorable directamente en plataforma y suscribe la 1.ª firma electrónica para enviarlo al Director DPI (SOL-08).",
+        access: "Evaluar datos confidenciales (/revision-normativa/fuentes) y Elaborar informes DPI (/revision-normativa/fuentes?tab=informes).",
+        actions: [
+          { label: "Evaluar datos confidenciales (SOL-07)", route: "/revision-normativa/fuentes", huBadge: "SOL-07" },
+          { label: "Elaborar informes DPI (SOL-08)", route: "/revision-normativa/fuentes?tab=informes", huBadge: "SOL-08" },
+        ],
+      },
+    },
   },
 
   // ── FLUJO ANEXO B (ENROLAMIENTO COORDINADOR / ACUERDO - BN-02: ENR-01 A ENR-04) ──
@@ -244,23 +334,39 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     ]
   },
 
-  // ── FLUJO INTEROPERABILIDAD Y SOLICITUD DE ACCESO A FUENTE (BN-05: PRJ-01, PRJ-02 · BN-07: SOL-01..06) ──
+  // ── FLUJO INTEROPERABILIDAD Y SOLICITUD DE ACCESO A FUENTE (BN-05: PRJ-01, PRJ-02 · BN-07: SOL-01..08) ──
   {
-    roleName: "Coordinador Consumidor (Entidad Requirente)",
+    roleName: "Coordinador SINARP",
     userName: "Andrea López (MinEduc)",
     cedula: "1712345678",
-    description: "Coordinador SINARP de entidad requirente. Elige proyecto y 1 fuente publicada, selecciona campos, modalidad y cupo, declara finalidad/justificación si hay confidenciales, envía solicitud (SOL-02) y subsana observaciones dentro de 3 días hábiles (SOL-01/04/06).",
-    access: "Mis Solicitudes (/acceso-interoperabilidad/solicitudes), Nueva Solicitud (/acceso-interoperabilidad/solicitudes/nueva), Subsanación (/acceso-interoperabilidad/solicitudes/[id]), Catálogo (/catalogo-interoperabilidad) y Proyectos (/proyectos).",
-    storiesBadge: "BN-05 (PRJ-01..02) · BN-07 (SOL-01, 02)",
+    description: "Coordinador SINARP de entidad requirente. Elige proyecto y 1 fuente publicada, selecciona campos, modalidad y cupo, declara finalidad por campo y justificación jurídica si hay confidenciales, envía solicitud (SOL-02) y subsana observaciones dentro de 3 días hábiles (SOL-05).",
+    access: "Mis Solicitudes (/acceso-interoperabilidad/solicitudes), Nueva Solicitud (/acceso-interoperabilidad/solicitudes/nueva), Subsanación (/acceso-interoperabilidad/solicitudes/[id]/corregir), Catálogo (/catalogo-interoperabilidad) y Proyectos (/proyectos).",
+    storiesBadge: "BN-05 (PRJ-01..02) · BN-07 (SOL-01, 02, 05)",
     flows: ["interoperabilidad", "proyectos", "fuentes"],
     actions: [
       { label: "Mis Solicitudes (BN-07)", route: "/acceso-interoperabilidad/solicitudes", huBadge: "SOL-01" },
       { label: "Nueva Solicitud (Wizard)", route: "/acceso-interoperabilidad/solicitudes/nueva", huBadge: "SOL-02" },
-      { label: "Subsanar Observación (v1)", route: "/acceso-interoperabilidad/solicitudes/SOL-2026-0092", huBadge: "Subsanar" },
+      { label: "Subsanar Observación (SOL-05)", route: "/acceso-interoperabilidad/solicitudes/SOL-2026-0092/corregir", huBadge: "SOL-05" },
       { label: "Explorar Catálogo", route: "/catalogo-interoperabilidad", huBadge: "CAT-01" },
       { label: "Bandeja de Proyectos", route: "/proyectos", huBadge: "PRJ-01" },
       { label: "Crear borrador de fuente (FUE-01)", route: "/proveedor/fuentes", huBadge: "FUE-01" },
-    ]
+    ],
+    flowOverrides: {
+      interoperabilidad: {
+        order: 1,
+        roleName: "1. Coordinador SINARP",
+        userName: "Andrea López (MinEduc)",
+        storiesBadge: "BN-07 · SOL-01, SOL-02, SOL-05",
+        description: "Paso 1 y Subsanación del flujo BPMN BN-07. Consulta sus solicitudes de acceso (SOL-01), crea y envía nuevas solicitudes seleccionando proyecto, 1 fuente publicada, campos con finalidad individual y justificación jurídica LOPDP si incluye confidenciales (SOL-02), y subsana observaciones dentro del plazo de 3 días hábiles generando una nueva versión (SOL-05).",
+        access: "Mis Solicitudes (/acceso-interoperabilidad/solicitudes), Nueva Solicitud (/acceso-interoperabilidad/solicitudes/nueva), Subsanación (/acceso-interoperabilidad/solicitudes/[id]/corregir) y Catálogo (/catalogo-interoperabilidad).",
+        actions: [
+          { label: "Mis Solicitudes (SOL-01)", route: "/acceso-interoperabilidad/solicitudes", huBadge: "SOL-01" },
+          { label: "Nueva Solicitud (SOL-02)", route: "/acceso-interoperabilidad/solicitudes/nueva", huBadge: "SOL-02" },
+          { label: "Subsanar Solicitud Observada (SOL-05)", route: "/acceso-interoperabilidad/solicitudes/SOL-2026-0092/corregir", huBadge: "SOL-05" },
+          { label: "Explorar Catálogo", route: "/catalogo-interoperabilidad", huBadge: "CAT-01" },
+        ],
+      },
+    },
   },
   {
     roleName: "Aprobador Institucional",
@@ -268,10 +374,10 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     cedula: "1719876543",
     description: "Evalúa la pertinencia jurídica y finalidad de uso de las solicitudes de interoperabilidad. Carga informes de justificación, firma y emite resolución de aprobación o solicita ajustes.",
     access: "Bandeja de Aprobación de Solicitudes (/acceso-interoperabilidad) y dictamen jurídico.",
-    storiesBadge: "SOL-07, 08, 10",
-    flows: ["interoperabilidad"],
+    storiesBadge: "SOL-10",
+    flows: [],
     actions: [
-      { label: "Evaluar Solicitudes", route: "/acceso-interoperabilidad", huBadge: "SOL-08" },
+      { label: "Evaluar Solicitudes", route: "/acceso-interoperabilidad", huBadge: "SOL-10" },
     ]
   },
   {
@@ -281,7 +387,7 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     description: "Verifica comprobantes de pago registrados en plataforma externa SIGEF para entidades con solicitudes de interoperabilidad aranceladas y emite validación formal financiera.",
     access: "Módulo Financiero y Facturación de Solicitudes (/acceso-interoperabilidad).",
     storiesBadge: "FAC-01 · PAG-01..04",
-    flows: ["interoperabilidad"],
+    flows: [],
     actions: [
       { label: "Validación de Pagos", route: "/acceso-interoperabilidad", huBadge: "PAG-02" },
     ]
@@ -294,8 +400,8 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     cedula: "1720304050",
     description: "Coordinador de la institución proveedora activa (Dirección General de Registro Civil, Identificación y Cedulación). Administra fuentes de información institucional, gestiona pruebas técnicas de conexión VPN (FUE-02), esquemas canónicos (FUE-03), publicación de fuentes (FUE-05) y atiende solicitudes de interoperabilidad.",
     access: "Gestión de Fuentes (/proveedor/fuentes), Solicitudes de Acceso (/acceso-interoperabilidad/solicitudes) y Catálogo (/catalogo-interoperabilidad).",
-    storiesBadge: "BN-06 · FUE-01..05 · BN-07",
-    flows: ["fuentes", "interoperabilidad"],
+    storiesBadge: "BN-06 · FUE-01..05",
+    flows: ["fuentes"],
     actions: [
       { label: "Mis Fuentes de Datos", route: "/proveedor/fuentes", huBadge: "FUE-01..05" },
       { label: "Solicitudes de Acceso", route: "/acceso-interoperabilidad/solicitudes", huBadge: "BN-07" },
@@ -443,10 +549,10 @@ export const FLOW_OPTIONS: FlowOption[] = [
     id: "interoperabilidad",
     title: "Solicitar y Evaluar Acceso a Fuente",
     bnCode: "BN-07",
-    subtitle: "Solicitud, evaluación en Gestión, Normatividad (confidenciales) y subsanación",
-    description: "Coordinador SINARP, Director/Equipo de Gestión y Director/Equipo de Normatividad",
+    subtitle: "Solicitud, evaluación en Gestión, evaluación DPI (confidenciales), informe y subsanación",
+    description: "1. Coordinador SINARP → 2. Director Gestión → 3. Revisor Gestión → 4. Director DPI → 5. Revisor DPI",
     section: "interoperabilidad",
-    tag: "SOL-01 a SOL-06 · CAT · FAC",
+    tag: "SOL-01 a SOL-08 · DPI",
     icon: Layers,
   },
 
@@ -511,24 +617,40 @@ export function DinarpTestAccountsDrawer({ onSelectCedula }: DinarpTestAccountsD
   const filteredAccounts = useMemo(() => {
     if (!selectedFlow) return [];
 
-    return TEST_ACCOUNTS_DATA.filter((acc) => {
-      const matchesFlow =
-        selectedFlow === "todos" ? true : acc.flows.includes(selectedFlow);
+    const matched = TEST_ACCOUNTS_DATA.filter((acc) =>
+      selectedFlow === "todos" ? true : acc.flows.includes(selectedFlow)
+    )
+      .map((acc) => {
+        const override = acc.flowOverrides?.[selectedFlow];
+        if (!override) return { acc, order: 999 };
+        return {
+          acc: {
+            ...acc,
+            roleName: override.roleName ?? acc.roleName,
+            userName: override.userName ?? acc.userName,
+            description: override.description ?? acc.description,
+            access: override.access ?? acc.access,
+            storiesBadge: override.storiesBadge ?? acc.storiesBadge,
+            actions: override.actions ?? acc.actions,
+          },
+          order: override.order,
+        };
+      })
+      .sort((a, b) => a.order - b.order)
+      .map((item) => item.acc);
 
-      if (!matchesFlow) return false;
+    if (!searchQuery.trim()) return matched;
 
-      if (!searchQuery.trim()) return true;
-
-      const q = searchQuery.toLowerCase().trim();
-      return (
+    const q = searchQuery.toLowerCase().trim();
+    return matched.filter(
+      (acc) =>
         acc.roleName.toLowerCase().includes(q) ||
         acc.userName.toLowerCase().includes(q) ||
         acc.cedula.includes(q) ||
         acc.description.toLowerCase().includes(q) ||
         acc.access.toLowerCase().includes(q) ||
         (acc.storiesBadge && acc.storiesBadge.toLowerCase().includes(q))
-      );
-    });
+    );
   }, [selectedFlow, searchQuery]);
 
   const currentFlowConfig = FLOW_OPTIONS.find((f) => f.id === selectedFlow);
@@ -795,9 +917,10 @@ export function DinarpTestAccountsDrawer({ onSelectCedula }: DinarpTestAccountsD
                             size="sm"
                             onClick={(e) => {
                               e.stopPropagation();
-                              login(acc.cedula, { name: acc.userName, roleTitle: acc.roleName });
-                              toast.success(`Sesión activa: ${acc.userName}`, {
-                                description: `Rol: ${acc.roleName}`,
+                              const cleanRoleTitle = acc.roleName.replace(/^\d+\.\s*/, "").replace(/\s*[—-]\s*.*$/, "");
+                              const logged = login(acc.cedula, { name: acc.userName, roleTitle: cleanRoleTitle });
+                              toast.success(`Sesión activa: ${logged.name}`, {
+                                description: `Rol: ${logged.roleTitle}`,
                               });
                               const defaultRoute = acc.actions?.[0]?.route ? `${acc.actions[0].route}/` : "/catalogo-interoperabilidad/";
                               router.push(defaultRoute);
@@ -866,9 +989,10 @@ export function DinarpTestAccountsDrawer({ onSelectCedula }: DinarpTestAccountsD
                                 href={routeHref}
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  login(acc.cedula, { name: acc.userName, roleTitle: acc.roleName });
-                                  toast.success(`Sesión activa: ${acc.userName}`, {
-                                    description: `Rol: ${acc.roleName}`,
+                                  const cleanRoleTitle = acc.roleName.replace(/^\d+\.\s*/, "").replace(/\s*[—-]\s*.*$/, "");
+                                  const logged = login(acc.cedula, { name: acc.userName, roleTitle: cleanRoleTitle });
+                                  toast.success(`Sesión activa: ${logged.name}`, {
+                                    description: `Rol: ${logged.roleTitle}`,
                                   });
                                 }}
                                 className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-primary/10 hover:bg-primary text-primary hover:text-white border border-primary/25 transition-all shadow-2xs group/btn"

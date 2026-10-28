@@ -11,6 +11,12 @@ export interface CampoDetalle {
   descripcion: string;
   tipo?: string;
   clasificacion: "Accesible" | "Confidencial";
+  /**
+   * Subclasificación dentro de Confidenciales (parametrizable por DINARP).
+   * Identifica datos personales sensibles con tratamiento especial según la LOPDP.
+   * Sigue perteneciendo a la categoría Confidencial (revisión por DPI).
+   */
+  esSensible?: boolean;
   finalidad: string;
   finalidadUso?: string;
   fundamento?: string;
@@ -200,6 +206,7 @@ export interface AprovisionamientoTecnico {
   reintentosCount: number;
   mensajeResultado?: string;
   referenciaTecnica?: string;
+  idOperacionAprovisionamiento?: string;
   fechaHabilitacion?: string;
   tipoFallo?: "HABILITACION_INICIAL" | "ROTACION_CREDENCIAL" | "ACTUALIZACION_ALCANCE" | "REVOCACION";
 }
@@ -227,6 +234,7 @@ export interface SolicitudAcceso {
   institucion: string;
   tipoInstitucion: "Pública" | "Privada";
   coordinador: string;
+  correoCoordinador?: string;
   fecha: string; // Fecha de envío / radicación
   fechaAprobacion?: string;
   ultimaActualizacion: string;
@@ -263,6 +271,10 @@ export interface SolicitudAcceso {
   diasRestantesSubsanacion?: number;
   detalleSubsanacion?: string;
   subsanable?: boolean;
+  falloCierreTec00?: boolean;
+  idOperacionTec00?: string;
+  mensajeErrorTec00?: string;
+  motivoCierre?: string;
   informeNormativa?: InformeNormativa;
   instrumento?: "Convenio" | "Contrato";
   contrato?: string;
@@ -310,7 +322,7 @@ export interface SolicitudAcceso {
   historial: TrazabilidadEvento[];
 }
 
-const STORAGE_KEY = "dinarp_solicitudes_v10";
+const STORAGE_KEY = "dinarp_solicitudes_v14";
 
 export const INITIAL_SOLICITUDES: SolicitudAcceso[] = [
   {
@@ -328,7 +340,7 @@ export const INITIAL_SOLICITUDES: SolicitudAcceso[] = [
     modalidad: "API individual",
     cupo: 35000,
     fuentesCount: 1,
-    camposCount: 2,
+    camposCount: 3,
     fuentePrincipal: "Registro Civil de Ciudadanos",
     servicioPrincipal: "Consulta de Datos de Identidad y Hogar",
     instrumento: "Convenio",
@@ -352,6 +364,16 @@ export const INITIAL_SOLICITUDES: SolicitudAcceso[] = [
             clasificacion: "Confidencial",
             finalidad: "Verificación de composición familiar en subsidios de protección social.",
             fundamento: "Ley Orgánica de Protección de Datos Personales Art. 12 y Acuerdo Ministerial MIES-2026-014."
+          },
+          {
+            id: "cmp-06",
+            nombre: "condicionDiscapacidad",
+            descripcion: "Indicador y porcentaje de discapacidad registrado en coordinación con el ente rector de salud.",
+            clasificacion: "Confidencial",
+            esSensible: true,
+            etiquetaSensibilidad: "Sensible",
+            finalidad: "Focalización prioritaria del Bono Joaquín Gallegos Lara para personas con discapacidad severa.",
+            fundamento: "Ley Orgánica de Discapacidades Art. 19 y LOPDP Art. 25 y 26 (Tratamiento especial de datos sensibles de salud)."
           }
         ]
       }
@@ -769,6 +791,219 @@ export const INITIAL_SOLICITUDES: SolicitudAcceso[] = [
     ]
   },
   {
+    id: "SOL-2026-021",
+    institucion: "Agencia Nacional de Regulación, Control y Vigilancia Sanitaria (ARCSA)",
+    tipoInstitucion: "Pública",
+    coordinador: "Andrea López",
+    proyectoId: "PRJ-2026-001",
+    proyectoNombre: "Sistema Único de Registro y Matrícula Estudiantil",
+    fecha: "2026-09-21 09:15",
+    ultimaActualizacion: "2026-09-23 11:20",
+    estado: "Requiere corrección",
+    responsable: "Coordinador SINARP",
+    versionExpediente: 1,
+    modalidad: "API individual",
+    cupo: 45000,
+    fuentesCount: 1,
+    camposCount: 2,
+    fuentePrincipal: "Registro Único de Contribuyentes (RUC)",
+    servicioPrincipal: "Validación de Representación Legal Sanitaria",
+    instrumento: "Convenio",
+    fechaLimiteSubsanacion: "2026-09-25",
+    diasRestantesSubsanacion: 1,
+    observacionesEstructuradas: [
+      {
+        id: "obs-21-1",
+        tipo: "justificacion",
+        elementoId: "cmp-05",
+        elementoNombre: "representanteLegalIdentificacion",
+        descripcion: "Precisar el artículo de la Ley Orgánica de Salud que faculta la validación del representante legal en permisos de funcionamiento.",
+        fecha: "2026-09-23 11:20",
+        revisor: "Ana Torres (Revisor)",
+        etapa: "Gestión"
+      }
+    ],
+    fuentes: [
+      {
+        id: "FNT-002",
+        nombre: "Registro Único de Contribuyentes (RUC)",
+        institucion: "Servicio de Rentas Internas",
+        campos: [
+          {
+            id: "cmp-03",
+            nombre: "estadoContribuyente",
+            descripcion: "Estado de actividad tributaria.",
+            clasificacion: "Accesible",
+            finalidad: "Verificar vigencia del establecimiento regulado."
+          },
+          {
+            id: "cmp-05",
+            nombre: "representanteLegalIdentificacion",
+            descripcion: "Identificación del representante legal.",
+            clasificacion: "Confidencial",
+            finalidad: "Emisión de permisos sanitarios de funcionamiento.",
+            fundamento: "Ley Orgánica de Salud."
+          }
+        ]
+      }
+    ],
+    documentos: [
+      {
+        id: "doc-021-1",
+        nombre: "Oficio_ARCSA_Permisos_2026.pdf",
+        tipo: "PDF",
+        tamano: "1.9 MB",
+        fechaCarga: "2026-09-21 09:15",
+        categoria: "Oficio Formal"
+      }
+    ],
+    historial: [
+      { fecha: "2026-09-21 09:15", evento: "Solicitud creada y enviada", actor: "Coordinador SINARP" },
+      { fecha: "2026-09-23 11:20", evento: "Solicitud observada por Gestión (SOL-04)", actor: "Ana Torres (Revisor)", detalle: "Transcurridos 2 de 3 días hábiles. Queda 1 día hábil antes del vencimiento del plazo de subsanación." }
+    ]
+  },
+  {
+    id: "SOL-2026-022",
+    institucion: "Ministerio del Trabajo (MDT)",
+    tipoInstitucion: "Pública",
+    coordinador: "Andrea López",
+    proyectoId: "PRJ-2026-001",
+    proyectoNombre: "Sistema Único de Registro y Matrícula Estudiantil",
+    fecha: "2026-09-22 10:30",
+    ultimaActualizacion: "2026-09-24 09:00",
+    estado: "Requiere corrección",
+    responsable: "Coordinador SINARP",
+    versionExpediente: 1,
+    modalidad: "API individual",
+    cupo: 60000,
+    fuentesCount: 1,
+    camposCount: 2,
+    fuentePrincipal: "Registro Civil de Ciudadanos",
+    servicioPrincipal: "Consulta de Datos de Identidad e Inclusión Laboral",
+    instrumento: "Convenio",
+    fechaLimiteSubsanacion: "2026-09-26",
+    diasRestantesSubsanacion: 2,
+    observacionesEstructuradas: [
+      {
+        id: "obs-22-1",
+        tipo: "justificacion",
+        elementoId: "cmp-06",
+        elementoNombre: "condicionDiscapacidad",
+        descripcion: "Detallar la excepción del Art. 26 de la LOPDP aplicable para el control de cuotas de inclusión laboral.",
+        fecha: "2026-09-24 09:00",
+        revisor: "Carlos Mora (Revisor DPI)",
+        etapa: "Protección de la Información (DPI)"
+      }
+    ],
+    fuentes: [
+      {
+        id: "FNT-001",
+        nombre: "Registro Civil de Ciudadanos",
+        institucion: "Dirección General de Registro Civil",
+        campos: [
+          {
+            id: "cmp-01",
+            nombre: "cedulaCiudadania",
+            descripcion: "Número oficial de cédula.",
+            clasificacion: "Accesible",
+            finalidad: "Validación de contratos registrados en SUT."
+          },
+          {
+            id: "cmp-06",
+            nombre: "condicionDiscapacidad",
+            descripcion: "Indicador y porcentaje de discapacidad.",
+            clasificacion: "Confidencial",
+            esSensible: true,
+            etiquetaSensibilidad: "Sensible",
+            finalidad: "Verificación del porcentaje legal de inclusión laboral en nóminas.",
+            fundamento: "Código del Trabajo Art. 42 numeral 33."
+          }
+        ]
+      }
+    ],
+    documentos: [
+      {
+        id: "doc-022-1",
+        nombre: "Oficio_MDT_SUT_2026.pdf",
+        tipo: "PDF",
+        tamano: "2.2 MB",
+        fechaCarga: "2026-09-22 10:30",
+        categoria: "Oficio Formal"
+      }
+    ],
+    historial: [
+      { fecha: "2026-09-22 10:30", evento: "Solicitud creada y enviada", actor: "Coordinador SINARP" },
+      { fecha: "2026-09-24 09:00", evento: "Solicitud observada por DPI (SOL-07)", actor: "Carlos Mora (Revisor DPI)", detalle: "Transcurrido 1 de 3 días hábiles. Quedan 2 días hábiles para subsanar." }
+    ]
+  },
+  {
+    id: "SOL-2026-023",
+    institucion: "Instituto Nacional de Estadística y Censos (INEC)",
+    tipoInstitucion: "Pública",
+    coordinador: "Andrea López",
+    proyectoId: "PRJ-2026-001",
+    proyectoNombre: "Sistema Único de Registro y Matrícula Estudiantil",
+    fecha: "2026-09-15 08:30",
+    ultimaActualizacion: "2026-09-23 18:00",
+    estado: "Requiere corrección",
+    responsable: "Coordinador SINARP",
+    versionExpediente: 1,
+    modalidad: "API masiva",
+    cupo: 95000,
+    fuentesCount: 1,
+    camposCount: 2,
+    fuentePrincipal: "Registro Civil de Ciudadanos",
+    servicioPrincipal: "Estadísticas Vitales y Demográficas",
+    instrumento: "Convenio",
+    fechaLimiteSubsanacion: "2026-09-23",
+    diasRestantesSubsanacion: 0,
+    subsanable: false,
+    falloCierreTec00: true,
+    idOperacionTec00: "TEC-00-849201",
+    mensajeErrorTec00: "No se confirmó el cierre; pendiente de reintento",
+    observacionesEstructuradas: [
+      {
+        id: "obs-23-1",
+        tipo: "documento",
+        elementoNombre: "Protocolo de Anonimización Estadística",
+        descripcion: "No se adjuntó el anexo técnico de disociación de datos dentro del plazo de 3 días hábiles.",
+        fecha: "2026-09-18 10:00",
+        revisor: "Ana Torres (Revisor)",
+        etapa: "Gestión"
+      }
+    ],
+    fuentes: [
+      {
+        id: "FNT-001",
+        nombre: "Registro Civil de Ciudadanos",
+        institucion: "Dirección General de Registro Civil",
+        campos: [
+          {
+            id: "cmp-01",
+            nombre: "fechaNacimiento",
+            descripcion: "Fecha oficial de nacimiento.",
+            clasificacion: "Accesible",
+            finalidad: "Proyecciones demográficas cantonales."
+          },
+          {
+            id: "cmp-02",
+            nombre: "estadoCivil",
+            descripcion: "Condición civil registrada.",
+            clasificacion: "Confidencial",
+            finalidad: "Caracterización de nupcialidad anual.",
+            fundamento: "Ley de Estadística Art. 10."
+          }
+        ]
+      }
+    ],
+    documentos: [],
+    historial: [
+      { fecha: "2026-09-15 08:30", evento: "Solicitud creada y enviada", actor: "Coordinador SINARP" },
+      { fecha: "2026-09-18 10:00", evento: "Solicitud observada por Gestión", actor: "Ana Torres (Revisor)", detalle: "Plazo otorgado: 3 días hábiles." },
+      { fecha: "2026-09-23 18:00", evento: "Plazo de subsanación vencido (3/3 días cumplidos)", actor: "Sistema DINARP", detalle: "Transcurrieron los 3 días hábiles sin subsanación por parte del Coordinador SINARP." }
+    ]
+  },
+  {
     id: "SOL-2026-011",
     institucion: "Agencia Nacional de Tránsito",
     tipoInstitucion: "Pública",
@@ -777,8 +1012,8 @@ export const INITIAL_SOLICITUDES: SolicitudAcceso[] = [
     proyectoNombre: "Sistema Único de Registro y Matrícula Estudiantil",
     fecha: "2026-08-10 09:00",
     ultimaActualizacion: "2026-08-25 18:00",
-    estado: "Cerrada por vencimiento",
-    responsable: "Coordinador SINARP",
+    estado: "Cerrada",
+    responsable: "Archivo Histórico",
     versionExpediente: 1,
     modalidad: "API individual",
     cupo: 15000,
@@ -789,6 +1024,8 @@ export const INITIAL_SOLICITUDES: SolicitudAcceso[] = [
     instrumento: "Convenio",
     fechaLimiteSubsanacion: "2026-08-15",
     diasRestantesSubsanacion: 0,
+    subsanable: false,
+    motivoCierre: "No se subsanó y se cerró porque se cumplió el plazo reglamentario de 3 días hábiles (SOL-06)",
     fuentes: [
       {
         id: "FNT-001",
@@ -915,8 +1152,10 @@ export const INITIAL_SOLICITUDES: SolicitudAcceso[] = [
             nombre: "huellaDactilarHash",
             descripcion: "Código hash de cotejo dactiloscópico biométrico.",
             clasificacion: "Confidencial",
+            esSensible: true,
+            etiquetaSensibilidad: "Sensible",
             finalidad: "Seguridad y cotejo en accesos biométricos de alta seguridad.",
-            fundamento: "Ley de Seguridad Pública del Estado Art. 14 y LOPDP Art. 25."
+            fundamento: "Ley de Seguridad Pública del Estado Art. 14 y LOPDP Art. 25 (Datos biométricos sensibles)."
           }
         ]
       }
@@ -1169,6 +1408,9 @@ export const INITIAL_SOLICITUDES: SolicitudAcceso[] = [
     fuentePrincipal: "Registro Civil de Ciudadanos",
     servicioPrincipal: "Ficha de Parentesco y Tutela",
     instrumento: "Convenio",
+    diasRestantesSubsanacion: 1,
+    fechaLimiteSubsanacion: "2026-09-25",
+    subsanable: true,
     motivoRechazo: "Falta adjuntar el respaldo de la finalidad de uso para datos de menores de edad y actualizar la resolución de delegación institucional vigente.",
     observaciones: "Falta adjuntar el respaldo de la finalidad de uso para datos de menores de edad y actualizar la resolución de delegación institucional vigente.",
     fuentes: [
@@ -2159,6 +2401,496 @@ export const INITIAL_SOLICITUDES: SolicitudAcceso[] = [
       { fecha: "2026-09-23 17:15", evento: "Factura automática emitida (FAC-01)", actor: "API Facturación Electrónica", detalle: "Factura FAC-2026-0044 emitida por $ 195.00." },
       { fecha: "2026-09-24 15:20", evento: "Pago retenido en conciliación por divergencia (PAG-02)", actor: "Pasarela de Pagos DINARP", detalle: "Notificación TX-PASARELA-990142 recibida con diferencia de importe ($ 190.00 vs $ 195.00). El expediente queda En conciliación sin pasar a aprobación final." }
     ]
+  },
+  {
+    id: "SOL-2026-040",
+    institucion: "Servicio Nacional de Contratación Pública (SERCOP)",
+    tipoInstitucion: "Pública",
+    coordinador: "Fernando Cevallos",
+    proyectoId: "PRJ-2026-040",
+    proyectoNombre: "Control de Inhabilidades y Vinculación Societaria RUP",
+    fecha: "2026-09-18 09:00",
+    ultimaActualizacion: "2026-09-25 10:15",
+    estado: "Asignada a revisión de Gestión",
+    responsable: "Ana Torres (Revisor)",
+    revisorAsignado: "Ana Torres (Revisor)",
+    revisorAsignadoId: "U-EQGEST",
+    fechaAsignacion: "2026-09-25 10:15",
+    modalidad: "Ambas",
+    cupo: 95000,
+    versionExpediente: 3,
+    detalleSubsanacion: "En atención a las observaciones de v1 (Gestión) y v2 (DPI), se incorporó el Oficio Jurídico SERCOP-CGAJ-2026-089 detallando la habilitación legal del Art. 62 de la LOSNCP y se redujo el cupo anual a 95,000 consultas.",
+    fuentesCount: 2,
+    camposCount: 3,
+    fuentePrincipal: "Registro Único de Contribuyentes (RUC) / Registro Civil",
+    servicioPrincipal: "Verificación de Representantes Legales y Parentesco",
+    instrumento: "Convenio",
+    observacionesEstructuradas: [
+      {
+        id: "obs-40-1",
+        tipo: "justificacion",
+        elementoId: "cmp-40-3",
+        elementoNombre: "datosConyuge",
+        descripcion: "Se solicitó precisar el alcance del control de nepotismo e inhabilidades conforme al Art. 62 de la LOSNCP.",
+        fecha: "2026-09-23 16:20",
+        revisor: "Carlos Mora (Revisor DPI)",
+        etapa: "Protección de la Información (DPI)"
+      }
+    ],
+    historialAsignaciones: [
+      {
+        id: "asig-040-v3",
+        director: "Director Gestión",
+        revisorId: "U-EQGEST",
+        revisorNombre: "Ana Torres (Revisor)",
+        fecha: "2026-09-25 10:15",
+        versionExpediente: 3,
+        etapa: "Gestión",
+        observacion: "Reasignada a Ana Torres por disponibilidad operativa para revisión de reingreso v3."
+      },
+      {
+        id: "asig-040-v2",
+        director: "Director Gestión",
+        revisorId: "REV-G-02",
+        revisorNombre: "Marcos Silva (Revisor)",
+        fecha: "2026-09-21 11:00",
+        versionExpediente: 2,
+        etapa: "Gestión"
+      }
+    ],
+    fuentes: [
+      {
+        id: "FNT-002",
+        nombre: "Registro Único de Contribuyentes (RUC)",
+        institucion: "Servicio de Rentas Internas",
+        campos: [
+          {
+            id: "cmp-40-1",
+            nombre: "estadoContribuyente",
+            descripcion: "Estado de actividad tributaria.",
+            clasificacion: "Accesible",
+            finalidad: "Habilitación de proveedores en el Registro Único de Proveedores (RUP)."
+          },
+          {
+            id: "cmp-40-2",
+            nombre: "representanteLegalIdentificacion",
+            descripcion: "Identificación del representante legal.",
+            clasificacion: "Confidencial",
+            finalidad: "Validación de vinculación societaria en procedimientos de contratación pública.",
+            fundamento: "Ley Orgánica del Sistema Nacional de Contratación Pública Art. 62 y 63."
+          }
+        ]
+      },
+      {
+        id: "FNT-001",
+        nombre: "Registro Civil de Ciudadanos",
+        institucion: "Dirección General de Registro Civil",
+        campos: [
+          {
+            id: "cmp-40-3",
+            nombre: "datosConyuge",
+            descripcion: "Nombres y cédula del cónyuge o conviviente legal.",
+            clasificacion: "Confidencial",
+            finalidad: "Detección preventiva de inhabilidades por parentesco con máxima autoridad contratante.",
+            fundamento: "LOSNCP Art. 62 numeral 1 y LOPDP Art. 12 (Cumplimiento de obligación legal)."
+          }
+        ]
+      }
+    ],
+    documentos: [
+      {
+        id: "doc-040-1",
+        nombre: "Oficio_SERCOP_Interoperabilidad_2026.pdf",
+        tipo: "PDF",
+        tamano: "2.4 MB",
+        fechaCarga: "2026-09-18 09:00",
+        categoria: "Oficio Formal"
+      },
+      {
+        id: "doc-040-2",
+        nombre: "Dictamen_Juridico_Subsanacion_SERCOP_v3.pdf",
+        tipo: "PDF",
+        tamano: "1.9 MB",
+        fechaCarga: "2026-09-25 09:30",
+        categoria: "Subsanación v3"
+      }
+    ],
+    historial: [
+      { fecha: "2026-09-18 09:00", evento: "Solicitud creada y enviada (v1)", actor: "Fernando Cevallos (Coordinador SINARP)" },
+      { fecha: "2026-09-20 14:00", evento: "Solicitud observada por Gestión (SOL-04)", actor: "Marcos Silva (Revisor)", detalle: "Observación inicial de cupo." },
+      { fecha: "2026-09-21 09:30", evento: "Solicitud subsanada y reenviada (v2)", actor: "Fernando Cevallos (Coordinador SINARP)" },
+      { fecha: "2026-09-23 16:20", evento: "Solicitud observada por DPI (SOL-07)", actor: "Carlos Mora (Revisor DPI)", detalle: "Se requirió ampliar fundamento legal del campo datosConyuge." },
+      { fecha: "2026-09-25 09:30", evento: "Solicitud subsanada y reenviada (v3) (SOL-05)", actor: "Fernando Cevallos (Coordinador SINARP)", detalle: "Se adjuntó Dictamen Jurídico SERCOP-CGAJ-2026-089." },
+      { fecha: "2026-09-25 10:15", evento: "Reasignada a revisión de Gestión (SOL-03)", actor: "Director Gestión", detalle: "Asignada a Ana Torres para evaluación del expediente subsanado v3." }
+    ]
+  },
+  {
+    id: "SOL-2026-038",
+    institucion: "Ministerio de Desarrollo Urbano y Vivienda (MIDUVI)",
+    tipoInstitucion: "Pública",
+    coordinador: "Gabriela Paredes",
+    proyectoId: "PRJ-2026-038",
+    proyectoNombre: "Catastro Nacional de Beneficiarios de Vivienda de Interés Social",
+    fecha: "2026-09-25 09:10",
+    ultimaActualizacion: "2026-09-25 10:00",
+    estado: "Asignada a revisión de Gestión",
+    responsable: "Ana Torres (Revisor)",
+    revisorAsignado: "Ana Torres (Revisor)",
+    revisorAsignadoId: "U-EQGEST",
+    fechaAsignacion: "2026-09-25 10:00",
+    modalidad: "API individual",
+    cupo: 40000,
+    versionExpediente: 1,
+    fuentesCount: 1,
+    camposCount: 3,
+    fuentePrincipal: "Registro Civil de Ciudadanos",
+    servicioPrincipal: "Validación de Datos de Identidad Ciudadana",
+    instrumento: "Convenio",
+    historialAsignaciones: [
+      {
+        id: "asig-038",
+        director: "Director Gestión",
+        revisorId: "U-EQGEST",
+        revisorNombre: "Ana Torres (Revisor)",
+        fecha: "2026-09-25 10:00",
+        versionExpediente: 1,
+        etapa: "Gestión"
+      }
+    ],
+    fuentes: [
+      {
+        id: "FNT-001",
+        nombre: "Registro Civil de Ciudadanos",
+        institucion: "Dirección General de Registro Civil",
+        campos: [
+          {
+            id: "cmp-38-1",
+            nombre: "cedulaCiudadania",
+            descripcion: "Número oficial de cédula de ciudadanía.",
+            clasificacion: "Accesible",
+            finalidad: "Verificación de identidad del postulante a subsidio habitacional."
+          },
+          {
+            id: "cmp-38-2",
+            nombre: "nombresCompletos",
+            descripcion: "Nombres y apellidos completos del ciudadano.",
+            clasificacion: "Accesible",
+            finalidad: "Registro nominal en el expediente técnico de adjudicación de vivienda."
+          },
+          {
+            id: "cmp-38-3",
+            nombre: "fechaNacimiento",
+            descripcion: "Fecha oficial de nacimiento registrada en acta.",
+            clasificacion: "Accesible",
+            finalidad: "Validación de mayoría de edad del jefe de núcleo familiar."
+          }
+        ]
+      }
+    ],
+    documentos: [
+      {
+        id: "doc-038-1",
+        nombre: "Oficio_MIDUVI_ViviendaSocial_2026.pdf",
+        tipo: "PDF",
+        tamano: "1.7 MB",
+        fechaCarga: "2026-09-25 09:10",
+        categoria: "Oficio Formal"
+      }
+    ],
+    historial: [
+      { fecha: "2026-09-25 09:10", evento: "Solicitud creada y enviada (SOL-01 / SOL-02)", actor: "Gabriela Paredes (Coordinadora SINARP)", detalle: "Solicitud con solo campos accesibles (sin datos confidenciales)." },
+      { fecha: "2026-09-25 10:00", evento: "Revisor de Gestión asignado (SOL-03)", actor: "Director Gestión", detalle: "Asignado a Ana Torres para revisión funcional. Si se aprueba, pasa directo a formalización sin requerir dictamen DPI." }
+    ]
+  },
+  {
+    id: "SOL-2026-037",
+    institucion: "Consejo Nacional para la Igualdad de Discapacidades (CONADIS)",
+    tipoInstitucion: "Pública",
+    coordinador: "Patricio Alarcón",
+    proyectoId: "PRJ-2026-037",
+    proyectoNombre: "Registro Nacional de Calificación y Beneficios por Discapacidad",
+    fecha: "2026-09-24 15:20",
+    ultimaActualizacion: "2026-09-25 08:50",
+    estado: "Asignada a revisión de Gestión",
+    responsable: "Ana Torres (Revisor)",
+    revisorAsignado: "Ana Torres (Revisor)",
+    revisorAsignadoId: "U-EQGEST",
+    fechaAsignacion: "2026-09-25 08:50",
+    modalidad: "API masiva",
+    cupo: 85000,
+    versionExpediente: 1,
+    fuentesCount: 1,
+    camposCount: 3,
+    fuentePrincipal: "Registro Civil de Ciudadanos",
+    servicioPrincipal: "Consulta de Identidad y Condición de Discapacidad",
+    instrumento: "Convenio",
+    historialAsignaciones: [
+      {
+        id: "asig-037",
+        director: "Director Gestión",
+        revisorId: "U-EQGEST",
+        revisorNombre: "Ana Torres (Revisor)",
+        fecha: "2026-09-25 08:50",
+        versionExpediente: 1,
+        etapa: "Gestión"
+      }
+    ],
+    fuentes: [
+      {
+        id: "FNT-001",
+        nombre: "Registro Civil de Ciudadanos",
+        institucion: "Dirección General de Registro Civil",
+        campos: [
+          {
+            id: "cmp-37-1",
+            nombre: "cedulaCiudadania",
+            descripcion: "Número oficial de cédula de ciudadanía.",
+            clasificacion: "Accesible",
+            finalidad: "Identificación única de personas acreditadas en el registro nacional."
+          },
+          {
+            id: "cmp-37-2",
+            nombre: "condicionDiscapacidad",
+            descripcion: "Tipo y porcentaje de discapacidad calificado por la autoridad sanitaria.",
+            clasificacion: "Confidencial",
+            esSensible: true,
+            etiquetaSensibilidad: "Sensible",
+            finalidad: "Validación automática para exoneraciones tributarias y tarifarias de ley.",
+            fundamento: "Ley Orgánica de Discapacidades Art. 19 y LOPDP Art. 25 y 26 (Datos sensibles relativos a la salud)."
+          },
+          {
+            id: "cmp-37-3",
+            nombre: "representanteCurador",
+            descripcion: "Identificación del representante legal o curador designado.",
+            clasificacion: "Confidencial",
+            finalidad: "Acreditación de representación legal para personas con discapacidad severa.",
+            fundamento: "Código Civil Art. 463 y LOPDP Art. 12."
+          }
+        ]
+      }
+    ],
+    documentos: [
+      {
+        id: "doc-037-1",
+        nombre: "Oficio_CONADIS_Interoperabilidad_2026.pdf",
+        tipo: "PDF",
+        tamano: "2.5 MB",
+        fechaCarga: "2026-09-24 15:20",
+        categoria: "Oficio Formal"
+      },
+      {
+        id: "doc-037-2",
+        nombre: "Protocolo_Seguridad_Datos_Sensibles_CONADIS.pdf",
+        tipo: "PDF",
+        tamano: "3.1 MB",
+        fechaCarga: "2026-09-24 15:25",
+        categoria: "Respaldo LOPDP Art. 26"
+      }
+    ],
+    historial: [
+      { fecha: "2026-09-24 15:20", evento: "Solicitud creada y enviada (SOL-01 / SOL-02)", actor: "Patricio Alarcón (Coordinador SINARP)", detalle: "Incluye campo Confidencial con subclasificación Sensible (LOPDP Art. 25)." },
+      { fecha: "2026-09-25 08:50", evento: "Revisor de Gestión asignado (SOL-03)", actor: "Director Gestión", detalle: "Asignado a Ana Torres para evaluación funcional previa a derivación obligatoria a DPI." }
+    ]
+  },
+  {
+    id: "SOL-2026-036",
+    institucion: "Consejo de la Judicatura",
+    tipoInstitucion: "Pública",
+    coordinador: "Dr. Esteban Villacreses",
+    proyectoId: "PRJ-2026-036",
+    proyectoNombre: "Sistema Automático de Citaciones y Trámite Judicial SATJE",
+    fecha: "2026-09-20 11:00",
+    ultimaActualizacion: "2026-09-25 08:20",
+    estado: "Asignada a revisión de Gestión",
+    responsable: "Ana Torres (Revisor)",
+    revisorAsignado: "Ana Torres (Revisor)",
+    revisorAsignadoId: "U-EQGEST",
+    fechaAsignacion: "2026-09-25 08:20",
+    modalidad: "API individual",
+    cupo: 65000,
+    versionExpediente: 2,
+    detalleSubsanacion: "Se subsanó la finalidad del campo domicilioRegistrado detallando su uso exclusivo para boletas de citación judicial conforme al Art. 55 del COGEP, y se ajustó el cupo solicitado de 120,000 a 65,000 consultas anuales.",
+    fuentesCount: 1,
+    camposCount: 2,
+    fuentePrincipal: "Registro Civil de Ciudadanos",
+    servicioPrincipal: "Consulta de Identidad y Domicilio Procesal",
+    instrumento: "Convenio",
+    observacionesEstructuradas: [
+      {
+        id: "obs-36-1",
+        tipo: "finalidad",
+        elementoId: "cmp-36-2",
+        elementoNombre: "domicilioRegistrado",
+        descripcion: "Especificar el acto procesal exacto en el que se consulta el domicilio del demandado.",
+        fecha: "2026-09-22 15:00",
+        revisor: "Ana Torres (Revisor)",
+        etapa: "Gestión"
+      }
+    ],
+    historialAsignaciones: [
+      {
+        id: "asig-036-v2",
+        director: "Director Gestión",
+        revisorId: "U-EQGEST",
+        revisorNombre: "Ana Torres (Revisor)",
+        fecha: "2026-09-25 08:20",
+        versionExpediente: 2,
+        etapa: "Gestión",
+        observacion: "Reingreso subsanado v2 asignado para verificar levantamiento de observaciones."
+      },
+      {
+        id: "asig-036-v1",
+        director: "Director Gestión",
+        revisorId: "U-EQGEST",
+        revisorNombre: "Ana Torres (Revisor)",
+        fecha: "2026-09-21 09:30",
+        versionExpediente: 1,
+        etapa: "Gestión"
+      }
+    ],
+    fuentes: [
+      {
+        id: "FNT-001",
+        nombre: "Registro Civil de Ciudadanos",
+        institucion: "Dirección General de Registro Civil",
+        campos: [
+          {
+            id: "cmp-36-1",
+            nombre: "cedulaCiudadania",
+            descripcion: "Número oficial de cédula de ciudadanía.",
+            clasificacion: "Accesible",
+            finalidad: "Identificación de sujetos procesales en demandas ingresadas al SATJE."
+          },
+          {
+            id: "cmp-36-2",
+            nombre: "domicilioRegistrado",
+            descripcion: "Dirección domiciliaria declarada en registro civil.",
+            clasificacion: "Confidencial",
+            finalidad: "Emisión de boletas de citación judicial conforme al Art. 55 del COGEP.",
+            fundamento: "Código Orgánico General de Procesos (COGEP) Art. 55 y Código Orgánico de la Función Judicial Art. 130."
+          }
+        ]
+      }
+    ],
+    documentos: [
+      {
+        id: "doc-036-1",
+        nombre: "Oficio_CJ_SATJE_2026.pdf",
+        tipo: "PDF",
+        tamano: "2.2 MB",
+        fechaCarga: "2026-09-20 11:00",
+        categoria: "Oficio Formal"
+      },
+      {
+        id: "doc-036-2",
+        nombre: "Alcance_Subsanacion_COGEP_v2.pdf",
+        tipo: "PDF",
+        tamano: "1.4 MB",
+        fechaCarga: "2026-09-24 17:40",
+        categoria: "Subsanación v2"
+      }
+    ],
+    historial: [
+      { fecha: "2026-09-20 11:00", evento: "Solicitud creada y enviada (v1)", actor: "Dr. Esteban Villacreses (Coordinador SINARP)" },
+      { fecha: "2026-09-21 09:30", evento: "Revisor de Gestión asignado (SOL-03)", actor: "Director Gestión", detalle: "Asignado a Ana Torres." },
+      { fecha: "2026-09-22 15:00", evento: "Solicitud observada por Gestión (SOL-04)", actor: "Ana Torres (Revisor)", detalle: "Observación en finalidad de domicilioRegistrado y cupo." },
+      { fecha: "2026-09-24 17:40", evento: "Solicitud subsanada y reenviada (v2) (SOL-05)", actor: "Dr. Esteban Villacreses (Coordinador SINARP)", detalle: "Se precisó finalidad bajo Art. 55 del COGEP y se redujo el cupo a 65,000." },
+      { fecha: "2026-09-25 08:20", evento: "Nueva asignación en Gestión tras subsanación (SOL-03 / SOL-05)", actor: "Director Gestión", detalle: "Asignada a Ana Torres para revisión del expediente v2." }
+    ]
+  },
+  {
+    id: "SOL-2026-035",
+    institucion: "Banco del Pacífico S.A.",
+    tipoInstitucion: "Privada",
+    coordinador: "Ing. Valeria Arosemena",
+    proyectoId: "PRJ-2026-035",
+    proyectoNombre: "Onboarding Digital y Prevención de Fraude Bancario",
+    fecha: "2026-09-24 14:10",
+    ultimaActualizacion: "2026-09-24 16:40",
+    estado: "Asignada a revisión de Gestión",
+    responsable: "Ana Torres (Revisor)",
+    revisorAsignado: "Ana Torres (Revisor)",
+    revisorAsignadoId: "U-EQGEST",
+    fechaAsignacion: "2026-09-24 16:40",
+    modalidad: "Ambas",
+    cupo: 110000,
+    versionExpediente: 1,
+    fuentesCount: 2,
+    camposCount: 3,
+    fuentePrincipal: "Registro Civil / Servicio de Rentas Internas (SRI)",
+    servicioPrincipal: "Validación de Identidad y Actividad Económica",
+    instrumento: "Contrato",
+    historialAsignaciones: [
+      {
+        id: "asig-035",
+        director: "Director Gestión",
+        revisorId: "U-EQGEST",
+        revisorNombre: "Ana Torres (Revisor)",
+        fecha: "2026-09-24 16:40",
+        versionExpediente: 1,
+        etapa: "Gestión"
+      }
+    ],
+    fuentes: [
+      {
+        id: "FNT-001",
+        nombre: "Registro Civil de Ciudadanos",
+        institucion: "Dirección General de Registro Civil",
+        campos: [
+          {
+            id: "cmp-35-1",
+            nombre: "cedulaCiudadania",
+            descripcion: "Número oficial de cédula de ciudadanía.",
+            clasificacion: "Accesible",
+            finalidad: "Verificación de identidad del titular de cuenta bancaria."
+          },
+          {
+            id: "cmp-35-2",
+            nombre: "estadoCivil",
+            descripcion: "Condición civil actual registrada ante el Estado.",
+            clasificacion: "Confidencial",
+            finalidad: "Validación de comparecencia conyugal en otorgamiento de créditos hipotecarios.",
+            fundamento: "Código Orgánico Monetario y Financiero Art. 210 y LOPDP Art. 7 (Consentimiento expreso del titular)."
+          }
+        ]
+      },
+      {
+        id: "FNT-002",
+        nombre: "Registro Único de Contribuyentes (RUC)",
+        institucion: "Servicio de Rentas Internas",
+        campos: [
+          {
+            id: "cmp-35-3",
+            nombre: "actividadEconomicaPrincipal",
+            descripcion: "Actividad económica registrada en el RUC.",
+            clasificacion: "Accesible",
+            finalidad: "Conozca a su cliente (KYC) y perfilamiento transaccional."
+          }
+        ]
+      }
+    ],
+    documentos: [
+      {
+        id: "doc-035-1",
+        nombre: "Solicitud_Formal_BancoPacifico_2026.pdf",
+        tipo: "PDF",
+        tamano: "2.8 MB",
+        fechaCarga: "2026-09-24 14:10",
+        categoria: "Solicitud Entidad Privada"
+      },
+      {
+        id: "doc-035-2",
+        nombre: "Modelo_Consentimiento_LOPDP_BancoPacifico.pdf",
+        tipo: "PDF",
+        tamano: "1.6 MB",
+        fechaCarga: "2026-09-24 14:15",
+        categoria: "Sustento LOPDP"
+      }
+    ],
+    historial: [
+      { fecha: "2026-09-24 14:10", evento: "Solicitud creada y enviada (Entidad Privada · Contrato)", actor: "Ing. Valeria Arosemena (Coordinadora SINARP)" },
+      { fecha: "2026-09-24 16:40", evento: "Revisor de Gestión asignado (SOL-03)", actor: "Director Gestión", detalle: "Asignado a Ana Torres para evaluación funcional de múltiples fuentes bajo modalidad Contrato." }
+    ]
   }
 ];
 
@@ -2168,7 +2900,7 @@ export function getStoredSolicitudes(): SolicitudAcceso[] {
     const raw = sessionStorage.getItem(STORAGE_KEY);
     if (!raw) {
       // Limpiar versiones anteriores obsoletas
-      ["dinarp_solicitudes_v1", "dinarp_solicitudes_v2", "dinarp_solicitudes_v3", "dinarp_solicitudes_v4", "dinarp_solicitudes_v5", "dinarp_solicitudes_v6", "dinarp_solicitudes_v7", "dinarp_solicitudes_v8", "dinarp_solicitudes_v9"].forEach(k => {
+      ["dinarp_solicitudes_v1", "dinarp_solicitudes_v2", "dinarp_solicitudes_v3", "dinarp_solicitudes_v4", "dinarp_solicitudes_v5", "dinarp_solicitudes_v6", "dinarp_solicitudes_v7", "dinarp_solicitudes_v8", "dinarp_solicitudes_v9", "dinarp_solicitudes_v10", "dinarp_solicitudes_v11"].forEach(k => {
         try { sessionStorage.removeItem(k); } catch (_) {}
       });
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_SOLICITUDES));
@@ -2707,21 +3439,50 @@ export function useSolicitudesStore() {
     setSolicitudes(updated);
   }, []);
 
-  // Flujo BN-07: Cerrar por vencimiento de plazo de subsanación
-  const cerrarPorVencimiento = useCallback((id: string) => {
+  // Flujo BN-07 / SOL-06: Cerrar por vencimiento de plazo de subsanación
+  const cerrarPorVencimiento = useCallback((
+    id: string,
+    options?: {
+      simularFalloTec00?: boolean;
+      motivoPersonalizado?: string;
+      actor?: string;
+    }
+  ) => {
     const current = getStoredSolicitudes();
     const now = new Date().toISOString().replace("T", " ").substring(0, 16);
     const dateOnly = now.substring(0, 10);
 
     const updated = current.map(s => {
       if (s.id === id) {
+        if (options?.simularFalloTec00) {
+          const idOp = `TEC-00-${Math.floor(100000 + Math.random() * 900000)}`;
+          const nuevosEventos: TrazabilidadEvento[] = [
+            ...s.historial,
+            {
+              fecha: now,
+              evento: "Fallo de persistencia transaccional al cerrar solicitud (TEC-00)",
+              actor: "Sistema Transaccional DINARP",
+              detalle: `Error TEC-00: Fallo en base transaccional al registrar el cierre por vencimiento. Id Operación: ${idOp}. Se conserva el estado observado y el expediente no editable fuera de plazo; no se envía aviso de cierre y queda pendiente de reintento idempotente.`
+            }
+          ];
+
+          return {
+            ...s,
+            falloCierreTec00: true,
+            idOperacionTec00: idOp,
+            mensajeErrorTec00: "No se confirmó el cierre; pendiente de reintento",
+            ultimaActualizacion: dateOnly,
+            historial: nuevosEventos
+          };
+        }
+
         const nuevosEventos: TrazabilidadEvento[] = [
           ...s.historial,
           {
             fecha: now,
             evento: "Expediente cerrado por vencimiento de plazo (SOL-06)",
-            actor: "Sistema DINARP",
-            detalle: "El plazo de subsanación (3 días hábiles según PAR-13 y calendario PAR-10) venció sin que el Coordinador reenviara las correcciones requeridas. Se archiva el trámite."
+            actor: options?.actor || "Sistema DINARP",
+            detalle: options?.motivoPersonalizado || "El plazo de subsanación (3 días hábiles según PAR-13 y calendario PAR-10) venció sin que el Coordinador reenviara las correcciones requeridas. Se archiva el trámite."
           }
         ];
 
@@ -2730,6 +3491,51 @@ export function useSolicitudesStore() {
           estado: "Cerrada" as const,
           responsable: "Archivo Histórico",
           diasRestantesSubsanacion: 0,
+          subsanable: false,
+          motivoCierre: "No se subsanó y se cerró porque se cumplió el plazo reglamentario de 3 días hábiles (SOL-06)",
+          falloCierreTec00: false,
+          idOperacionTec00: undefined,
+          mensajeErrorTec00: undefined,
+          ultimaActualizacion: dateOnly,
+          historial: nuevosEventos
+        };
+      }
+      return s;
+    });
+
+    saveStoredSolicitudes(updated);
+    setSolicitudes(updated);
+  }, []);
+
+  // SOL-06 / TEC-00: Reintentar cierre de forma idempotente tras fallo de persistencia
+  const reintentarCierreIdempotente = useCallback((id: string) => {
+    const current = getStoredSolicitudes();
+    const now = new Date().toISOString().replace("T", " ").substring(0, 16);
+    const dateOnly = now.substring(0, 10);
+
+    const updated = current.map(s => {
+      if (s.id === id) {
+        const idOriginal = s.idOperacionTec00 || "TEC-00-849201";
+        const nuevosEventos: TrazabilidadEvento[] = [
+          ...s.historial,
+          {
+            fecha: now,
+            evento: "Cierre confirmado tras reintento idempotente (TEC-00 / SOL-06)",
+            actor: "Proceso Programado DINARP",
+            detalle: `Operación original ${idOriginal} consultada y persistida exitosamente. Cierre de expediente confirmado por cumplimiento del plazo de 3 días hábiles sin alterar la fecha límite original ni duplicar registros.`
+          }
+        ];
+
+        return {
+          ...s,
+          estado: "Cerrada" as const,
+          responsable: "Archivo Histórico",
+          diasRestantesSubsanacion: 0,
+          subsanable: false,
+          motivoCierre: "No se subsanó y se cerró porque se cumplió el plazo reglamentario de 3 días hábiles (SOL-06)",
+          falloCierreTec00: false,
+          idOperacionTec00: undefined,
+          mensajeErrorTec00: undefined,
           ultimaActualizacion: dateOnly,
           historial: nuevosEventos
         };
@@ -4341,6 +5147,7 @@ export function useSolicitudesStore() {
     observarGestion,
     subsanarYReenviar,
     cerrarPorVencimiento,
+    reintentarCierreIdempotente,
     asignarRevisorNormativa,
     aprobarNormativa,
     firmarInformeNormativa,
@@ -4372,3 +5179,4 @@ export function useSolicitudesStore() {
     resetSimulacion
   };
 }
+

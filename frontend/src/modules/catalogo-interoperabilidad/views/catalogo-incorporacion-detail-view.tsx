@@ -19,6 +19,8 @@ import {
   Upload,
   RefreshCw,
   Lock,
+  Unlock,
+  ShieldAlert,
   EyeOff,
   Eye,
   Check,
@@ -1239,30 +1241,62 @@ export function CatalogoIncorporacionDetailView({ initialExpediente }: Expedient
                           <td className="py-2.5 px-3">
                             {isDPI && !expediente.clasificacionDPI?.completada ? (
                               <select
-                                value={c.clasificacion}
+                                value={
+                                  c.clasificacion === "Confidencial" && c.esSensible
+                                    ? "ConfidencialSensible"
+                                    : c.clasificacion
+                                }
                                 onChange={e => {
-                                  const val = e.target.value as any;
+                                  const val = e.target.value;
                                   const updated = [...dpiCampos];
-                                  updated[idx].clasificacion = val;
+                                  if (val === "ConfidencialSensible") {
+                                    updated[idx].clasificacion = "Confidencial";
+                                    updated[idx].esSensible = true;
+                                  } else {
+                                    updated[idx].clasificacion = val as any;
+                                    updated[idx].esSensible = false;
+                                  }
                                   setDpiCampos(updated);
                                 }}
                                 className="h-8 text-xs border border-border rounded bg-background px-2 focus:ring-1 focus:ring-ring"
                               >
                                 <option value="Pendiente">Pendiente de clasificación</option>
-                                <option value="Accesible">Accesible (Público)</option>
-                                <option value="Confidencial">Confidencial (Protegido)</option>
+                                <option value="Accesible">Accesible (Solo finalidad de uso)</option>
+                                <option value="Confidencial">Confidencial (Finalidad + Base jurídica)</option>
+                                <option value="ConfidencialSensible">
+                                  Confidencial — Sensible (Tratamiento especial LOPDP)
+                                </option>
                               </select>
                             ) : (
-                              <Badge
-                                tone="neutral"
-                                appearance="soft"
-                                size="sm"
-                                className="text-[11px] font-medium gap-1 bg-muted/80 text-foreground border border-border"
-                              >
-                                {c.clasificacion === "Accesible" && <Check className="size-2.5 text-muted-foreground" />}
-                                {c.clasificacion === "Confidencial" && <Lock className="size-2.5 text-muted-foreground" />}
-                                <span>{c.clasificacion}</span>
-                              </Badge>
+                              <div className="inline-flex flex-wrap items-center gap-1.5">
+                                <Badge
+                                  tone={
+                                    c.clasificacion === "Accesible"
+                                      ? "success"
+                                      : c.clasificacion === "Confidencial"
+                                      ? "warning"
+                                      : "neutral"
+                                  }
+                                  appearance="soft"
+                                  size="sm"
+                                  className="text-[11px] font-semibold gap-1"
+                                >
+                                  {c.clasificacion === "Accesible" && <Unlock className="size-2.5" />}
+                                  {c.clasificacion === "Confidencial" && <Lock className="size-2.5" />}
+                                  <span>{c.clasificacion}</span>
+                                </Badge>
+                                {c.clasificacion === "Confidencial" && c.esSensible && (
+                                  <Badge
+                                    tone="danger"
+                                    appearance="soft"
+                                    size="sm"
+                                    className="text-[10px] font-bold gap-1"
+                                  >
+                                    <ShieldAlert className="size-2.5" />
+                                    <span>Sensible · LOPDP</span>
+                                  </Badge>
+                                )}
+                              </div>
                             )}
                           </td>
                         </tr>

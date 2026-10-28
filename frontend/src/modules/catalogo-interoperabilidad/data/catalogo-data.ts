@@ -4,6 +4,8 @@ export type UserRole =
   | "DGR"
   | "DTD"
   | "DPI"
+  | "DIR_DPI"
+  | "EQ_DPI"
   | "APROBADOR"
   | "FACTURACION"
   | "DIR_GESTION"
@@ -134,18 +136,34 @@ export const ROLES_CONFIG: Record<UserRole, RoleInfo> = {
   },
   DIR_NORMATIVA: {
     id: "DIR_NORMATIVA",
-    name: "Director de Protección de la Información (DPI)",
-    shortName: "Director DPI",
+    name: "Director Área de Normativa",
+    shortName: "Dir. Normativa",
     badgeTone: "neutral",
-    description: "Recibe solicitudes de Gestión y asigna revisor DPI.",
+    description: "Asigna a los revisores de Normativa los expedientes de incorporación institucional (Anexo A) aprobados por Gestión para que generen la resolución.",
     responsibilities: []
   },
   EQ_NORMATIVA: {
     id: "EQ_NORMATIVA",
+    name: "Revisor Área de Normativa",
+    shortName: "Rev. Normativa",
+    badgeTone: "neutral",
+    description: "Genera las resoluciones de incorporación institucional (Anexo A) de los expedientes asignados aprobados por Gestión.",
+    responsibilities: []
+  },
+  DIR_DPI: {
+    id: "DIR_DPI",
+    name: "Director de Protección de la Información (DPI)",
+    shortName: "Director DPI",
+    badgeTone: "neutral",
+    description: "Asigna revisiones de acceso con datos confidenciales y suscribe la segunda firma de los informes DPI.",
+    responsibilities: []
+  },
+  EQ_DPI: {
+    id: "EQ_DPI",
     name: "Revisor de Protección de la Información (DPI)",
     shortName: "Revisor DPI",
     badgeTone: "neutral",
-    description: "Evalúa campos confidenciales y elabora informe favorable DPI.",
+    description: "Evalúa datos confidenciales en solicitudes de acceso, elabora informes favorables DPI y registra la primera firma.",
     responsibilities: []
   },
   REPRESENTANTE_INSTITUCIONAL: {
@@ -247,24 +265,46 @@ export const MOCK_USERS_BY_ROLE: Record<UserRole, MockUser> = {
   },
   DIR_NORMATIVA: {
     id: "U-DIRNORM",
-    name: "Director de Protección de la Información (DPI)",
+    name: "Director Normativa",
     role: "DIR_NORMATIVA",
+    roleTitle: "Director Área de Normativa",
+    email: "normativa.director@dinarp.gob.ec",
+    avatar: "DN",
+    institution: "DINARP",
+    cedula: "2222222222",
+    initials: "DN"
+  },
+  EQ_NORMATIVA: {
+    id: "U-EQNORM",
+    name: "Revisor Normativa",
+    role: "EQ_NORMATIVA",
+    roleTitle: "Revisor Área de Normativa",
+    email: "normativa.revisor@dinarp.gob.ec",
+    avatar: "RN",
+    institution: "DINARP",
+    cedula: "3333333333",
+    initials: "RN"
+  },
+  DIR_DPI: {
+    id: "U-DIRDPI",
+    name: "Director DPI",
+    role: "DIR_DPI",
     roleTitle: "Director de Protección de la Información (DPI)",
     email: "dpi.director@dinarp.gob.ec",
     avatar: "DP",
     institution: "DINARP",
-    cedula: "2222222222",
+    cedula: "4444444444",
     initials: "DP"
   },
-  EQ_NORMATIVA: {
-    id: "U-EQNORM",
+  EQ_DPI: {
+    id: "U-EQDPI",
     name: "Carlos Mora (Revisor DPI)",
-    role: "EQ_NORMATIVA",
+    role: "EQ_DPI",
     roleTitle: "Revisor de Protección de la Información (DPI)",
     email: "dpi.revisor@dinarp.gob.ec",
     avatar: "CM",
     institution: "DINARP",
-    cedula: "3333333333",
+    cedula: "5555555555",
     initials: "CM"
   },
   COORDINADOR_SINARP: {
@@ -352,9 +392,83 @@ export interface CampoCatalogo {
   tipo: "Texto" | "Numérico" | "Fecha" | "Booleano" | "JSON" | "Alfanumérico";
   descripcion: string;
   clasificacion: CampoClasificacion;
+  /** Subclasificación dentro de Confidencial: dato confidencial sensible con tratamiento especial según la LOPDP */
+  esSensible?: boolean;
   requiereJustificacion?: boolean;
   observacionDGR?: string;
   estadoRevision?: "Valido" | "Observado" | "Pendiente";
+}
+
+export interface CampoClasificacionParam {
+  clasificacion: CampoClasificacion;
+  esSensible?: boolean;
+}
+
+const CATALOGO_CLASIFICACION_STORAGE_KEY = "dinarp_catalogo_clasificacion_overrides_v1";
+
+export function getCatalogoClasificacionOverrides(): Record<string, CampoClasificacionParam> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem(CATALOGO_CLASIFICACION_STORAGE_KEY);
+    if (!raw) return {};
+    return JSON.parse(raw) as Record<string, CampoClasificacionParam>;
+  } catch {
+    return {};
+  }
+}
+
+export function saveCatalogoCampoClasificacion(
+  arg1: string,
+  arg2: CampoClasificacion | string,
+  arg3?: boolean | CampoClasificacion,
+  arg4?: boolean
+): Record<string, CampoClasificacionParam> {
+  const isFourArgCall =
+    arg2 !== "Accesible" && arg2 !== "Confidencial" && arg2 !== "Pendiente";
+  const campoId = isFourArgCall ? (arg2 as string) : arg1;
+  const clasificacion = (isFourArgCall ? arg3 : arg2) as CampoClasificacion;
+  const esSensible = isFourArgCall ? arg4 : (arg3 as boolean | undefined);
+
+  const current = getCatalogoClasificacionOverrides();
+  const next: Record<string, CampoClasificacionParam> = {
+    ...current,
+    [campoId]: {
+      clasificacion,
+      esSensible: clasificacion === "Confidencial" ? Boolean(esSensible) : false,
+    },
+  };
+  if (typeof window !== "undefined") {
+    try {
+      window.localStorage.setItem(CATALOGO_CLASIFICACION_STORAGE_KEY, JSON.stringify(next));
+      window.dispatchEvent(new CustomEvent("dinarp-catalogo-clasificacion-updated"));
+    } catch {
+      // ignore storage errors
+    }
+  }
+  return next;
+}
+
+export function applyCatalogoOverridesToInstituciones(
+  instituciones: Institucion[],
+  overrides: Record<string, CampoClasificacionParam> = getCatalogoClasificacionOverrides()
+): Institucion[] {
+  if (!overrides || Object.keys(overrides).length === 0) return instituciones;
+  return instituciones.map((inst) => ({
+    ...inst,
+    fuentes: inst.fuentes.map((fuente) => ({
+      ...fuente,
+      campos: fuente.campos.map((campo) => {
+        const ov = overrides[campo.id];
+        if (!ov) return campo;
+        return {
+          ...campo,
+          clasificacion: ov.clasificacion,
+          esSensible: ov.clasificacion === "Confidencial" ? Boolean(ov.esSensible) : false,
+          requiereJustificacion: ov.clasificacion === "Confidencial",
+        };
+      }),
+    })),
+  }));
 }
 
 export type FuenteEstado = "PUBLICADO" | "OCULTO" | "DESACTIVADO";
@@ -799,9 +913,10 @@ export const INITIAL_INSTITUCIONES: Institucion[] = [
           { id: "c-04", nombre: "fechaNacimiento", tipo: "Fecha", descripcion: "Fecha de nacimiento registrada (AAAA-MM-DD)", clasificacion: "Accesible", estadoRevision: "Valido" },
           { id: "c-05", nombre: "estadoCivil", tipo: "Texto", descripcion: "Estado civil registrado (Soltero, Casado, Divorciado, etc.)", clasificacion: "Accesible", estadoRevision: "Valido" },
           { id: "c-06", nombre: "condicionCedulado", tipo: "Texto", descripcion: "Condición vital (Vivo, Fallecido, Suspendido)", clasificacion: "Accesible", estadoRevision: "Valido" },
-          { id: "c-07", nombre: "nombrePadre", tipo: "Texto", descripcion: "Filiación paterna registrada", clasificacion: "Confidencial", requiereJustificacion: true, estadoRevision: "Valido" },
-          { id: "c-08", nombre: "nombreMadre", tipo: "Texto", descripcion: "Filiación materna registrada", clasificacion: "Confidencial", requiereJustificacion: true, estadoRevision: "Valido" },
-          { id: "c-09", nombre: "domicilioDetallado", tipo: "Texto", descripcion: "Dirección domiciliaria completa con calle secundaria y número de casa", clasificacion: "Confidencial", requiereJustificacion: true, estadoRevision: "Valido" }
+          { id: "c-07", nombre: "nombrePadre", tipo: "Texto", descripcion: "Filiación paterna registrada", clasificacion: "Confidencial", esSensible: false, requiereJustificacion: true, estadoRevision: "Valido" },
+          { id: "c-08", nombre: "nombreMadre", tipo: "Texto", descripcion: "Filiación materna registrada", clasificacion: "Confidencial", esSensible: false, requiereJustificacion: true, estadoRevision: "Valido" },
+          { id: "c-09", nombre: "domicilioDetallado", tipo: "Texto", descripcion: "Dirección domiciliaria completa con calle secundaria y número de casa (ubicación personal protegida LOPDP)", clasificacion: "Confidencial", esSensible: true, requiereJustificacion: true, estadoRevision: "Valido" },
+          { id: "c-09b", nombre: "condicionDiscapacidad", tipo: "Texto", descripcion: "Tipo y porcentaje de discapacidad certificada (dato relativo a la salud de tratamiento especial LOPDP)", clasificacion: "Confidencial", esSensible: true, requiereJustificacion: true, estadoRevision: "Valido" }
         ],
         trazabilidadEventos: [
           {
@@ -1023,7 +1138,7 @@ export const INITIAL_INSTITUCIONES: Institucion[] = [
           { id: "c-21", nombre: "marcaModelo", tipo: "Texto", descripcion: "Marca, modelo y versión comercial", clasificacion: "Accesible", estadoRevision: "Valido" },
           { id: "c-22", nombre: "anioFabricacion", tipo: "Numérico", descripcion: "Año de fabricación del automotor", clasificacion: "Accesible", estadoRevision: "Valido" },
           { id: "c-23", nombre: "avaluoFiscal", tipo: "Numérico", descripcion: "Valor de avalúo vigente según base SRI", clasificacion: "Accesible", estadoRevision: "Valido" },
-          { id: "c-24", nombre: "historialExoneraciones", tipo: "JSON", descripcion: "Detalle de beneficios tributarios aplicados", clasificacion: "Confidencial", requiereJustificacion: true, estadoRevision: "Valido" }
+          { id: "c-24", nombre: "historialExoneraciones", tipo: "JSON", descripcion: "Detalle de beneficios tributarios por discapacidad o tercera edad (tratamiento especial LOPDP)", clasificacion: "Confidencial", esSensible: true, requiereJustificacion: true, estadoRevision: "Valido" }
         ],
         trazabilidadEventos: [
           {
@@ -1091,7 +1206,8 @@ export const INITIAL_INSTITUCIONES: Institucion[] = [
           { id: "c-25", nombre: "tipoLicencia", tipo: "Texto", descripcion: "Categoría (A, B, C, D, E, F, G)", clasificacion: "Accesible", estadoRevision: "Valido" },
           { id: "c-26", nombre: "puntosDisponibles", tipo: "Numérico", descripcion: "Saldo de puntos sobre base de 30", clasificacion: "Accesible", estadoRevision: "Valido" },
           { id: "c-27", nombre: "fechaCaducidad", tipo: "Fecha", descripcion: "Fecha límite de vigencia de la licencia", clasificacion: "Accesible", estadoRevision: "Valido" },
-          { id: "c-28", nombre: "restriccionesMedicas", tipo: "Texto", descripcion: "Observaciones de conducción (lentes, prótesis)", clasificacion: "Confidencial", requiereJustificacion: true, estadoRevision: "Valido" }
+          { id: "c-27b", nombre: "historialSuspensiones", tipo: "Texto", descripcion: "Detalle administrativo de suspensiones de licencia de conducir", clasificacion: "Confidencial", esSensible: false, requiereJustificacion: true, estadoRevision: "Valido" },
+          { id: "c-28", nombre: "restriccionesMedicas", tipo: "Texto", descripcion: "Observaciones médicas y clínicas de conducción (lentes, prótesis, auditivas — Art. 25 LOPDP)", clasificacion: "Confidencial", esSensible: true, requiereJustificacion: true, estadoRevision: "Valido" }
         ],
         trazabilidadEventos: [
           {
@@ -1265,9 +1381,9 @@ export const INITIAL_EXPEDIENTES: ExpedienteIntegracion[] = [
       { id: "f-02", nombre: "numeroCedulaFallecido", tipo: "Alfanumérico", descripcion: "Número de identificación de la persona fallecida", clasificacion: "Accesible", estadoRevision: "Valido" },
       { id: "f-03", nombre: "nombresFallecido", tipo: "Texto", descripcion: "Nombres y apellidos completos del fallecido", clasificacion: "Accesible", estadoRevision: "Valido" },
       { id: "f-04", nombre: "fechaHoraFallecimiento", tipo: "Fecha", descripcion: "Fecha y hora exacta registrada en el certificado médico", clasificacion: "Accesible", estadoRevision: "Valido" },
-      { id: "f-05", nombre: "causaFallecimientoCIE10", tipo: "Texto", descripcion: "Diagnóstico médico de causa básica de defunción (CIE-10)", clasificacion: "Confidencial", requiereJustificacion: true, estadoRevision: "Valido" },
+      { id: "f-05", nombre: "causaFallecimientoCIE10", tipo: "Texto", descripcion: "Diagnóstico médico de causa básica de defunción (CIE-10 — dato de salud LOPDP)", clasificacion: "Confidencial", esSensible: true, requiereJustificacion: true, estadoRevision: "Valido" },
       { id: "f-06", nombre: "lugarFallecimientoProvinciaCanton", tipo: "Texto", descripcion: "Jurisdicción territorial del deceso", clasificacion: "Accesible", estadoRevision: "Valido" },
-      { id: "f-07", nombre: "cedulaDeclarante", tipo: "Alfanumérico", descripcion: "Identificación de quien asiste a registrar la defunción", clasificacion: "Confidencial", requiereJustificacion: true, estadoRevision: "Valido" }
+      { id: "f-07", nombre: "cedulaDeclarante", tipo: "Alfanumérico", descripcion: "Identificación de quien asiste a registrar la defunción", clasificacion: "Confidencial", esSensible: false, requiereJustificacion: true, estadoRevision: "Valido" }
     ],
     validacionTecnicaDTD: {
       aprobado: true,
@@ -1542,7 +1658,7 @@ export const INITIAL_EXPEDIENTES: ExpedienteIntegracion[] = [
     ],
     camposCandidatos: [
       { id: "f-14", nombre: "cedula", tipo: "Alfanumérico", descripcion: "Cédula del ciudadano a verificar", clasificacion: "Accesible", estadoRevision: "Valido" },
-      { id: "f-15", nombre: "templateBiometrico", tipo: "Alfanumérico", descripcion: "Vector dactilar encriptado ANSI-NIST", clasificacion: "Confidencial", requiereJustificacion: true, estadoRevision: "Valido" },
+      { id: "f-15", nombre: "templateBiometrico", tipo: "Alfanumérico", descripcion: "Vector dactilar encriptado ANSI-NIST (dato biométrico sensible Art. 25 LOPDP)", clasificacion: "Confidencial", esSensible: true, requiereJustificacion: true, estadoRevision: "Valido" },
       { id: "f-16", nombre: "porcentajeCoincidencia", tipo: "Numérico", descripcion: "Score de match biométrico (0-100%)", clasificacion: "Accesible", estadoRevision: "Valido" }
     ],
     validacionTecnicaDTD: {

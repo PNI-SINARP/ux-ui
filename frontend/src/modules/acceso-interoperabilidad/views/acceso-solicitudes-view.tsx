@@ -142,7 +142,7 @@ export function AccesoSolicitudesView() {
 
   // Paginación
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(5);
+  const [pageSize, setPageSize] = useState(10);
 
   // Modales de interacción
   const [modalFactura, setModalFactura] = useState<SolicitudAcceso | null>(null);
@@ -738,6 +738,104 @@ export function AccesoSolicitudesView() {
     }
   };
 
+  // Barra visual de plazo de subsanación (3 días hábiles — Exclusiva para el Coordinador SINARP)
+  const renderSubsanacionPlazoBar = (s: SolicitudAcceso) => {
+    if (role !== "COORDINADOR_SINARP") return null;
+
+    const aplicaPlazo =
+      s.estado === "Requiere corrección" ||
+      s.estado === "Observada" ||
+      s.estado === "Rechazada" ||
+      s.estado === "Con observaciones" ||
+      s.estado === "Cerrada" ||
+      s.estado === "Cerrada por vencimiento";
+
+    if (!aplicaPlazo) return null;
+
+    const diasRestantes =
+      s.estado === "Cerrada por vencimiento" || s.estado === "Cerrada"
+        ? 0
+        : typeof s.diasRestantesSubsanacion === "number"
+          ? Math.max(0, Math.min(3, s.diasRestantesSubsanacion))
+          : 3;
+
+    const config =
+      diasRestantes === 3
+        ? {
+            label: "Quedan 3 días para subsanar",
+            counter: "0/3d",
+            widthClass: "w-1/4",
+            barClass: "bg-info",
+            textClass: "text-info font-semibold",
+            tooltip:
+              "Plazo de subsanación activo: te quedan 3 de 3 días hábiles para subsanar las observaciones.",
+          }
+        : diasRestantes === 2
+          ? {
+              label: "Quedan 2 días para subsanar",
+              counter: "1/3d",
+              widthClass: "w-2/4",
+              barClass: "bg-warning",
+              textClass: "text-warning font-semibold",
+              tooltip:
+                "En plazo de subsanación: lleva 1 día transcurrido, te quedan 2 días hábiles para subsanar.",
+            }
+          : diasRestantes === 1
+            ? {
+                label: "¡Queda 1 día para subsanar!",
+                counter: "2/3d",
+                widthClass: "w-5/6",
+                barClass: "bg-warning",
+                textClass: "text-warning font-bold",
+                tooltip:
+                  "¡Alerta de vencimiento! Lleva 2 días transcurridos, te queda 1 día hábil para subsanar.",
+              }
+            : {
+                label: "Plazo vencido (3/3 días)",
+                counter: "3/3d",
+                widthClass: "w-full",
+                barClass: "bg-danger",
+                textClass: "text-danger font-bold",
+                tooltip:
+                  "Plazo vencido: se cumplieron los 3 días hábiles sin subsanar.",
+              };
+
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className="pt-1 space-y-1 max-w-[185px] cursor-help">
+            <div className="flex items-center justify-between gap-1 text-[10px] leading-none">
+              <span className={cn("inline-flex items-center gap-1 truncate", config.textClass)}>
+                <Clock className="size-2.5 shrink-0" />
+                <span>{config.label}</span>
+              </span>
+              <span className="font-mono text-[9px] text-muted-foreground shrink-0">
+                {config.counter}
+              </span>
+            </div>
+            <div className="h-1.5 w-full bg-muted rounded-sm overflow-hidden border border-border/50">
+              <div
+                className={cn(
+                  "h-full rounded-sm transition-all",
+                  config.widthClass,
+                  config.barClass
+                )}
+              />
+            </div>
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="max-w-xs text-xs">
+          <p>{config.tooltip}</p>
+          {s.fechaLimiteSubsanacion && (
+            <p className="text-[10px] opacity-80 mt-0.5 font-mono">
+              Fecha límite: {s.fechaLimiteSubsanacion}
+            </p>
+          )}
+        </TooltipContent>
+      </Tooltip>
+    );
+  };
+
   // Color de acento de Tarjeta Interactiva según estado
   const getSolicitudCardColor = (
     estado: string
@@ -779,12 +877,15 @@ export function AccesoSolicitudesView() {
       s.fuentes?.some((f) =>
         f.campos?.some((c) => c.clasificacion === "Confidencial")
       ) ?? false;
+    const isCerrada =
+      s.estado === "Cerrada" || s.estado === "Cerrada por vencimiento";
     const isBorrador = s.estado === "Borrador";
     const isObservada =
-      s.estado === "Requiere corrección" ||
-      s.estado === "Observada" ||
-      s.estado === "Rechazada" ||
-      s.estado === "Con observaciones";
+      !isCerrada &&
+      (s.estado === "Requiere corrección" ||
+        s.estado === "Observada" ||
+        s.estado === "Rechazada" ||
+        s.estado === "Con observaciones");
     const isFirma = s.estado === "Pendiente de firma";
     const isPago =
       s.estado === "Pendiente de pago" || s.estado === "Pago pendiente";
@@ -814,7 +915,10 @@ export function AccesoSolicitudesView() {
               <span>{s.contrato || s.instrumento || "En formalización"}</span>
             </div>
           </div>
-          <div className="shrink-0 pt-0.5">{getEstadoBadge(s.estado)}</div>
+          <div className="shrink-0 pt-0.5 flex flex-col items-end gap-1">
+            {getEstadoBadge(s.estado)}
+            {renderSubsanacionPlazoBar(s)}
+          </div>
         </div>
 
         {/* Bloque 1: Institución y Fuente */}
@@ -887,12 +991,12 @@ export function AccesoSolicitudesView() {
         <div className="pt-2 border-t border-border/60 w-full flex flex-wrap items-center gap-2">
           <Button
             asChild
-            variant="outline"
+            variant="neutral"
             size="sm"
-            className="flex-1 text-xs font-semibold gap-1.5 h-9 justify-center hover:text-primary hover:border-primary/50"
+            className="flex-1 text-xs font-semibold gap-1.5 h-9 justify-center cursor-pointer"
           >
             <Link href={`/acceso-interoperabilidad/solicitudes/${s.id}`}>
-              <Eye className="size-3.5 text-muted-foreground" />
+              <Eye className="size-3.5" />
               <span>Ver detalle</span>
             </Link>
           </Button>
@@ -902,7 +1006,7 @@ export function AccesoSolicitudesView() {
               asChild
               variant="primary"
               size="sm"
-              className="flex-1 text-xs font-semibold gap-1.5 h-9 justify-center"
+              className="flex-1 text-xs font-semibold gap-1.5 h-9 justify-center cursor-pointer"
             >
               <Link href={`/acceso-interoperabilidad/solicitudes/${s.id}`}>
                 <Edit className="size-3.5" />
@@ -911,18 +1015,18 @@ export function AccesoSolicitudesView() {
             </Button>
           )}
 
-          {isObservada && (
+          {isObservada && s.diasRestantesSubsanacion !== 0 && (
             <Button
               asChild
               variant="warning"
               size="sm"
-              className="flex-1 text-xs font-semibold gap-1.5 h-9 justify-center"
+              className="flex-1 text-xs font-semibold gap-1.5 h-9 justify-center cursor-pointer"
             >
               <Link
-                href={`/acceso-interoperabilidad/solicitudes/${s.id}?edit=true`}
+                href={`/acceso-interoperabilidad/solicitudes/${s.id}/corregir`}
               >
                 <Edit className="size-3.5" />
-                <span>Corregir</span>
+                <span>Subsanar</span>
               </Link>
             </Button>
           )}
@@ -932,7 +1036,7 @@ export function AccesoSolicitudesView() {
               asChild
               variant="primary"
               size="sm"
-              className="flex-1 text-xs font-semibold gap-1.5 h-9 justify-center"
+              className="flex-1 text-xs font-semibold gap-1.5 h-9 justify-center cursor-pointer"
             >
               <Link href={`/acceso-interoperabilidad/solicitudes/${s.id}`}>
                 <FileSignature className="size-3.5" />
@@ -946,7 +1050,7 @@ export function AccesoSolicitudesView() {
               asChild
               variant="primary"
               size="sm"
-              className="flex-1 text-xs font-semibold gap-1.5 h-9 justify-center"
+              className="flex-1 text-xs font-semibold gap-1.5 h-9 justify-center cursor-pointer"
             >
               <Link
                 href={`/acceso-interoperabilidad/solicitudes/${s.id}/facturacion`}
@@ -962,7 +1066,7 @@ export function AccesoSolicitudesView() {
               variant="success"
               size="sm"
               onClick={() => setModalCredenciales(s)}
-              className="flex-1 text-xs font-semibold gap-1.5 h-9 justify-center"
+              className="flex-1 text-xs font-semibold gap-1.5 h-9 justify-center cursor-pointer"
             >
               <KeyRound className="size-3.5" />
               <span>Credencial</span>
@@ -998,15 +1102,15 @@ export function AccesoSolicitudesView() {
     }
     if (isProvider) {
       return {
-        title: "Solicitudes de acceso",
-        desc: "Consulta y realiza seguimiento a las solicitudes de interoperabilidad vinculadas al consumo de datos de tu institución.",
-        breadcrumb: "Solicitudes de acceso",
+        title: "Mis solicitudes de acceso",
+        desc: "Consulta el estado de tus solicitudes de acceso a fuentes, realiza seguimiento a su evaluación o formalización y subsana observaciones dentro del plazo establecido.",
+        breadcrumb: "Mis solicitudes de acceso",
       };
     }
     return {
-      title: "Solicitudes de acceso",
-      desc: "Consulta el estado, avance de revisión y formalización de las solicitudes de acceso a interoperabilidad de tu institución.",
-      breadcrumb: "Solicitudes de acceso",
+      title: "Mis solicitudes de acceso",
+      desc: "Consulta el estado de tus solicitudes de acceso a fuentes, realiza seguimiento a su evaluación o formalización y subsana observaciones dentro del plazo establecido.",
+      breadcrumb: "Mis solicitudes de acceso",
     };
   };
 
@@ -1106,13 +1210,13 @@ export function AccesoSolicitudesView() {
 
   return (
     <WireframeDashboardLayout
-      activeMenu="mis-solicitudes"
+      activeMenu={kpiGroup === "HABILITADAS" ? "mis-accesos" : "mis-solicitudes"}
       currentUser={effectiveUser}
       currentRole={role}
       breadcrumbs={[
         { label: "Inicio", href: "/" },
         {
-          label: isProvider ? "Entidad Emisora" : "Acceso a Interoperabilidad",
+          label: "Solicitudes de acceso a fuentes",
           href: "/acceso-interoperabilidad/solicitudes",
         },
         {
@@ -1131,8 +1235,8 @@ export function AccesoSolicitudesView() {
       <main className="w-full pr-3 pl-2 pb-3 pt-1.5 flex-1 min-h-0 flex flex-col overflow-hidden">
         {/* Contenedor Principal alineado a Administración de Usuarios */}
         <Card
-          className="bg-surface rounded-2xl border border-border shadow-xs flex-1 min-h-0 overflow-hidden flex flex-col my-0"
-          innerClassName="p-4 sm:p-6 lg:p-8 flex flex-col gap-6 overflow-y-auto flex-1 min-h-0 w-full"
+          className="bg-surface rounded-2xl border border-border shadow-xs flex-1 min-h-0 overflow-hidden flex flex-col my-0 w-full"
+          innerClassName="p-4 sm:p-6 lg:p-8 flex flex-col items-stretch gap-6 overflow-y-auto flex-1 min-h-0 w-full"
         >
           {/* Encabezado Principal */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 w-full">
@@ -1188,7 +1292,7 @@ export function AccesoSolicitudesView() {
                     ? "bg-primary/15 border-primary ring-2 ring-primary/30 shadow-xs"
                     : "bg-primary/5 hover:bg-primary/10 border-primary/25 shadow-2xs"
                 )}
-                innerClassName="p-0 h-full"
+                innerClassName="p-0 h-full w-full"
               >
                 <div className="flex flex-col justify-between h-full gap-3 w-full">
                   <div className="flex items-center justify-between gap-2 w-full">
@@ -1247,7 +1351,7 @@ export function AccesoSolicitudesView() {
                     ? "bg-success/15 border-success ring-2 ring-success/40 shadow-xs"
                     : "bg-success/5 hover:bg-success/10 border-success/25 shadow-2xs"
                 )}
-                innerClassName="p-0 h-full"
+                innerClassName="p-0 h-full w-full"
               >
                 <div className="flex flex-col justify-between h-full gap-3 w-full">
                   <div className="flex items-center justify-between gap-2 w-full">
@@ -1306,7 +1410,7 @@ export function AccesoSolicitudesView() {
                     ? "bg-info/15 border-info ring-2 ring-info/40 shadow-xs"
                     : "bg-info/5 hover:bg-info/10 border-info/25 shadow-2xs"
                 )}
-                innerClassName="p-0 h-full"
+                innerClassName="p-0 h-full w-full"
               >
                 <div className="flex flex-col justify-between h-full gap-3 w-full">
                   <div className="flex items-center justify-between gap-2 w-full">
@@ -1367,7 +1471,7 @@ export function AccesoSolicitudesView() {
                     ? "bg-warning/15 border-warning ring-2 ring-warning/40 shadow-xs"
                     : "bg-warning/5 hover:bg-warning/10 border-warning/25 shadow-2xs"
                 )}
-                innerClassName="p-0 h-full"
+                innerClassName="p-0 h-full w-full"
               >
                 <div className="flex flex-col justify-between h-full gap-3 w-full">
                   <div className="flex items-center justify-between gap-2 w-full">
@@ -1913,12 +2017,16 @@ export function AccesoSolicitudesView() {
                       const instrumentoRef =
                         s.contrato || s.instrumento || "En formalización";
 
+                      const isCerrada =
+                        s.estado === "Cerrada" ||
+                        s.estado === "Cerrada por vencimiento";
                       const isBorrador = s.estado === "Borrador";
                       const isObservada =
-                        s.estado === "Requiere corrección" ||
-                        s.estado === "Observada" ||
-                        s.estado === "Rechazada" ||
-                        s.estado === "Con observaciones";
+                        !isCerrada &&
+                        (s.estado === "Requiere corrección" ||
+                          s.estado === "Observada" ||
+                          s.estado === "Rechazada" ||
+                          s.estado === "Con observaciones");
                       const isFirma = s.estado === "Pendiente de firma";
                       const isPago =
                         s.estado === "Pendiente de pago" ||
@@ -2077,6 +2185,7 @@ export function AccesoSolicitudesView() {
                                   Responsable actual: {s.responsable}
                                 </TooltipContent>
                               </Tooltip>
+                              {renderSubsanacionPlazoBar(s)}
                             </div>
                           </TableCell>
 
@@ -2150,7 +2259,7 @@ export function AccesoSolicitudesView() {
                               )}
 
                               {/* 3. Corregir / Subsanar observaciones */}
-                              {isObservada && (
+                              {isObservada && s.diasRestantesSubsanacion !== 0 && (
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                     <Button
@@ -2160,7 +2269,7 @@ export function AccesoSolicitudesView() {
                                       className="text-muted-foreground hover:text-warning hover:bg-warning/10 cursor-pointer"
                                     >
                                       <Link
-                                        href={`/acceso-interoperabilidad/solicitudes/${s.id}?edit=true`}
+                                        href={`/acceso-interoperabilidad/solicitudes/${s.id}/corregir`}
                                         aria-label={`Subsanar solicitud ${s.id}`}
                                       >
                                         <Edit className="size-4" />
@@ -2461,7 +2570,9 @@ export function AccesoSolicitudesView() {
               className={cn(
                 "w-full",
                 viewMode === "cards"
-                  ? "grid grid-cols-1 md:grid-cols-2 gap-4"
+                  ? paginatedSolicitudes.length === 1
+                    ? "grid grid-cols-1 gap-4"
+                    : "grid grid-cols-1 md:grid-cols-2 gap-4"
                   : "block md:hidden space-y-3.5"
               )}
             >

@@ -53,13 +53,13 @@ export function WireframeUserMenu({ user, onRoleChange }: WireframeUserMenuProps
               {user.initials || "AL"}
             </AvatarFallback>
           </Avatar>
-          <div className="flex flex-col items-start leading-tight text-left min-w-0">
-            <span className="text-xs font-bold text-foreground truncate max-w-[120px] sm:max-w-[180px] lg:max-w-[220px]">
+          <div className="flex flex-col items-start leading-tight text-left">
+            <span className="text-xs font-bold text-foreground whitespace-nowrap">
               {user.name}
             </span>
-            <span className="text-[10px] sm:text-[11px] font-medium text-muted-foreground flex items-center gap-1.5 truncate max-w-[120px] sm:max-w-[180px] lg:max-w-[220px]">
+            <span className="text-[10px] sm:text-[11px] font-medium text-muted-foreground flex items-center gap-1.5 whitespace-nowrap">
               <span className="size-1.5 rounded-full bg-primary shrink-0" />
-              <span className="truncate text-foreground/85 font-medium">{roleName}</span>
+              <span className="text-foreground/85 font-medium whitespace-nowrap">{roleName}</span>
             </span>
           </div>
           <ChevronDown
@@ -75,7 +75,7 @@ export function WireframeUserMenu({ user, onRoleChange }: WireframeUserMenuProps
       <DropdownMenuContent
         align="end"
         sideOffset={8}
-        className="w-72 p-2 border-border bg-popover text-popover-foreground shadow-lg rounded-xl"
+        className="w-[calc(100vw-1.5rem)] sm:w-auto sm:min-w-[300px] sm:max-w-[420px] p-2 border-border bg-popover text-popover-foreground shadow-lg rounded-xl"
       >
         {/* Encabezado del Perfil */}
         <div className="p-4 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/20 rounded-xl flex flex-col gap-3 relative overflow-hidden mb-1">
@@ -89,21 +89,21 @@ export function WireframeUserMenu({ user, onRoleChange }: WireframeUserMenuProps
               </AvatarFallback>
             </Avatar>
             <div className="flex flex-col min-w-0">
-              <span className="text-sm font-bold font-heading text-foreground truncate">{user.name}</span>
-              <span className="text-xs text-foreground/70 truncate">{user.email || getEmail(user.name, user.institution)}</span>
+              <span className="text-sm font-bold font-heading text-foreground break-words">{user.name}</span>
+              <span className="text-xs text-foreground/70 break-all">{user.email || getEmail(user.name, user.institution)}</span>
             </div>
           </div>
 
-          <div className="pt-1.5 border-t border-border/60 flex flex-col gap-1.5 text-[11px]">
-            <div className="flex items-center justify-between">
-              <span className="text-foreground/70 font-medium">Rol:</span>
-              <Badge tone="primary" appearance="soft" size="sm" className="font-bold border-primary/20">
+          <div className="pt-1.5 border-t border-border/60 flex flex-col gap-2 text-[11px]">
+            <div className="flex items-start justify-between gap-3">
+              <span className="text-foreground/70 font-medium shrink-0">Rol:</span>
+              <Badge tone="primary" appearance="soft" size="sm" className="font-bold border-primary/20 whitespace-normal text-right h-auto py-0.5">
                 {roleName}
               </Badge>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-foreground/70 font-medium">Institución:</span>
-              <span className="font-bold text-foreground truncate max-w-[150px] text-right">
+            <div className="flex items-start justify-between gap-3">
+              <span className="text-foreground/70 font-medium shrink-0">Institución:</span>
+              <span className="font-bold text-foreground text-right break-words">
                 {user.institution}
               </span>
             </div>

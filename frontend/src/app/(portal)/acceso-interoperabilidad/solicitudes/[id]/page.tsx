@@ -11,8 +11,9 @@ export function generateStaticParams() {
 
 interface PageProps {
   params: Promise<{ id: string }>;
+  searchParams?: Promise<{ edit?: string; step?: string }>;
 }
 
-export default function SolicitudDetailPage({ params }: PageProps) {
-  return <AccesoSolicitudDetailView params={params} />;
+export default function SolicitudDetailPage({ params, searchParams }: PageProps) {
+  return <AccesoSolicitudDetailView params={params} searchParams={searchParams} />;
 }
