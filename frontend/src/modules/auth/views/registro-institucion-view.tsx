@@ -77,6 +77,9 @@ import { useSolicitudesIngresoStore, type DatosAnexoA } from "@/modules/gestion-
 
 
 
+// RUC simulado de otra institución activa (por ejemplo, el Municipio de Quito, que usa la AMT): activa alerta_ruc_compartido
+const RUCS_DE_OTRAS_INSTITUCIONES = ["1760003410001"];
+
 export function RegistroInstitucionView() {
   const router = useRouter();
   const { agregarRegistroInstitucion } = useSolicitudesIngresoStore();
@@ -103,6 +106,9 @@ export function RegistroInstitucionView() {
   const [isCheckingFirma, setIsCheckingFirma] = useState(false);
   const [readOnlyTab, setReadOnlyTab] = useState<number>(0);
   const [rucError, setRucError] = useState(false);
+  // INS-01 CA1: el RUC es opcional (instituciones con autonomía que usan el de otra) y un RUC compartido solo genera alerta para Gestión
+  const [sinRuc, setSinRuc] = useState(false);
+  const [alertaRucCompartido, setAlertaRucCompartido] = useState(false);
   const [showDemoToolbar, setShowDemoToolbar] = useState(true);
   const [signingTimer, setSigningTimer] = useState<NodeJS.Timeout | null>(null);
 
@@ -813,12 +819,12 @@ export function RegistroInstitucionView() {
                     >
                       <div>
                         <Label htmlFor="rucEntidad-0" className="text-xs font-semibold text-foreground">
-                          Número de RUC de la Entidad <span className="text-warning">*</span>
+                          Número de RUC de la Entidad (opcional)
                         </Label>
                         <p className="text-[11px] text-muted-foreground mt-0.5">
                           {!formData.entidadTipo
                             ? "Selecciona primero la naturaleza de la institución en el Paso 1."
-                            : "Ingresa el RUC de 13 dígitos."}
+                            : "Ingresa el RUC de 13 dígitos, si la institución lo tiene."}
                         </p>
                       </div>
 
@@ -838,17 +844,36 @@ export function RegistroInstitucionView() {
                             id="rucEntidad-0"
                             value={formData.rucEntidad}
                             maxLength={13}
-                            disabled={!formData.entidadTipo}
+                            disabled={!formData.entidadTipo || sinRuc}
                             onChange={(e) => {
                               setRucError(false);
                               setFormData({ ...formData, rucEntidad: e.target.value.replace(/\D/g, "") });
                             }}
-                            placeholder={!formData.entidadTipo ? "Primero selecciona tipo..." : "1111111111111"}
+                            placeholder={!formData.entidadTipo ? "Primero selecciona tipo..." : sinRuc ? "Sin RUC propio" : "1111111111111"}
                             className="text-xs font-mono tracking-wider disabled:cursor-not-allowed"
-                            required
                           />
                         </InputGroup>
                       </div>
+
+                      <label
+                        className={cn(
+                          "flex items-start gap-2 pt-2 text-[11px] text-muted-foreground select-none",
+                          formData.entidadTipo ? "cursor-pointer" : "cursor-not-allowed"
+                        )}
+                      >
+                        <Checkbox
+                          checked={sinRuc}
+                          disabled={!formData.entidadTipo}
+                          onCheckedChange={(checked) => {
+                            const value = checked === true;
+                            setSinRuc(value);
+                            setRucError(false);
+                            if (value) setFormData({ ...formData, rucEntidad: "" });
+                          }}
+                          className="mt-0.5"
+                        />
+                        <span>La institución no tiene RUC propio (usa el de otra institución).</span>
+                      </label>
                     </div>
                   </div>
 
@@ -871,20 +896,26 @@ export function RegistroInstitucionView() {
                       size="default"
                       onClick={() => {
                         setRucError(false);
+                        setAlertaRucCompartido(false);
+                        if (sinRuc) {
+                          setStep(1);
+                          toast.info("Continúas sin RUC propio. Gestión verificará la autonomía de la institución.");
+                          return;
+                        }
                         if (!formData.rucEntidad || formData.rucEntidad.length < 13) {
                           setRucError(true);
-                          toast.error("Por favor ingresa un RUC válido de 13 dígitos.");
+                          toast.error("Ingresa un RUC válido de 13 dígitos o indica que la institución no tiene RUC propio.");
                           return;
                         }
-                        if (formData.rucEntidad === "1111111111111") {
-                          setRucError(true);
-                          toast.error("No encontramos una institución asociada a este RUC.\nVerifica el número e inténtalo nuevamente.");
+                        // INS-01 CA4: sin respuesta o sin coincidencia del SRI no se bloquea; el borrador queda editable
+                        if (formData.rucEntidad === "1111111111111" || formData.rucEntidad === "2222222222222") {
+                          setStep(1);
+                          toast.warning("No se pudo precargar este dato; complétalo y verifica su soporte.");
                           return;
                         }
-                        if (formData.rucEntidad === "2222222222222") {
-                          setRucError(true);
-                          toast.error("No pudimos validar el RUC en este momento. Inténtalo nuevamente.");
-                          return;
+                        // INS-01 CA1: un RUC que ya pertenece a otra institución activa no bloquea; marca alerta_ruc_compartido
+                        if (RUCS_DE_OTRAS_INSTITUCIONES.includes(formData.rucEntidad)) {
+                          setAlertaRucCompartido(true);
                         }
                         setStep(1);
                         toast.success("Institución validada correctamente.");
@@ -962,19 +993,24 @@ export function RegistroInstitucionView() {
 
                       <div className="flex flex-col gap-1.5">
                         <Label htmlFor="rucEntidad" className="text-xs font-semibold text-foreground">
-                          RUC de la Entidad (13 dígitos) <span className="text-warning">*</span>
+                          RUC de la Entidad (13 dígitos, opcional)
                         </Label>
                         <InputGroup leftIcon={<FileText className="size-4 text-muted-foreground" />}>
                           <InputGroupInput
                             id="rucEntidad"
                             value={formData.rucEntidad}
                             maxLength={13}
+                            disabled={sinRuc}
                             onChange={(e) => setFormData({ ...formData, rucEntidad: e.target.value.replace(/\D/g, "") })}
-                            placeholder="1760000000001"
+                            placeholder={sinRuc ? "Sin RUC propio" : "1760000000001"}
                             className="text-xs font-mono"
-                            required
                           />
                         </InputGroup>
+                        {alertaRucCompartido && (
+                          <p className="text-[11px] text-warning-700 dark:text-warning-400" role="status">
+                            Este RUC ya pertenece a otra institución activa. Puedes continuar: Gestión verificará la autonomía en la revisión.
+                          </p>
+                        )}
                       </div>
 
                       <div className="flex flex-col gap-1.5">
@@ -1177,7 +1213,7 @@ export function RegistroInstitucionView() {
                         variant="primary"
                         size="default"
                         onClick={() => {
-                          if (!formData.nombreEntidad || !formData.rucEntidad || !formData.representanteLegalNombre) {
+                          if (!formData.nombreEntidad || (!formData.rucEntidad && !sinRuc) || !formData.representanteLegalNombre) {
                             toast.error("Por favor completa los campos obligatorios de la entidad.");
                             return;
                           }
@@ -2670,13 +2706,12 @@ export function RegistroInstitucionView() {
                   variant="outline"
                   size="default"
                   onClick={() => {
-                    setRucError(true);
                     setFormData({ ...formData, rucEntidad: "1111111111111" });
-                    toast.error("No encontramos una institución asociada a este RUC.\nVerifica el número e inténtalo nuevamente.");
+                    toast.warning("No se pudo precargar este dato; complétalo y verifica su soporte.");
                   }}
                   className="rounded-full px-3 sm:px-4 flex items-center gap-1.5 text-xs h-8 sm:h-9"
                 >
-                  <Sparkles className="size-3.5 text-muted-foreground" /> Demo: RUC No Encontrado
+                  <Sparkles className="size-3.5 text-muted-foreground" /> Demo: RUC sin coincidencia
                 </Button>
 
                 <Button
@@ -2684,9 +2719,8 @@ export function RegistroInstitucionView() {
                   variant="outline"
                   size="default"
                   onClick={() => {
-                    setRucError(true);
                     setFormData({ ...formData, rucEntidad: "2222222222222" });
-                    toast.error("No pudimos validar el RUC en este momento. Inténtalo nuevamente.");
+                    toast.warning("No se pudo precargar este dato; complétalo y verifica su soporte.");
                   }}
                   className="rounded-full px-3 sm:px-4 flex items-center gap-1.5 text-xs h-8 sm:h-9"
                 >
