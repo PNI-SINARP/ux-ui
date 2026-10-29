@@ -34,6 +34,14 @@ import {
 import { SolicitudIngreso, getEstadoBadgeProps } from "@/modules/gestion-solicitudes/data/gestion-ingresos-store";
 import { RechazarSolicitudDialog } from "@/components/shared/solicitudes/rechazar-solicitud-dialog";
 import { toast } from "sonner";
+import { useAuthStore } from "@/modules/gestion-solicitudes/data/auth-store";
+import { useSolicitudesIngresoStore } from "@/modules/gestion-solicitudes/data/gestion-ingresos-store";
+import {
+  DevolucionResolucionAviso,
+  DevolverDialog,
+  InformeTecnicoCard,
+  VistosBuenosBloque,
+} from "@/components/shared/solicitudes/resolucion-v19-bloques";
 
 interface ResolucionInstitucionalPanelProps {
   solicitud: SolicitudIngreso;
@@ -57,7 +65,14 @@ export function ResolucionInstitucionalPanel({
   onRechazarSolicitud
 }: ResolucionInstitucionalPanelProps) {
   const router = useRouter();
-  
+  const { activeUser } = useAuthStore();
+  const { devolverResolucionAnalista } = useSolicitudesIngresoStore();
+  const rolActual = activeUser?.role;
+  // INS-07 (v19): la única firma es la de la Máxima Autoridad; el resto solo consulta
+  const puedeFirmar = rolActual === "APROBADOR" || rolActual === "ADMIN";
+  const [isDevolverOpen, setIsDevolverOpen] = useState(false);
+  const [observacionDevolucion, setObservacionDevolucion] = useState("");
+
   const [isFalloModalOpen, setIsFalloModalOpen] = useState(false);
   const [isFirmaExitoModalOpen, setIsFirmaExitoModalOpen] = useState(false);
   const [isFirmaFalloModalOpen, setIsFirmaFalloModalOpen] = useState(false);
@@ -196,6 +211,9 @@ export function ResolucionInstitucionalPanel({
       {/* CASO 2: EN GENERACIÓN DE RESOLUCIÓN */}
       {estado === "EN_GENERACION_RESOLUCION" && (
         <div className="space-y-3 pt-1">
+          <DevolucionResolucionAviso solicitud={solicitud} />
+          <InformeTecnicoCard solicitud={solicitud} actor={currentUserName} rol={rolActual} />
+
           <div className="p-3 bg-primary/10 border border-primary/30 rounded-xl text-xs space-y-1">
             <div className="flex items-center gap-2 font-bold text-primary">
               <FileSignature className="size-4 shrink-0" />
@@ -211,6 +229,7 @@ export function ResolucionInstitucionalPanel({
               type="button"
               variant="primary"
               size="default"
+              disabled={solicitud.informeTecnico?.resultado !== "Favorable"}
               onClick={() => router.push(`/revision-normativa/${solicitud.id}/gestionar-resolucion`)}
               className="w-full text-xs font-semibold gap-2 shadow-xs"
             >
@@ -245,7 +264,11 @@ export function ResolucionInstitucionalPanel({
       )}
 
       {/* CASO 3: PENDIENTE DE FIRMA O RESOLUCIÓN GENERADA (INS-06 COMPLETADO -> INS-07 EN CURSO) */}
-      {(estado === "RESOLUCION_GENERADA" || estado === "PENDIENTE_DE_FIRMA") && (
+      {estado === "RESOLUCION_GENERADA" && (
+        <VistosBuenosBloque solicitud={solicitud} actor={currentUserName} rol={rolActual} />
+      )}
+
+      {estado === "PENDIENTE_DE_FIRMA" && (
         <div className="space-y-3 pt-1">
           <div className="p-3 bg-warning/10 border border-warning/30 rounded-xl text-xs space-y-2">
             <div className="flex items-center gap-2 font-bold text-foreground">
@@ -319,8 +342,14 @@ export function ResolucionInstitucionalPanel({
             </Button>
           </div>
 
+          {!puedeFirmar && (
+            <p className="text-[11px] text-muted-foreground pt-2 border-t border-border/80">
+              Solo la Máxima Autoridad de DINARP firma la resolución. Los vistos buenos del Analista y del Director ya fueron registrados.
+            </p>
+          )}
+
           {/* SIMULACIÓN INTERACTIVA DE OPERACIÓN EXTERNA FIRMAEC */}
-          {onCompletarFirmaResolucion && (
+          {onCompletarFirmaResolucion && puedeFirmar && (
             <div className="pt-2 border-t border-border/80 space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
@@ -353,6 +382,17 @@ export function ResolucionInstitucionalPanel({
                 >
                   <AlertTriangle className="size-3.5" />
                   <span>Simular Fallo de Firma en FirmaEC</span>
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsDevolverOpen(true)}
+                  className="w-full text-xs font-semibold gap-1.5 text-warning border-warning/40 hover:bg-warning/10"
+                >
+                  <RotateCcw className="size-3.5" />
+                  <span>Devolver al Analista de Normatividad</span>
                 </Button>
               </div>
             </div>
@@ -550,6 +590,25 @@ export function ResolucionInstitucionalPanel({
 
 
       {/* DIALOG DE REPORTE DE FALLO EN GENERACIÓN */}
+      <DevolverDialog
+        abierto={isDevolverOpen}
+        onOpenChange={setIsDevolverOpen}
+        titulo="Devolver la resolución al Analista de Normatividad"
+        descripcion="La resolución no se firma, la institución no se activa y no se notifica a los coordinadores. La versión corregida repite la cadena de vistos buenos."
+        observacion={observacionDevolucion}
+        onObservacion={setObservacionDevolucion}
+        onConfirmar={() => {
+          if (!observacionDevolucion.trim()) {
+            toast.error("La observación es obligatoria al devolver.");
+            return;
+          }
+          devolverResolucionAnalista(solicitud.id, observacionDevolucion.trim(), currentUserName);
+          setIsDevolverOpen(false);
+          setObservacionDevolucion("");
+          toast.warning("Resolución devuelta al Analista de Normatividad");
+        }}
+      />
+
       <Dialog open={isFalloModalOpen} onOpenChange={setIsFalloModalOpen}>
         <DialogContent className="max-w-lg p-6">
           <DialogHeader>

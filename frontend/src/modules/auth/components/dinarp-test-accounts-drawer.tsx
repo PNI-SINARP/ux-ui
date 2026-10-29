@@ -202,10 +202,10 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     },
   },
   {
-    roleName: "Director Área de Normativa",
+    roleName: "Director de Normatividad",
     userName: "Director Normativa",
     cedula: "2222222222",
-    description: "Recibe expedientes de incorporación institucional (Anexo A) aprobados por Gestión y asigna o supervisa la elaboración de resoluciones normativas.",
+    description: "Recibe expedientes de incorporación institucional (Anexo A) aprobados por Gestión, asigna al Analista de Normatividad y da el visto bueno final a la resolución antes de la firma de la Máxima Autoridad.",
     access: "Elaborar resoluciones (/revision-normativa).",
     storiesBadge: "BN-01 (INS-06, 07)",
     flows: ["anexo-a"],
@@ -214,10 +214,10 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     ],
   },
   {
-    roleName: "Revisor Área de Normativa",
+    roleName: "Analista de Normatividad",
     userName: "Revisor Normativa",
     cedula: "3333333333",
-    description: "Elabora los proyectos de resolución de incorporación institucional (Anexo A) aprobados por Gestión.",
+    description: "Carga el informe técnico firmado (favorable o desfavorable), elabora la resolución de incorporación institucional (Anexo A) y da el primer visto bueno. Si el informe es desfavorable, el expediente queda Rechazado por Normatividad.",
     access: "Elaborar resoluciones (/revision-normativa).",
     storiesBadge: "BN-01 (INS-06)",
     flows: ["anexo-a"],
@@ -374,10 +374,11 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     cedula: "1719876543",
     description: "Evalúa la pertinencia jurídica y finalidad de uso de las solicitudes de interoperabilidad. Carga informes de justificación, firma y emite resolución de aprobación o solicita ajustes.",
     access: "Bandeja de Aprobación de Solicitudes (/acceso-interoperabilidad) y dictamen jurídico.",
-    storiesBadge: "SOL-10",
-    flows: [],
+    storiesBadge: "SOL-10, INS-07",
+    flows: ["anexo-a"],
     actions: [
       { label: "Evaluar Solicitudes", route: "/acceso-interoperabilidad", huBadge: "SOL-10" },
+      { label: "Firmar resoluciones (Máxima Autoridad)", route: "/firma-resoluciones", huBadge: "INS-07" },
     ]
   },
   {

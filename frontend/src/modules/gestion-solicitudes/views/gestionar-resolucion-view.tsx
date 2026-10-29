@@ -168,11 +168,11 @@ export function GestionarResolucionView({ id, basePath = "/asignacion-solicitude
     store.aprobarNormatividad(
       solicitud.id,
       currentUser.name,
+      "Resolución institucional generada mediante flujo por pasos.",
       numResolucionSugerido,
-      "Resolución institucional generada mediante flujo por pasos. Remitida a Máxima Autoridad para suscripción digital.",
     );
     toast.success("Resolución institucional generada con éxito", {
-      description: `El trámite ${solicitud.id} fue remitido a la Máxima Autoridad para firma digital. Al suscribirse, se activará la institución y se invitará al Coordinador Titular y Suplente.`,
+      description: `El trámite ${solicitud.id} queda pendiente de los vistos buenos del Analista y del Director de Normatividad. Después pasa a la firma de la Máxima Autoridad, que activa la institución.`,
       duration: 6000,
     });
     router.push(`${basePath}/${solicitud.id}`);

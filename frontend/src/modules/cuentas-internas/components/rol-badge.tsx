@@ -68,7 +68,7 @@ export const ROLES_BADGE_CONFIG: Record<RolInterno, RolBadgeConfig> = {
     tone: "secondary",
     appearance: "outline",
     icon: FileCheck,
-    defaultLabel: "Revisor del Equipo de Normatividad",
+    defaultLabel: "Analista de Normatividad",
   },
   // 4. Aprobador Institucional: Relleno suave ("soft") semántica de éxito / visto bueno
   APROBADOR: {

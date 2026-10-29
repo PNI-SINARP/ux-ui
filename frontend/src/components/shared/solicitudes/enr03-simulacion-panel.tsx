@@ -176,8 +176,8 @@ export function Enr03SimulacionPanel() {
             <p className="text-[10px] text-muted-foreground italic">
               {isDirGestion && "Director Gestión: asigna y distribuye solicitudes de ingreso y cambio de coordinador."}
               {isEqGestion && "Revisor Gestión: resuelve y emite dictamen técnico de expedientes asignados."}
-              {isDirNormativa && "Director Normativa: supervisa y asigna expedientes jurídicos."}
-              {isEqNormativa && "Revisor Normativa: revisa jurídicamente y genera/vincula resolución institucional."}
+              {isDirNormativa && "Director de Normatividad: supervisa y asigna expedientes jurídicos."}
+              {isEqNormativa && "Analista de Normatividad: revisa jurídicamente y genera/vincula resolución institucional."}
             </p>
           </div>
 

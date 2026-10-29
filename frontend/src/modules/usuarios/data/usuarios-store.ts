@@ -118,7 +118,7 @@ export const ROLES_INTERNOS_CATALOGO: {
   },
   {
     id: "EQ_NORMATIVA",
-    nombre: "Revisor del Equipo de Normatividad",
+    nombre: "Analista de Normatividad",
     ambitosPermitidos: [
       { codigo: "DN", nombre: "Dirección de Normatividad Jurídica", activa: true },
     ],
@@ -243,7 +243,7 @@ export const INITIAL_USUARIOS: UsuarioInterno[] = [
     correo: "normativa.revisor@gmail.com",
     correoVerificado: true,
     rol: "EQ_NORMATIVA",
-    rolLabel: "Revisor del Equipo de Normatividad",
+    rolLabel: "Analista de Normatividad",
     ambito: "Dirección de Normatividad Jurídica",
     ambitoCodigo: "DN",
     estado: "ACTIVO",
@@ -365,7 +365,7 @@ export const INITIAL_USUARIOS: UsuarioInterno[] = [
     correo: "roberto.zambrano@dinarp.gob.ec",
     correoVerificado: true,
     rol: "EQ_NORMATIVA",
-    rolLabel: "Revisor del Equipo de Normatividad",
+    rolLabel: "Analista de Normatividad",
     ambito: "Dirección de Normatividad Jurídica",
     ambitoCodigo: "DN",
     estado: "ACTIVO",

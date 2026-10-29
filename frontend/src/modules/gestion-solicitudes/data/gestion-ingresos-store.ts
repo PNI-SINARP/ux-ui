@@ -247,6 +247,27 @@ export interface AsignacionTramite {
   motivo_reasignacion?: string;
 }
 
+// INS-06 CA9: informe técnico firmado que carga el Analista de Normatividad antes de generar la resolución
+export interface InformeTecnicoAnexoA {
+  archivo: string;
+  hash: string;
+  resultado: "Favorable" | "Desfavorable";
+  autor: string;
+  instante: string;
+  motivo?: string;
+}
+
+// INS-06 CA10: visto bueno de la cadena Analista -> Director; no es firma electrónica
+export interface VistoBuenoResolucion {
+  decision: "Visto bueno" | "No aplica";
+  actor: string;
+  cargo: string;
+  instante: string;
+}
+
+// PAR-16 (simulado): pasos activos de la cadena de vistos buenos. Un paso desactivado queda registrado como «No aplica»
+export const PAR16_VISTOS_BUENOS_ACTIVOS = { analista: true, director: true };
+
 export interface SolicitudIngreso {
   id: string;
   tipoTramite: TipoTramiteIngreso;
@@ -299,6 +320,11 @@ export interface SolicitudIngreso {
   };
 
   invitacionesB?: InvitacionAnexoB[];
+
+  // INS-06 / INS-07 (v19): informe técnico, vistos buenos y devolución al Analista
+  informeTecnico?: InformeTecnicoAnexoA;
+  vistosBuenos?: { analista?: VistoBuenoResolucion; director?: VistoBuenoResolucion };
+  devolucionResolucion?: { observacion: string; por: string; rol: string; instante: string };
 
   historial?: Array<{
     id: string;
@@ -1488,7 +1514,7 @@ export const INITIAL_SOLICITUDES_INGRESO: SolicitudIngreso[] = [
         fechaHora: "25/09/2026 10:15",
         accion: "Revisión jurídica iniciada",
         realizadoPor: "Abg. Diego Morales",
-        rol: "Revisor de Normatividad",
+        rol: "Analista de Normatividad",
         detalles: "El revisor jurídico ha iniciado el análisis normativo y legal del convenio de interoperabilidad."
       }
     ],
@@ -1736,7 +1762,7 @@ export const INITIAL_SOLICITUDES_INGRESO: SolicitudIngreso[] = [
         fechaHora: "22/09/2026 09:30",
         accion: "Generación de resolución iniciada",
         realizadoPor: "Abg. Diego Morales",
-        rol: "Revisor de Normatividad",
+        rol: "Analista de Normatividad",
         detalles: "Redacción de considerandos y articulado resolutivo institucional."
       },
       {
@@ -4987,25 +5013,174 @@ export function useSolicitudesIngresoStore() {
             detalles: `Resolución institucional ${numRes} generada y vinculada a la solicitud y Anexo A aprobado. ${observaciones || ""}`.trim()
           });
 
-          // 2. Hito: Remisión a Máxima Autoridad para firma digital y posterior activación (INS-07)
-          nuevoHistorial.push({
-            id: `hist-${Date.now()}-firma-pend`,
-            fechaHora: now,
-            accion: "Remisión a Máxima Autoridad para firma digital",
-            realizadoPor: "Sistema DINARP",
-            rol: "Sistema",
-            detalles: "Resolución institucional remitida al despacho de la Máxima Autoridad para suscripción electrónica mediante FirmaEC. Al suscribirse la resolución, se activará la institución en el sistema SINARP y se enviarán automáticamente las invitaciones de enrolamiento al Coordinador Titular y Coordinador Suplente."
-          });
+          // 2. INS-06 CA10: cadena de vistos buenos (PAR-16) y, solo al completarla, remisión a la Máxima Autoridad (INS-07)
+          const pasos = PAR16_VISTOS_BUENOS_ACTIVOS;
+          const cadenaActiva = pasos.analista || pasos.director;
+          const noAplica = (cargo: string): VistoBuenoResolucion => ({ decision: "No aplica", actor: "Sistema DINARP", cargo, instante: now });
+          nuevoHistorial.push(
+            cadenaActiva
+              ? {
+                  id: `hist-${Date.now()}-vb-pend`,
+                  fechaHora: now,
+                  accion: "Resolución elaborada; pendiente de vistos buenos",
+                  realizadoPor: "Sistema DINARP",
+                  rol: "Sistema",
+                  detalles: "La resolución pasa por el visto bueno del Analista de Normatividad que la elaboró y luego por el del Director de Normatividad. Un visto bueno no es firma electrónica: la única firma es la de la Máxima Autoridad."
+                }
+              : {
+                  id: `hist-${Date.now()}-firma-pend`,
+                  fechaHora: now,
+                  accion: "Remisión a Máxima Autoridad para firma digital",
+                  realizadoPor: "Sistema DINARP",
+                  rol: "Sistema",
+                  detalles: "Resolución institucional remitida al despacho de la Máxima Autoridad para suscripción electrónica mediante FirmaEC. Al suscribirse la resolución, se activará la institución en el sistema SINARP y se notificará a los coordinadores designados para que se enrolen con el Anexo B."
+                }
+          );
 
           return {
             ...item,
-            estado: "PENDIENTE_DE_FIRMA" as EstadoSolicitudIngreso,
+            estado: (cadenaActiva ? "RESOLUCION_GENERADA" : "PENDIENTE_DE_FIRMA") as EstadoSolicitudIngreso,
             fechaRevision: now,
             resolucion: numRes,
+            vistosBuenos: {
+              analista: pasos.analista ? undefined : noAplica("Analista de Normatividad"),
+              director: pasos.director ? undefined : noAplica("Director de Normatividad")
+            },
+            devolucionResolucion: undefined,
             historial: nuevoHistorial
           };
         }
         return item;
+      });
+      saveStoredSolicitudesIngreso(updated);
+      return updated;
+    });
+  }, []);
+
+  // INS-06 CA9: informe técnico firmado. Desfavorable cierra el expediente como Rechazado por Normatividad
+  const registrarInformeTecnico = useCallback((
+    solicitudId: string,
+    datos: { archivo: string; resultado: "Favorable" | "Desfavorable"; motivo?: string },
+    autor: string
+  ) => {
+    const now = new Date().toLocaleString("es-EC", { dateStyle: "short", timeStyle: "short" });
+    const hash = Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join("");
+    setSolicitudes((prev) => {
+      const updated = prev.map((item) => {
+        if (item.id !== solicitudId) return item;
+        const informe: InformeTecnicoAnexoA = { ...datos, hash, autor, instante: now };
+        const historial = [
+          ...(item.historial || []),
+          {
+            id: `hist-${Date.now()}-informe`,
+            fechaHora: now,
+            accion: `Informe técnico ${datos.resultado.toLowerCase()} registrado`,
+            realizadoPor: autor,
+            rol: "Analista de Normatividad",
+            detalles: `Archivo ${datos.archivo} (SHA-256 ${hash.slice(0, 12)}…).${datos.motivo ? ` Motivo: "${datos.motivo}".` : ""}`
+          }
+        ];
+        if (datos.resultado === "Desfavorable") {
+          return {
+            ...item,
+            informeTecnico: informe,
+            estado: "Rechazada" as EstadoSolicitudIngreso,
+            rechazadoPor: "NORMATIVIDAD" as const,
+            motivoRechazo: datos.motivo,
+            fechaRevision: now,
+            estadoNotificacionResolucion: "ENVIADA" as const,
+            historial
+          };
+        }
+        return { ...item, informeTecnico: informe, historial };
+      });
+      saveStoredSolicitudesIngreso(updated);
+      return updated;
+    });
+  }, []);
+
+  // INS-06 CA10: visto bueno del Analista o del Director; una devolución regresa la resolución al Analista
+  const registrarVistoBueno = useCallback((
+    solicitudId: string,
+    paso: "analista" | "director",
+    decision: "Visto bueno" | "Devuelto",
+    actor: string,
+    observacion?: string
+  ) => {
+    const now = new Date().toLocaleString("es-EC", { dateStyle: "short", timeStyle: "short" });
+    const cargo = paso === "analista" ? "Analista de Normatividad" : "Director de Normatividad";
+    setSolicitudes((prev) => {
+      const updated = prev.map((item) => {
+        if (item.id !== solicitudId) return item;
+        const historial = [...(item.historial || [])];
+        if (decision === "Devuelto") {
+          historial.push({
+            id: `hist-${Date.now()}-vb-dev`,
+            fechaHora: now,
+            accion: "Resolución devuelta al Analista",
+            realizadoPor: actor,
+            rol: cargo,
+            detalles: `Observación: "${observacion || ""}". Una nueva versión del borrador reinicia la cadena de vistos buenos.`
+          });
+          return {
+            ...item,
+            estado: "EN_GENERACION_RESOLUCION" as EstadoSolicitudIngreso,
+            vistosBuenos: undefined,
+            devolucionResolucion: { observacion: observacion || "", por: actor, rol: cargo, instante: now },
+            historial
+          };
+        }
+        const otorgado: VistoBuenoResolucion = { decision: "Visto bueno", actor, cargo, instante: now };
+        const vistosBuenos = { ...(item.vistosBuenos || {}), [paso]: otorgado };
+        if (paso === "analista" && !PAR16_VISTOS_BUENOS_ACTIVOS.director) {
+          vistosBuenos.director = { decision: "No aplica", actor: "Sistema DINARP", cargo: "Director de Normatividad", instante: now };
+        }
+        const completa = Boolean(vistosBuenos.analista && vistosBuenos.director);
+        historial.push({
+          id: `hist-${Date.now()}-vb`,
+          fechaHora: now,
+          accion: "Visto bueno registrado",
+          realizadoPor: actor,
+          rol: cargo,
+          detalles: completa
+            ? "Cadena de vistos buenos completa. Resolución lista para firma de la Máxima Autoridad."
+            : "Visto bueno registrado; pendiente del Director de Normatividad."
+        });
+        return {
+          ...item,
+          vistosBuenos,
+          estado: (completa ? "PENDIENTE_DE_FIRMA" : "RESOLUCION_GENERADA") as EstadoSolicitudIngreso,
+          historial
+        };
+      });
+      saveStoredSolicitudesIngreso(updated);
+      return updated;
+    });
+  }, []);
+
+  // INS-07 CA5: la Máxima Autoridad devuelve la resolución al Analista sin firmarla
+  const devolverResolucionAnalista = useCallback((solicitudId: string, observacion: string, actor: string) => {
+    const now = new Date().toLocaleString("es-EC", { dateStyle: "short", timeStyle: "short" });
+    setSolicitudes((prev) => {
+      const updated = prev.map((item) => {
+        if (item.id !== solicitudId) return item;
+        return {
+          ...item,
+          estado: "EN_GENERACION_RESOLUCION" as EstadoSolicitudIngreso,
+          vistosBuenos: undefined,
+          devolucionResolucion: { observacion, por: actor, rol: "Máxima Autoridad", instante: now },
+          historial: [
+            ...(item.historial || []),
+            {
+              id: `hist-${Date.now()}-dev-ma`,
+              fechaHora: now,
+              accion: "Resolución devuelta al Analista de Normatividad",
+              realizadoPor: actor,
+              rol: "Máxima Autoridad",
+              detalles: `Observación: "${observacion}". La versión corregida repite la cadena de vistos buenos. No se activa la institución ni se notifican coordinadores.`
+            }
+          ]
+        };
       });
       saveStoredSolicitudesIngreso(updated);
       return updated;
@@ -5244,6 +5419,9 @@ export function useSolicitudesIngresoStore() {
     aprobarGestion,
     asignarRevisorNormatividad,
     aprobarNormatividad,
+    registrarInformeTecnico,
+    registrarVistoBueno,
+    devolverResolucionAnalista,
     completarFirmaResolucion,
     fallarGeneracionResolucion,
     reintentarGeneracionResolucion,

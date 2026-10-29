@@ -2114,7 +2114,7 @@ export function AsignacionSolicitudesView({
                         <strong className="text-foreground">{selectedSolicitud.revisorGestion || selectedSolicitud.revisor || "Sin asignar"}</strong>
                       </div>
                       <div>
-                        <span className="text-muted-foreground block text-[11px]">Revisor de Normatividad:</span>
+                        <span className="text-muted-foreground block text-[11px]">Analista de Normatividad:</span>
                         <strong className="text-foreground">{selectedSolicitud.revisorNormatividad || "Pendiente"}</strong>
                       </div>
 

@@ -152,6 +152,19 @@ Desde el botón **"Cuentas de Prueba"** en `/login`, se pueden alternar los sigu
 
 ---
 
+## 🔄 Alineación con las HU v19 (29 de octubre de 2026)
+
+La tabla de HU de arriba conserva los códigos de una versión anterior; la referencia vigente es la v19 (143 HU). Ya está al día en el prototipo:
+
+- **Sin modalidad de consumo** en fuentes y solicitudes (FUE-01, FUE-05, SOL-01, SOL-02, SOL-04, ACC-01).
+- **Trámites sin cuenta (INS-00):** `/login` ofrece «Registrar institución (Anexo A)», «Fui designado coordinador (Anexo B)» y «Cambiar coordinador (Anexo C)». El Anexo C se abre sin sesión e identifica al coordinador saliente por cédula (CAM-01); bloquea a los 5 intentos.
+- **RUC opcional** en el Anexo A, con aviso de RUC compartido y sin bloqueo si el SRI no precarga (INS-01, INS-02).
+- **Resolución del Anexo A (INS-06, INS-07):** el Analista de Normatividad carga el informe técnico (un resultado desfavorable deja el expediente Rechazado por Normatividad), genera la resolución, pasa por vistos buenos del Analista y del Director (PAR-16 simulado en `PAR16_VISTOS_BUENOS_ACTIVOS`) y la firma solo la Máxima Autoridad, que también puede devolverla al Analista.
+
+Aún sin pantalla: consumo por API y masivo programado (API-01 a API-06), adendas (ADD), entrega excepcional (EXT), monitoreo (OPS), reportes (REP), soporte (INC), la mayoría de parámetros nuevos (PAR-03, 04, 06, 08, 09, 14 a 18) y el ciclo de vida de la fuente (FUE-09 a FUE-11, ECO-01).
+
+---
+
 ## 🚀 Tecnologías
 
 - **Framework:** [Next.js](https://nextjs.org/) (App Router, Turbopack, React 19, TypeScript)
