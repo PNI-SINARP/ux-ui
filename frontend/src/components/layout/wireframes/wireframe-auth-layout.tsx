@@ -31,7 +31,7 @@ export function WireframeAuthLayout({
         {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
             COLUMNA DERECHA: Card dinámico (Slot Login amplio)
            â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
-        <div className="col-span-12 lg:col-span-6 xl:col-span-6 2xl:col-span-5 w-full h-full flex items-center justify-center bg-surface p-4 sm:p-6 lg:p-8 xl:p-10 overflow-y-auto lg:overflow-hidden [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+        <div className="col-span-12 lg:col-span-6 xl:col-span-6 2xl:col-span-5 w-full h-full flex items-center justify-center bg-surface p-4 sm:p-6 lg:p-8 xl:p-10 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           <div className="w-full max-w-xl xl:max-w-2xl flex flex-col my-auto">
             {children}
           </div>

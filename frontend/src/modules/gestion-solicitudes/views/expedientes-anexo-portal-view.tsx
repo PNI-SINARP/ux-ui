@@ -91,6 +91,7 @@ export function ExpedientesAnexoPortalView({
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [showAnexoAModal, setShowAnexoAModal] = useState(false);
   const [showAnexoBModal, setShowAnexoBModal] = useState(false);
+  const [showAnexoCModal, setShowAnexoCModal] = useState(false);
 
   const config = useMemo(() => {
     const isCoord = activeUser?.role === "COORDINADOR_SINARP";
@@ -401,6 +402,8 @@ export function ExpedientesAnexoPortalView({
                   setShowAnexoAModal(true);
                 } else if (mode === "MIS_EXPEDIENTES_B") {
                   setShowAnexoBModal(true);
+                } else if (mode === "MIS_EXPEDIENTES_C") {
+                  setShowAnexoCModal(true);
                 } else {
                   router.push(config.ctaHref!);
                 }
@@ -818,6 +821,24 @@ export function ExpedientesAnexoPortalView({
           }
           setShowAnexoBModal(false);
           router.push(`/enrolamiento-coordinador?cedula=${data.cedula}`);
+        }}
+      />
+
+      {/* Modal de Validación de la Institución para Cambio de Coordinador (Anexo C) */}
+      <ValidacionInstitucionModal
+        open={showAnexoCModal}
+        onOpenChange={setShowAnexoCModal}
+        anexoType="C"
+        cancelLabel="Cancelar"
+        onValidated={(data) => {
+          if (typeof window !== "undefined") {
+            sessionStorage.setItem(
+              "dinarp_anexo_c_validation",
+              JSON.stringify(data)
+            );
+          }
+          setShowAnexoCModal(false);
+          router.push("/cambio-coordinador");
         }}
       />
     </WireframeDashboardLayout>

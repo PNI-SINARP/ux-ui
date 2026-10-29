@@ -298,27 +298,11 @@ const navItems: NavItem[] = [
 
   // ── SECCIÓN INDEPENDIENTE: EXPEDIENTES ANEXO C (Cambio de Coordinador) ──
   {
-    id: "cambio-coordinador-rep",
-    label: "Solicitar cambio",
-    icon: UserCog,
-    href: "/cambio-coordinador",
-    allowedRoles: ["REPRESENTANTE_INSTITUCIONAL"],
-    section: "Expedientes Anexo C",
-  },
-  {
     id: "expedientes-anexo-c-rep",
     label: "Estado de cambios",
     icon: FileText,
     href: "/expedientes-anexo-c",
     allowedRoles: ["REPRESENTANTE_INSTITUCIONAL"],
-    section: "Expedientes Anexo C",
-  },
-  {
-    id: "cambio-coordinador",
-    label: "Solicitar cambio",
-    icon: UserCog,
-    href: "/cambio-coordinador",
-    allowedRoles: ["COORDINADOR_SINARP"],
     section: "Expedientes Anexo C",
   },
   {

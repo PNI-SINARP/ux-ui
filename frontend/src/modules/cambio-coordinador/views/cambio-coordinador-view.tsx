@@ -1,7 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
-import { WireframeDashboardLayout } from "@/components/layout/wireframes/wireframe-dashboard-layout";
+import React, { useState, useEffect } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { getAssetPath } from "@/lib/utils";
+import { ValidacionInstitucionModal } from "@/modules/auth/components/validacion-institucion-modal";
 import { CoordinadorActualCard } from "../components/coordinador-actual-card";
 import {
   CoordinadorEntranteForm,
@@ -20,7 +24,6 @@ import {
   type AutorizacionDelegado,
   type ValidacionFirmaECAnexoC
 } from "../data/cambio-coordinador-store";
-import { useAuthStore } from "@/modules/gestion-solicitudes/data/auth-store";
 import { Card, CardTitle, CardDescription, CardDecorativeIcon, CardBadge } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -35,22 +38,24 @@ import {
   ArrowLeft,
   ArrowRight,
   Check,
-  Users
+  Home,
+  Building2
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 type VistaEstado = "INICIAL" | "WIZARD" | "DETALLE";
 
 export function CambioCoordinadorView() {
-  const { activeUser } = useAuthStore();
+  const router = useRouter();
   const {
     institucion,
     crearSolicitud,
-    isLoaded
+    actualizarInstitucionPorRuc
   } = useCambioCoordinadorStore();
 
   const [vista, setVista] = useState<VistaEstado>("INICIAL");
   const [tramiteSeleccionado, setTramiteSeleccionado] = useState<TramiteCambioCoordinador | null>(null);
+  const [showValidacionModal, setShowValidacionModal] = useState(false);
+  const [entidadTipoValidada, setEntidadTipoValidada] = useState<"Publica" | "Privada">("Publica");
 
   // Estados del Wizard (5 pasos)
   const [caracterSolicitud, setCaracterSolicitud] = useState<CaracterCoordinador>("TITULAR");
@@ -58,6 +63,26 @@ export function CambioCoordinadorView() {
   const [datosEntrante, setDatosEntrante] = useState<FormNuevoCoordinadorData | null>(null);
   const [datosInstrumento, setDatosInstrumento] = useState<DatosInstrumentoAnexoC | null>(null);
   const [tramiteGenerado, setTramiteGenerado] = useState<TramiteCambioCoordinador | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const saved = sessionStorage.getItem("dinarp_anexo_c_validation");
+    if (saved) {
+      sessionStorage.removeItem("dinarp_anexo_c_validation");
+      try {
+        const parsed = JSON.parse(saved) as {
+          entidadTipo: "Publica" | "Privada";
+          rucEntidad: string;
+        };
+        if (parsed?.rucEntidad) {
+          setEntidadTipoValidada(parsed.entidadTipo || "Publica");
+          actualizarInstitucionPorRuc(parsed.rucEntidad, parsed.entidadTipo || "Publica");
+        }
+      } catch {
+        // Ignorar error de parseo
+      }
+    }
+  }, [actualizarInstitucionPorRuc]);
 
   // Pasos oficiales del Stepper
   const stepsList: StepperStep[] = [
@@ -204,10 +229,79 @@ export function CambioCoordinadorView() {
   };
 
   return (
-    <WireframeDashboardLayout activeMenu="cambio-coordinador">
+    <div className="min-h-screen bg-background text-foreground flex flex-col w-full overflow-x-hidden">
+      {/* Barra superior pública */}
+      <header className="border-b border-border bg-surface/50 backdrop-blur-md sticky top-0 z-20">
+        <div className="w-full max-w-[1920px] mx-auto px-3 sm:px-5 lg:px-6 h-20 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Link href="/login" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+              <>
+                <img
+                  src={getAssetPath("/logo-horizontal.svg")}
+                  alt="Logo DINARP"
+                  className="dark:hidden h-11 sm:h-12 w-auto object-contain"
+                />
+                <img
+                  src={getAssetPath("/logo-horizontal-blanco.svg")}
+                  alt="Logo DINARP"
+                  className="hidden dark:block h-11 sm:h-12 w-auto object-contain"
+                />
+              </>
+            </Link>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+          </div>
+        </div>
+      </header>
+
       <main className="flex-1 w-full max-w-[1920px] mx-auto px-2 sm:px-4 lg:px-5 py-4 sm:py-6 space-y-5">
         {/* Contenedor Principal Unificado idéntico a /registro-institucion y /enrolamiento-coordinador */}
         <div className="bg-surface border border-border rounded-2xl p-4 sm:p-6 lg:p-8 space-y-6 shadow-xs animate-in fade-in duration-300 w-full">
+          {/* Migas de pan e indicador de borrador */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-border">
+            <nav aria-label="Breadcrumb" className="text-xs text-muted-foreground flex items-center gap-1.5 flex-wrap">
+              <Link href="/login" className="hover:text-foreground transition-colors flex items-center gap-1 shrink-0">
+                <Home className="size-3.5" />
+                <span>Portal de Acceso</span>
+              </Link>
+              <span>/</span>
+              <span className="text-muted-foreground">Cambio de Coordinador</span>
+              <span>/</span>
+              <span className="text-foreground font-semibold truncate">
+                Anexo C Solicitud de Cambio de Coordinador
+              </span>
+              {vista === "WIZARD" && (
+                <>
+                  <span className="hidden md:inline">/</span>
+                  <span className="text-primary font-bold hidden md:inline">
+                    Paso {pasoActual}: {stepsList[pasoActual - 1]?.title}
+                  </span>
+                </>
+              )}
+            </nav>
+
+            <div className="flex items-center gap-2 self-start sm:self-auto">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setShowValidacionModal(true)}
+                className="text-xs h-7 px-2.5 gap-1.5"
+              >
+                <Building2 className="size-3.5 text-primary" />
+                <span>Validar otro RUC</span>
+              </Button>
+              {vista === "WIZARD" && (
+                <div className="flex items-center gap-2 text-xs font-medium bg-muted/50 px-2.5 py-1 rounded-full border border-border/50 transition-colors">
+                  <Check className="size-3.5 text-success" />
+                  <span className="text-muted-foreground">Borrador guardado</span>
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Encabezado del Trámite en Card Featured estilo UI Kit con CardBadge y CardDecorativeIcon */}
           <Card
             variant="featured"
@@ -217,7 +311,7 @@ export function CambioCoordinadorView() {
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <div className="flex items-center gap-2">
                 <CardBadge className="bg-primary/20 text-primary text-[10px] uppercase font-bold tracking-wider px-2.5 py-0.5 border-0">
-                  FORMULARIO OFICIAL ARP-R03
+                  ANEXO C · FORMULARIO OFICIAL ARP-R03
                 </CardBadge>
                 <Badge
                   tone="primary"
@@ -229,21 +323,14 @@ export function CambioCoordinadorView() {
                   <span>Anexo C · Versión 1.0</span>
                 </Badge>
               </div>
-
-              {vista === "WIZARD" && (
-                <div className="flex items-center gap-2 text-xs font-medium bg-muted/50 px-2.5 py-1 rounded-full border border-border/50 transition-colors">
-                  <Check className="size-3.5 text-success" />
-                  <span className="text-muted-foreground">Borrador guardado</span>
-                </div>
-              )}
             </div>
 
             <CardTitle className="text-lg sm:text-xl font-bold font-heading text-primary">
-              Solicitar cambio
+              Cambio de Coordinador Institucional
             </CardTitle>
 
             <CardDescription className="text-xs text-primary-800/80 dark:text-primary-200/80 font-medium">
-              Registra y gestiona la solicitud de sustitución del coordinador institucional titular o suplente (Anexo C).
+              Selecciona si deseas sustituir al Coordinador Titular o al Coordinador Suplente de la institución validada y suscribe electrónicamente la solicitud (Anexo C).
             </CardDescription>
 
             <CardDecorativeIcon className="-bottom-10 -right-10 opacity-20 group-hover/card:scale-100 hidden sm:block">
@@ -253,7 +340,7 @@ export function CambioCoordinadorView() {
 
           <Separator className="my-6" />
 
-          {/* 3. VISTA INICIAL (CONTEXTO INSTITUCIONAL + COORDINADORES + TABLA HISTORIAL) */}
+          {/* 3. VISTA INICIAL (CONTEXTO INSTITUCIONAL + COORDINADORES TITULAR Y SUPLENTE) */}
           {vista === "INICIAL" && (
             <div className="space-y-6 animate-in fade-in duration-300">
               {/* Contexto y Cards de Titular y Suplente */}
@@ -261,6 +348,19 @@ export function CambioCoordinadorView() {
                 institucion={institucion}
                 onSolicitarCambio={handleIniciarSolicitud}
               />
+
+              <div className="pt-4 border-t border-border/60 flex items-center justify-start">
+                <Button
+                  type="button"
+                  variant="neutral"
+                  size="default"
+                  onClick={() => router.push("/login")}
+                  className="text-xs font-semibold gap-1.5"
+                >
+                  <ArrowLeft className="size-4" />
+                  <span>Volver al acceso principal</span>
+                </Button>
+              </div>
             </div>
           )}
 
@@ -466,6 +566,22 @@ export function CambioCoordinadorView() {
           )}
         </div>
       </main>
-    </WireframeDashboardLayout>
+
+      {/* Modal de Validación de la Institución (Anexo C) */}
+      <ValidacionInstitucionModal
+        open={showValidacionModal}
+        onOpenChange={setShowValidacionModal}
+        anexoType="C"
+        initialEntidadTipo={entidadTipoValidada}
+        initialRuc={institucion.ruc}
+        cancelLabel="Cancelar"
+        onValidated={(data) => {
+          setEntidadTipoValidada(data.entidadTipo);
+          actualizarInstitucionPorRuc(data.rucEntidad, data.entidadTipo);
+          setShowValidacionModal(false);
+          handleVolverInicial();
+        }}
+      />
+    </div>
   );
 }

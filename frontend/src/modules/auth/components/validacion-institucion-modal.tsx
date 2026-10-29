@@ -34,6 +34,7 @@ import { cn } from "@/lib/utils";
 interface ValidacionInstitucionModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  anexoType?: "A" | "C";
   initialEntidadTipo?: "Publica" | "Privada" | "";
   initialRuc?: string;
   cancelLabel?: string;
@@ -49,6 +50,7 @@ type ValidationLoadingPhase = "idle" | "validating" | "preloading" | "transition
 export function ValidacionInstitucionModal({
   open,
   onOpenChange,
+  anexoType = "A",
   initialEntidadTipo = "",
   initialRuc = "",
   cancelLabel = "Volver al acceso principal",
@@ -186,7 +188,9 @@ export function ValidacionInstitucionModal({
               size="sm"
               className="text-[10px] uppercase font-bold tracking-wider"
             >
-              ANEXO A · FORMULARIO OFICIAL ARP-R01
+              {anexoType === "C"
+                ? "ANEXO C · FORMULARIO OFICIAL ARP-R03"
+                : "ANEXO A · FORMULARIO OFICIAL ARP-R01"}
             </Badge>
           </div>
           <DialogTitle className="text-lg sm:text-xl font-bold font-heading flex items-center gap-2 text-foreground">
@@ -194,8 +198,9 @@ export function ValidacionInstitucionModal({
             <span>Validación de la institución</span>
           </DialogTitle>
           <DialogDescription className="text-xs sm:text-sm text-muted-foreground">
-            Selecciona el tipo de institución e ingresa el RUC para validar la
-            información y continuar con el registro.
+            {anexoType === "C"
+              ? "Selecciona el tipo de institución e ingresa el RUC para validar la entidad y continuar con la solicitud de cambio de coordinador."
+              : "Selecciona el tipo de institución e ingresa el RUC para validar la información y continuar con el registro."}
           </DialogDescription>
         </DialogHeader>
 
@@ -217,12 +222,16 @@ export function ValidacionInstitucionModal({
                 {loadingPhase === "validating"
                   ? "Validando información de la institución..."
                   : loadingPhase === "preloading"
-                  ? "Precargando datos institucionales en el Anexo A..."
+                  ? anexoType === "C"
+                    ? "Precargando datos de la institución y coordinadores vigentes..."
+                    : "Precargando datos institucionales en el Anexo A..."
                   : "¡Validación completada! Abriendo formulario..."}
               </h3>
               <p className="text-xs text-muted-foreground leading-relaxed">
                 {loadingPhase === "validating"
                   ? `Verificando el RUC ${rucEntidad} (${entidadTipo === "Publica" ? "Institución pública" : "Institución privada"}) en los registros oficiales del SINARP.`
+                  : anexoType === "C"
+                  ? "Obteniendo información de la entidad y de los coordinadores titular y suplente registrados para el Anexo C."
                   : "Obteniendo razón social, dirección y datos de la máxima autoridad para precargar la Sección I."}
               </p>
             </div>
@@ -267,7 +276,9 @@ export function ValidacionInstitucionModal({
                       : "text-muted-foreground"
                   )}
                 >
-                  Precargando datos de la institución y máxima autoridad
+                  {anexoType === "C"
+                    ? "Precargando datos de la institución y coordinadores vigentes"
+                    : "Precargando datos de la institución y máxima autoridad"}
                 </span>
               </div>
             </div>

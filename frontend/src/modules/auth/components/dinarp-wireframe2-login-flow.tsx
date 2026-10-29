@@ -8,6 +8,7 @@ import {
   Lock,
   Eye,
   EyeOff,
+  ArrowLeft,
   ArrowRight,
   ShieldCheck,
   AlertCircle,
@@ -131,10 +132,12 @@ export function DinarpWireframe2LoginFlow({
 
   // Modo principal:
   // 1. "login": Iniciar sesión para usuarios/coordinadores con cuenta activa
-  // 2. "enrolamiento": Completar enrolamiento mediante validación de cédula preregistrada (Proceso B)
-  const [activeTab, setActiveTab] = useState<"login" | "enrolamiento">("login");
+  // 2. "tramites": Pantalla de selección de trámites institucionales (Anexos A, B y C)
+  // 3. "enrolamiento": Completar enrolamiento mediante validación de cédula preregistrada (Proceso B)
+  const [activeTab, setActiveTab] = useState<"login" | "tramites" | "enrolamiento">("login");
   const [showAnexoAModal, setShowAnexoAModal] = useState(false);
   const [showAnexoBModal, setShowAnexoBModal] = useState(false);
+  const [showAnexoCModal, setShowAnexoCModal] = useState(false);
 
   // Estado del Login
   const [cedula, setCedula] = useState("");
@@ -600,70 +603,40 @@ export function DinarpWireframe2LoginFlow({
             )}
           </Button>
 
-          {/* Separador y Opciones Adicionales */}
+          {/* Separador y Tarjeta Única de Trámites Institucionales */}
           <div className="relative flex items-center py-2">
             <div className="flex-grow border-t border-border/70"></div>
             <span className="shrink-0 px-3 text-xs text-muted-foreground font-medium">
-              ¿Aún no tienes acceso?
+              ¿Aún no tienes acceso o requieres un trámite?
             </span>
             <div className="flex-grow border-t border-border/70"></div>
           </div>
 
           <div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {/* Card 1: Enrolamiento Coordinador */}
-              <CapacityCard
-                color="secondary"
-                icon={Users}
-                watermark
-                className="bg-secondary/5 border-secondary/20 hover:shadow-secondary/20"
-                title={<span className="text-secondary">¿Fuiste designado como Coordinador SINARP?</span>}
-                description="Completa tu prerregistro mediante el Anexo B si recibiste una invitación."
-              >
-                <div className="w-full mt-1">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={() => setShowAnexoBModal(true)}
-                    className="w-full text-xs h-9 px-3 relative z-20 shadow-xs justify-center"
-                  >
-                    <span className="font-semibold">Completar prerregistro</span>
-                    <ArrowRight className="size-4 ml-2 opacity-80" />
-                  </Button>
-                </div>
-              </CapacityCard>
-
-              {/* Card 2: Registro Institucional */}
-              <CapacityCard
-                color="neutral"
-                icon={Landmark}
-                watermark
-                className="bg-neutral-500/5 border-neutral-500/20 hover:shadow-neutral-500/20"
-                title={
-                  <span className="text-neutral-700 dark:text-neutral-200">
-                    Enrolamiento de Institución <br className="hidden sm:inline" /> al SINARP
-                  </span>
-                }
-                description={
-                  <>
-                    Solicita el registro para <br />
-                    incorporar tu entidad al SINARP.
-                  </>
-                }
-              >
-                <div className="w-full mt-1">
-                  <Button
-                    type="button"
-                    variant="neutral"
-                    onClick={() => setShowAnexoAModal(true)}
-                    className="w-full text-xs h-9 px-3 relative z-20 shadow-xs justify-center"
-                  >
-                    <span className="font-semibold text-[11px] text-white">Solicitar enrolamiento</span>
-                    <ArrowRight className="size-4 ml-1 opacity-80 text-white" />
-                  </Button>
-                </div>
-              </CapacityCard>
-            </div>
+            <CapacityCard
+              color="primary"
+              icon={Landmark}
+              watermark
+              className="bg-primary/5 border-primary/20 hover:shadow-primary/20"
+              title={
+                <span className="text-primary">
+                  Trámites institucionales SINARP
+                </span>
+              }
+              description="Incorpora una institución, registra un coordinador o solicita un cambio de coordinador."
+            >
+              <div className="w-full mt-1">
+                <Button
+                  type="button"
+                  variant="primary"
+                  onClick={() => setActiveTab("tramites")}
+                  className="w-full text-xs h-9 px-3 relative z-20 shadow-xs justify-center"
+                >
+                  <span className="font-semibold">Ver trámites</span>
+                  <ArrowRight className="size-4 ml-2 opacity-80" />
+                </Button>
+              </div>
+            </CapacityCard>
 
             {/* Accesos Directos Internos (Ocultos visualmente) */}
             {false && (
@@ -687,6 +660,121 @@ export function DinarpWireframe2LoginFlow({
             )}
           </div>
         </form>
+      )}
+
+      {/* ── PANTALLA DE SELECCIÓN: TRÁMITES INSTITUCIONALES SINARP (ANEXOS A, B Y C) ── */}
+      {activeTab === "tramites" && !isOtpStep && (
+        <div className="space-y-4 animate-fade-in">
+          <div className="space-y-1">
+            <Badge
+              tone="primary"
+              appearance="soft"
+              size="sm"
+              className="text-[10px] uppercase font-bold tracking-wider mb-1"
+            >
+              GESTIÓN PÚBLICA SINARP
+            </Badge>
+            <h1 className="text-xl font-bold font-heading text-primary">
+              Trámites institucionales SINARP
+            </h1>
+            <p className="text-xs sm:text-sm text-muted-foreground">
+              Incorpora una institución, registra un coordinador o solicita un cambio de coordinador.
+            </p>
+          </div>
+
+          <div className="space-y-3 pt-1">
+            {/* Opción 1: Anexo A */}
+            <CapacityCard
+              color="primary"
+              icon={Landmark}
+              watermark
+              className="bg-primary/5 border-primary/20 hover:shadow-primary/20"
+              title={
+                <span className="text-primary">
+                  Anexo A — Incorporación institucional
+                </span>
+              }
+              description="Solicita incorporar una institución al SINARP."
+            >
+              <div className="w-full mt-1">
+                <Button
+                  type="button"
+                  variant="primary"
+                  onClick={() => setShowAnexoAModal(true)}
+                  className="w-full text-xs h-9 px-3 relative z-20 shadow-xs justify-center"
+                >
+                  <span className="font-semibold">Solicitar incorporación (Anexo A)</span>
+                  <ArrowRight className="size-4 ml-2 opacity-80" />
+                </Button>
+              </div>
+            </CapacityCard>
+
+            {/* Opción 2: Anexo B */}
+            <CapacityCard
+              color="secondary"
+              icon={Users}
+              watermark
+              className="bg-secondary/5 border-secondary/20 hover:shadow-secondary/20"
+              title={
+                <span className="text-secondary">
+                  Anexo B — Registro de coordinador
+                </span>
+              }
+              description="Completa tu preregistro como coordinador titular o suplente si recibiste una invitación."
+            >
+              <div className="w-full mt-1">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setShowAnexoBModal(true)}
+                  className="w-full text-xs h-9 px-3 relative z-20 shadow-xs justify-center"
+                >
+                  <span className="font-semibold">Completar preregistro (Anexo B)</span>
+                  <ArrowRight className="size-4 ml-2 opacity-80" />
+                </Button>
+              </div>
+            </CapacityCard>
+
+            {/* Opción 3: Anexo C */}
+            <CapacityCard
+              color="neutral"
+              icon={RefreshCw}
+              watermark
+              className="bg-neutral-500/5 border-neutral-500/20 hover:shadow-neutral-500/20"
+              title={
+                <span className="text-neutral-700 dark:text-neutral-200">
+                  Anexo C — Cambio de coordinador
+                </span>
+              }
+              description="Solicita el cambio de coordinador titular o suplente de una institución."
+            >
+              <div className="w-full mt-1">
+                <Button
+                  type="button"
+                  variant="neutral"
+                  onClick={() => setShowAnexoCModal(true)}
+                  className="w-full text-xs h-9 px-3 relative z-20 shadow-xs justify-center"
+                >
+                  <span className="font-semibold text-white">Solicitar cambio (Anexo C)</span>
+                  <ArrowRight className="size-4 ml-2 opacity-80 text-white" />
+                </Button>
+              </div>
+            </CapacityCard>
+          </div>
+
+          <div className="pt-2 border-t border-border/60">
+            <Button
+              type="button"
+              variant="neutral"
+              size="default"
+              onClick={() => setActiveTab("login")}
+              className="w-full text-xs font-semibold gap-1.5 shadow-xs"
+            >
+              <ArrowLeft className="size-4" />
+              <span>Volver al acceso principal</span>
+            </Button>
+          </div>
+        </div>
       )}
 
       {/* â”€â”€ CASO 2: VERIFICACIÓN Y ENROLAMIENTO (PROCESO B) â”€â”€ */}
@@ -953,6 +1041,24 @@ export function DinarpWireframe2LoginFlow({
           }
           setShowAnexoBModal(false);
           router.push(`/enrolamiento-coordinador?cedula=${data.cedula}`);
+        }}
+      />
+
+      {/* Modal de Validación de la Institución para Cambio de Coordinador (Anexo C) */}
+      <ValidacionInstitucionModal
+        open={showAnexoCModal}
+        onOpenChange={setShowAnexoCModal}
+        anexoType="C"
+        cancelLabel="Cancelar"
+        onValidated={(data) => {
+          if (typeof window !== "undefined") {
+            sessionStorage.setItem(
+              "dinarp_anexo_c_validation",
+              JSON.stringify(data)
+            );
+          }
+          setShowAnexoCModal(false);
+          router.push("/cambio-coordinador");
         }}
       />
     </div>
