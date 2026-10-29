@@ -45,7 +45,6 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { CapacityCard } from "@/components/ui/capacity-card";
 import { useSolicitudesIngresoStore } from "@/modules/gestion-solicitudes/data/gestion-ingresos-store";
 import { useAuthStore } from "@/modules/gestion-solicitudes/data/auth-store";
 import { MOCK_USERS_BY_ROLE } from "@/modules/catalogo-interoperabilidad/data/catalogo-data";
@@ -600,63 +599,53 @@ export function DinarpWireframe2LoginFlow({
           <div className="relative flex items-center py-2">
             <div className="flex-grow border-t border-border/70"></div>
             <span className="shrink-0 px-3 text-xs text-muted-foreground font-medium">
-              ¿Aún no tienes acceso?
+              Trámites sin cuenta
             </span>
             <div className="flex-grow border-t border-border/70"></div>
           </div>
 
           <div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {/* Card 1: Enrolamiento Coordinador */}
-              <CapacityCard
-                color="secondary"
-                icon={Users}
-                watermark
-                className="bg-secondary/5 border-secondary/20 hover:shadow-secondary/20"
-                title={<span className="text-secondary">¿Fuiste designado como Coordinador SINARP?</span>}
-                description="Completa tu prerregistro mediante el Anexo B si recibiste una invitación."
-              >
-                <Link href="/enrolamiento-coordinador" className="w-full mt-1">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="w-full text-xs h-9 px-3 relative z-20 shadow-xs justify-center"
-                  >
-                    <span className="font-semibold">Completar prerregistro</span>
-                    <ArrowRight className="size-4 ml-2 opacity-80" />
-                  </Button>
-                </Link>
-              </CapacityCard>
-
-              {/* Card 2: Registro Institucional */}
-              <CapacityCard
-                color="neutral"
-                icon={Landmark}
-                watermark
-                className="bg-neutral-500/5 border-neutral-500/20 hover:shadow-neutral-500/20"
-                title={
-                  <span className="text-neutral-700 dark:text-neutral-200">
-                    Enrolamiento de Institución <br className="hidden sm:inline" /> al SINARP
+            <div className="grid grid-cols-1 gap-2.5">
+              {/* INS-00: los tres trámites se inician sin cuenta, contraseña ni enlace por correo */}
+              <Link href="/registro-institucion" className="w-full">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full h-11 justify-between text-xs px-3.5 shadow-xs hover:border-primary/40 hover:bg-primary/5"
+                >
+                  <span className="flex items-center gap-2.5 font-semibold">
+                    <Landmark className="size-4 text-primary" />
+                    Registrar institución (Anexo A)
                   </span>
-                }
-                description={
-                  <>
-                    Solicita el registro para <br />
-                    incorporar tu entidad al SINARP.
-                  </>
-                }
-              >
-                <Link href="/registro-institucion" className="w-full mt-1">
-                  <Button
-                    type="button"
-                    variant="neutral"
-                    className="w-full text-xs h-9 px-3 relative z-20 shadow-xs justify-center"
-                  >
-                    <span className="font-semibold text-[11px] text-white">Solicitar enrolamiento</span>
-                    <ArrowRight className="size-4 ml-1 opacity-80 text-white" />
-                  </Button>
-                </Link>
-              </CapacityCard>
+                  <ArrowRight className="size-4 opacity-70" />
+                </Button>
+              </Link>
+              <Link href="/enrolamiento-coordinador" className="w-full">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full h-11 justify-between text-xs px-3.5 shadow-xs hover:border-primary/40 hover:bg-primary/5"
+                >
+                  <span className="flex items-center gap-2.5 font-semibold">
+                    <Users className="size-4 text-primary" />
+                    Fui designado coordinador (Anexo B)
+                  </span>
+                  <ArrowRight className="size-4 opacity-70" />
+                </Button>
+              </Link>
+              <Link href="/cambio-coordinador" className="w-full">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full h-11 justify-between text-xs px-3.5 shadow-xs hover:border-primary/40 hover:bg-primary/5"
+                >
+                  <span className="flex items-center gap-2.5 font-semibold">
+                    <RefreshCw className="size-4 text-primary" />
+                    Cambiar coordinador (Anexo C)
+                  </span>
+                  <ArrowRight className="size-4 opacity-70" />
+                </Button>
+              </Link>
             </div>
 
             {/* Accesos Directos Internos (Ocultos visualmente) */}

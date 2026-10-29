@@ -2,7 +2,9 @@
 
 import React, { useState } from "react";
 import { WireframeDashboardLayout } from "@/components/layout/wireframes/wireframe-dashboard-layout";
+import { WireframeTramitePublicoLayout } from "@/components/layout/wireframes/wireframe-tramite-publico-layout";
 import { CoordinadorActualCard } from "../components/coordinador-actual-card";
+import { IdentificarSaliente } from "../components/identificar-saliente";
 import {
   CoordinadorEntranteForm,
   type FormNuevoCoordinadorData
@@ -43,6 +45,8 @@ type VistaEstado = "INICIAL" | "WIZARD" | "DETALLE";
 
 export function CambioCoordinadorView() {
   const { activeUser } = useAuthStore();
+  // CAM-01 CA6: el Anexo C se inicia sin cuenta desde la pantalla de ingreso; solo el Representante Institucional con sesión conserva el menú del Portal
+  const sinCuenta = activeUser?.role !== "REPRESENTANTE_INSTITUCIONAL";
   const {
     institucion,
     crearSolicitud,
@@ -203,8 +207,7 @@ export function CambioCoordinadorView() {
     setTramiteGenerado(null);
   };
 
-  return (
-    <WireframeDashboardLayout activeMenu="cambio-coordinador">
+  const contenido = (
       <main className="flex-1 w-full max-w-[1920px] mx-auto px-2 sm:px-4 lg:px-5 py-4 sm:py-6 space-y-5">
         {/* Contenedor Principal Unificado idéntico a /registro-institucion y /enrolamiento-coordinador */}
         <div className="bg-surface border border-border rounded-2xl p-4 sm:p-6 lg:p-8 space-y-6 shadow-xs animate-in fade-in duration-300 w-full">
@@ -257,10 +260,14 @@ export function CambioCoordinadorView() {
           {vista === "INICIAL" && (
             <div className="space-y-6 animate-in fade-in duration-300">
               {/* Contexto y Cards de Titular y Suplente */}
-              <CoordinadorActualCard
-                institucion={institucion}
-                onSolicitarCambio={handleIniciarSolicitud}
-              />
+              {sinCuenta ? (
+                <IdentificarSaliente institucion={institucion} onIdentificado={handleIniciarSolicitud} />
+              ) : (
+                <CoordinadorActualCard
+                  institucion={institucion}
+                  onSolicitarCambio={handleIniciarSolicitud}
+                />
+              )}
             </div>
           )}
 
@@ -466,6 +473,11 @@ export function CambioCoordinadorView() {
           )}
         </div>
       </main>
-    </WireframeDashboardLayout>
+  );
+
+  return sinCuenta ? (
+    <WireframeTramitePublicoLayout>{contenido}</WireframeTramitePublicoLayout>
+  ) : (
+    <WireframeDashboardLayout activeMenu="cambio-coordinador">{contenido}</WireframeDashboardLayout>
   );
 }
