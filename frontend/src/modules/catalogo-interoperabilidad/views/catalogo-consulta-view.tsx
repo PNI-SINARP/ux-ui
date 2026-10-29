@@ -120,6 +120,18 @@ export function CatalogoConsultaView() {
   const [clasificacionSearch, setClasificacionSearch] = useState("");
   const [viewMode, setViewMode] = useState<ViewMode>("table");
 
+  // Estado de instituciones expandidas (Agrupación por institución proveedora)
+  const [expandedInstituciones, setExpandedInstituciones] = useState<
+    Record<string, boolean>
+  >({});
+
+  const toggleInstitucion = (id: string) => {
+    setExpandedInstituciones((prev) => ({
+      ...prev,
+      [id]: !(prev[id] ?? true),
+    }));
+  };
+
   // Estado de filas expandidas (Expandable Row del UI Kit)
   const [expandedFuentes, setExpandedFuentes] = useState<
     Record<string, boolean>
@@ -129,7 +141,7 @@ export function CatalogoConsultaView() {
 
   // Paginación UI Kit por fuentes
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(5);
+  const [pageSize, setPageSize] = useState(10);
 
   const toggleFuente = (id: string) => {
     setExpandedFuentes((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -274,17 +286,13 @@ export function CatalogoConsultaView() {
       }
     }
 
-    // Ordenar primero las fuentes 100% Accesibles y luego las Confidenciales
-    return items.sort((a, b) => {
-      const aEsConfidencial = a.camposConfidenciales > 0 ? 1 : 0;
-      const bEsConfidencial = b.camposConfidenciales > 0 ? 1 : 0;
-      return aEsConfidencial - bEsConfidencial;
-    });
+    // Mantener el orden agrupado por Institución proveedora → Fuente de información
+    return items;
   }, [instituciones, searchTerm, selectedInstitucion]);
 
-  // Separación estricta de fuentes por nivel de reserva
+  // Separación de fuentes con campos accesibles
   const fuentesSoloAccesiblesBase = useMemo(
-    () => fuentesBase.filter((item) => item.camposConfidenciales === 0),
+    () => fuentesBase.filter((item) => item.camposAccesibles > 0),
     [fuentesBase]
   );
 
@@ -326,6 +334,25 @@ export function CatalogoConsultaView() {
     const start = (safeCurrentPage - 1) * pageSize;
     return fuentesFiltradas.slice(start, start + pageSize);
   }, [fuentesFiltradas, safeCurrentPage, pageSize]);
+
+  // Agrupación obligatoria: Institución proveedora → Fuente de información → Campos disponibles
+  const groupedPaginatedInstituciones = useMemo(() => {
+    const map = new Map<
+      string,
+      {
+        institucion: InstitucionProveedora;
+        items: FuenteConInstitucion[];
+      }
+    >();
+    for (const item of paginatedFuentes) {
+      const instId = item.institucion.id;
+      if (!map.has(instId)) {
+        map.set(instId, { institucion: item.institucion, items: [] });
+      }
+      map.get(instId)!.items.push(item);
+    }
+    return Array.from(map.values());
+  }, [paginatedFuentes]);
 
   const totalFuentesPublicadas = useMemo(() => {
     return instituciones
@@ -373,12 +400,19 @@ export function CatalogoConsultaView() {
     camposSensibles,
   }: FuenteConInstitucion) => {
     const isExpanded = expandedFuentes[fuente.id] ?? false;
-    const listaAccesibles = fuente.campos.filter(
-      (c) => c.clasificacion === "Accesible"
-    );
-    const listaConfidenciales = fuente.campos.filter(
-      (c) => c.clasificacion === "Confidencial"
-    );
+    const listaAccesibles =
+      selectedClasificacion === "Confidencial" ||
+      selectedClasificacion === "Confidencial_Sensible"
+        ? []
+        : fuente.campos.filter((c) => c.clasificacion === "Accesible");
+    const listaConfidenciales =
+      selectedClasificacion === "Accesible"
+        ? []
+        : fuente.campos.filter(
+            (c) =>
+              c.clasificacion === "Confidencial" &&
+              (selectedClasificacion !== "Confidencial_Sensible" || c.esSensible)
+          );
     const tieneConfidenciales = camposConfidenciales > 0;
 
     return (
@@ -1409,7 +1443,90 @@ export function CatalogoConsultaView() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {paginatedFuentes.map(
+                      {groupedPaginatedInstituciones.map(
+                        ({ institucion: groupInst, items: groupItems }) => {
+                          const isInstExpanded =
+                            expandedInstituciones[groupInst.id] ?? true;
+                          const totalInstCampos = groupItems.reduce(
+                            (acc, it) => acc + it.fuente.campos.length,
+                            0
+                          );
+                          return (
+                            <React.Fragment key={`inst-group-${groupInst.id}`}>
+                              <TableRow
+                                onClick={() => toggleInstitucion(groupInst.id)}
+                                className="cursor-pointer bg-muted/40 hover:bg-muted/65 border-y border-border transition-colors"
+                              >
+                                <TableCell
+                                  className="text-center py-2.5"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon-sm"
+                                    onClick={() => toggleInstitucion(groupInst.id)}
+                                    aria-expanded={isInstExpanded}
+                                    aria-label={
+                                      isInstExpanded
+                                        ? `Contraer fuentes de ${groupInst.nombre}`
+                                        : `Expandir fuentes de ${groupInst.nombre}`
+                                    }
+                                    className="size-7 rounded-lg text-primary hover:bg-primary/15"
+                                  >
+                                    <ChevronRight
+                                      className={cn(
+                                        "size-4 transition-transform duration-200",
+                                        isInstExpanded && "rotate-90"
+                                      )}
+                                    />
+                                  </Button>
+                                </TableCell>
+                                <TableCell colSpan={5} className="py-2.5">
+                                  <div className="flex flex-wrap items-center justify-between gap-2">
+                                    <div className="flex items-center gap-2.5 flex-wrap">
+                                      <Building2 className="size-4 text-primary shrink-0" />
+                                      <Badge
+                                        tone="primary"
+                                        appearance="solid"
+                                        size="sm"
+                                        className="font-bold text-[10px] tracking-wider !text-white px-2 py-0.5 shadow-2xs"
+                                      >
+                                        {groupInst.sigla}
+                                      </Badge>
+                                      <span className="font-heading font-bold text-xs sm:text-sm text-foreground">
+                                        {groupInst.nombre}
+                                      </span>
+                                      <span className="text-[11px] font-mono text-muted-foreground">
+                                        RUC: {groupInst.codigoInstitucion}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <Badge
+                                        tone="primary"
+                                        appearance="soft"
+                                        size="sm"
+                                        className="text-[11px] font-semibold"
+                                      >
+                                        {groupItems.length}{" "}
+                                        {groupItems.length === 1
+                                          ? "fuente publicada"
+                                          : "fuentes publicadas"}
+                                      </Badge>
+                                      <Badge
+                                        tone="neutral"
+                                        appearance="outline"
+                                        size="sm"
+                                        className="text-[11px] font-semibold"
+                                      >
+                                        {totalInstCampos} campos
+                                      </Badge>
+                                    </div>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                              {isInstExpanded &&
+                                groupItems.map(
                         ({
                           fuente,
                           institucion,
@@ -1420,12 +1537,23 @@ export function CatalogoConsultaView() {
                           const isExpanded =
                             expandedFuentes[fuente.id] ?? false;
                           const rowContentId = `expandable-fuente-${fuente.id}`;
-                          const listaAccesibles = fuente.campos.filter(
-                            (c) => c.clasificacion === "Accesible"
-                          );
-                          const listaConfidenciales = fuente.campos.filter(
-                            (c) => c.clasificacion === "Confidencial"
-                          );
+                          const listaAccesibles =
+                            selectedClasificacion === "Confidencial" ||
+                            selectedClasificacion === "Confidencial_Sensible"
+                              ? []
+                              : fuente.campos.filter(
+                                  (c) => c.clasificacion === "Accesible"
+                                );
+                          const listaConfidenciales =
+                            selectedClasificacion === "Accesible"
+                              ? []
+                              : fuente.campos.filter(
+                                  (c) =>
+                                    c.clasificacion === "Confidencial" &&
+                                    (selectedClasificacion !==
+                                      "Confidencial_Sensible" ||
+                                      c.esSensible)
+                                );
 
                           return (
                             <React.Fragment key={fuente.id}>
@@ -2042,22 +2170,96 @@ export function CatalogoConsultaView() {
                           );
                         }
                       )}
+                            </React.Fragment>
+                          );
+                        }
+                      )}
                     </TableBody>
                   </Table>
                 </div>
 
-                {/* 2. VISTA DE TARJETAS (viewMode === "cards" o Mobile <md) */}
+                {/* 2. VISTA DE TARJETAS AGRUPADA POR INSTITUCIÓN (viewMode === "cards" o Mobile <md) */}
                 <div
                   className={cn(
-                    "w-full",
-                    viewMode === "cards"
-                      ? paginatedFuentes.length === 1
-                        ? "grid grid-cols-1 gap-4"
-                        : "grid grid-cols-1 lg:grid-cols-2 gap-4"
-                      : "grid grid-cols-1 gap-4 md:hidden"
+                    "w-full space-y-4",
+                    viewMode === "cards" ? "block" : "block md:hidden"
                   )}
                 >
-                  {paginatedFuentes.map((item) => renderFuenteCard(item))}
+                  {groupedPaginatedInstituciones.map(
+                    ({ institucion: groupInst, items: groupItems }) => {
+                      const isInstExpanded =
+                        expandedInstituciones[groupInst.id] ?? true;
+                      const totalInstCampos = groupItems.reduce(
+                        (acc, it) => acc + it.fuente.campos.length,
+                        0
+                      );
+                      return (
+                        <div
+                          key={`card-inst-group-${groupInst.id}`}
+                          className="rounded-xl border border-border bg-muted/15 overflow-hidden"
+                        >
+                          <div
+                            onClick={() => toggleInstitucion(groupInst.id)}
+                            className="cursor-pointer px-4 py-3 bg-muted/35 hover:bg-muted/55 flex flex-wrap items-center justify-between gap-2 transition-colors"
+                          >
+                            <div className="flex items-center gap-2.5 flex-wrap">
+                              <ChevronRight
+                                className={cn(
+                                  "size-4 text-primary transition-transform duration-200",
+                                  isInstExpanded && "rotate-90"
+                                )}
+                              />
+                              <Building2 className="size-4 text-primary shrink-0" />
+                              <Badge
+                                tone="primary"
+                                appearance="solid"
+                                size="sm"
+                                className="font-bold text-[10px] tracking-wider !text-white px-2 py-0.5 shadow-2xs"
+                              >
+                                {groupInst.sigla}
+                              </Badge>
+                              <span className="font-heading font-bold text-xs sm:text-sm text-foreground">
+                                {groupInst.nombre}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Badge
+                                tone="primary"
+                                appearance="soft"
+                                size="sm"
+                                className="text-[11px] font-semibold"
+                              >
+                                {groupItems.length}{" "}
+                                {groupItems.length === 1
+                                  ? "fuente"
+                                  : "fuentes"}
+                              </Badge>
+                              <Badge
+                                tone="neutral"
+                                appearance="outline"
+                                size="sm"
+                                className="text-[11px] font-semibold"
+                              >
+                                {totalInstCampos} campos
+                              </Badge>
+                            </div>
+                          </div>
+                          {isInstExpanded && (
+                            <div
+                              className={cn(
+                                "p-3 sm:p-4 border-t border-border/60",
+                                groupItems.length === 1
+                                  ? "grid grid-cols-1 gap-4"
+                                  : "grid grid-cols-1 lg:grid-cols-2 gap-4"
+                              )}
+                            >
+                              {groupItems.map((item) => renderFuenteCard(item))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    }
+                  )}
                 </div>
               </div>
             )}

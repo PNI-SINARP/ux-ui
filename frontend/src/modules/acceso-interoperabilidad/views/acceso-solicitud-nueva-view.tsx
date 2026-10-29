@@ -281,7 +281,11 @@ export function AccesoSolicitudNuevaView({
     }
   }, [targetSolicitud?.id]);
 
-  const toggleInstitucion = (id: string) => setExpandedInstituciones(prev => ({ ...prev, [id]: !prev[id] }));
+  const toggleInstitucion = (id: string) =>
+    setExpandedInstituciones((prev) => ({
+      ...prev,
+      [id]: !(prev[id] ?? true),
+    }));
   const toggleFuente = (id: string) => setExpandedFuentes(prev => ({ ...prev, [id]: !prev[id] }));
   const toggleCampoJustificacion = (id: string) => {
     setExpandedCamposJustificacion(prev => ({
@@ -301,9 +305,32 @@ export function AccesoSolicitudNuevaView({
   };
 
   const [catalogoInstituciones, setCatalogoInstituciones] = useState(INITIAL_INSTITUCIONES);
+  const [fuenteFilter, setFuenteFilter] = useState<string>("ALL");
+  const [pendingCambioFuente, setPendingCambioFuente] = useState<{
+    fuenteActual: string;
+    fuenteNueva: string;
+    onConfirm: () => void;
+  } | null>(null);
 
   useEffect(() => {
-    setCatalogoInstituciones(applyCatalogoOverridesToInstituciones(INITIAL_INSTITUCIONES));
+    const loaded = applyCatalogoOverridesToInstituciones(INITIAL_INSTITUCIONES);
+    setCatalogoInstituciones(loaded);
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const qFuente = params.get("fuente");
+      if (qFuente) {
+        for (const inst of loaded) {
+          const found = inst.fuentes.find((f) => f.id === qFuente && f.estado === "PUBLICADO");
+          if (found) {
+            setInstitucionFilter(inst.id);
+            setFuenteFilter(found.id);
+            setExpandedInstituciones((prev) => ({ ...prev, [inst.id]: true }));
+            setExpandedFuentes({ [found.id]: true });
+            break;
+          }
+        }
+      }
+    }
   }, []);
 
   const institucionesPublicadas = useMemo(() => {
@@ -323,6 +350,23 @@ export function AccesoSolicitudNuevaView({
     ];
   }, [institucionesPublicadas]);
 
+  const fuenteOptions = useMemo(() => {
+    const insts =
+      institucionFilter === "ALL"
+        ? institucionesPublicadas
+        : institucionesPublicadas.filter((i) => i.id === institucionFilter);
+    return [
+      { value: "ALL", label: "Todas las fuentes publicadas" },
+      ...insts.flatMap((inst) =>
+        inst.fuentes.map((f) => ({
+          value: f.id,
+          label: `${f.codigoServicio} — ${f.nombre}`,
+          instId: inst.id,
+        }))
+      ),
+    ];
+  }, [institucionesPublicadas, institucionFilter]);
+
   const clasificacionOptions = useMemo(() => [
     { value: "ALL", label: "Todas las clasificaciones" },
     { value: "Accesible", label: "Accesible" },
@@ -340,6 +384,7 @@ export function AccesoSolicitudNuevaView({
       })
       .map(inst => {
         const matchingFuentes = inst.fuentes
+          .filter(fuente => fuenteFilter === "ALL" || fuente.id === fuenteFilter)
           .map(fuente => {
             const matchingCampos = fuente.campos.filter(campo => {
               if (clasificacionFilter === "Accesible" && campo.clasificacion !== "Accesible") {
@@ -412,6 +457,25 @@ export function AccesoSolicitudNuevaView({
     return list;
   }, [filteredInstituciones]);
 
+  // Agrupación obligatoria: Institución proveedora → Fuente de información → Campos disponibles
+  const groupedFuentesPorInstitucion = useMemo(() => {
+    const map = new Map<
+      string,
+      {
+        institucion: (typeof institucionesPublicadas)[0];
+        items: typeof flattenedFuentes;
+      }
+    >();
+    for (const item of flattenedFuentes) {
+      const instId = item.institucion.id;
+      if (!map.has(instId)) {
+        map.set(instId, { institucion: item.institucion, items: [] });
+      }
+      map.get(instId)!.items.push(item);
+    }
+    return Array.from(map.values());
+  }, [flattenedFuentes]);
+
   const [restrictionAlert, setRestrictionAlert] = useState<{
     fuenteActual: string;
     fuenteIntentada: string;
@@ -475,13 +539,19 @@ export function AccesoSolicitudNuevaView({
       const currentLabel = activeFuente.servicioNombre
         ? `${activeFuente.servicioNombre} (${activeFuente.nombre})`
         : activeFuente.nombre;
+      const nextLabel = fuenteNombre || "otra fuente";
       setRestrictionAlert({
         fuenteActual: currentLabel,
-        fuenteIntentada: fuenteNombre || "otra fuente",
+        fuenteIntentada: nextLabel,
       });
-      toast.warning("Para esta solicitud solo puedes seleccionar campos pertenecientes a una misma fuente.", {
-        description: `Fuente seleccionada: "${currentLabel}". No se permite combinar campos de múltiples fuentes en una sola solicitud.`,
-        duration: 5000,
+      setPendingCambioFuente({
+        fuenteActual: currentLabel,
+        fuenteNueva: nextLabel,
+        onConfirm: () => {
+          setSelectedCampos({ [campoId]: true });
+          setRestrictionAlert(null);
+          setPendingCambioFuente(null);
+        },
       });
       return;
     }
@@ -513,9 +583,18 @@ export function AccesoSolicitudNuevaView({
         fuenteActual: currentLabel,
         fuenteIntentada: fuenteLabel,
       });
-      toast.warning("Para esta solicitud solo puedes seleccionar campos pertenecientes a una misma fuente.", {
-        description: `Fuente seleccionada: "${currentLabel}". No se permite combinar campos de múltiples fuentes en una sola solicitud.`,
-        duration: 5000,
+      setPendingCambioFuente({
+        fuenteActual: currentLabel,
+        fuenteNueva: fuenteLabel,
+        onConfirm: () => {
+          const next: Record<string, boolean> = {};
+          fuente.campos.forEach((c) => {
+            next[c.id] = true;
+          });
+          setSelectedCampos(next);
+          setRestrictionAlert(null);
+          setPendingCambioFuente(null);
+        },
       });
       return;
     }
@@ -1144,13 +1223,14 @@ export function AccesoSolicitudNuevaView({
 
                   {/* Cuerpo del Paso 2 */}
                   <div className="p-4 sm:p-6 flex flex-col gap-5 w-full">
-                    {/* Resumen compacto del Paso 1 */}
+                    {/* Resumen compacto del Paso 1 + Selección actual (Proyecto → Institución → Fuente → Campos) */}
                     <div className="p-3.5 rounded-xl bg-muted/20 border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 w-full">
                       <div className="flex flex-wrap items-center gap-2 text-xs">
                         <Badge tone="neutral" appearance="soft" size="sm" className="gap-1.5 font-semibold">
                           <Briefcase className="size-3 text-primary" />
                           <span>{activeProyecto.id} — {activeProyecto.nombre}</span>
                         </Badge>
+<<<<<<< HEAD
                         <Badge tone="neutral" appearance="outline" size="sm" className="font-mono">
                           Cupo: {cupoSolicitado.toLocaleString()} reg./mes
                         </Badge>
@@ -1158,6 +1238,32 @@ export function AccesoSolicitudNuevaView({
                           <Paperclip className="size-3 text-primary" />
                           <span>{documentosAdjuntos.length} doc(s)</span>
                         </Badge>
+=======
+                        {activeFuente ? (
+                          <>
+                            <Badge tone="primary" appearance="soft" size="sm" className="gap-1.5 font-semibold">
+                              <Building2 className="size-3 text-primary" />
+                              <span>{activeFuente.nombre}</span>
+                            </Badge>
+                            <Badge tone="info" appearance="soft" size="sm" className="gap-1.5 font-semibold">
+                              <Database className="size-3 text-primary" />
+                              <span>{activeFuente.servicioNombre}</span>
+                            </Badge>
+                            <Badge tone="success" appearance="soft" size="sm" className="font-semibold">
+                              {selectedCount} {selectedCount === 1 ? "campo seleccionado" : "campos seleccionados"}
+                            </Badge>
+                          </>
+                        ) : (
+                          <>
+                            <Badge tone="info" appearance="soft" size="sm">
+                              {modalidadSolicitada}
+                            </Badge>
+                            <Badge tone="neutral" appearance="outline" size="sm" className="font-mono">
+                              Cupo: {cupoSolicitado.toLocaleString()} reg./mes
+                            </Badge>
+                          </>
+                        )}
+>>>>>>> e7f9c46 (ajuste fuentes)
                       </div>
                       <Button
                         type="button"
@@ -1175,12 +1281,12 @@ export function AccesoSolicitudNuevaView({
                       <div className="flex flex-col gap-3 w-full">
                         <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-3.5 w-full">
                           <div className="grid grid-cols-1 sm:grid-cols-12 gap-3.5 flex-1 items-end">
-                            <div className="sm:col-span-12 lg:col-span-5 space-y-1.5">
+                            <div className="sm:col-span-12 lg:col-span-3 space-y-1.5">
                               <label className="text-xs font-medium text-muted-foreground whitespace-nowrap block">
                                 Búsqueda general
                               </label>
                               <SearchInput
-                                placeholder="Buscar por fuente, código, institución o campo..."
+                                placeholder="Buscar por institución, fuente o campo..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 onClear={() => setSearchTerm("")}
@@ -1188,7 +1294,7 @@ export function AccesoSolicitudNuevaView({
                               />
                             </div>
 
-                            <div className="sm:col-span-6 lg:col-span-4 space-y-1.5">
+                            <div className="sm:col-span-6 lg:col-span-3 space-y-1.5">
                               <label className="text-xs font-medium text-muted-foreground whitespace-nowrap block">
                                 Institución proveedora
                               </label>
@@ -1201,7 +1307,28 @@ export function AccesoSolicitudNuevaView({
                                 onValueChange={(val: any) => {
                                   if (val) {
                                     const selected = typeof val === "string" ? val : val.value;
+                                    if (
+                                      selected !== "ALL" &&
+                                      activeFuente &&
+                                      activeFuente.instId !== selected &&
+                                      selectedCount > 0
+                                    ) {
+                                      const targetInst = institucionesPublicadas.find((i) => i.id === selected);
+                                      setPendingCambioFuente({
+                                        fuenteActual: `${activeFuente.servicioNombre} (${activeFuente.nombre})`,
+                                        fuenteNueva: targetInst?.nombre || "otra institución",
+                                        onConfirm: () => {
+                                          setSelectedCampos({});
+                                          setRestrictionAlert(null);
+                                          setInstitucionFilter(selected);
+                                          setFuenteFilter("ALL");
+                                          setPendingCambioFuente(null);
+                                        },
+                                      });
+                                      return;
+                                    }
                                     setInstitucionFilter(selected);
+                                    setFuenteFilter("ALL");
                                   }
                                 }}
                               >
@@ -1214,6 +1341,64 @@ export function AccesoSolicitudNuevaView({
                                 <ComboboxContent align="start" className="w-80 max-w-[90vw]">
                                   <ComboboxList>
                                     {institucionOptions.map((opt) => (
+                                      <ComboboxItem key={opt.value} value={opt} className="text-xs">
+                                        {opt.label}
+                                      </ComboboxItem>
+                                    ))}
+                                  </ComboboxList>
+                                </ComboboxContent>
+                              </Combobox>
+                            </div>
+
+                            <div className="sm:col-span-6 lg:col-span-3 space-y-1.5">
+                              <label className="text-xs font-medium text-muted-foreground whitespace-nowrap block">
+                                Fuente de información
+                              </label>
+                              <Combobox
+                                items={fuenteOptions}
+                                value={
+                                  fuenteOptions.find((opt) => opt.value === fuenteFilter) ||
+                                  fuenteOptions[0]
+                                }
+                                onValueChange={(val: any) => {
+                                  if (val) {
+                                    const selected = typeof val === "string" ? val : val.value;
+                                    if (
+                                      selected !== "ALL" &&
+                                      activeFuente &&
+                                      activeFuente.id !== selected &&
+                                      selectedCount > 0
+                                    ) {
+                                      const targetOpt = fuenteOptions.find((o) => o.value === selected);
+                                      setPendingCambioFuente({
+                                        fuenteActual: `${activeFuente.servicioNombre} (${activeFuente.nombre})`,
+                                        fuenteNueva: targetOpt?.label || "otra fuente",
+                                        onConfirm: () => {
+                                          setSelectedCampos({});
+                                          setRestrictionAlert(null);
+                                          setFuenteFilter(selected);
+                                          setExpandedFuentes((prev) => ({ ...prev, [selected]: true }));
+                                          setPendingCambioFuente(null);
+                                        },
+                                      });
+                                      return;
+                                    }
+                                    setFuenteFilter(selected);
+                                    if (selected !== "ALL") {
+                                      setExpandedFuentes((prev) => ({ ...prev, [selected]: true }));
+                                    }
+                                  }
+                                }}
+                              >
+                                <ComboboxSelectTrigger className="w-full h-10 justify-between text-xs sm:text-sm font-normal bg-background rounded-xl border-border/80 px-3.5 hover:bg-muted/40 shadow-none">
+                                  <span className="truncate">
+                                    {fuenteOptions.find((opt) => opt.value === fuenteFilter)?.label ||
+                                      "Todas las fuentes publicadas"}
+                                  </span>
+                                </ComboboxSelectTrigger>
+                                <ComboboxContent align="start" className="w-80 max-w-[90vw]">
+                                  <ComboboxList>
+                                    {fuenteOptions.map((opt) => (
                                       <ComboboxItem key={opt.value} value={opt} className="text-xs">
                                         {opt.label}
                                       </ComboboxItem>
@@ -1389,8 +1574,16 @@ export function AccesoSolicitudNuevaView({
                               variant="neutral"
                               size="sm"
                               onClick={() => {
-                                setSelectedCampos({});
-                                setRestrictionAlert(null);
+                                setPendingCambioFuente({
+                                  fuenteActual: `${activeFuente.servicioNombre || activeFuente.nombre} (${activeFuente.nombre})`,
+                                  fuenteNueva: "una nueva fuente del catálogo",
+                                  onConfirm: () => {
+                                    setSelectedCampos({});
+                                    setRestrictionAlert(null);
+                                    setFuenteFilter("ALL");
+                                    setPendingCambioFuente(null);
+                                  },
+                                });
                               }}
                               className="h-7 px-2.5 text-[11px] gap-1"
                             >
@@ -1473,7 +1666,85 @@ export function AccesoSolicitudNuevaView({
                                 </TableRow>
                               </TableHeader>
                               <TableBody>
-                                {flattenedFuentes.map(
+                                {groupedFuentesPorInstitucion.map(
+                                  ({ institucion: groupInst, items: groupItems }) => {
+                                    const isInstExpanded =
+                                      expandedInstituciones[groupInst.id] ?? true;
+                                    const totalInstCampos = groupItems.reduce(
+                                      (acc, it) => acc + it.fuente.campos.length,
+                                      0
+                                    );
+                                    return (
+                                      <React.Fragment key={`bn07-inst-group-${groupInst.id}`}>
+                                        <TableRow
+                                          onClick={() => toggleInstitucion(groupInst.id)}
+                                          className="cursor-pointer bg-muted/40 hover:bg-muted/65 border-y border-border transition-colors"
+                                        >
+                                          <TableCell
+                                            className="text-center py-2.5"
+                                            onClick={(e) => e.stopPropagation()}
+                                          >
+                                            <Button
+                                              type="button"
+                                              variant="ghost"
+                                              size="icon-sm"
+                                              onClick={() => toggleInstitucion(groupInst.id)}
+                                              aria-expanded={isInstExpanded}
+                                              className="size-7 rounded-lg text-primary hover:bg-primary/15"
+                                            >
+                                              <ChevronRight
+                                                className={cn(
+                                                  "size-4 transition-transform duration-200",
+                                                  isInstExpanded && "rotate-90"
+                                                )}
+                                              />
+                                            </Button>
+                                          </TableCell>
+                                          <TableCell colSpan={6} className="py-2.5">
+                                            <div className="flex flex-wrap items-center justify-between gap-2">
+                                              <div className="flex items-center gap-2.5 flex-wrap">
+                                                <Building2 className="size-4 text-primary shrink-0" />
+                                                <Badge
+                                                  tone="primary"
+                                                  appearance="solid"
+                                                  size="sm"
+                                                  className="font-bold text-[10px] tracking-wider !text-white px-2 py-0.5 shadow-2xs"
+                                                >
+                                                  {groupInst.sigla}
+                                                </Badge>
+                                                <span className="font-heading font-bold text-xs sm:text-sm text-foreground">
+                                                  {groupInst.nombre}
+                                                </span>
+                                                <span className="text-[11px] font-mono text-muted-foreground">
+                                                  RUC: {groupInst.codigoInstitucion}
+                                                </span>
+                                              </div>
+                                              <div className="flex items-center gap-2">
+                                                <Badge
+                                                  tone="primary"
+                                                  appearance="soft"
+                                                  size="sm"
+                                                  className="text-[11px] font-semibold"
+                                                >
+                                                  {groupItems.length}{" "}
+                                                  {groupItems.length === 1
+                                                    ? "fuente publicada"
+                                                    : "fuentes publicadas"}
+                                                </Badge>
+                                                <Badge
+                                                  tone="neutral"
+                                                  appearance="outline"
+                                                  size="sm"
+                                                  className="text-[11px] font-semibold"
+                                                >
+                                                  {totalInstCampos} campos
+                                                </Badge>
+                                              </div>
+                                            </div>
+                                          </TableCell>
+                                        </TableRow>
+                                        {isInstExpanded &&
+                                          groupItems.map(
                                   ({
                                     fuente,
                                     institucion,
@@ -2019,22 +2290,88 @@ export function AccesoSolicitudNuevaView({
                                     );
                                   }
                                 )}
+                                      </React.Fragment>
+                                    );
+                                  }
+                                )}
                               </TableBody>
                             </Table>
                           </div>
 
-                          {/* 2. VISTA DE TARJETAS (viewMode === "cards" o Mobile <md) */}
+                          {/* 2. VISTA DE TARJETAS AGRUPADA POR INSTITUCIÓN (viewMode === "cards" o Mobile <md) */}
                           <div
                             className={cn(
-                              "w-full",
-                              viewMode === "cards"
-                                ? flattenedFuentes.length === 1
-                                  ? "grid grid-cols-1 gap-4"
-                                  : "grid grid-cols-1 lg:grid-cols-2 gap-4"
-                                : "grid grid-cols-1 gap-4 md:hidden"
+                              "w-full space-y-4",
+                              viewMode === "cards" ? "block" : "block md:hidden"
                             )}
                           >
-                            {flattenedFuentes.map(
+                            {groupedFuentesPorInstitucion.map(
+                              ({ institucion: groupInst, items: groupItems }) => {
+                                const isInstExpanded =
+                                  expandedInstituciones[groupInst.id] ?? true;
+                                const totalInstCampos = groupItems.reduce(
+                                  (acc, it) => acc + it.fuente.campos.length,
+                                  0
+                                );
+                                return (
+                                  <div
+                                    key={`bn07-card-inst-${groupInst.id}`}
+                                    className="rounded-xl border border-border bg-muted/15 overflow-hidden"
+                                  >
+                                    <div
+                                      onClick={() => toggleInstitucion(groupInst.id)}
+                                      className="cursor-pointer px-4 py-3 bg-muted/35 hover:bg-muted/55 flex flex-wrap items-center justify-between gap-2 transition-colors"
+                                    >
+                                      <div className="flex items-center gap-2.5 flex-wrap">
+                                        <ChevronRight
+                                          className={cn(
+                                            "size-4 text-primary transition-transform duration-200",
+                                            isInstExpanded && "rotate-90"
+                                          )}
+                                        />
+                                        <Building2 className="size-4 text-primary shrink-0" />
+                                        <Badge
+                                          tone="primary"
+                                          appearance="solid"
+                                          size="sm"
+                                          className="font-bold text-[10px] tracking-wider !text-white px-2 py-0.5 shadow-2xs"
+                                        >
+                                          {groupInst.sigla}
+                                        </Badge>
+                                        <span className="font-heading font-bold text-xs sm:text-sm text-foreground">
+                                          {groupInst.nombre}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <Badge
+                                          tone="primary"
+                                          appearance="soft"
+                                          size="sm"
+                                          className="text-[11px] font-semibold"
+                                        >
+                                          {groupItems.length}{" "}
+                                          {groupItems.length === 1 ? "fuente" : "fuentes"}
+                                        </Badge>
+                                        <Badge
+                                          tone="neutral"
+                                          appearance="outline"
+                                          size="sm"
+                                          className="text-[11px] font-semibold"
+                                        >
+                                          {totalInstCampos} campos
+                                        </Badge>
+                                      </div>
+                                    </div>
+                                    {isInstExpanded && (
+                                      <div
+                                        className={cn(
+                                          "p-3 sm:p-4 border-t border-border/60",
+                                          groupItems.length === 1
+                                            ? "grid grid-cols-1 gap-4"
+                                            : "grid grid-cols-1 lg:grid-cols-2 gap-4"
+                                        )}
+                                      >
+                                        {groupItems.map(
                               ({
                                 fuente,
                                 institucion,
@@ -2497,10 +2834,62 @@ export function AccesoSolicitudNuevaView({
                                 );
                               }
                             )}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              }
+                            )}
                           </div>
                         </div>
                       )}
                     </div>
+
+                    {/* Modal de confirmación al cambiar de fuente después de haber seleccionado campos */}
+                    <Dialog
+                      open={Boolean(pendingCambioFuente)}
+                      onOpenChange={(open) => {
+                        if (!open) setPendingCambioFuente(null);
+                      }}
+                    >
+                      <DialogContent className="sm:max-w-md">
+                        <DialogHeader>
+                          <DialogTitle className="flex items-center gap-2 text-base font-heading font-bold">
+                            <AlertTriangle className="size-5 text-warning" />
+                            <span>¿Confirmar cambio de fuente?</span>
+                          </DialogTitle>
+                          <DialogDescription className="text-xs sm:text-sm leading-relaxed pt-1">
+                            No se permite combinar campos de fuentes distintas en una misma solicitud. Actualmente tiene{" "}
+                            <strong className="text-foreground font-semibold">
+                              {selectedCount} {selectedCount === 1 ? "campo seleccionado" : "campos seleccionados"}
+                            </strong>{" "}
+                            de <strong className="text-foreground font-semibold">{pendingCambioFuente?.fuenteActual}</strong>. Si cambia a{" "}
+                            <strong className="text-foreground font-semibold">{pendingCambioFuente?.fuenteNueva}</strong>, se descartará la selección actual.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter className="gap-2 sm:gap-2 pt-2">
+                          <Button
+                            type="button"
+                            variant="neutral"
+                            size="sm"
+                            onClick={() => setPendingCambioFuente(null)}
+                          >
+                            Conservar selección actual
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="primary"
+                            size="sm"
+                            onClick={() => {
+                              pendingCambioFuente?.onConfirm();
+                              toast.info("Selección anterior descartada");
+                            }}
+                          >
+                            Confirmar y cambiar de fuente
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
 
                   </div>
 
