@@ -465,7 +465,7 @@ export function CatalogoConsultaView() {
             <div className="p-2.5 rounded-lg bg-muted/25 border border-border/50 space-y-1">
               <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
                 <Scale className="size-3 text-primary" />
-                Base Legal y Modalidad
+                Base Legal y Tipo de Servicio
               </span>
               <span
                 className="text-xs font-medium text-foreground block line-clamp-1"
@@ -1702,7 +1702,7 @@ export function CatalogoConsultaView() {
                                               {fuente.campos.length} campos)
                                             </span>
                                             <p className="text-xs text-muted-foreground">
-                                              {fuente.descripcion} • Modalidad:{" "}
+                                              {fuente.descripcion} • Servicio:{" "}
                                               <strong className="text-foreground">
                                                 {fuente.tipoConsumo}
                                               </strong>

@@ -50,7 +50,6 @@ export interface CrearFuenteInput {
   coordinador_nombre: string;
   disponibilidad_objetivo: number;
   tiempo_maximo_respuesta_ms: number;
-  modalidades_soportadas: "API individual" | "API masiva" | "Ambas modalidades";
   formato_respuesta: "application/json" | "application/xml";
   tipo_dato_pruebas: "Sintético" | "Anonimizado" | "Real" | "Indeterminado";
   parametros_consulta: ParametroConsulta[];
@@ -140,7 +139,6 @@ export function useFuentesStore() {
           disponibilidad_objetivo: Number(input.disponibilidad_objetivo) || 99.5,
           tiempo_maximo_respuesta_ms: Number(input.tiempo_maximo_respuesta_ms) || 300,
         },
-        modalidades_soportadas: input.modalidades_soportadas,
         formato_respuesta: input.formato_respuesta,
         tipo_dato_pruebas: input.tipo_dato_pruebas,
         parametros_consulta: input.parametros_consulta,

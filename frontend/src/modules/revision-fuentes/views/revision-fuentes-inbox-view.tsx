@@ -660,9 +660,6 @@ export function RevisionFuentesInboxView({ currentUser }: RevisionFuentesInboxVi
                           >
                             {fuente.nombre}
                           </Link>
-                          <span className="text-[11px] text-muted-foreground">
-                            {fuente.modalidades_soportadas}
-                          </span>
                         </TableCell>
 
                         <TableCell>
@@ -786,9 +783,6 @@ export function RevisionFuentesInboxView({ currentUser }: RevisionFuentesInboxVi
                     meta={
                       <div className="flex flex-wrap items-center gap-1.5">
                         {getEstadoBadge(fuente.estado)}
-                        <Badge tone="neutral" appearance="soft" size="sm" className="text-[10px]">
-                          {fuente.modalidades_soportadas}
-                        </Badge>
                       </div>
                     }
                   >

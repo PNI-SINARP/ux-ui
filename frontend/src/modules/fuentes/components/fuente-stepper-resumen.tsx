@@ -94,10 +94,6 @@ export function FuenteStepperResumen({
                 </span>
               </div>
               <div>
-                <span className="text-muted-foreground block text-[11px]">Modalidad:</span>
-                <span className="font-medium text-foreground">{info.modalidades_soportadas}</span>
-              </div>
-              <div>
                 <span className="text-muted-foreground block text-[11px]">Datos prueba:</span>
                 <Badge tone={info.tipo_dato_pruebas === "Real" ? "warning" : "success"} appearance="soft" size="sm">
                   {info.tipo_dato_pruebas}

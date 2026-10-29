@@ -90,7 +90,6 @@ interface SolicitudProyectoEnriquecida {
   accesiblesCount: number;
   confidencialesCount: number;
   sensiblesCount: number;
-  modalidad: string;
   coordinador: string;
   etapaActual: string;
   quePasoResumen: string;
@@ -267,7 +266,6 @@ export function ProyectoDetailView({ id: idProp, params }: ProyectoDetailViewPro
         accesiblesCount,
         confidencialesCount,
         sensiblesCount,
-        modalidad: match?.modalidad || "Consumo permanente",
         coordinador: match?.responsable || sol.coordinador || proyecto.creadoPor,
         etapaActual,
         quePasoResumen,
@@ -1216,9 +1214,6 @@ export function ProyectoDetailView({ id: idProp, params }: ProyectoDetailViewPro
                                     <p className="text-xs text-muted-foreground leading-snug">
                                       {sol.servicioPrincipal}
                                     </p>
-                                    <span className="text-[11px] text-muted-foreground/80 block">
-                                      Modalidad: {sol.modalidad}
-                                    </span>
                                   </div>
                                 </TableCell>
 

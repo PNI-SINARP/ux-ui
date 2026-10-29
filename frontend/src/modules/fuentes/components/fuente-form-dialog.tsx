@@ -131,7 +131,6 @@ export function FuenteFormDialog({
       version_propuesta: "v1.2.0",
       disponibilidad_objetivo: 99.8,
       tiempo_maximo_respuesta_ms: 250,
-      modalidades_soportadas: "Ambas modalidades",
       formato_respuesta: "application/json",
       tipo_dato_pruebas: "Sintético",
       parametros_consulta: [
@@ -215,7 +214,6 @@ export function FuenteFormDialog({
     version_propuesta: "v1.0.0",
     disponibilidad_objetivo: 99.5,
     tiempo_maximo_respuesta_ms: 300,
-    modalidades_soportadas: "Ambas modalidades",
     formato_respuesta: "application/json",
     tipo_dato_pruebas: "Sintético",
     parametros_consulta: [
@@ -257,7 +255,6 @@ export function FuenteFormDialog({
           version_propuesta: fuenteAEditar.version_propuesta,
           disponibilidad_objetivo: fuenteAEditar.sla_fuente.disponibilidad_objetivo,
           tiempo_maximo_respuesta_ms: fuenteAEditar.sla_fuente.tiempo_maximo_respuesta_ms,
-          modalidades_soportadas: fuenteAEditar.modalidades_soportadas,
           formato_respuesta: fuenteAEditar.formato_respuesta as "application/json" | "application/xml",
           tipo_dato_pruebas: fuenteAEditar.tipo_dato_pruebas,
           parametros_consulta: [...fuenteAEditar.parametros_consulta],
@@ -276,7 +273,6 @@ export function FuenteFormDialog({
           version_propuesta: "v1.0.0",
           disponibilidad_objetivo: 99.5,
           tiempo_maximo_respuesta_ms: 300,
-          modalidades_soportadas: "Ambas modalidades",
           formato_respuesta: "application/json",
           tipo_dato_pruebas: "Sintético",
           parametros_consulta: [
@@ -429,7 +425,6 @@ export function FuenteFormDialog({
               disponibilidad_objetivo: Number(infoData.disponibilidad_objetivo) || 99.5,
               tiempo_maximo_respuesta_ms: Number(infoData.tiempo_maximo_respuesta_ms) || 300,
             },
-            modalidades_soportadas: infoData.modalidades_soportadas,
             formato_respuesta: infoData.formato_respuesta,
             tipo_dato_pruebas: infoData.tipo_dato_pruebas,
             parametros_consulta: infoData.parametros_consulta,
@@ -500,7 +495,6 @@ export function FuenteFormDialog({
             coordinador_nombre: coordinadorNombre,
             disponibilidad_objetivo: infoData.disponibilidad_objetivo,
             tiempo_maximo_respuesta_ms: infoData.tiempo_maximo_respuesta_ms,
-            modalidades_soportadas: infoData.modalidades_soportadas,
             formato_respuesta: infoData.formato_respuesta,
             tipo_dato_pruebas: infoData.tipo_dato_pruebas,
             parametros_consulta: infoData.parametros_consulta,

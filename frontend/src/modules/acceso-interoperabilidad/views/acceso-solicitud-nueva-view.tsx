@@ -149,7 +149,7 @@ export function AccesoSolicitudNuevaView({
     "Se subsanaron las observaciones del expediente conforme a los requerimientos de Gestión."
   );
 
-  // Step 1 State - Proyecto, Modalidad, Cupo y Documentos
+  // Step 1 State - Proyecto, Cupo y Documentos
   const [selectedProyectoId, setSelectedProyectoId] = useState<string>(() => {
     return targetSolicitud?.proyectoId || "PRJ-2026-001";
   });
@@ -167,12 +167,6 @@ export function AccesoSolicitudNuevaView({
       label: `${p.id} - ${p.nombre}`,
     }));
   }, []);
-  const [modalidadSolicitada, setModalidadSolicitada] = useState<"API individual" | "API masiva" | "Ambas">(() => {
-    if (targetSolicitud?.modalidad) {
-      return targetSolicitud.modalidad as "API individual" | "API masiva" | "Ambas";
-    }
-    return "API individual";
-  });
   const [cupoSolicitado, setCupoSolicitado] = useState<number>(() => {
     return targetSolicitud?.cupo || 50000;
   });
@@ -255,7 +249,6 @@ export function AccesoSolicitudNuevaView({
   useEffect(() => {
     if (targetSolicitud) {
       if (targetSolicitud.proyectoId) setSelectedProyectoId(targetSolicitud.proyectoId);
-      if (targetSolicitud.modalidad) setModalidadSolicitada(targetSolicitud.modalidad as any);
       if (targetSolicitud.cupo) setCupoSolicitado(targetSolicitud.cupo);
       if (targetSolicitud.documentos && targetSolicitud.documentos.length > 0) {
         setDocumentosAdjuntos(
@@ -546,7 +539,7 @@ export function AccesoSolicitudNuevaView({
 
   const selectedCount = Object.values(selectedCampos).filter(Boolean).length;
 
-  const isStep1Valid = Boolean(selectedProyectoId && modalidadSolicitada && cupoSolicitado >= 100 && documentosAdjuntos.length > 0);
+  const isStep1Valid = Boolean(selectedProyectoId && cupoSolicitado >= 100 && documentosAdjuntos.length > 0);
 
   const isStep3Valid = selectedCamposDetails.every(c => {
     const j = justificaciones[c.campo.id];
@@ -574,13 +567,13 @@ export function AccesoSolicitudNuevaView({
       id: "step1",
       target: "#stepper-container",
       title: "Progreso de solicitud",
-      description: "Esta solicitud se completa en 4 pasos: Proyecto y modalidad, Selección de información, Justificación de campos y Revisión."
+      description: "Esta solicitud se completa en 4 pasos: Proyecto y respaldo, Selección de información, Justificación de campos y Revisión."
     },
     {
       id: "step2",
       target: "#proyecto-modalidad-step",
-      title: "Proyecto y modalidad (Paso 1)",
-      description: "Seleccione primero el proyecto institucional activo, la modalidad de consulta, el cupo mensual y adjunte la documentación de respaldo.",
+      title: "Proyecto y respaldo (Paso 1)",
+      description: "Seleccione primero el proyecto institucional activo, el cupo mensual y adjunte la documentación de respaldo.",
       onBeforeStep: () => setStep(1)
     },
     {
@@ -628,7 +621,6 @@ export function AccesoSolicitudNuevaView({
       estado: "Borrador",
       proyectoId: activeProyecto.id,
       proyectoNombre: activeProyecto.nombre,
-      modalidad: modalidadSolicitada,
       cupo: cupoSolicitado,
       documentos: documentosAdjuntos,
       fuentePrincipal: fuenteNombre,
@@ -680,7 +672,7 @@ export function AccesoSolicitudNuevaView({
   };
 
   const stepperSteps: Step[] = [
-    { id: "1", title: "Proyecto y modalidad", icon: Briefcase },
+    { id: "1", title: "Proyecto y respaldo", icon: Briefcase },
     { id: "2", title: "Seleccionar información", icon: Database },
     { id: "3", title: "Justificar campos", icon: FileText },
     { id: "4", title: "Revisar y enviar", icon: Send },
@@ -834,7 +826,7 @@ export function AccesoSolicitudNuevaView({
                 />
               </div>
 
-              {/* PASO 1: PROYECTO Y MODALIDAD */}
+              {/* PASO 1: PROYECTO Y RESPALDO */}
               {step === 1 && (
                 <div className="flex flex-col w-full animate-in fade-in duration-200" id="proyecto-modalidad-step">
                   {/* Cabecera Sección I al ras */}
@@ -845,10 +837,10 @@ export function AccesoSolicitudNuevaView({
                       </div>
                       <div>
                         <h2 className="text-base font-bold font-heading text-primary dark:text-primary-300">
-                          Sección I — Proyecto Institucional, Modalidad y Documentación Habilitante
+                          Sección I — Proyecto Institucional y Documentación Habilitante
                         </h2>
                         <p className="text-xs text-muted-foreground mt-0.5">
-                          Seleccione el proyecto activo al que se vinculará la solicitud (SOL-01), la modalidad técnica de consumo y adjunte el respaldo legal (SOL-02).
+                          Seleccione el proyecto activo al que se vinculará la solicitud (SOL-01), el cupo solicitado y adjunte el respaldo legal (SOL-02).
                         </p>
                       </div>
                     </div>
@@ -859,7 +851,7 @@ export function AccesoSolicitudNuevaView({
 
                   {/* Cuerpo del Paso 1 aprovechando laterales (2 columnas en desktop) */}
                   <div className="p-5 sm:p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-12 gap-6 w-full items-start">
-                    {/* Columna Izquierda (7 cols): Selección de Proyecto, Modalidad, Cupo y Documentación */}
+                    {/* Columna Izquierda (7 cols): Selección de Proyecto, Cupo y Documentación */}
                     <div className="lg:col-span-7 flex flex-col gap-6 w-full">
                       {/* Sub-sección 1.1 */}
                       <div className="space-y-4 w-full">
@@ -868,7 +860,7 @@ export function AccesoSolicitudNuevaView({
                             <Briefcase className="size-4 text-primary dark:text-primary-300 shrink-0 mt-0.5" />
                             <div className="min-w-0">
                               <h3 className="text-sm font-bold font-heading text-primary dark:text-primary-300 leading-snug">
-                                1.1 Vinculación de Proyecto y Modalidad Técnica
+                                1.1 Vinculación de Proyecto y Cupo
                               </h3>
                               <p className="text-xs text-muted-foreground mt-0.5">
                                 Asocie el proyecto institucional autorizado y defina la capacidad operativa requerida.
@@ -922,64 +914,7 @@ export function AccesoSolicitudNuevaView({
                             </Combobox>
                           </div>
 
-                          <div className="sm:col-span-7 space-y-1.5">
-                            <label className="text-caption font-semibold text-foreground block">
-                              Modalidad de consulta solicitada <span className="text-danger">*</span>
-                            </label>
-                            <Combobox
-                              items={[
-                                { value: "API individual", label: "API individual (Tiempo real)" },
-                                { value: "API masiva", label: "API masiva (Por lotes)" },
-                                { value: "Ambas", label: "Ambas (Individual y Masiva)" },
-                              ]}
-                              value={{
-                                value: modalidadSolicitada,
-                                label:
-                                  modalidadSolicitada === "API individual"
-                                    ? "API individual (Tiempo real)"
-                                    : modalidadSolicitada === "API masiva"
-                                    ? "API masiva (Por lotes)"
-                                    : "Ambas (Individual y Masiva)",
-                              }}
-                              onValueChange={(val: any) => {
-                                if (val) {
-                                  const next = typeof val === "string" ? val : val.value;
-                                  setModalidadSolicitada(
-                                    next as "API individual" | "API masiva" | "Ambas"
-                                  );
-                                }
-                              }}
-                            >
-                              <ComboboxSelectTrigger className="w-full h-10 justify-between text-caption bg-background rounded-xl border-border px-3.5 shadow-none">
-                                <span className="truncate">
-                                  {modalidadSolicitada === "API individual"
-                                    ? "API individual (Tiempo real)"
-                                    : modalidadSolicitada === "API masiva"
-                                    ? "API masiva (Por lotes)"
-                                    : "Ambas (Individual y Masiva)"}
-                                </span>
-                              </ComboboxSelectTrigger>
-                              <ComboboxContent align="start" className="w-72">
-                                <ComboboxList>
-                                  {[
-                                    { value: "API individual", label: "API individual (Tiempo real)" },
-                                    { value: "API masiva", label: "API masiva (Por lotes)" },
-                                    { value: "Ambas", label: "Ambas (Individual y Masiva)" },
-                                  ].map((opt) => (
-                                    <ComboboxItem
-                                      key={opt.value}
-                                      value={opt}
-                                      className="text-caption"
-                                    >
-                                      {opt.label}
-                                    </ComboboxItem>
-                                  ))}
-                                </ComboboxList>
-                              </ComboboxContent>
-                            </Combobox>
-                          </div>
-
-                          <div className="sm:col-span-5 space-y-1.5">
+                          <div className="sm:col-span-12 space-y-1.5">
                             <label className="text-caption font-semibold text-foreground block">
                               Cupo mensual (reg.) <span className="text-danger">*</span>
                             </label>
@@ -1134,9 +1069,6 @@ export function AccesoSolicitudNuevaView({
                         <div className="pt-2 border-t border-border/60 flex items-center justify-between text-xs">
                           <span className="text-muted-foreground font-medium">Capacidad configurada:</span>
                           <div className="flex items-center gap-2">
-                            <Badge tone="info" appearance="soft" size="sm">
-                              {modalidadSolicitada}
-                            </Badge>
                             <Badge tone="neutral" appearance="outline" size="sm" className="font-mono">
                               {cupoSolicitado.toLocaleString()} reg./mes
                             </Badge>
@@ -1219,9 +1151,6 @@ export function AccesoSolicitudNuevaView({
                           <Briefcase className="size-3 text-primary" />
                           <span>{activeProyecto.id} — {activeProyecto.nombre}</span>
                         </Badge>
-                        <Badge tone="info" appearance="soft" size="sm">
-                          {modalidadSolicitada}
-                        </Badge>
                         <Badge tone="neutral" appearance="outline" size="sm" className="font-mono">
                           Cupo: {cupoSolicitado.toLocaleString()} reg./mes
                         </Badge>
@@ -1237,7 +1166,7 @@ export function AccesoSolicitudNuevaView({
                         onClick={() => setStep(1)}
                         className="h-7 px-2.5 text-caption text-primary hover:text-primary shrink-0 self-start sm:self-center"
                       >
-                        Editar proyecto y modalidad
+                        Editar proyecto y cupo
                       </Button>
                     </div>
 
@@ -1810,7 +1739,7 @@ export function AccesoSolicitudNuevaView({
                                                         {selectedInFuente} de {fuente.campos.length} seleccionados)
                                                       </span>
                                                       <p className="text-xs text-muted-foreground">
-                                                        {institucion.nombre} ({institucion.sigla}) • Modalidad:{" "}
+                                                        {institucion.nombre} ({institucion.sigla}) • Servicio:{" "}
                                                         <strong className="text-foreground">
                                                           {fuente.tipoConsumo}
                                                         </strong>
@@ -2232,7 +2161,7 @@ export function AccesoSolicitudNuevaView({
                                         <div className="p-2.5 rounded-lg bg-muted/25 border border-border/50 space-y-1">
                                           <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
                                             <Scale className="size-3 text-primary" />
-                                            Base Legal y Modalidad
+                                            Base Legal y Tipo de Servicio
                                           </span>
                                           <span
                                             className="text-xs font-medium text-foreground block line-clamp-1"
@@ -3031,7 +2960,7 @@ export function AccesoSolicitudNuevaView({
 
                   {/* Cuerpo del Paso 4 */}
                   <div className="p-4 sm:p-6 flex flex-col gap-6 w-full">
-                    {/* 4.1 Proyecto, modalidad, cupo y documentos */}
+                    {/* 4.1 Proyecto, cupo y documentos */}
                     <div className="w-full rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-2xs flex flex-col gap-4">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-border/70 gap-2">
                         <div className="flex items-center gap-2.5">
@@ -3040,7 +2969,7 @@ export function AccesoSolicitudNuevaView({
                           </span>
                           <div>
                             <h3 className="font-heading font-bold text-sm sm:text-base text-foreground">
-                              Proyecto institucional, modalidad y respaldo
+                              Proyecto institucional, cupo y respaldo
                             </h3>
                             <p className="text-xs text-muted-foreground">
                               Datos institucionales consolidados para emisión y revisión en Gestión y DPI
@@ -3078,11 +3007,10 @@ export function AccesoSolicitudNuevaView({
                         </div>
 
                         <div className="p-3.5 rounded-xl bg-muted/25 border border-border/60">
-                          <span className="text-muted-foreground block text-[11px] mb-0.5">Modalidad y cupo:</span>
+                          <span className="text-muted-foreground block text-[11px] mb-0.5">Cupo solicitado:</span>
                           <strong className="text-foreground text-xs sm:text-sm truncate block">
-                            {modalidadSolicitada}
+                            {cupoSolicitado} reg./mes
                           </strong>
-                          <span className="text-[10px] text-muted-foreground">Cupo: {cupoSolicitado} reg./mes</span>
                         </div>
 
                         <div className="p-3.5 rounded-xl bg-muted/25 border border-border/60">
@@ -3448,9 +3376,9 @@ export function AccesoSolicitudNuevaView({
                             </strong>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-muted-foreground">Modalidad / Cupo:</span>
+                            <span className="text-muted-foreground">Cupo:</span>
                             <strong className="text-foreground truncate max-w-[200px]">
-                              {modalidadSolicitada} · {cupoSolicitado} reg./mes
+                              {cupoSolicitado} reg./mes
                             </strong>
                           </div>
                           <div className="flex justify-between">
@@ -3522,7 +3450,6 @@ export function AccesoSolicitudNuevaView({
                                 subsanarYReenviar(targetSolicitud.id, {
                                   comentario: comentarioSubsanacion,
                                   fuentesActualizadas,
-                                  modalidad: modalidadSolicitada,
                                   cupo: cupoSolicitado,
                                   documentos: documentosAdjuntos,
                                 });
@@ -3536,7 +3463,6 @@ export function AccesoSolicitudNuevaView({
                                 tipoInstitucion: "Pública",
                                 proyectoId: activeProyecto.id,
                                 proyectoNombre: activeProyecto.nombre,
-                                modalidad: modalidadSolicitada,
                                 cupo: cupoSolicitado,
                                 estado: "Por revisar",
                                 documentos: documentosAdjuntos,

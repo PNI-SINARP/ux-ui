@@ -332,9 +332,6 @@ export function RevisionFuenteDetailView({ currentUser }: RevisionFuenteDetailVi
                       1. Resumen General y Alcance
                     </h3>
                   </div>
-                  <Badge tone="primary" appearance="soft" size="sm">
-                    {fuente.modalidades_soportadas}
-                  </Badge>
                 </div>
 
                 <p className="text-xs text-foreground leading-relaxed">

@@ -136,8 +136,6 @@ export function FuentesInboxView({ currentUser, openNuevaOnInit = false }: Fuent
   const [searchTerm, setSearchTerm] = useState("");
   const [estadoFilter, setEstadoFilter] = useState<string>("ALL");
   const [estadoSearch, setEstadoSearch] = useState("");
-  const [modalidadFilter, setModalidadFilter] = useState<string>("TODOS");
-  const [modalidadSearch, setModalidadSearch] = useState("");
   const [fuenteAPublicar, setFuenteAPublicar] = useState<FuenteDatos | null>(null);
   const [fuenteAConectar, setFuenteAConectar] = useState<FuenteDatos | null>(null);
   const [fuenteAEsquema, setFuenteAEsquema] = useState<FuenteDatos | null>(null);
@@ -160,13 +158,6 @@ export function FuentesInboxView({ currentUser, openNuevaOnInit = false }: Fuent
     { value: "DEVUELTA", label: "Devuelta con observaciones" },
     { value: "APROBADA", label: "Aprobada para publicación" },
     { value: "PUBLICADA", label: "Publicada en catálogo" },
-  ];
-
-  const MODALIDADES_OPCIONES = [
-    { value: "TODOS", label: "Todas las modalidades" },
-    { value: "API Individual", label: "API Individual" },
-    { value: "Lote Masivo", label: "Lote Masivo" },
-    { value: "Individual / Masivo", label: "Ambas (Individual / Masivo)" },
   ];
 
   const institucionActual =
@@ -196,14 +187,9 @@ export function FuentesInboxView({ currentUser, openNuevaOnInit = false }: Fuent
             ].includes(f.estado)
           : f.estado === estadoFilter;
 
-      const matchesModalidad =
-        modalidadFilter === "TODOS"
-          ? true
-          : f.modalidades_soportadas.toLowerCase().includes(modalidadFilter.toLowerCase());
-
-      return matchesSearch && matchesEstado && matchesModalidad;
+      return matchesSearch && matchesEstado;
     });
-  }, [fuentes, searchTerm, estadoFilter, modalidadFilter]);
+  }, [fuentes, searchTerm, estadoFilter]);
 
   const filteredEstadosForFilter = useMemo(() => {
     if (!estadoSearch.trim()) return ESTADOS_FUENTES_OPCIONES;
@@ -212,22 +198,13 @@ export function FuentesInboxView({ currentUser, openNuevaOnInit = false }: Fuent
     );
   }, [estadoSearch]);
 
-  const filteredModalidadesForFilter = useMemo(() => {
-    if (!modalidadSearch.trim()) return MODALIDADES_OPCIONES;
-    return MODALIDADES_OPCIONES.filter((m) =>
-      m.label.toLowerCase().includes(modalidadSearch.toLowerCase())
-    );
-  }, [modalidadSearch]);
-
   const hasActiveFilters =
-    searchTerm.trim() !== "" || estadoFilter !== "ALL" || modalidadFilter !== "TODOS";
+    searchTerm.trim() !== "" || estadoFilter !== "ALL";
 
   const handleClearAllFilters = () => {
     setSearchTerm("");
     setEstadoFilter("ALL");
     setEstadoSearch("");
-    setModalidadFilter("TODOS");
-    setModalidadSearch("");
     setCurrentPage(1);
   };
 
@@ -238,7 +215,7 @@ export function FuentesInboxView({ currentUser, openNuevaOnInit = false }: Fuent
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, estadoFilter, modalidadFilter]);
+  }, [searchTerm, estadoFilter]);
 
   const totalPages = Math.ceil(fuentesFiltradas.length / pageSize) || 1;
   const paginatedFuentes = useMemo(() => {
@@ -459,7 +436,6 @@ export function FuentesInboxView({ currentUser, openNuevaOnInit = false }: Fuent
       coordinador_nombre: currentUser?.name || fuenteClonada.coordinador_nombre,
       disponibilidad_objetivo: fuenteClonada.sla_fuente.disponibilidad_objetivo,
       tiempo_maximo_respuesta_ms: fuenteClonada.sla_fuente.tiempo_maximo_respuesta_ms,
-      modalidades_soportadas: fuenteClonada.modalidades_soportadas,
       formato_respuesta: fuenteClonada.formato_respuesta,
       tipo_dato_pruebas: fuenteClonada.tipo_dato_pruebas,
       parametros_consulta: fuenteClonada.parametros_consulta,
@@ -922,54 +898,6 @@ export function FuentesInboxView({ currentUser, openNuevaOnInit = false }: Fuent
                   </Combobox>
                 </div>
 
-                {/* Filtro Modalidad */}
-                <div className="flex-1 xl:w-[210px] min-w-0">
-                  <Combobox
-                    value={modalidadFilter === "TODOS" ? null : modalidadFilter}
-                    onValueChange={(val) => {
-                      setModalidadFilter(val || "TODOS");
-                    }}
-                    inputValue={modalidadSearch}
-                    onInputValueChange={(newSearch) => {
-                      const opt = MODALIDADES_OPCIONES.find(
-                        (m) =>
-                          m.value.toLowerCase() === newSearch.toLowerCase() ||
-                          m.label.toLowerCase() === newSearch.toLowerCase()
-                      );
-                      if (opt) setModalidadSearch(opt.label);
-                      else if (newSearch === "TODOS") setModalidadSearch("");
-                      else setModalidadSearch(newSearch);
-                    }}
-                  >
-                    <ComboboxInput
-                      size="sm"
-                      placeholder="Todas las modalidades"
-                      showClear={modalidadFilter !== "TODOS"}
-                      showTrigger={true}
-                      className="w-full"
-                    />
-                    <ComboboxContent className="min-w-[230px] z-[80]">
-                      <ComboboxList>
-                        <ComboboxGroup>
-                          <ComboboxLabel>Filtrar por modalidad</ComboboxLabel>
-                          {filteredModalidadesForFilter.map((opt) => (
-                            <ComboboxItem
-                              key={opt.value}
-                              value={opt.value}
-                              className="text-xs py-1.5 cursor-pointer"
-                            >
-                              {opt.label}
-                            </ComboboxItem>
-                          ))}
-                        </ComboboxGroup>
-                        {filteredModalidadesForFilter.length === 0 && (
-                          <ComboboxEmpty>No se encontraron modalidades.</ComboboxEmpty>
-                        )}
-                      </ComboboxList>
-                    </ComboboxContent>
-                  </Combobox>
-                </div>
-
                 <ViewModeToggle value={viewMode} onChange={setViewMode} />
               </div>
             </div>
@@ -1035,33 +963,6 @@ export function FuentesInboxView({ currentUser, openNuevaOnInit = false }: Fuent
                   </Badge>
                 )}
 
-                {modalidadFilter !== "TODOS" && (
-                  <Badge
-                    tone="primary"
-                    appearance="soft"
-                    className="pl-3 pr-1 py-1 rounded-full text-xs h-7 gap-1 font-semibold bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary-300 border border-primary/25 max-w-full"
-                  >
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="max-w-[180px] sm:max-w-[260px] truncate cursor-help">
-                          Modalidad: {modalidadFilter}
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent side="top" className="text-xs max-w-xs z-[100]">
-                        Modalidad: {modalidadFilter}
-                      </TooltipContent>
-                    </Tooltip>
-                    <button
-                      type="button"
-                      onClick={() => setModalidadFilter("TODOS")}
-                      className="p-0.5 rounded-full hover:bg-primary/20 text-primary transition-colors cursor-pointer shrink-0"
-                      aria-label="Eliminar filtro de modalidad"
-                    >
-                      <X className="size-3" />
-                    </button>
-                  </Badge>
-                )}
-
                 <Button
                   variant="ghost"
                   size="sm"
@@ -1083,7 +984,6 @@ export function FuentesInboxView({ currentUser, openNuevaOnInit = false }: Fuent
                   <TableHead className="text-xs font-bold text-white">Fuente</TableHead>
                   <TableHead className="text-xs font-bold text-white">Institución Proveedora</TableHead>
                   <TableHead className="w-[85px] text-xs font-bold text-white text-center">Versión</TableHead>
-                  <TableHead className="text-xs font-bold text-white">Modalidad</TableHead>
                   <TableHead className="text-xs font-bold text-white">Estado</TableHead>
                   <TableHead className="w-[110px] text-xs font-bold text-white">Actualización</TableHead>
                   <TableHead className="w-[120px] text-right text-xs font-bold text-white pr-6">Acciones</TableHead>
@@ -1092,13 +992,13 @@ export function FuentesInboxView({ currentUser, openNuevaOnInit = false }: Fuent
               <TableBody>
                 {!isLoaded ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="py-12 text-center text-xs text-muted-foreground">
+                    <TableCell colSpan={7} className="py-12 text-center text-xs text-muted-foreground">
                       Cargando fuentes de información...
                     </TableCell>
                   </TableRow>
                 ) : fuentesFiltradas.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="py-12 text-center space-y-2">
+                    <TableCell colSpan={7} className="py-12 text-center space-y-2">
                       <Server className="size-8 text-muted-foreground/40 mx-auto" />
                       <p className="text-xs font-medium text-foreground">
                         No se encontraron fuentes de información
@@ -1153,11 +1053,6 @@ export function FuentesInboxView({ currentUser, openNuevaOnInit = false }: Fuent
                         </TableCell>
                         <TableCell className="text-center font-mono text-xs text-muted-foreground">
                           {fuente.version_propuesta}
-                        </TableCell>
-                        <TableCell>
-                          <Badge tone="neutral" appearance="soft" size="sm" className="text-[10px]">
-                            {fuente.modalidades_soportadas}
-                          </Badge>
                         </TableCell>
                         <TableCell>{getEstadoBadge(fuente.estado)}</TableCell>
                         <TableCell className="text-[11px] text-muted-foreground font-mono whitespace-nowrap">
@@ -1516,9 +1411,6 @@ export function FuentesInboxView({ currentUser, openNuevaOnInit = false }: Fuent
                     meta={
                       <div className="flex flex-wrap items-center gap-1.5">
                         {getEstadoBadge(fuente.estado)}
-                        <Badge tone="neutral" appearance="soft" size="sm" className="text-[10px]">
-                          {fuente.modalidades_soportadas}
-                        </Badge>
                       </div>
                     }
                   >

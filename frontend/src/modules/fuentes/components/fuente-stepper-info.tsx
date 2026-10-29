@@ -18,7 +18,6 @@ import {
 } from "@/components/ui/select";
 import {
   ParametroConsulta,
-  ModalidadSoportada,
   TipoDatoPruebas,
   TipoDatoCanonico,
 } from "../data/fuentes-data";
@@ -39,7 +38,6 @@ export interface InfoFormData {
   version_propuesta: string;
   disponibilidad_objetivo: number;
   tiempo_maximo_respuesta_ms: number;
-  modalidades_soportadas: ModalidadSoportada;
   formato_respuesta: "application/json" | "application/xml";
   tipo_dato_pruebas: TipoDatoPruebas;
   parametros_consulta: ParametroConsulta[];
@@ -220,11 +218,11 @@ export function FuenteStepperInfo({
         <div className="flex items-center gap-2">
           <Sliders className="size-4 text-primary" />
           <h4 className="font-heading font-bold text-xs uppercase tracking-wider text-foreground">
-            Acuerdo de Nivel de Servicio (SLA) y Modalidades
+            Acuerdo de Nivel de Servicio (SLA)
           </h4>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           <div className="space-y-1.5">
             <Label htmlFor="sla-disp" className="text-xs font-medium text-muted-foreground">
               Disponibilidad objetivo (%) <span className="text-danger">*</span>
@@ -258,27 +256,6 @@ export function FuenteStepperInfo({
               }
               className="text-xs font-mono"
             />
-          </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="modalidad" className="text-xs font-medium text-muted-foreground">
-              Modalidades soportadas <span className="text-danger">*</span>
-            </Label>
-            <Select
-              value={formData.modalidades_soportadas}
-              onValueChange={(val) =>
-                onChange({ modalidades_soportadas: val as ModalidadSoportada })
-              }
-            >
-              <SelectTrigger id="modalidad" className="h-9 text-xs">
-                <SelectValue placeholder="Seleccione modalidad" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Ambas modalidades">Ambas modalidades (individual y masiva)</SelectItem>
-                <SelectItem value="API individual">API individual (tiempo real)</SelectItem>
-                <SelectItem value="API masiva">API masiva (lotes)</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
 
           <div className="space-y-1.5">

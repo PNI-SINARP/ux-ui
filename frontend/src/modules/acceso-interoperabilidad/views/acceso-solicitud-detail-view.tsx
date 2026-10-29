@@ -197,7 +197,7 @@ export function AccesoSolicitudDetailView({ params, searchParams }: PageProps) {
   };
 
   const detailStepperSteps: Step[] = [
-    { id: "1", title: "Proyecto y modalidad", icon: Briefcase },
+    { id: "1", title: "Proyecto y respaldo", icon: Briefcase },
     { id: "2", title: "Seleccionar información", icon: Database },
     { id: "3", title: "Justificar campos", icon: FileText },
     { id: "4", title: "Expediente y resumen", icon: FileCheck2 },
@@ -970,7 +970,7 @@ export function AccesoSolicitudDetailView({ params, searchParams }: PageProps) {
                   />
                 </div>
 
-                {/* PASO 1: PROYECTO Y MODALIDAD */}
+                {/* PASO 1: PROYECTO Y RESPALDO */}
                 {detailStep === 1 && (
                   <div className="flex flex-col w-full animate-in fade-in duration-200" id="detail-step-1">
                     {/* Cabecera Sección I */}
@@ -981,10 +981,10 @@ export function AccesoSolicitudDetailView({ params, searchParams }: PageProps) {
                         </div>
                         <div>
                           <h2 className="text-base font-bold font-heading text-primary dark:text-primary-300">
-                            Sección I — Proyecto Institucional, Modalidad y Documentación Habilitante
+                            Sección I — Proyecto Institucional y Documentación Habilitante
                           </h2>
                           <p className="text-xs text-muted-foreground mt-0.5">
-                            Detalle del proyecto institucional activo vinculado a la solicitud (SOL-01), modalidad técnica y respaldo legal (SOL-02).
+                            Detalle del proyecto institucional activo vinculado a la solicitud (SOL-01), cupo solicitado y respaldo legal (SOL-02).
                           </p>
                         </div>
                       </div>
@@ -1004,7 +1004,7 @@ export function AccesoSolicitudDetailView({ params, searchParams }: PageProps) {
                               <Briefcase className="size-4 text-primary dark:text-primary-300 shrink-0 mt-0.5" />
                               <div className="min-w-0">
                                 <h3 className="text-sm font-bold font-heading text-primary dark:text-primary-300 leading-snug">
-                                  1.1 Vinculación de Proyecto y Modalidad Técnica
+                                  1.1 Vinculación de Proyecto y Cupo
                                 </h3>
                                 <p className="text-xs text-muted-foreground mt-0.5">
                                   Proyecto institucional autorizado y capacidad operativa registrada en el expediente.
@@ -1036,25 +1036,7 @@ export function AccesoSolicitudDetailView({ params, searchParams }: PageProps) {
                               </div>
                             </div>
 
-                            <div className="sm:col-span-7 space-y-1.5">
-                              <label className="text-caption font-semibold text-muted-foreground block">
-                                Modalidad de consulta solicitada
-                              </label>
-                              <div className="h-11 px-3.5 rounded-xl border border-border bg-muted/15 flex items-center justify-between text-xs sm:text-sm font-semibold text-foreground">
-                                <span>
-                                  {(solicitud.modalidad || "API individual") === "API individual"
-                                    ? "API individual (Tiempo real)"
-                                    : solicitud.modalidad === "API masiva"
-                                    ? "API masiva (Por lotes)"
-                                    : "Ambas (Individual y Masiva)"}
-                                </span>
-                                <Badge tone="info" appearance="soft" size="sm">
-                                  {solicitud.modalidad || "API individual"}
-                                </Badge>
-                              </div>
-                            </div>
-
-                            <div className="sm:col-span-5 space-y-1.5">
+                            <div className="sm:col-span-12 space-y-1.5">
                               <label className="text-caption font-semibold text-muted-foreground block">
                                 Cupo mensual solicitado
                               </label>
@@ -1225,9 +1207,6 @@ export function AccesoSolicitudDetailView({ params, searchParams }: PageProps) {
                           <div className="pt-2 border-t border-border/60 flex items-center justify-between text-xs">
                             <span className="text-muted-foreground font-medium">Capacidad solicitada:</span>
                             <div className="flex items-center gap-2">
-                              <Badge tone="info" appearance="soft" size="sm">
-                                {solicitud.modalidad || "API individual"}
-                              </Badge>
                               <Badge tone="neutral" appearance="outline" size="sm" className="font-mono">
                                 {(solicitud.cupo || 50000).toLocaleString()} reg./mes
                               </Badge>
@@ -1298,9 +1277,6 @@ export function AccesoSolicitudDetailView({ params, searchParams }: PageProps) {
                             <Briefcase className="size-3 text-primary" />
                             <span>{solicitud.proyectoId || "PROY-2026-001"} — {solicitud.proyectoNombre || "Sistema Integrado de Subsidios"}</span>
                           </Badge>
-                          <Badge tone="info" appearance="soft" size="sm">
-                            {solicitud.modalidad || "API individual"}
-                          </Badge>
                           <Badge tone="neutral" appearance="outline" size="sm" className="font-mono">
                             Cupo: {(solicitud.cupo || 50000).toLocaleString()} reg./mes
                           </Badge>
@@ -1312,7 +1288,7 @@ export function AccesoSolicitudDetailView({ params, searchParams }: PageProps) {
                           onClick={() => setDetailStep(1)}
                           className="h-7 px-2.5 text-caption text-primary hover:text-primary shrink-0 self-start sm:self-center"
                         >
-                          Ver proyecto y modalidad
+                          Ver proyecto y cupo
                         </Button>
                       </div>
 
@@ -1478,7 +1454,7 @@ export function AccesoSolicitudDetailView({ params, searchParams }: PageProps) {
                         className="gap-1.5 text-xs font-semibold"
                       >
                         <ArrowLeft className="size-3.5" />
-                        <span>Anterior: Proyecto y modalidad</span>
+                        <span>Anterior: Proyecto y respaldo</span>
                       </Button>
                       <Button
                         variant="primary"
@@ -1833,7 +1809,7 @@ export function AccesoSolicitudDetailView({ params, searchParams }: PageProps) {
                         </div>
                       )}
 
-                      {/* 4.1 Proyecto, modalidad, cupo y documentos */}
+                      {/* 4.1 Proyecto, cupo y documentos */}
                       <div className="w-full rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-2xs flex flex-col gap-4">
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-border/70 gap-2">
                           <div className="flex items-center gap-2.5">
@@ -1842,7 +1818,7 @@ export function AccesoSolicitudDetailView({ params, searchParams }: PageProps) {
                             </span>
                             <div>
                               <h3 className="font-heading font-bold text-sm sm:text-base text-foreground">
-                                Proyecto institucional, modalidad y respaldo (Paso 1)
+                                Proyecto institucional, cupo y respaldo (Paso 1)
                               </h3>
                               <p className="text-xs text-muted-foreground">
                                 Datos institucionales consolidados para revisión en Gestión y DPI
@@ -1880,11 +1856,10 @@ export function AccesoSolicitudDetailView({ params, searchParams }: PageProps) {
                           </div>
 
                           <div className="p-3.5 rounded-xl bg-muted/25 border border-border/60">
-                            <span className="text-muted-foreground block text-[11px] mb-0.5">Modalidad y cupo:</span>
+                            <span className="text-muted-foreground block text-[11px] mb-0.5">Cupo solicitado:</span>
                             <strong className="text-foreground text-xs sm:text-sm truncate block">
-                              {solicitud.modalidad || "API individual"}
+                              {(solicitud.cupo || 50000).toLocaleString()} reg./mes
                             </strong>
-                            <span className="text-[10px] text-muted-foreground">Cupo: {(solicitud.cupo || 50000).toLocaleString()} reg./mes</span>
                           </div>
 
                           <div className="p-3.5 rounded-xl bg-muted/25 border border-border/60">

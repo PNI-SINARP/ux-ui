@@ -178,7 +178,6 @@ export function FuenteDetailView({ currentUser: propUser }: FuenteDetailViewProp
       coordinador_nombre: currentUser.name || fuenteClonada.coordinador_nombre,
       disponibilidad_objetivo: fuenteClonada.sla_fuente.disponibilidad_objetivo,
       tiempo_maximo_respuesta_ms: fuenteClonada.sla_fuente.tiempo_maximo_respuesta_ms,
-      modalidades_soportadas: fuenteClonada.modalidades_soportadas,
       formato_respuesta: fuenteClonada.formato_respuesta,
       tipo_dato_pruebas: fuenteClonada.tipo_dato_pruebas,
       parametros_consulta: [...fuenteClonada.parametros_consulta],
@@ -634,16 +633,13 @@ export function FuenteDetailView({ currentUser: propUser }: FuenteDetailViewProp
                       </p>
                     </div>
                   </div>
-                  <Badge tone="primary" appearance="soft" size="sm">
-                    {fuente.modalidades_soportadas}
-                  </Badge>
                 </div>
 
                 <p className="text-xs text-foreground leading-relaxed">
                   {fuente.descripcion_fuente}
                 </p>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs pt-2">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs pt-2">
                   <div className="p-3.5 bg-muted/20 rounded-xl border border-border/60">
                     <span className="text-[11px] text-muted-foreground block font-medium">Institución proveedora:</span>
                     <span className="font-bold text-foreground text-xs line-clamp-1 mt-0.5" title={fuente.institucion_proveedora_nombre}>
@@ -654,12 +650,6 @@ export function FuenteDetailView({ currentUser: propUser }: FuenteDetailViewProp
                     <span className="text-[11px] text-muted-foreground block font-medium">Coordinador registrador:</span>
                     <span className="font-medium text-foreground text-xs line-clamp-1 mt-0.5" title={fuente.coordinador_nombre}>
                       {fuente.coordinador_nombre}
-                    </span>
-                  </div>
-                  <div className="p-3.5 bg-muted/20 rounded-xl border border-border/60">
-                    <span className="text-[11px] text-muted-foreground block font-medium">Modalidad soportada:</span>
-                    <span className="font-medium text-foreground text-xs mt-0.5 block">
-                      {fuente.modalidades_soportadas}
                     </span>
                   </div>
                   <div className="p-3.5 bg-muted/20 rounded-xl border border-border/60">

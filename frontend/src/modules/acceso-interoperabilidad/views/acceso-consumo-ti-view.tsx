@@ -599,7 +599,7 @@ export function AccesoConsumoTIView() {
                     </div>
                     <div>
                       <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                        Endpoint y Modalidad (ACC-01)
+                        Endpoint (ACC-01)
                       </p>
                       <p className="text-sm font-semibold text-foreground mt-0.5 font-mono truncate">
                         {selectedSolicitud.credenciales?.endpoint ||

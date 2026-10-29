@@ -10,8 +10,6 @@ export type EstadoFuente =
   | "PUBLICADA"
   | "CONFIGURACION";
 
-export type ModalidadSoportada = "API individual" | "API masiva" | "Ambas modalidades";
-
 export type TipoDatoPruebas = "Sintético" | "Anonimizado" | "Real" | "Indeterminado";
 
 export type ConectorTipo =
@@ -171,7 +169,6 @@ export interface FuenteDatos {
     disponibilidad_objetivo: number;
     tiempo_maximo_respuesta_ms: number;
   };
-  modalidades_soportadas: ModalidadSoportada;
   formato_respuesta: "application/json" | "application/xml";
   tipo_dato_pruebas: TipoDatoPruebas;
   parametros_consulta: ParametroConsulta[];
@@ -379,7 +376,6 @@ export const FUENTES_INICIALES: FuenteDatos[] = [
       disponibilidad_objetivo: 99.8,
       tiempo_maximo_respuesta_ms: 350,
     },
-    modalidades_soportadas: "Ambas modalidades",
     formato_respuesta: "application/json",
     tipo_dato_pruebas: "Sintético",
     parametros_consulta: [
@@ -474,7 +470,6 @@ export const FUENTES_INICIALES: FuenteDatos[] = [
       disponibilidad_objetivo: 99.5,
       tiempo_maximo_respuesta_ms: 450,
     },
-    modalidades_soportadas: "API individual",
     formato_respuesta: "application/json",
     tipo_dato_pruebas: "Indeterminado",
     parametros_consulta: [
@@ -634,7 +629,6 @@ export const FUENTES_INICIALES: FuenteDatos[] = [
       disponibilidad_objetivo: 99.9,
       tiempo_maximo_respuesta_ms: 200,
     },
-    modalidades_soportadas: "Ambas modalidades",
     formato_respuesta: "application/json",
     tipo_dato_pruebas: "Sintético",
     parametros_consulta: [
@@ -804,7 +798,6 @@ export const FUENTES_INICIALES: FuenteDatos[] = [
       disponibilidad_objetivo: 99.7,
       tiempo_maximo_respuesta_ms: 300,
     },
-    modalidades_soportadas: "Ambas modalidades",
     formato_respuesta: "application/json",
     tipo_dato_pruebas: "Sintético",
     parametros_consulta: [
@@ -955,7 +948,6 @@ export const FUENTES_INICIALES: FuenteDatos[] = [
       disponibilidad_objetivo: 99.5,
       tiempo_maximo_respuesta_ms: 400,
     },
-    modalidades_soportadas: "API individual",
     formato_respuesta: "application/json",
     tipo_dato_pruebas: "Sintético",
     parametros_consulta: [
@@ -1051,7 +1043,6 @@ export const FUENTES_INICIALES: FuenteDatos[] = [
       disponibilidad_objetivo: 99.6,
       tiempo_maximo_respuesta_ms: 350,
     },
-    modalidades_soportadas: "API individual",
     formato_respuesta: "application/json",
     tipo_dato_pruebas: "Sintético",
     parametros_consulta: [
@@ -1113,7 +1104,6 @@ export const FUENTES_INICIALES: FuenteDatos[] = [
       disponibilidad_objetivo: 99.0,
       tiempo_maximo_respuesta_ms: 500,
     },
-    modalidades_soportadas: "API individual",
     formato_respuesta: "application/json",
     tipo_dato_pruebas: "Sintético",
     parametros_consulta: [
@@ -1190,7 +1180,6 @@ export const FUENTES_INICIALES: FuenteDatos[] = [
       disponibilidad_objetivo: 99.8,
       tiempo_maximo_respuesta_ms: 280,
     },
-    modalidades_soportadas: "API individual",
     formato_respuesta: "application/json",
     tipo_dato_pruebas: "Sintético",
     parametros_consulta: [
@@ -1276,7 +1265,6 @@ export const FUENTES_INICIALES: FuenteDatos[] = [
       disponibilidad_objetivo: 99.5,
       tiempo_maximo_respuesta_ms: 300,
     },
-    modalidades_soportadas: "API individual",
     formato_respuesta: "application/json",
     tipo_dato_pruebas: "Sintético",
     parametros_consulta: [

@@ -99,13 +99,10 @@ export type SolicitudEstado =
   | "Pendiente de validación de pago"
   | "Creación de paquetes";
 
-export type ModalidadAcceso = "API individual" | "API masiva" | "Ambas";
-
 export type TipoElementoObservado =
   | "campo"
   | "finalidad"
   | "justificacion"
-  | "modalidad"
   | "cupo"
   | "documento"
   | "general";
@@ -253,9 +250,7 @@ export interface SolicitudAcceso {
   solicitanteNombre?: string;
   solicitanteCargo?: string;
   trazabilidad?: { fecha: string; accion: string; actor: string; detalle?: string }[];
-  modalidad?: ModalidadAcceso;
   cupo?: number;
-  modalidadAprobada?: ModalidadAcceso;
   cupoAprobado?: number;
   versionExpediente?: number;
   revisorAsignado?: string;
@@ -337,7 +332,6 @@ export const INITIAL_SOLICITUDES: SolicitudAcceso[] = [
     estado: "Borrador",
     responsable: "Coordinador SINARP",
     versionExpediente: 1,
-    modalidad: "API individual",
     cupo: 35000,
     fuentesCount: 1,
     camposCount: 3,
@@ -488,7 +482,6 @@ export const INITIAL_SOLICITUDES: SolicitudAcceso[] = [
     ultimaActualizacion: "2026-09-22 11:00",
     estado: "Pendiente de asignación en Gestión",
     responsable: "Director de Gestión",
-    modalidad: "Ambas",
     cupo: 50000,
     versionExpediente: 1,
     historialAsignaciones: [],
@@ -556,7 +549,6 @@ export const INITIAL_SOLICITUDES: SolicitudAcceso[] = [
     ultimaActualizacion: "2026-09-23 08:45",
     estado: "Pendiente de nueva asignación",
     responsable: "Director de Gestión",
-    modalidad: "API individual",
     cupo: 30000,
     versionExpediente: 2,
     detalleSubsanacion: "Se aclaró el fundamento legal específico del Art. 89 para el campo confidencial conforme a la observación recibida.",
@@ -650,7 +642,6 @@ export const INITIAL_SOLICITUDES: SolicitudAcceso[] = [
     revisorAsignado: "Ana Torres (Revisor)",
     revisorAsignadoId: "U-EQGEST",
     fechaAsignacion: "2026-09-24 11:30",
-    modalidad: "Ambas",
     cupo: 75000,
     versionExpediente: 1,
     fuentesCount: 1,
@@ -720,7 +711,6 @@ export const INITIAL_SOLICITUDES: SolicitudAcceso[] = [
     estado: "Requiere corrección",
     responsable: "Coordinador SINARP",
     versionExpediente: 1,
-    modalidad: "API masiva",
     cupo: 120000,
     fuentesCount: 1,
     camposCount: 2,
@@ -802,7 +792,6 @@ export const INITIAL_SOLICITUDES: SolicitudAcceso[] = [
     estado: "Requiere corrección",
     responsable: "Coordinador SINARP",
     versionExpediente: 1,
-    modalidad: "API individual",
     cupo: 45000,
     fuentesCount: 1,
     camposCount: 2,
@@ -874,7 +863,6 @@ export const INITIAL_SOLICITUDES: SolicitudAcceso[] = [
     estado: "Requiere corrección",
     responsable: "Coordinador SINARP",
     versionExpediente: 1,
-    modalidad: "API individual",
     cupo: 60000,
     fuentesCount: 1,
     camposCount: 2,
@@ -948,7 +936,6 @@ export const INITIAL_SOLICITUDES: SolicitudAcceso[] = [
     estado: "Requiere corrección",
     responsable: "Coordinador SINARP",
     versionExpediente: 1,
-    modalidad: "API masiva",
     cupo: 95000,
     fuentesCount: 1,
     camposCount: 2,
@@ -1015,7 +1002,6 @@ export const INITIAL_SOLICITUDES: SolicitudAcceso[] = [
     estado: "Cerrada",
     responsable: "Archivo Histórico",
     versionExpediente: 1,
-    modalidad: "API individual",
     cupo: 15000,
     fuentesCount: 1,
     camposCount: 1,
@@ -1061,9 +1047,7 @@ export const INITIAL_SOLICITUDES: SolicitudAcceso[] = [
     estado: "Pendiente de asignación en Normatividad",
     responsable: "Director de Protección de la Información (DPI)",
     versionExpediente: 1,
-    modalidad: "Ambas",
     cupo: 60000,
-    modalidadAprobada: "Ambas",
     cupoAprobado: 60000,
     fuentesCount: 1,
     camposCount: 2,
@@ -1125,9 +1109,7 @@ export const INITIAL_SOLICITUDES: SolicitudAcceso[] = [
     revisorNormativoAsignadoId: "U-EQNORM",
     fechaAsignacionNormativa: "2026-09-24 09:30",
     versionExpediente: 1,
-    modalidad: "API individual",
     cupo: 40000,
-    modalidadAprobada: "API individual",
     cupoAprobado: 40000,
     fuentesCount: 1,
     camposCount: 2,
@@ -1191,9 +1173,7 @@ export const INITIAL_SOLICITUDES: SolicitudAcceso[] = [
     revisorNormativoAsignadoId: "U-EQNORM",
     fechaAsignacionNormativa: "2026-09-23 11:00",
     versionExpediente: 1,
-    modalidad: "API individual",
     cupo: 55000,
-    modalidadAprobada: "API individual",
     cupoAprobado: 55000,
     fuentesCount: 1,
     camposCount: 2,
@@ -1270,9 +1250,7 @@ export const INITIAL_SOLICITUDES: SolicitudAcceso[] = [
     revisorNormativoAsignadoId: "U-EQNORM",
     fechaAsignacionNormativa: "2026-09-21 09:00",
     versionExpediente: 1,
-    modalidad: "Ambas",
     cupo: 90000,
-    modalidadAprobada: "Ambas",
     cupoAprobado: 90000,
     fuentesCount: 1,
     camposCount: 2,
@@ -1346,9 +1324,7 @@ export const INITIAL_SOLICITUDES: SolicitudAcceso[] = [
     estado: "Aprobada por Gestión",
     responsable: "Coordinador SINARP",
     versionExpediente: 1,
-    modalidad: "API individual",
     cupo: 25000,
-    modalidadAprobada: "API individual",
     cupoAprobado: 25000,
     fuentesCount: 1,
     camposCount: 2,
@@ -1628,8 +1604,6 @@ export const INITIAL_SOLICITUDES: SolicitudAcceso[] = [
     responsable: "Director de Gestión",
     cupo: 100000,
     cupoAprobado: 100000,
-    modalidad: "API individual",
-    modalidadAprobada: "API individual",
     fuentesCount: 2,
     camposCount: 3,
     fuentePrincipal: "Registro Civil / SRI",
@@ -1743,8 +1717,6 @@ export const INITIAL_SOLICITUDES: SolicitudAcceso[] = [
     responsable: "Director de Gestión",
     cupo: 150000,
     cupoAprobado: 150000,
-    modalidad: "Ambas",
-    modalidadAprobada: "Ambas",
     fuentesCount: 2,
     camposCount: 4,
     fuentePrincipal: "Registro Civil / SRI",
@@ -1976,7 +1948,6 @@ export const INITIAL_SOLICITUDES: SolicitudAcceso[] = [
     fuentePrincipal: "Registro Civil de Ciudadanos",
     servicioPrincipal: "Filiación y Datos Conyugales",
     instrumento: "Contrato",
-    modalidad: "API individual",
     cupo: 45000,
     fuentes: [
       {
@@ -2050,7 +2021,6 @@ export const INITIAL_SOLICITUDES: SolicitudAcceso[] = [
     fuentePrincipal: "Registro de Títulos Habilitantes",
     servicioPrincipal: "Consulta de Operadores y Frecuencias",
     instrumento: "Convenio",
-    modalidad: "API individual",
     cupo: 80000,
     aprovisionamiento: {
       estado: "ERROR",
@@ -2111,8 +2081,6 @@ export const INITIAL_SOLICITUDES: SolicitudAcceso[] = [
     ultimaActualizacion: "2026-09-24 17:10",
     estado: "Divergencia de facturación",
     responsable: "Administrador / Conciliación Financiera",
-    modalidad: "API individual",
-    modalidadAprobada: "API individual",
     cupo: 80000,
     cupoAprobado: 80000,
     fuentesCount: 1,
@@ -2188,8 +2156,6 @@ export const INITIAL_SOLICITUDES: SolicitudAcceso[] = [
     ultimaActualizacion: "2026-09-24 18:20",
     estado: "Pago bloqueado por intentos",
     responsable: "Administrador (Desbloqueo PAG-05)",
-    modalidad: "Ambas",
-    modalidadAprobada: "Ambas",
     cupo: 90000,
     cupoAprobado: 90000,
     fuentesCount: 1,
@@ -2275,8 +2241,6 @@ export const INITIAL_SOLICITUDES: SolicitudAcceso[] = [
     ultimaActualizacion: "2026-09-24 16:45",
     estado: "Pendiente de integración",
     responsable: "Director de Gestión",
-    modalidad: "API individual",
-    modalidadAprobada: "API individual",
     cupo: 65000,
     cupoAprobado: 65000,
     fuentesCount: 1,
@@ -2330,8 +2294,6 @@ export const INITIAL_SOLICITUDES: SolicitudAcceso[] = [
     ultimaActualizacion: "2026-09-24 15:20",
     estado: "En conciliación",
     responsable: "Administrador / Conciliación de Pasarela",
-    modalidad: "API individual",
-    modalidadAprobada: "API individual",
     cupo: 70000,
     cupoAprobado: 70000,
     fuentesCount: 1,
@@ -2416,7 +2378,6 @@ export const INITIAL_SOLICITUDES: SolicitudAcceso[] = [
     revisorAsignado: "Ana Torres (Revisor)",
     revisorAsignadoId: "U-EQGEST",
     fechaAsignacion: "2026-09-25 10:15",
-    modalidad: "Ambas",
     cupo: 95000,
     versionExpediente: 3,
     detalleSubsanacion: "En atención a las observaciones de v1 (Gestión) y v2 (DPI), se incorporó el Oficio Jurídico SERCOP-CGAJ-2026-089 detallando la habilitación legal del Art. 62 de la LOSNCP y se redujo el cupo anual a 95,000 consultas.",
@@ -2538,7 +2499,6 @@ export const INITIAL_SOLICITUDES: SolicitudAcceso[] = [
     revisorAsignado: "Ana Torres (Revisor)",
     revisorAsignadoId: "U-EQGEST",
     fechaAsignacion: "2026-09-25 10:00",
-    modalidad: "API individual",
     cupo: 40000,
     versionExpediente: 1,
     fuentesCount: 1,
@@ -2616,7 +2576,6 @@ export const INITIAL_SOLICITUDES: SolicitudAcceso[] = [
     revisorAsignado: "Ana Torres (Revisor)",
     revisorAsignadoId: "U-EQGEST",
     fechaAsignacion: "2026-09-25 08:50",
-    modalidad: "API masiva",
     cupo: 85000,
     versionExpediente: 1,
     fuentesCount: 1,
@@ -2706,7 +2665,6 @@ export const INITIAL_SOLICITUDES: SolicitudAcceso[] = [
     revisorAsignado: "Ana Torres (Revisor)",
     revisorAsignadoId: "U-EQGEST",
     fechaAsignacion: "2026-09-25 08:20",
-    modalidad: "API individual",
     cupo: 65000,
     versionExpediente: 2,
     detalleSubsanacion: "Se subsanó la finalidad del campo domicilioRegistrado detallando su uso exclusivo para boletas de citación judicial conforme al Art. 55 del COGEP, y se ajustó el cupo solicitado de 120,000 a 65,000 consultas anuales.",
@@ -2812,7 +2770,6 @@ export const INITIAL_SOLICITUDES: SolicitudAcceso[] = [
     revisorAsignado: "Ana Torres (Revisor)",
     revisorAsignadoId: "U-EQGEST",
     fechaAsignacion: "2026-09-24 16:40",
-    modalidad: "Ambas",
     cupo: 110000,
     versionExpediente: 1,
     fuentesCount: 2,
@@ -3142,7 +3099,6 @@ export function useSolicitudesStore() {
       responsable: esBorrador ? "Coordinador SINARP" : "Director de Gestión",
       proyectoId: nueva.proyectoId || "PRJ-2026-001",
       proyectoNombre: nueva.proyectoNombre || "Sistema Único de Registro y Matrícula Estudiantil",
-      modalidad: nueva.modalidad || "API individual",
       cupo: nueva.cupo || 50000,
       versionExpediente: 1,
       historialAsignaciones: [],
@@ -3260,7 +3216,6 @@ export function useSolicitudesStore() {
     params: {
       revisor: string;
       camposAprobados: string[];
-      modalidadesAutorizadas: ModalidadAcceso;
       cupoAprobado: number;
     }
   ) => {
@@ -3292,7 +3247,7 @@ export function useSolicitudesStore() {
             fecha: now,
             evento: "Aprobada por Gestión (SOL-04)",
             actor: params.revisor,
-            detalle: `Revisión funcional aprobada (Expediente v${version}). Modalidad autorizada: ${params.modalidadesAutorizadas}. Cupo aprobado: ${params.cupoAprobado.toLocaleString()} registros. ${
+            detalle: `Revisión funcional aprobada (Expediente v${version}). Cupo aprobado: ${params.cupoAprobado.toLocaleString()} registros. ${
               tieneConfidencial
                 ? "Contiene campos confidenciales: derivada a la Dirección de Protección de la Información (DPI)."
                 : "Solo campos accesibles: continúa directamente a formalización (BN-08)."
@@ -3313,7 +3268,6 @@ export function useSolicitudesStore() {
           ...s,
           estado: nuevoEstado,
           responsable: nuevoResponsable,
-          modalidadAprobada: params.modalidadesAutorizadas,
           cupoAprobado: params.cupoAprobado,
           fechaAprobacion: dateOnly,
           ultimaActualizacion: dateOnly,
@@ -3386,7 +3340,6 @@ export function useSolicitudesStore() {
     params: {
       comentario: string;
       fuentesActualizadas: FuenteDetalle[];
-      modalidad?: ModalidadAcceso;
       cupo?: number;
       documentos?: DocumentoSoporte[];
     }
@@ -3420,7 +3373,6 @@ export function useSolicitudesStore() {
           fuentes: params.fuentesActualizadas,
           fuentesCount: params.fuentesActualizadas.length,
           camposCount: params.fuentesActualizadas.reduce((acc, f) => acc + (f.campos?.length || 0), 0),
-          modalidad: params.modalidad || s.modalidad,
           cupo: params.cupo || s.cupo,
           documentos: params.documentos || s.documentos,
           estado: "Pendiente de nueva asignación" as const,

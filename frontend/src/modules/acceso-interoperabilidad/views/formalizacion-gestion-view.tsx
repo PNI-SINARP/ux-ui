@@ -843,7 +843,7 @@ export function FormalizacionGestionView() {
                               <span>Alcance Autorizado por Campo y Fuente (SOL-04 → ACC-01)</span>
                             </h3>
                             <p className="text-xs text-muted-foreground mt-0.5">
-                              Solo los campos y modalidades aprobados en el expediente son aprovisionados en Apigee.
+                              Solo los campos aprobados en el expediente son aprovisionados en Apigee.
                             </p>
                           </div>
                           <Badge tone="primary" appearance="soft" size="sm" className="font-mono">

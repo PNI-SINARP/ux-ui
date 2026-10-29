@@ -423,7 +423,7 @@ export function RevisionGestionView() {
                   Revisar solicitudes de acceso
                 </h1>
                 <p className="text-xs sm:text-sm text-muted-foreground w-full max-w-none leading-relaxed font-normal">
-                  Evalúa la pertinencia funcional, modalidad de consumo, cupo y documentos de soporte de las solicitudes de acceso a fuentes asignadas a tu bandeja. Ingresa al detalle de cada solicitud para revisar el expediente y registrar tu decisión en la columna derecha.
+                  Evalúa la pertinencia funcional, cupo y documentos de soporte de las solicitudes de acceso a fuentes asignadas a tu bandeja. Ingresa al detalle de cada solicitud para revisar el expediente y registrar tu decisión en la columna derecha.
                 </p>
               </div>
             </div>
@@ -959,7 +959,6 @@ export function RevisionGestionView() {
                         sol.fuentes?.reduce((acc, f) => acc + (f.campos?.length || 0), 0) ||
                         sol.camposCount ||
                         0;
-                      const modalidadTexto = sol.modalidadAprobada || sol.modalidad || "API individual";
 
                       return (
                         <TableRow
@@ -1022,7 +1021,7 @@ export function RevisionGestionView() {
                                   Proyecto: {sol.proyectoNombre || "Interoperabilidad Institucional"}
                                 </p>
                                 <p className="font-mono text-[10px] text-primary mt-1 border-t border-border/60 pt-1">
-                                  {totalCampos} campos · {modalidadTexto} · Cupo {(sol.cupoAprobado || sol.cupo || 0).toLocaleString()}
+                                  {totalCampos} campos · Cupo {(sol.cupoAprobado || sol.cupo || 0).toLocaleString()}
                                 </p>
                               </TooltipContent>
                             </Tooltip>
@@ -1041,7 +1040,7 @@ export function RevisionGestionView() {
                                   </span>
                                   <div className="flex items-center gap-1 text-[10px] text-muted-foreground font-mono">
                                     <span className="truncate">
-                                      {sol.tipoInstitucion} · {modalidadTexto}
+                                      {sol.tipoInstitucion}
                                     </span>
                                     <span className="text-[9px] px-1 rounded bg-muted/60 text-muted-foreground font-sans font-semibold group-hover/sol:bg-primary/10 group-hover/sol:text-primary transition-colors shrink-0">
                                       +
@@ -1240,7 +1239,7 @@ export function RevisionGestionView() {
                               <div className="flex flex-col min-w-0">
                                 <span className="break-words leading-tight">{sol.institucion}</span>
                                 <span className="text-[10px] font-mono text-muted-foreground">
-                                  {sol.tipoInstitucion} · {totalCampos} campos · {sol.modalidadAprobada || sol.modalidad || "API individual"}
+                                  {sol.tipoInstitucion} · {totalCampos} campos
                                 </span>
                               </div>
                             </div>

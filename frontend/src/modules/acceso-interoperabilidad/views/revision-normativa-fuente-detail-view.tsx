@@ -103,7 +103,7 @@ export function RevisionNormativaFuenteDetailView({
     [solicitudes, targetId]
   );
 
-  // Sub-pestaña activa del expediente (0: Institución y Fuente, 1: Campos y Finalidades, 2: Modalidad y Cupo, 3: Documentos)
+  // Sub-pestaña activa del expediente (0: Institución y Fuente, 1: Campos y Finalidades, 2: Cupo y Servicio, 3: Documentos)
   const [detailTab, setDetailTab] = useState<number>(1); // Default to Campos y Finalidades for DPI Reviewer
 
   // Modal Elaborar Dictamen Jurídico y Proceder a Firma
@@ -614,7 +614,7 @@ export function RevisionNormativaFuenteDetailView({
                           className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs font-bold gap-1.5 sm:gap-2 whitespace-nowrap data-[state=active]:bg-primary-300 data-[state=active]:text-white data-[state=active]:[&_svg]:text-white dark:data-[state=active]:bg-primary-300 dark:data-[state=active]:text-white dark:data-[state=active]:[&_svg]:text-white"
                         >
                           <Server className="size-3.5 shrink-0" />
-                          <span>3. Modalidad y Cupo</span>
+                          <span>3. Cupo y Servicio</span>
                         </TabsTrigger>
                         <TabsTrigger
                           value="tab-3"
@@ -901,20 +901,20 @@ export function RevisionNormativaFuenteDetailView({
                           onClick={() => setDetailTab(2)}
                           className="w-full sm:w-auto text-xs font-semibold gap-1.5"
                         >
-                          Siguiente: 3. Modalidad y Cupo →
+                          Siguiente: 3. Cupo y Servicio →
                         </Button>
                       </div>
                     </div>
                   )}
 
-                  {/* SECCIÓN 2: MODALIDAD DE CONSUMO Y CUPO ESTIMADO */}
+                  {/* SECCIÓN 2: CUPO ESTIMADO Y SERVICIO */}
                   {detailTab === 2 && (
                     <div className="bg-surface border border-border rounded-2xl p-4 sm:p-6 space-y-6 shadow-xs animate-in fade-in duration-200">
                       <div className="bg-primary-100/20 dark:bg-black/35 border-b border-primary dark:border-primary/40 p-3.5 mb-5 rounded-t-lg">
                         <h2 className="text-sm font-bold font-heading text-primary dark:text-primary-300 flex items-center gap-2">
                           <Server className="size-4 text-primary dark:text-primary-300 shrink-0" />
                           <span>
-                            Sección III — Modalidad Autorizada y Cupo de Consultas
+                            Sección III — Cupo de Consultas y Servicio
                           </span>
                         </h2>
                         <p className="text-xs text-muted-foreground mt-0.5">
@@ -923,21 +923,7 @@ export function RevisionNormativaFuenteDetailView({
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="p-4 rounded-xl border border-border bg-muted/20 space-y-1">
-                          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                            Modalidad autorizada por Gestión
-                          </span>
-                          <p className="text-sm font-bold text-foreground">
-                            {solicitud.modalidadAprobada ||
-                              solicitud.modalidad ||
-                              "API individual"}
-                          </p>
-                          <p className="text-[11px] text-muted-foreground">
-                            Modalidad de consumo validada en la primera etapa de revisión.
-                          </p>
-                        </div>
-
-                        <div className="p-4 rounded-xl border border-border bg-muted/20 space-y-1">
+                        <div className="sm:col-span-2 p-4 rounded-xl border border-border bg-muted/20 space-y-1">
                           <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                             Cupo anual autorizado
                           </span>
@@ -1082,7 +1068,7 @@ export function RevisionNormativaFuenteDetailView({
                           onClick={() => setDetailTab(2)}
                           className="w-full sm:w-auto text-xs font-semibold gap-1.5"
                         >
-                          ← Volver a Modalidad y Cupo
+                          ← Volver a Cupo y Servicio
                         </Button>
                       </div>
                     </div>

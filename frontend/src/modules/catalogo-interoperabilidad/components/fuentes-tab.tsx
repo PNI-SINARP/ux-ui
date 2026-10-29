@@ -61,7 +61,6 @@ export function FuentesTab({ activeRole }: { activeRole?: string }) {
         institucionSigla: inst.sigla,
         institucionNombreCompleto: inst.nombre,
         institucionSector: inst.sector,
-        modalidades: "API individual y masiva",
         sla: "99.5% disp / 300ms",
       }))
     );
@@ -105,7 +104,6 @@ export function FuentesTab({ activeRole }: { activeRole?: string }) {
           institucionSigla: sigla,
           institucionNombreCompleto: f.institucion_proveedora_nombre,
           institucionSector: "Público - Función Ejecutiva" as const,
-          modalidades: f.modalidades_soportadas,
           sla: `${f.sla_fuente.disponibilidad_objetivo}% disp / ${f.sla_fuente.tiempo_maximo_respuesta_ms}ms`,
         };
       });

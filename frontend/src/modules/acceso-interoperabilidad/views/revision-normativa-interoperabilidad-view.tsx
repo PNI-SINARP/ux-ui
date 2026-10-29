@@ -1704,10 +1704,7 @@ export function RevisionNormativaInteroperabilidadView() {
                           <span>Aprobado previamente por Equipo de Gestión</span>
                         </div>
                         <p className="text-caption text-muted-foreground">
-                          Gestión aprobó la pertinencia técnica, modalidad (
-                          {solicitudReviewing.modalidadAprobada ||
-                            solicitudReviewing.modalidad}
-                          ) y cupo (
+                          Gestión aprobó la pertinencia técnica y el cupo (
                           {solicitudReviewing.cupoAprobado ||
                             solicitudReviewing.cupo}{" "}
                           reg.).

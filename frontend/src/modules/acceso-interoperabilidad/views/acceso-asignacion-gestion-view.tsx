@@ -1177,8 +1177,7 @@ export function AccesoAsignacionGestionView() {
                                   {solicitud.institucion}
                                 </p>
                                 <p className="text-[11px] text-muted-foreground">
-                                  {solicitud.tipoInstitucion} · Modalidad:{" "}
-                                  {solicitud.modalidad || "API individual"}
+                                  {solicitud.tipoInstitucion}
                                 </p>
                               </TooltipContent>
                             </Tooltip>
@@ -1223,7 +1222,7 @@ export function AccesoAsignacionGestionView() {
                                     {solicitud.fuentePrincipal}
                                   </span>
                                   <span className="text-[11px] text-muted-foreground truncate">
-                                    {solicitud.servicioPrincipal || solicitud.modalidad}
+                                    {solicitud.servicioPrincipal}
                                   </span>
                                 </div>
                               </TooltipTrigger>
@@ -1232,7 +1231,7 @@ export function AccesoAsignacionGestionView() {
                                   {solicitud.fuentePrincipal}
                                 </p>
                                 <p className="text-[11px] text-muted-foreground">
-                                  Servicio: {solicitud.servicioPrincipal || solicitud.modalidad}
+                                  Servicio: {solicitud.servicioPrincipal}
                                 </p>
                               </TooltipContent>
                             </Tooltip>
@@ -2039,15 +2038,7 @@ export function AccesoAsignacionGestionView() {
                           Código: {selectedSolicitudExpediente.proyectoId || "PRJ-01"}
                         </p>
                       </div>
-                      <div className="p-3.5 rounded-2xl bg-muted/30 border border-border/70 space-y-1">
-                        <span className="text-[11px] text-muted-foreground block">
-                          Modalidad solicitada:
-                        </span>
-                        <p className="font-bold text-sm text-primary">
-                          {selectedSolicitudExpediente.modalidad || "API individual"}
-                        </p>
-                      </div>
-                      <div className="p-3.5 rounded-2xl bg-muted/30 border border-border/70 space-y-1">
+                      <div className="sm:col-span-2 p-3.5 rounded-2xl bg-muted/30 border border-border/70 space-y-1">
                         <span className="text-[11px] text-muted-foreground block">
                           Cupo solicitado:
                         </span>

@@ -193,7 +193,7 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
         roleName: "3. Revisor del Equipo de Gestión",
         userName: "Ana Torres (Revisor)",
         storiesBadge: "BN-07 · SOL-04",
-        description: "Paso 3 del flujo BPMN BN-07. Evalúa la solicitud asignada (finalidad por campo, modalidad de consumo, cupo estimado y anexos). Registra observaciones estructuradas para subsanación en 3 días hábiles o aprueba la revisión (derivando a DPI si contiene campos confidenciales, o a formalización si solo tiene accesibles) (SOL-04).",
+        description: "Paso 3 del flujo BPMN BN-07. Evalúa la solicitud asignada (finalidad por campo, cupo estimado y anexos). Registra observaciones estructuradas para subsanación en 3 días hábiles o aprueba la revisión (derivando a DPI si contiene campos confidenciales, o a formalización si solo tiene accesibles) (SOL-04).",
         access: "Bandeja de Revisión del Equipo de Gestión (/revision-gestion).",
         actions: [
           { label: "Evaluar Solicitudes Asignadas (SOL-04)", route: "/revision-gestion", huBadge: "SOL-04" },
@@ -339,7 +339,7 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     roleName: "Coordinador SINARP",
     userName: "Andrea López (MinEduc)",
     cedula: "1712345678",
-    description: "Coordinador SINARP de entidad requirente. Elige proyecto y 1 fuente publicada, selecciona campos, modalidad y cupo, declara finalidad por campo y justificación jurídica si hay confidenciales, envía solicitud (SOL-02) y subsana observaciones dentro de 3 días hábiles (SOL-05).",
+    description: "Coordinador SINARP de entidad requirente. Elige proyecto y 1 fuente publicada, selecciona campos y cupo, declara finalidad por campo y justificación jurídica si hay confidenciales, envía solicitud (SOL-02) y subsana observaciones dentro de 3 días hábiles (SOL-05).",
     access: "Mis Solicitudes (/acceso-interoperabilidad/solicitudes), Nueva Solicitud (/acceso-interoperabilidad/solicitudes/nueva), Subsanación (/acceso-interoperabilidad/solicitudes/[id]/corregir), Catálogo (/catalogo-interoperabilidad) y Proyectos (/proyectos).",
     storiesBadge: "BN-05 (PRJ-01..02) · BN-07 (SOL-01, 02, 05)",
     flows: ["interoperabilidad", "proyectos", "fuentes"],

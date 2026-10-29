@@ -75,7 +75,6 @@ export function NuevaFuenteWizardView({ currentUser }: NuevaFuenteWizardViewProp
     version_propuesta: "v1.0.0",
     disponibilidad_objetivo: 99.5,
     tiempo_maximo_respuesta_ms: 300,
-    modalidades_soportadas: "Ambas modalidades",
     formato_respuesta: "application/json",
     tipo_dato_pruebas: "Sintético",
     parametros_consulta: [
@@ -188,7 +187,6 @@ export function NuevaFuenteWizardView({ currentUser }: NuevaFuenteWizardViewProp
         coordinador_nombre: coordinadorNombre,
         disponibilidad_objetivo: infoData.disponibilidad_objetivo,
         tiempo_maximo_respuesta_ms: infoData.tiempo_maximo_respuesta_ms,
-        modalidades_soportadas: infoData.modalidades_soportadas,
         formato_respuesta: infoData.formato_respuesta,
         tipo_dato_pruebas: infoData.tipo_dato_pruebas,
         parametros_consulta: infoData.parametros_consulta,

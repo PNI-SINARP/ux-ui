@@ -1942,7 +1942,7 @@ export function AccesoSolicitudesView() {
                         INSTITUCIÓN / FUENTE
                       </TableHead>
                       <TableHead className="w-[165px] min-w-[155px] whitespace-nowrap text-left">
-                        ALCANCE Y MODALIDAD
+                        ALCANCE
                       </TableHead>
                       <TableHead className="w-[145px] min-w-[135px] whitespace-nowrap text-left">
                         CLASIFICACIÓN
@@ -2010,10 +2010,6 @@ export function AccesoSolicitudesView() {
                         s.fuentes?.some((f) =>
                           f.campos?.some((c) => c.clasificacion === "Confidencial")
                         ) ?? false;
-                      const modalidadLabel =
-                        s.modalidadAprobada ||
-                        s.modalidad ||
-                        "API individual";
                       const instrumentoRef =
                         s.contrato || s.instrumento || "En formalización";
 
@@ -2124,7 +2120,7 @@ export function AccesoSolicitudesView() {
                             </div>
                           </TableCell>
 
-                          {/* 4. Alcance y Modalidad */}
+                          {/* 4. Alcance */}
                           <TableCell className="w-[165px] min-w-[155px] text-left align-middle">
                             <div className="space-y-1">
                               <div className="flex items-center gap-1.5">
@@ -2138,9 +2134,6 @@ export function AccesoSolicitudesView() {
                                   {totalCampos} campos
                                 </Badge>
                               </div>
-                              <span className="text-[10px] text-muted-foreground font-mono block truncate">
-                                {modalidadLabel}
-                              </span>
                             </div>
                           </TableCell>
 

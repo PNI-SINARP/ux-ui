@@ -78,7 +78,6 @@ import { toast } from "sonner";
 import {
   useSolicitudesStore,
   type SolicitudEstado,
-  type ModalidadAcceso,
   type ObservacionItem,
   type TipoElementoObservado,
 } from "@/modules/acceso-interoperabilidad/data/solicitudes-store";
@@ -108,13 +107,8 @@ export function RevisionGestionDetailView({
     [solicitudes, targetId]
   );
 
-  // Sub-pestaña activa del expediente (0: Institución y Fuente, 1: Campos y Finalidades, 2: Modalidad y Cupo, 3: Documentos)
+  // Sub-pestaña activa del expediente (0: Institución y Fuente, 1: Campos y Finalidades, 2: Cupo y Servicio, 3: Documentos)
   const [detailTab, setDetailTab] = useState<number>(0);
-
-  // Estado local de modalidad autorizada
-  const [modalidadAutorizada, setModalidadAutorizada] = useState<ModalidadAcceso>(
-    solicitud?.modalidadAprobada || solicitud?.modalidad || "API individual"
-  );
 
   // Modal Aprobar Solicitud Funcionalmente
   const [isModalAprobarOpen, setIsModalAprobarOpen] = useState(false);
@@ -241,18 +235,11 @@ export function RevisionGestionDetailView({
     solicitud.estado === "Por revisar" ||
     solicitud.estado === "Reenviada";
 
-  const modalidadOptions: { value: ModalidadAcceso; label: string }[] = [
-    { value: "API individual", label: "API individual (Consulta puntual)" },
-    { value: "API masiva", label: "API masiva (Procesamiento por lotes)" },
-    { value: "Ambas", label: "Ambas modalidades (API individual + masiva)" },
-  ];
-
   const tipoOptions: { value: TipoElementoObservado; label: string }[] = [
     { value: "finalidad", label: "Finalidad por campo" },
     { value: "campo", label: "Campo solicitado" },
     { value: "documento", label: "Documento de soporte" },
     { value: "cupo", label: "Cupo estimado" },
-    { value: "modalidad", label: "Modalidad de consumo" },
     { value: "justificacion", label: "Justificación general" },
   ];
 
@@ -395,7 +382,6 @@ export function RevisionGestionDetailView({
     aprobarGestion(solicitud.id, {
       revisor: revisorNombre,
       camposAprobados: campos.map((c) => c.id),
-      modalidadesAutorizadas: modalidadAutorizada,
       cupoAprobado: solicitud.cupo || 50000,
     });
     setIsModalAprobarOpen(false);
@@ -617,7 +603,7 @@ export function RevisionGestionDetailView({
                           className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs font-bold gap-1.5 sm:gap-2 whitespace-nowrap data-[state=active]:bg-primary-300 data-[state=active]:text-white data-[state=active]:[&_svg]:text-white dark:data-[state=active]:bg-primary-300 dark:data-[state=active]:text-white dark:data-[state=active]:[&_svg]:text-white"
                         >
                           <Server className="size-3.5 shrink-0" />
-                          <span>3. Modalidad y Cupo</span>
+                          <span>3. Cupo y Servicio</span>
                         </TabsTrigger>
                         <TabsTrigger
                           value="tab-3"
@@ -883,41 +869,29 @@ export function RevisionGestionDetailView({
                           onClick={() => setDetailTab(2)}
                           className="w-full sm:w-auto text-xs font-semibold gap-1.5"
                         >
-                          Siguiente: 3. Modalidad y Cupo →
+                          Siguiente: 3. Cupo y Servicio →
                         </Button>
                       </div>
                     </div>
                   )}
 
-                  {/* SECCIÓN 2: MODALIDAD DE CONSUMO Y CUPO ESTIMADO */}
+                  {/* SECCIÓN 2: CUPO ESTIMADO Y SERVICIO */}
                   {detailTab === 2 && (
                     <div className="bg-surface border border-border rounded-2xl p-4 sm:p-6 space-y-6 shadow-xs animate-in fade-in duration-200">
                       <div className="bg-primary-100/20 dark:bg-black/35 border-b border-primary dark:border-primary/40 p-3.5 mb-5 rounded-t-lg">
                         <h2 className="text-sm font-bold font-heading text-primary dark:text-primary-300 flex items-center gap-2">
                           <Server className="size-4 text-primary dark:text-primary-300 shrink-0" />
                           <span>
-                            Sección III — Modalidad de Consumo, Servicio Web y Cupo Estimado
+                            Sección III — Cupo Estimado y Servicio Web
                           </span>
                         </h2>
                         <p className="text-xs text-muted-foreground mt-0.5">
-                          Revisión de la modalidad técnica solicitada y volumen estimado de transacciones.
+                          Revisión del volumen estimado de transacciones y del servicio asociado.
                         </p>
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="p-4 rounded-xl border border-border bg-muted/20 space-y-1">
-                          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                            Modalidad solicitada por la entidad
-                          </span>
-                          <p className="text-sm font-bold text-foreground">
-                            {solicitud.modalidad || "API individual"}
-                          </p>
-                          <p className="text-[11px] text-muted-foreground">
-                            Modalidades soportadas por el paquete: API individual / API masiva
-                          </p>
-                        </div>
-
-                        <div className="p-4 rounded-xl border border-border bg-muted/20 space-y-1">
+                        <div className="sm:col-span-2 p-4 rounded-xl border border-border bg-muted/20 space-y-1">
                           <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                             Cupo estimado de consultas
                           </span>
@@ -1057,7 +1031,7 @@ export function RevisionGestionDetailView({
                           onClick={() => setDetailTab(2)}
                           className="w-full sm:w-auto text-xs font-semibold gap-1.5"
                         >
-                          ← Volver a Modalidad y Cupo
+                          ← Volver a Cupo y Servicio
                         </Button>
                       </div>
                     </div>
@@ -1247,51 +1221,6 @@ export function RevisionGestionDetailView({
                 {/* CASO 1: EN EVALUACIÓN FUNCIONAL */}
                 {enEvaluacion && (
                   <div className="space-y-4 pt-1">
-                    {/* Parámetro ajustable por Gestión antes de aprobar: Modalidad autorizada */}
-                    <div className="p-3.5 rounded-xl border border-border bg-background space-y-2">
-                      <Label className="text-xs font-bold text-foreground block">
-                        Modalidad de consumo a autorizar por Gestión
-                      </Label>
-                      <Combobox
-                        items={modalidadOptions}
-                        value={
-                          modalidadOptions.find(
-                            (m) => m.value === modalidadAutorizada
-                          ) || modalidadOptions[0]
-                        }
-                        onValueChange={(val: any) => {
-                          if (val) {
-                            setModalidadAutorizada(
-                              (typeof val === "string"
-                                ? val
-                                : val.value) as ModalidadAcceso
-                            );
-                          }
-                        }}
-                      >
-                        <ComboboxSelectTrigger className="w-full h-9 justify-between text-xs bg-surface border-border rounded-xl px-3 shadow-2xs" />
-                        <ComboboxContent align="start" className="w-72">
-                          <ComboboxList>
-                            {modalidadOptions.map((opt) => (
-                              <ComboboxItem
-                                key={opt.value}
-                                value={opt}
-                                className="text-xs"
-                              >
-                                {opt.label}
-                              </ComboboxItem>
-                            ))}
-                          </ComboboxList>
-                        </ComboboxContent>
-                      </Combobox>
-                      <p className="text-[11px] text-muted-foreground leading-snug">
-                        Solicitada por el coordinador:{" "}
-                        <strong className="text-foreground">
-                          {solicitud.modalidad || "API individual"}
-                        </strong>
-                      </p>
-                    </div>
-
                     <Alert
                       variant="info"
                       icon={<Activity className="size-4" />}
@@ -1397,14 +1326,6 @@ export function RevisionGestionDetailView({
 
                     <div className="p-3 rounded-xl bg-success/5 border border-success/20 text-[11px] space-y-1.5">
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">
-                          Modalidad autorizada:
-                        </span>
-                        <strong className="text-foreground">
-                          {solicitud.modalidadAprobada || modalidadAutorizada}
-                        </strong>
-                      </div>
-                      <div className="flex justify-between">
                         <span className="text-muted-foreground">Cupo autorizado:</span>
                         <strong className="text-foreground font-mono">
                           {(
@@ -1508,15 +1429,6 @@ export function RevisionGestionDetailView({
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground flex items-center gap-1.5 font-medium">
-                    <Server className="size-3.5 text-muted-foreground" /> Modalidad autorizada:
-                  </span>
-                  <span className="font-bold text-primary">
-                    {modalidadAutorizada}
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between">
                   <span className="text-muted-foreground font-medium">
                     Cupo autorizado:
                   </span>
@@ -1580,7 +1492,7 @@ export function RevisionGestionDetailView({
                 Observar Solicitud de Acceso — {solicitud.id}
               </DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground leading-relaxed">
-                Registra las observaciones puntuales por elemento (campo, finalidad, documento, cupo o modalidad) para que el Coordinador subsane el expediente.
+                Registra las observaciones puntuales por elemento (campo, finalidad, documento o cupo) para que el Coordinador subsane el expediente.
               </DialogDescription>
             </DialogHeader>
 
