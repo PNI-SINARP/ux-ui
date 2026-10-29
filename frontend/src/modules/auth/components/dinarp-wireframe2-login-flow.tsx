@@ -614,12 +614,12 @@ export function DinarpWireframe2LoginFlow({
 
           <div>
             <CapacityCard
-              color="primary"
+              color="secondary"
               icon={Landmark}
               watermark
-              className="bg-primary/5 border-primary/20 hover:shadow-primary/20"
+              className="bg-secondary/5 border-secondary/20 hover:shadow-secondary/20"
               title={
-                <span className="text-primary">
+                <span className="text-secondary">
                   Trámites institucionales SINARP
                 </span>
               }
@@ -628,7 +628,7 @@ export function DinarpWireframe2LoginFlow({
               <div className="w-full mt-1">
                 <Button
                   type="button"
-                  variant="primary"
+                  variant="secondary"
                   onClick={() => setActiveTab("tramites")}
                   className="w-full text-xs h-9 px-3 relative z-20 shadow-xs justify-center"
                 >
@@ -685,12 +685,12 @@ export function DinarpWireframe2LoginFlow({
           <div className="space-y-3 pt-1">
             {/* Opción 1: Anexo A */}
             <CapacityCard
-              color="primary"
+              color="secondary"
               icon={Landmark}
               watermark
-              className="bg-primary/5 border-primary/20 hover:shadow-primary/20"
+              className="bg-secondary/5 border-secondary/20 hover:shadow-secondary/20"
               title={
-                <span className="text-primary">
+                <span className="text-secondary">
                   Anexo A — Incorporación institucional
                 </span>
               }
@@ -699,7 +699,7 @@ export function DinarpWireframe2LoginFlow({
               <div className="w-full mt-1">
                 <Button
                   type="button"
-                  variant="primary"
+                  variant="secondary"
                   onClick={() => setShowAnexoAModal(true)}
                   className="w-full text-xs h-9 px-3 relative z-20 shadow-xs justify-center"
                 >
@@ -737,12 +737,12 @@ export function DinarpWireframe2LoginFlow({
 
             {/* Opción 3: Anexo C */}
             <CapacityCard
-              color="neutral"
+              color="secondary"
               icon={RefreshCw}
               watermark
-              className="bg-neutral-500/5 border-neutral-500/20 hover:shadow-neutral-500/20"
+              className="bg-secondary/5 border-secondary/20 hover:shadow-secondary/20"
               title={
-                <span className="text-neutral-700 dark:text-neutral-200">
+                <span className="text-secondary">
                   Anexo C — Cambio de coordinador
                 </span>
               }
@@ -751,12 +751,12 @@ export function DinarpWireframe2LoginFlow({
               <div className="w-full mt-1">
                 <Button
                   type="button"
-                  variant="neutral"
+                  variant="secondary"
                   onClick={() => setShowAnexoCModal(true)}
                   className="w-full text-xs h-9 px-3 relative z-20 shadow-xs justify-center"
                 >
-                  <span className="font-semibold text-white">Solicitar cambio (Anexo C)</span>
-                  <ArrowRight className="size-4 ml-2 opacity-80 text-white" />
+                  <span className="font-semibold">Solicitar cambio (Anexo C)</span>
+                  <ArrowRight className="size-4 ml-2 opacity-80" />
                 </Button>
               </div>
             </CapacityCard>
