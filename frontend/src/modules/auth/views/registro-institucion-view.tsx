@@ -73,6 +73,7 @@ import { Stepper, type Step as StepperStep } from "@/components/ui/stepper";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { cn, getAssetPath } from "@/lib/utils";
 import { useSolicitudesIngresoStore, type DatosAnexoA } from "@/modules/gestion-solicitudes/data/gestion-ingresos-store";
+import { ValidacionInstitucionModal } from "@/modules/auth/components/validacion-institucion-modal";
 
 
 
@@ -81,7 +82,8 @@ export function RegistroInstitucionView() {
   const router = useRouter();
   const { agregarRegistroInstitucion } = useSolicitudesIngresoStore();
 
-  const [step, setStep] = useState<0 | 1 | 2 | 3 | 4 | 5 | 6>(0);
+  const [step, setStep] = useState<0 | 1 | 2 | 3 | 4 | 5 | 6>(1);
+  const [showValidationModal, setShowValidationModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -284,19 +286,68 @@ export function RegistroInstitucionView() {
     }
   }, [formData, step]);
 
-  // Cargar borrador persistido si el usuario regresa a la pantalla
+  // Cargar borrador persistido o validación previa desde el modal de inicio
   useEffect(() => {
     if (typeof window !== "undefined") {
       try {
+        const preValidation = sessionStorage.getItem("dinarp_anexo_a_validation");
         const saved = localStorage.getItem("dinarp_anexo_a_draft");
+        let loadedDraft = false;
+
         if (saved) {
           const parsed = JSON.parse(saved);
           if (parsed.formData && parsed.formData.nombreEntidad) {
             setFormData(parsed.formData);
+            loadedDraft = true;
           }
           if (parsed.bpmState && parsed.bpmState !== "DRAFT") {
             setBpmState(parsed.bpmState);
           }
+        }
+
+        if (preValidation) {
+          const parsedVal = JSON.parse(preValidation);
+          sessionStorage.removeItem("dinarp_anexo_a_validation");
+          const tipo = (parsedVal.entidadTipo || "Publica") as "Publica" | "Privada";
+          const isPrivada = tipo === "Privada";
+          setFormData((prev) => ({
+            ...prev,
+            entidadTipo: tipo,
+            rucEntidad: parsedVal.rucEntidad || prev.rucEntidad,
+            nombreEntidad:
+              prev.nombreEntidad ||
+              (isPrivada
+                ? "Corporación Financiera Ecuatoriana S.A."
+                : "Ministerio de Telecomunicaciones y de la Sociedad de la Información"),
+            direccionEntidad:
+              prev.direccionEntidad ||
+              (isPrivada
+                ? "Av. República del Salvador N34-183 y Suiza, Quito"
+                : "Av. 6 de Diciembre N25-75 y Av. Colón, Quito"),
+            objetoSocial:
+              prev.objetoSocial ||
+              (isPrivada
+                ? "Prestación de servicios financieros y tecnológicos con acceso autorizado a registros públicos."
+                : "Rectoría y formulación de políticas públicas de telecomunicaciones y gobierno digital."),
+            representanteLegalNombre:
+              prev.representanteLegalNombre ||
+              (isPrivada
+                ? "Eco. Roberto Carlos Andrade Viteri"
+                : "Ing. César Antonio Martín Moreno"),
+            representanteLegalCargo:
+              prev.representanteLegalCargo ||
+              (isPrivada
+                ? "Gerente General (Representante Legal)"
+                : "Ministro de Telecomunicaciones (Representante Legal)"),
+            representanteLegalEmail:
+              prev.representanteLegalEmail ||
+              (isPrivada
+                ? "gerencia@corpfinanciera.ec"
+                : "ministro@mintel.gob.ec"),
+          }));
+          setShowValidationModal(false);
+        } else if (!loadedDraft) {
+          setShowValidationModal(true);
         }
       } catch (e) {
         console.error("Error al cargar borrador de Anexo A", e);
@@ -721,184 +772,7 @@ export function RegistroInstitucionView() {
             )}
 
             <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
-              {/* â”€â”€ PASO 0: VALIDACIÓN DE LA INSTITUCIÓN â”€â”€ */}
-              {step === 0 && (
-                <div className="space-y-6 animate-in fade-in duration-200">
-                  <div className="pt-3 pb-2 my-2 space-y-1">
-                    <h2 className="text-lg font-bold font-heading flex items-center gap-2 text-foreground">
-                      <Building2 className="size-5 text-primary" />
-                      Validación de la institución
-                    </h2>
-                    <p className="text-sm text-muted-foreground">
-                      Selecciona el tipo de institución e ingresa el RUC para validar la información y continuar con el registro.
-                    </p>
-                  </div>
-
-                  {/* Stepper oficial horizontal UI Kit para Paso 1 y 2 */}
-                  <div className="bg-surface border border-border rounded-2xl p-4 sm:p-6 lg:p-8 my-6 shadow-xs overflow-x-auto">
-                    <Stepper
-                      steps={[
-                        { id: "paso-1", title: "Tipo de institución" },
-                        { id: "paso-2", title: "Validación de RUC" },
-                      ]}
-                      activeStep={
-                        formData.rucEntidad.length === 13
-                          ? 1
-                          : formData.entidadTipo
-                          ? 1
-                          : 0
-                      }
-                      completedSteps={
-                        formData.rucEntidad.length === 13
-                          ? [0, 1]
-                          : formData.entidadTipo
-                          ? [0]
-                          : []
-                      }
-                      startIndex={1}
-                      stepPrefix="PASO"
-                      showBadge={true}
-                      variant="default"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Card 1: Naturaleza */}
-                    <div className="bg-surface border border-border rounded-2xl p-6 shadow-sm flex flex-col justify-between min-h-[148px]">
-                      <div>
-                        <Label className="text-xs font-semibold text-foreground">
-                          Naturaleza de la institución <span className="text-warning">*</span>
-                        </Label>
-                        <p className="text-[11px] text-muted-foreground mt-0.5">
-                          Selecciona una opción.
-                        </p>
-                      </div>
-
-                      <div className="flex items-center min-h-[42px] pt-1">
-                        <RadioGroup
-                          value={formData.entidadTipo}
-                          onValueChange={(val) => {
-                            if (val) setFormData({ ...formData, entidadTipo: val as "Publica" | "Privada" });
-                          }}
-                          orientation="horizontal"
-                          className="flex flex-wrap items-center gap-4 sm:gap-6"
-                        >
-                          <label className="flex items-center gap-2 text-xs font-medium text-foreground cursor-pointer select-none">
-                            <RadioGroupItem
-                              value="Publica"
-                              variant="primary"
-                              size="md"
-                            />
-                            <span>Institución pública</span>
-                          </label>
-
-                          <label className="flex items-center gap-2 text-xs font-medium text-foreground cursor-pointer select-none">
-                            <RadioGroupItem
-                              value="Privada"
-                              variant="primary"
-                              size="md"
-                            />
-                            <span>Institución privada</span>
-                          </label>
-                        </RadioGroup>
-                      </div>
-                    </div>
-
-                    {/* Card 2: RUC */}
-                    <div
-                      className={cn(
-                        "bg-surface border border-border rounded-2xl p-6 shadow-sm flex flex-col justify-between min-h-[148px] transition-opacity",
-                        !formData.entidadTipo && "opacity-60"
-                      )}
-                    >
-                      <div>
-                        <Label htmlFor="rucEntidad-0" className="text-xs font-semibold text-foreground">
-                          Número de RUC de la Entidad <span className="text-warning">*</span>
-                        </Label>
-                        <p className="text-[11px] text-muted-foreground mt-0.5">
-                          {!formData.entidadTipo
-                            ? "Selecciona primero la naturaleza de la institución en el Paso 1."
-                            : "Ingresa el RUC de 13 dígitos."}
-                        </p>
-                      </div>
-
-                      <div className="flex items-center min-h-[42px] pt-1">
-                        <InputGroup
-                          state={rucError ? "error" : formData.rucEntidad.length === 13 ? "success" : "default"}
-                          rightIcon={
-                            rucError ? (
-                              <AlertCircle className="size-4 text-danger" />
-                            ) : formData.rucEntidad.length === 13 ? (
-                              <CheckCircle2 className="size-4 text-success" />
-                            ) : undefined
-                          }
-                          className="w-full"
-                        >
-                          <InputGroupInput
-                            id="rucEntidad-0"
-                            value={formData.rucEntidad}
-                            maxLength={13}
-                            disabled={!formData.entidadTipo}
-                            onChange={(e) => {
-                              setRucError(false);
-                              setFormData({ ...formData, rucEntidad: e.target.value.replace(/\D/g, "") });
-                            }}
-                            placeholder={!formData.entidadTipo ? "Primero selecciona tipo..." : "1111111111111"}
-                            className="text-xs font-mono tracking-wider disabled:cursor-not-allowed"
-                            required
-                          />
-                        </InputGroup>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row justify-between items-center gap-3 pt-4 border-t border-border/60">
-                    <Link href="/login" className="w-full sm:w-auto">
-                      <Button
-                        type="button"
-                        variant="neutral"
-                        size="default"
-                        className="text-xs font-semibold gap-1.5 w-full sm:w-auto"
-                      >
-                        <ArrowLeft className="size-4" />
-                        <span>Volver al acceso principal</span>
-                      </Button>
-                    </Link>
-
-                    <Button
-                      type="button"
-                      variant="primary"
-                      size="default"
-                      onClick={() => {
-                        setRucError(false);
-                        if (!formData.rucEntidad || formData.rucEntidad.length < 13) {
-                          setRucError(true);
-                          toast.error("Por favor ingresa un RUC válido de 13 dígitos.");
-                          return;
-                        }
-                        if (formData.rucEntidad === "1111111111111") {
-                          setRucError(true);
-                          toast.error("No encontramos una institución asociada a este RUC.\nVerifica el número e inténtalo nuevamente.");
-                          return;
-                        }
-                        if (formData.rucEntidad === "2222222222222") {
-                          setRucError(true);
-                          toast.error("No pudimos validar el RUC en este momento. Inténtalo nuevamente.");
-                          return;
-                        }
-                        setStep(1);
-                        toast.success("Institución validada correctamente.");
-                      }}
-                      className="text-xs font-semibold gap-1.5 w-full sm:w-auto sm:min-w-[220px]"
-                    >
-                      <Search className="size-4" />
-                      <span>Validar información</span>
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {/* â”€â”€ PASO 1: DATOS DE LA ENTIDAD Y MÁXIMA AUTORIDAD â”€â”€ */}
+              {/* ── PASO 1: DATOS DE LA ENTIDAD Y MÁXIMA AUTORIDAD ── */}
               {step === 1 && (
                 <div className="bg-surface border border-border rounded-2xl p-6 sm:p-8 space-y-6 shadow-xs animate-in fade-in duration-200">
                   {/* Cabecera Sección I al ras */}
@@ -1165,7 +1039,7 @@ export function RegistroInstitucionView() {
                         type="button"
                         variant="secondary"
                         size="default"
-                        onClick={() => setStep(0)}
+                        onClick={() => setShowValidationModal(true)}
                         className="text-xs font-semibold gap-1.5 w-full sm:w-auto px-4 whitespace-nowrap"
                       >
                         <ArrowLeft className="size-4 shrink-0" />
@@ -2939,6 +2813,56 @@ export function RegistroInstitucionView() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Modal de Validación de la Institución (Anexo A) */}
+      <ValidacionInstitucionModal
+        open={showValidationModal}
+        onOpenChange={setShowValidationModal}
+        initialEntidadTipo={formData.entidadTipo}
+        initialRuc={formData.rucEntidad}
+        cancelLabel={formData.rucEntidad ? "Cerrar" : "Volver al acceso principal"}
+        onCancel={() => {
+          if (formData.rucEntidad) {
+            setShowValidationModal(false);
+          } else {
+            router.push("/login");
+          }
+        }}
+        onValidated={(data) => {
+          const isPrivada = data.entidadTipo === "Privada";
+          setFormData((prev) => ({
+            ...prev,
+            entidadTipo: data.entidadTipo,
+            rucEntidad: data.rucEntidad,
+            nombreEntidad:
+              isPrivada
+                ? "Corporación Financiera Ecuatoriana S.A."
+                : "Ministerio de Telecomunicaciones y de la Sociedad de la Información",
+            direccionEntidad:
+              isPrivada
+                ? "Av. República del Salvador N34-183 y Suiza, Quito"
+                : "Av. 6 de Diciembre N25-75 y Av. Colón, Quito",
+            objetoSocial:
+              isPrivada
+                ? "Prestación de servicios financieros y tecnológicos con acceso autorizado a registros públicos."
+                : "Rectoría y formulación de políticas públicas de telecomunicaciones y gobierno digital.",
+            representanteLegalNombre:
+              isPrivada
+                ? "Eco. Roberto Carlos Andrade Viteri"
+                : "Ing. César Antonio Martín Moreno",
+            representanteLegalCargo:
+              isPrivada
+                ? "Gerente General (Representante Legal)"
+                : "Ministro de Telecomunicaciones (Representante Legal)",
+            representanteLegalEmail:
+              isPrivada
+                ? "gerencia@corpfinanciera.ec"
+                : "ministro@mintel.gob.ec",
+          }));
+          setShowValidationModal(false);
+          setStep(1);
+        }}
+      />
     </div>
   );
 }

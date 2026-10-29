@@ -50,6 +50,8 @@ import { useSolicitudesIngresoStore } from "@/modules/gestion-solicitudes/data/g
 import { useAuthStore } from "@/modules/gestion-solicitudes/data/auth-store";
 import { MOCK_USERS_BY_ROLE } from "@/modules/catalogo-interoperabilidad/data/catalogo-data";
 import { DinarpTestAccountsDrawer } from "./dinarp-test-accounts-drawer";
+import { ValidacionInstitucionModal } from "./validacion-institucion-modal";
+import { ValidacionCoordinadorModal } from "./validacion-coordinador-modal";
 
 function validarCedula(cedula: string) {
   if (cedula.length !== 10) return false;
@@ -131,6 +133,8 @@ export function DinarpWireframe2LoginFlow({
   // 1. "login": Iniciar sesión para usuarios/coordinadores con cuenta activa
   // 2. "enrolamiento": Completar enrolamiento mediante validación de cédula preregistrada (Proceso B)
   const [activeTab, setActiveTab] = useState<"login" | "enrolamiento">("login");
+  const [showAnexoAModal, setShowAnexoAModal] = useState(false);
+  const [showAnexoBModal, setShowAnexoBModal] = useState(false);
 
   // Estado del Login
   const [cedula, setCedula] = useState("");
@@ -616,16 +620,17 @@ export function DinarpWireframe2LoginFlow({
                 title={<span className="text-secondary">¿Fuiste designado como Coordinador SINARP?</span>}
                 description="Completa tu prerregistro mediante el Anexo B si recibiste una invitación."
               >
-                <Link href="/enrolamiento-coordinador" className="w-full mt-1">
+                <div className="w-full mt-1">
                   <Button
                     type="button"
                     variant="secondary"
+                    onClick={() => setShowAnexoBModal(true)}
                     className="w-full text-xs h-9 px-3 relative z-20 shadow-xs justify-center"
                   >
                     <span className="font-semibold">Completar prerregistro</span>
                     <ArrowRight className="size-4 ml-2 opacity-80" />
                   </Button>
-                </Link>
+                </div>
               </CapacityCard>
 
               {/* Card 2: Registro Institucional */}
@@ -646,16 +651,17 @@ export function DinarpWireframe2LoginFlow({
                   </>
                 }
               >
-                <Link href="/registro-institucion" className="w-full mt-1">
+                <div className="w-full mt-1">
                   <Button
                     type="button"
                     variant="neutral"
+                    onClick={() => setShowAnexoAModal(true)}
                     className="w-full text-xs h-9 px-3 relative z-20 shadow-xs justify-center"
                   >
                     <span className="font-semibold text-[11px] text-white">Solicitar enrolamiento</span>
                     <ArrowRight className="size-4 ml-1 opacity-80 text-white" />
                   </Button>
-                </Link>
+                </div>
               </CapacityCard>
             </div>
 
@@ -915,6 +921,40 @@ export function DinarpWireframe2LoginFlow({
           </div>
         </div>
       )}
+
+      {/* Modal de Validación de la Institución (Anexo A) */}
+      <ValidacionInstitucionModal
+        open={showAnexoAModal}
+        onOpenChange={setShowAnexoAModal}
+        cancelLabel="Cancelar"
+        onValidated={(data) => {
+          if (typeof window !== "undefined") {
+            sessionStorage.setItem(
+              "dinarp_anexo_a_validation",
+              JSON.stringify(data)
+            );
+          }
+          setShowAnexoAModal(false);
+          router.push("/registro-institucion");
+        }}
+      />
+
+      {/* Modal de Confirmación de Invitación de Coordinador (Anexo B) */}
+      <ValidacionCoordinadorModal
+        open={showAnexoBModal}
+        onOpenChange={setShowAnexoBModal}
+        cancelLabel="Cancelar"
+        onValidated={(data) => {
+          if (typeof window !== "undefined") {
+            sessionStorage.setItem(
+              "dinarp_anexo_b_validation",
+              JSON.stringify(data)
+            );
+          }
+          setShowAnexoBModal(false);
+          router.push(`/enrolamiento-coordinador?cedula=${data.cedula}`);
+        }}
+      />
     </div>
   );
 }

@@ -69,6 +69,10 @@ import {
   type DatosAnexoB
 } from "@/modules/gestion-solicitudes/data/gestion-ingresos-store";
 import { MOCK_USERS_BY_ROLE, type UserRole, ROLES_CONFIG } from "@/modules/catalogo-interoperabilidad/data/catalogo-data";
+import {
+  ValidacionCoordinadorModal,
+  type CoordinadorValidadoData,
+} from "@/modules/auth/components/validacion-coordinador-modal";
 
 
 export type TipoFirmaFallo = "RECHAZADA" | "CADUCADA" | "INCIERTA";
@@ -101,7 +105,11 @@ function EnrolamientoContent() {
   const [cedulaInput, setCedulaInput] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
-  const [preregistroCargado, setPreregistroCargado] = useState<any>(null);
+  const [preregistroCargado, setPreregistroCargado] = useState<any>({
+    encontrado: true,
+    cedula: "",
+  });
+  const [showValidationModal, setShowValidationModal] = useState(false);
   const [existingSolicitud, setExistingSolicitud] = useState<SolicitudIngreso | null>(null);
 
   // Stepper state: 1 (Datos), 2 (Acuerdo), 3 (Revisión), 4 (Firma)
@@ -160,12 +168,79 @@ function EnrolamientoContent() {
     { id: "4", title: "Firma y envío", description: "Suscripción digital", icon: ShieldCheck },
   ];
 
-  // Leer parámetro query ?cedula=...
+  const applyCoordinadorValidado = (data: CoordinadorValidadoData) => {
+    setCedulaInput(data.cedula);
+    setPreregistroCargado(data);
+    setValidationError(null);
+    setExistingSolicitud(null);
+    setFormData((prev) => ({
+      ...prev,
+      nombreEntidad:
+        data.institucion ||
+        prev.nombreEntidad ||
+        "Ministerio de Salud Pública - MSP",
+      domicilioEntidad:
+        data.direccion ||
+        prev.domicilioEntidad ||
+        "Av. Amazonas N24-196 y Luis Cordero, Quito",
+      representanteLegalNombre:
+        data.representanteLegal ||
+        prev.representanteLegalNombre ||
+        "Dr. Franklin Encalada Calero",
+      funcionarioNombre: data.nombreCompleto || prev.funcionarioNombre || "",
+      funcionarioCedula: data.cedula,
+      funcionarioCargo:
+        data.cargo || prev.funcionarioCargo || "Coordinador Designado",
+      rolAsignado: (data.tipo === "TITULAR"
+        ? "COORDINADOR TITULAR"
+        : "SUPLENTE") as any,
+      misionVisionInstitucional:
+        prev.misionVisionInstitucional ||
+        "Garantizar la custodia, confidencialidad, lealtad y uso estrictamente institucional de los datos e información del SINARP.",
+    }));
+    setStep(1);
+    setShowValidationModal(false);
+  };
+
+  // Leer validación desde sessionStorage o parámetro query ?cedula=...
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedVal = sessionStorage.getItem("dinarp_anexo_b_validation");
+      if (savedVal) {
+        try {
+          const parsed: CoordinadorValidadoData = JSON.parse(savedVal);
+          sessionStorage.removeItem("dinarp_anexo_b_validation");
+          applyCoordinadorValidado(parsed);
+          return;
+        } catch (e) {
+          console.error("Error leyendo validación Anexo B", e);
+        }
+      }
+    }
+
     const ced = searchParams.get("cedula");
     if (ced) {
       setCedulaInput(ced);
-      ejecutarValidacionCedula(ced);
+      const res = buscarPreregistroPorCedula(ced.trim());
+      if (res.encontrado && res.nombreCompleto) {
+        applyCoordinadorValidado({
+          encontrado: true,
+          cedula: res.cedula || ced.trim(),
+          nombreCompleto: res.nombreCompleto,
+          institucion: res.institucion || "Ministerio de Salud Pública - MSP",
+          cargo: res.cargo || "Coordinador Designado",
+          tipo: (res.tipo as "TITULAR" | "SUPLENTE") || "TITULAR",
+          representanteLegal:
+            res.representanteLegal || "Dr. Franklin Encalada Calero",
+          direccion:
+            res.direccion || "Av. Amazonas N24-196 y Luis Cordero, Quito",
+          yaEnrolado: res.yaEnrolado,
+        });
+      } else {
+        setShowValidationModal(true);
+      }
+    } else if (!formData.funcionarioCedula) {
+      setShowValidationModal(true);
     }
   }, [searchParams]);
 
@@ -426,17 +501,15 @@ function EnrolamientoContent() {
     }, 800);
   };
 
-  // Restablecer para iniciar una NUEVA solicitud desde cero
+  // Restablecer para iniciar una NUEVA solicitud o volver a consultar cédula en el modal
   const handleIniciarNuevaSolicitud = () => {
-    setCedulaInput("");
-    setPreregistroCargado(null);
     setExistingSolicitud(null);
     setValidationError(null);
-    setStep(1);
     setIsSigningDone(false);
     setIsSubmittedSuccess(false);
     setFirmaFallo(null);
     setIsCheckingTransaction(false);
+    setShowValidationModal(true);
   };
 
   // Confirmar Aprobación (Vista Revisor)
@@ -580,179 +653,29 @@ function EnrolamientoContent() {
 
             {/* â”€â”€ PANTALLA 1: VALIDACIÓN DEL COORDINADOR (SI NO SE HA CARGADO O NO EXISTE SOLICITUD) â”€â”€ */}
             {!preregistroCargado && (
-              <div className="space-y-6 animate-in fade-in duration-300">
-                <div className="pt-3 pb-2 my-2 space-y-1 text-left">
-                  <h2 className="text-lg font-bold font-heading flex items-center gap-2 text-foreground">
-                    <UserCheck className="size-5 text-secondary" />
-                    Activación de Coordinador SINARP
-                  </h2>
-                  <p className="text-sm text-muted-foreground">
-                    Ingresa tu número de cédula para continuar con el proceso de activación.
+              <div className="p-8 bg-surface border border-border rounded-2xl text-center space-y-4 shadow-xs">
+                <div className="size-12 rounded-xl bg-secondary/10 border border-secondary/20 flex items-center justify-center mx-auto text-secondary">
+                  <UserCheck className="size-6" />
+                </div>
+                <div className="space-y-1 max-w-md mx-auto">
+                  <h3 className="text-sm font-bold font-heading text-foreground">
+                    Confirmación de invitación pendiente
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    Confirma tu invitación de enrolamiento ingresando tu número de cédula para precargar tus datos y habilitar el formulario Anexo B.
                   </p>
                 </div>
-
-                  <form
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      ejecutarValidacionCedula(cedulaInput);
-                    }}
-                    className="space-y-6"
-                  >
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
-                      {/* Contenedor de Cédula (Más ancho) */}
-                      <div className="lg:col-span-7 xl:col-span-8 bg-surface border border-border rounded-2xl p-6 shadow-xs flex flex-col justify-between min-h-[160px]">
-                        <div className="space-y-1">
-                          <Label htmlFor="cedula-input" className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-                            <span>Número de cédula de identidad</span>
-                            <span className="text-warning">*</span>
-                          </Label>
-                          <p className="text-xs text-muted-foreground">
-                            Ingresa tu cédula de 10 dígitos para consultar tu habilitación como Coordinador SINARP.
-                          </p>
-                        </div>
-                        <div className="pt-3">
-                          <InputGroup state={validationError ? "error" : "default"} leftIcon={<FileText className="size-4 text-muted-foreground" />}>
-                            <InputGroupInput
-                              id="cedula-input"
-                              type="text"
-                              maxLength={10}
-                              placeholder="Ej: 1715489621"
-                              value={cedulaInput}
-                              onChange={(e) => {
-                                setCedulaInput(e.target.value.replace(/\D/g, ""));
-                                setValidationError(null);
-                              }}
-                              className="text-base font-mono tracking-wider h-11"
-                              autoFocus
-                              required
-                            />
-                          </InputGroup>
-                        </div>
-                      </div>
-
-                      {/* Contenedor de Requisitos (Más compacto y ordenado) */}
-                      <div className="lg:col-span-5 xl:col-span-4 bg-surface border border-border rounded-2xl p-5 shadow-xs flex flex-col justify-center">
-                        <div className="flex items-center gap-2 mb-3">
-                          <div className="p-1.5 rounded-lg bg-secondary/10 text-secondary shrink-0">
-                            <ShieldCheck className="size-4" />
-                          </div>
-                          <h3 className="text-xs font-bold text-foreground uppercase tracking-wide">
-                            Requisitos para la activación
-                          </h3>
-                        </div>
-                        <ul className="space-y-2 text-xs text-muted-foreground">
-                          <li className="flex items-start gap-2">
-                            <div className="size-1.5 rounded-full bg-secondary shrink-0 mt-1.5" />
-                            <span>Designación previa en solicitud institucional (Anexo A).</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <div className="size-1.5 rounded-full bg-secondary shrink-0 mt-1.5" />
-                            <span>Firma electrónica válida (FirmaEC) para suscribir Anexo B.</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <div className="size-1.5 rounded-full bg-secondary shrink-0 mt-1.5" />
-                            <span>Cédula de identidad de 10 dígitos.</span>
-                          </li>
-                        </ul>
-                      </div>
-                    </div>
-
-                    {/* ESCENARIO DE ERROR: NO HABILITADO */}
-                    {validationError && (
-                      <div className="p-4 bg-danger/10 border border-danger/30 rounded-2xl space-y-3 animate-in fade-in duration-200">
-                        <div className="flex items-start gap-3">
-                          <AlertCircle className="size-5 text-danger shrink-0 mt-0.5" />
-                          <div className="space-y-1">
-                            <h4 className="text-xs font-bold text-danger uppercase tracking-wider">
-                              Validación no aprobada
-                            </h4>
-                            <p className="text-xs text-foreground/90 font-medium leading-relaxed">
-                              {validationError}
-                            </p>
-                            <p className="text-[11px] text-muted-foreground">
-                              Asegúrate de que la institución haya completado el trámite de prerregistro (Anexo A) y que hayas sido designado formalmente.
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-danger/20">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setCedulaInput("1715489621");
-                              ejecutarValidacionCedula("1715489621");
-                            }}
-                            className="text-xs font-semibold gap-1.5 text-secondary border-secondary/30 hover:bg-secondary/10"
-                          >
-                            <Sparkles className="size-3.5" />
-                            <span>Probar con cédula habilitada (1715489621)</span>
-                          </Button>
-
-                          <div className="flex items-center gap-2">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleIrDirectoAFormulario(cedulaInput)}
-                              className="text-xs font-medium"
-                            >
-                              <span>Continuar con formulario de prueba</span>
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                setCedulaInput("");
-                                setValidationError(null);
-                              }}
-                              className="text-xs font-semibold gap-1.5"
-                            >
-                              <ArrowLeft className="size-3.5" />
-                              <span>Intentar otra cédula</span>
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="flex flex-col sm:flex-row justify-between items-center gap-3 pt-4 border-t border-border/60">
-                      <Link href="/login" className="w-full sm:w-auto">
-                        <Button
-                          type="button"
-                          variant="neutral"
-                          size="default"
-                          className="text-xs font-semibold gap-1.5 w-full sm:w-auto"
-                        >
-                          <ArrowLeft className="size-4" />
-                          <span>Volver al acceso principal</span>
-                        </Button>
-                      </Link>
-                      <Button
-                        type="submit"
-                        variant="primary"
-                        size="default"
-                        disabled={isSearching || cedulaInput.length !== 10}
-                        className="text-xs font-semibold px-6 w-full sm:w-auto"
-                      >
-                        {isSearching ? (
-                          <div className="flex items-center gap-2">
-                            <LoadingSpinner size="sm" className="size-4" />
-                            <span>Validando...</span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            <span>Validar información</span>
-                            <ArrowRight className="size-4" />
-                          </div>
-                        )}
-                      </Button>
-                    </div>
-                  </form>
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="default"
+                  onClick={() => setShowValidationModal(true)}
+                  className="text-xs font-semibold gap-1.5"
+                >
+                  <UserCheck className="size-4" />
+                  <span>Confirmar invitación de enrolamiento</span>
+                </Button>
               </div>
-
             )}
 
             {/* â”€â”€ SI EL COORDINADOR YA TIENE UNA SOLICITUD EN EL STORE â”€â”€ */}
@@ -2602,6 +2525,19 @@ function EnrolamientoContent() {
                 </Button>
               )}
           </div>
+
+          <ValidacionCoordinadorModal
+            open={showValidationModal}
+            onOpenChange={setShowValidationModal}
+            initialCedula={formData.funcionarioCedula || cedulaInput}
+            cancelLabel={formData.funcionarioCedula ? "Cerrar" : "Volver al acceso principal"}
+            onCancel={() => {
+              if (!formData.funcionarioCedula) {
+                window.location.href = "/login";
+              }
+            }}
+            onValidated={applyCoordinadorValidado}
+          />
     </div>
   );
 }
