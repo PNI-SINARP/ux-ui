@@ -31,9 +31,14 @@ import {
   Ban,
 } from "lucide-react";
 import { useSolicitudesStore } from "@/modules/acceso-interoperabilidad/data/solicitudes-store";
+import { useAuthStore } from "@/modules/gestion-solicitudes/data/auth-store";
 import { toast } from "sonner";
 
 export function AccesoSolicitudFacturacionView({ id }: { id: string }) {
+  const { activeUser } = useAuthStore();
+  const activeRole = activeUser?.role || "COORDINADOR_SINARP";
+  const isCoordinador = activeRole === "COORDINADOR_SINARP";
+  const isFinancieroOrAdmin = activeRole === "FACTURACION" || activeRole === "ADMIN";
   const {
     getSolicitudById,
     pagarFacturaElectronica,
@@ -141,33 +146,53 @@ export function AccesoSolicitudFacturacionView({ id }: { id: string }) {
 
   return (
     <WireframeDashboardLayout
-      activeMenu="mis-solicitudes"
-      currentRole="COORDINADOR_SINARP"
-      breadcrumbs={[
-        {
-          label: "Acceso a Interoperabilidad",
-          href: "/acceso-interoperabilidad/solicitudes",
-        },
-        {
-          label: "Mis solicitudes",
-          href: "/acceso-interoperabilidad/solicitudes",
-        },
-        { label: id, href: `/acceso-interoperabilidad/solicitudes/${id}` },
-        { label: `Factura ${factura.numero}` },
-      ]}
+      activeMenu={isCoordinador ? "mis-solicitudes" : "configuracion-financiera"}
+      currentRole={activeRole}
+      breadcrumbs={
+        isCoordinador
+          ? [
+              {
+                label: "Acceso a Interoperabilidad",
+                href: "/acceso-interoperabilidad/solicitudes",
+              },
+              {
+                label: "Mis solicitudes",
+                href: "/acceso-interoperabilidad/solicitudes",
+              },
+              { label: id, href: `/acceso-interoperabilidad/solicitudes/${id}` },
+              { label: `Factura ${factura.numero}` },
+            ]
+          : [
+              {
+                label: "Gestión Financiera",
+                href: "/configuracion-financiera",
+              },
+              {
+                label: `Facturación y Conciliación (${id})`,
+              },
+            ]
+      }
     >
       <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-6">
         {/* Encabezado */}
         <div>
           <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-            <Link href={`/acceso-interoperabilidad/solicitudes/${id}`}>
+            <Link
+              href={
+                isCoordinador
+                  ? `/acceso-interoperabilidad/solicitudes/${id}`
+                  : "/configuracion-financiera"
+              }
+            >
               <Button
                 variant="ghost"
                 size="sm"
                 className="pl-0 gap-1.5 text-xs text-primary font-semibold hover:underline"
               >
                 <ArrowLeft className="size-3.5" />
-                Volver al detalle de la solicitud
+                {isCoordinador
+                  ? "Volver al detalle de la solicitud"
+                  : "Volver a Tarifario y Pasarela"}
               </Button>
             </Link>
           </div>
@@ -176,131 +201,139 @@ export function AccesoSolicitudFacturacionView({ id }: { id: string }) {
               Entidad Privada · Facturación Automática antes del Pago
             </Badge>
             <Badge tone="info" appearance="outline" className="text-xs">
-              BN-08 · FAC-01 · FAC-02 · PAG-01 · PAG-02 · PAG-03 · PAG-05
+              {isCoordinador
+                ? "BN-08 · FAC-01 · PAG-01 · PAG-03"
+                : "BN-08 · FAC-01 · FAC-02 · PAG-02 · PAG-05"}
             </Badge>
           </div>
           <h1 className="font-heading text-2xl md:text-3xl font-bold tracking-tight text-foreground mt-1">
-            Liquidación Tarifaria, Factura Electrónica y Pasarela de Pagos
+            {isCoordinador
+              ? "Factura Electrónica y Pago en Pasarela"
+              : "Conciliación de Facturación, Pasarela y Contingencias (BN-08)"}
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Flujo 100% automatizado vía API de Facturación Electrónica y Pasarela de Pagos con confirmación por webhook firmado (sin intervención manual en SIGEF).
+            {isCoordinador
+              ? "Consulta el comprobante electrónico emitido tras la firma bilateral del contrato y realiza el pago en línea mediante pasarela (PAG-01)."
+              : "Supervisa la emisión electrónica de facturas (FAC-01/FAC-02), concilia webhooks de pasarela (PAG-02) y autoriza nuevos intentos de pago (PAG-05)."}
           </p>
         </div>
 
-        {/* Barra de Simulación Interactiva BN-08 */}
-        <Card className="p-4 border border-primary/30 bg-primary/5 space-y-3">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-primary">
-                Simulador Interactivo de Escenarios Financieros (BN-08)
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Pruebe las ramas de excepción de facturación (`FAC-02`), bloqueo por intentos fallidos (`PAG-03`), desbloqueo administrativo (`PAG-05`) y conciliación de webhook (`PAG-02`).
-              </p>
+        {/* Barra de Contingencia y Conciliación Financiera (Exclusiva para Facturación y Administrador) */}
+        {isFinancieroOrAdmin && (
+          <Card className="p-4 border border-primary/30 bg-primary/5 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-primary">
+                  Panel de Conciliación y Contingencias Financieras (BN-08)
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Gestione las ramas de excepción de facturación (`FAC-02`), bloqueo por intentos fallidos (`PAG-03`), desbloqueo administrativo (`PAG-05`) y conciliación de webhook (`PAG-02`).
+                </p>
+              </div>
+              <Badge tone="primary" appearance="soft">
+                Estado actual: {estadoActual}
+              </Badge>
             </div>
-            <Badge tone="primary" appearance="soft">
-              Estado actual: {estadoActual}
-            </Badge>
-          </div>
 
-          <div className="flex flex-wrap gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              className="text-xs"
-              onClick={() => {
-                simularDivergenciaFactura(id);
-                toast.warning("Divergencia de facturación simulada (FAC-02)");
-              }}
-            >
-              <AlertTriangle className="size-3.5 mr-1.5 text-warning" />
-              1. Simular Divergencia API Factura (FAC-02)
-            </Button>
-
-            {isDivergenciaFactura && (
+            <div className="flex flex-wrap gap-2">
               <Button
                 size="sm"
-                variant="primary"
+                variant="outline"
                 className="text-xs"
                 onClick={() => {
-                  conciliarEmisionFactura(id, "Administrador Financiero SINARP");
-                  toast.success("Factura conciliada sin duplicidad (FAC-02)");
+                  simularDivergenciaFactura(id);
+                  toast.warning("Divergencia de facturación simulada (FAC-02)");
                 }}
               >
-                <RefreshCw className="size-3.5 mr-1.5" />
-                Conciliar Factura (FAC-02)
+                <AlertTriangle className="size-3.5 mr-1.5 text-warning" />
+                1. Simular Divergencia API Factura (FAC-02)
               </Button>
-            )}
 
-            <Button
-              size="sm"
-              variant="outline"
-              className="text-xs"
-              disabled={isBloqueadoIntentos || isPagoVerificado}
-              onClick={() => {
-                registrarIntentoPagoFallido(id);
-                toast.error("Intento de pago fallido registrado (PAG-03)");
-              }}
-            >
-              <Ban className="size-3.5 mr-1.5 text-destructive" />
-              2. Simular Intento Fallido ({pasarela.intentosRealizados}/
-              {pasarela.maxIntentos}) (PAG-03)
-            </Button>
+              {isDivergenciaFactura && (
+                <Button
+                  size="sm"
+                  variant="primary"
+                  className="text-xs"
+                  onClick={() => {
+                    conciliarEmisionFactura(id, "Administrador Financiero SINARP");
+                    toast.success("Factura conciliada sin duplicidad (FAC-02)");
+                  }}
+                >
+                  <RefreshCw className="size-3.5 mr-1.5" />
+                  Conciliar Factura (FAC-02)
+                </Button>
+              )}
 
-            {isBloqueadoIntentos && (
               <Button
                 size="sm"
-                variant="primary"
+                variant="outline"
+                className="text-xs"
+                disabled={isBloqueadoIntentos || isPagoVerificado}
+                onClick={() => {
+                  registrarIntentoPagoFallido(id);
+                  toast.error("Intento de pago fallido registrado (PAG-03)");
+                }}
+              >
+                <Ban className="size-3.5 mr-1.5 text-destructive" />
+                2. Simular Intento Fallido ({pasarela.intentosRealizados}/
+                {pasarela.maxIntentos}) (PAG-03)
+              </Button>
+
+              {isBloqueadoIntentos && (
+                <Button
+                  size="sm"
+                  variant="primary"
+                  className="text-xs"
+                  onClick={() => {
+                    autorizarNuevosIntentosPago(
+                      id,
+                      "Autorización administrativa de nuevo ciclo de intentos sobre la misma factura (PAG-05).",
+                      "Administrador Financiero SINARP"
+                    );
+                    toast.success("Intentos de pago desbloqueados (PAG-05)");
+                  }}
+                >
+                  <Unlock className="size-3.5 mr-1.5" />
+                  Autorizar Nuevos Intentos (PAG-05)
+                </Button>
+              )}
+
+              <Button
+                size="sm"
+                variant="outline"
                 className="text-xs"
                 onClick={() => {
-                  autorizarNuevosIntentosPago(
-                    id,
-                    "Autorización administrativa de nuevo ciclo de intentos sobre la misma factura (PAG-05).",
-                    "Administrador Financiero SINARP"
+                  simularPagoDivergenteConciliacion(id);
+                  toast.warning(
+                    "Pago retenido en conciliación por divergencia en callback (PAG-02 Crit. 3)"
                   );
-                  toast.success("Intentos de pago desbloqueados (PAG-05)");
                 }}
               >
-                <Unlock className="size-3.5 mr-1.5" />
-                Autorizar Nuevos Intentos (PAG-05)
+                <Clock className="size-3.5 mr-1.5 text-warning" />
+                3. Simular Webhook Divergente (PAG-02 Crit. 3)
               </Button>
-            )}
 
-            <Button
-              size="sm"
-              variant="outline"
-              className="text-xs"
-              onClick={() => {
-                simularPagoDivergenteConciliacion(id);
-                toast.warning(
-                  "Pago retenido en conciliación por divergencia en callback (PAG-02 Crit. 3)"
-                );
-              }}
-            >
-              <Clock className="size-3.5 mr-1.5 text-warning" />
-              3. Simular Webhook Divergente (PAG-02 Crit. 3)
-            </Button>
-
-            {isEnConciliacion && (
-              <Button
-                size="sm"
-                variant="primary"
-                className="text-xs"
-                onClick={() => {
-                  conciliarPagoPasarela(
-                    id,
-                    "Monto y referencia conciliados contra liquidación de pasarela.",
-                    "Administrador Financiero SINARP"
-                  );
-                  toast.success("Pago conciliado y remitido a SOL-10 (PAG-02)");
-                }}
-              >
-                <CheckCircle2 className="size-3.5 mr-1.5" />
-                Conciliar Pago y Avanzar a SOL-10
-              </Button>
-            )}
-          </div>
-        </Card>
+              {isEnConciliacion && (
+                <Button
+                  size="sm"
+                  variant="primary"
+                  className="text-xs"
+                  onClick={() => {
+                    conciliarPagoPasarela(
+                      id,
+                      "Monto y referencia conciliados contra liquidación de pasarela.",
+                      "Administrador Financiero SINARP"
+                    );
+                    toast.success("Pago conciliado y remitido a SOL-10 (PAG-02)");
+                  }}
+                >
+                  <CheckCircle2 className="size-3.5 mr-1.5" />
+                  Conciliar Pago y Avanzar a SOL-10
+                </Button>
+              )}
+            </div>
+          </Card>
+        )}
 
         {/* Tarjeta Principal de Factura y Pasarela */}
         <Card className="p-0 overflow-hidden border border-border bg-surface shadow-xs">
@@ -624,7 +657,8 @@ export function AccesoSolicitudFacturacionView({ id }: { id: string }) {
               </Button>
             </div>
 
-            {!isPagoVerificado &&
+            {isCoordinador &&
+              !isPagoVerificado &&
               !isDivergenciaFactura &&
               !isBloqueadoIntentos &&
               !isEnConciliacion &&

@@ -133,7 +133,7 @@ export const DEFAULT_ROUTE_BY_ROLE: Record<UserRole, string> = {
   JURIDICA: "/formalizacion/contratos",
   TI: "/tecnologia/conectores",
   DTD: "/tecnologia/conectores",
-  FACTURACION: "/consumo-api",
+  FACTURACION: "/configuracion-financiera",
   CONTROL_EVALUACION: "/control-excepcional",
   ADMIN: "/cuentas-internas",
 };
@@ -322,7 +322,7 @@ const navItems: NavItem[] = [
     icon: FileCheck2,
     href: "/formalizacion",
     allowedRoles: ["DIR_GESTION"],
-    section: "Formalización de Accesos",
+    section: "Acceso a fuentes",
   },
   {
     id: "revision-aprobacion-fuentes",
@@ -340,7 +340,7 @@ const navItems: NavItem[] = [
     icon: FileText,
     href: "/formalizacion/contratos",
     allowedRoles: ["JURIDICA", "COORDINADOR_SINARP", "APROBADOR"],
-    section: "Formalización de Accesos",
+    section: "Gestión Contractual",
   },
 
   // ── Equipo TI / DTD ──
@@ -421,7 +421,8 @@ const navItems: NavItem[] = [
     label: "Tarifario y pasarela",
     icon: Receipt,
     href: "/configuracion-financiera",
-    allowedRoles: ["ADMIN"],
+    allowedRoles: ["FACTURACION", "ADMIN"],
+    section: "Gestión Financiera",
   },
 
   // ── ADMINISTRACIÓN DEL PORTAL (PAR-08 a 16, FUE-08 a 11, ECO-01, INS-08 a 10, ID-00) ──
@@ -430,7 +431,8 @@ const navItems: NavItem[] = [
     label: "Ciclo de las fuentes",
     icon: Database,
     href: "/ciclo-fuentes",
-    allowedRoles: ["COORDINADOR_SINARP", "DIR_GESTION", "EQ_GESTION", "JURIDICA"],
+    allowedRoles: ["COORDINADOR_SINARP", "DIR_GESTION", "EQ_GESTION"],
+    providerOnly: false,
     section: "Administración",
   },
   {
@@ -438,7 +440,7 @@ const navItems: NavItem[] = [
     label: "Instituciones y arranque",
     icon: Building2,
     href: "/instituciones-admin",
-    allowedRoles: ["COORDINADOR_SINARP", "ADMIN"],
+    allowedRoles: ["ADMIN", "DIR_GESTION"],
     section: "Administración",
   },
   {
@@ -456,7 +458,7 @@ const navItems: NavItem[] = [
     label: "Operación y monitoreo",
     icon: Activity,
     href: "/operacion",
-    allowedRoles: ["COORDINADOR_SINARP", "DIR_GESTION", "EQ_GESTION", "TI", "DTD"],
+    allowedRoles: ["DIR_GESTION", "EQ_GESTION", "TI", "DTD"],
     section: "Operación y soporte",
   },
   {
@@ -553,6 +555,21 @@ function isRouteAllowedForRole(pathname: string | null, role: UserRole, isProvid
   // Sub-routes of homologacion-fuentes belong to TI / DTD
   if (cleanPath === "/homologacion-fuentes" || cleanPath.startsWith("/homologacion-fuentes/")) {
     return role === "TI" || role === "DTD";
+  }
+
+  // Facturacion detail route accessible to COORDINADOR_SINARP, FACTURACION, and ADMIN
+  if (cleanPath.startsWith("/acceso-interoperabilidad/solicitudes/") && cleanPath.endsWith("/facturacion")) {
+    return role === "COORDINADOR_SINARP" || role === "FACTURACION" || role === "ADMIN";
+  }
+
+  // Entrega excepcional detail accessible to CONTROL_EVALUACION as well
+  if (cleanPath.startsWith("/entrega-excepcional/detalle") && role === "CONTROL_EVALUACION") {
+    return true;
+  }
+
+  // Ciclo de fuentes for COORDINADOR_SINARP is restricted to providers (FUE-08)
+  if (cleanPath.startsWith("/ciclo-fuentes") && role === "COORDINADOR_SINARP" && !isProvider) {
+    return false;
   }
 
   // Check if any navItem for this role matches cleanPath (exact or sub-route)
@@ -713,16 +730,8 @@ export function WireframeDashboardLayout({
     if (onRoleChange) {
       onRoleChange(role);
     }
-    const targetUser = MOCK_USERS_BY_ROLE[role];
-    const targetIsProvider =
-      isProviderInstitution(targetUser?.institution) ||
-      (targetUser?.roleTitle?.toLowerCase().includes("proveedor") ?? false) ||
-      (targetUser?.roleTitle?.toLowerCase().includes("emisor") ?? false);
-
-    if (!isRouteAllowedForRole(pathname, role, targetIsProvider)) {
-      const targetRoute = DEFAULT_ROUTE_BY_ROLE[role] || "/catalogo-interoperabilidad";
-      router.push(targetRoute);
-    }
+    const targetRoute = DEFAULT_ROUTE_BY_ROLE[role] || "/catalogo-interoperabilidad";
+    router.push(targetRoute);
   };
 
   useEffect(() => {
@@ -836,6 +845,9 @@ export function WireframeDashboardLayout({
                   return false;
                 }
                 if (item.providerOnly && !isProvider) {
+                  return false;
+                }
+                if (item.id === "ciclo-fuentes" && activeUserRole === "COORDINADOR_SINARP" && !isProvider) {
                   return false;
                 }
                 return true;

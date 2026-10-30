@@ -140,22 +140,35 @@ export function FormalizacionContratosView() {
     "Ajuste de cláusula de vigencia y cupo transaccional."
   );
 
-  // Solicitudes privadas en formalización contractual
-  const privadasEnContratacion = useMemo(() => {
-    return solicitudes.filter((s) => s.tipoInstitucion === "Privada");
-  }, [solicitudes]);
-
-  const selectedSolicitud = useMemo(
-    () => privadasEnContratacion.find((s) => s.id === selectedId) || null,
-    [privadasEnContratacion, selectedId]
-  );
-
   const getEstadoContratoLabel = (s: SolicitudAcceso): string => {
     if (s.estado === "Pendiente de plantilla") return "Pendiente de plantilla";
     if (s.contratoDetalle?.estado) return s.contratoDetalle.estado;
     if (s.contrato) return "Firmado";
     return "Sin contrato";
   };
+
+  // Solicitudes privadas en formalización contractual filtradas por rol según HUs v19
+  const privadasEnContratacion = useMemo(() => {
+    return solicitudes.filter((s) => {
+      if (s.tipoInstitucion !== "Privada") return false;
+      if (isJuridica) return true;
+      // Coordinador SINARP y Máxima Autoridad solo visualizan contratos remitidos a firma o firmados (DOC-02)
+      const est = getEstadoContratoLabel(s);
+      return est === "Pendiente de firmas" || est === "Firmado";
+    });
+  }, [solicitudes, isJuridica]);
+
+  const selectedSolicitud = useMemo(
+    () => privadasEnContratacion.find((s) => s.id === selectedId) || null,
+    [privadasEnContratacion, selectedId]
+  );
+
+  const estadosContratoOpcionesRol = useMemo(() => {
+    if (isJuridica) return ESTADOS_CONTRATO_OPCIONES;
+    return ESTADOS_CONTRATO_OPCIONES.filter(
+      (o) => o.value === "TODOS" || o.value === "FIRMADO" || o.value === "PENDIENTE_FIRMAS"
+    );
+  }, [isJuridica]);
 
   const getEstadoFilterLabel = (st: string) => {
     return ESTADOS_CONTRATO_OPCIONES.find((o) => o.value === st)?.label || "Todos los estados";
@@ -256,14 +269,14 @@ export function FormalizacionContratosView() {
   }, [fuenteSearch, filterFuente, fuentesDisponibles]);
 
   const filteredEstadosForFilter = useMemo(() => {
-    if (!estadoSearch.trim()) return ESTADOS_CONTRATO_OPCIONES;
+    if (!estadoSearch.trim()) return estadosContratoOpcionesRol;
     const currentLabel = getEstadoFilterLabel(estadoFilter);
     if (currentLabel.toLowerCase() === estadoSearch.trim().toLowerCase()) {
-      return ESTADOS_CONTRATO_OPCIONES;
+      return estadosContratoOpcionesRol;
     }
     const q = estadoSearch.toLowerCase();
-    return ESTADOS_CONTRATO_OPCIONES.filter((o) => o.label.toLowerCase().includes(q));
-  }, [estadoSearch, estadoFilter]);
+    return estadosContratoOpcionesRol.filter((o) => o.label.toLowerCase().includes(q));
+  }, [estadoSearch, estadoFilter, estadosContratoOpcionesRol]);
 
   const filtered = useMemo(() => {
     return privadasEnContratacion.filter((s) => {
@@ -1460,16 +1473,25 @@ export function FormalizacionContratosView() {
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 w-full">
                 <div className="space-y-1 min-w-0 flex-1">
                   <h1 className="font-heading font-extrabold text-2xl sm:text-3xl tracking-tight text-primary">
-                    Contratos de acceso
+                    {isJuridica ? "Contratos de acceso" : "Firma electrónica de contratos"}
                   </h1>
                   <p className="text-xs sm:text-sm text-muted-foreground w-full max-w-none leading-relaxed font-normal">
-                    Genera los instrumentos contractuales para entidades privadas a partir de la plantilla vigente PAR-02, controla sus versiones previas a la firma y verifica la suscripción bilateral.
+                    {isJuridica
+                      ? "Genera los instrumentos contractuales para entidades privadas a partir de la plantilla vigente PAR-02, controla sus versiones previas a la firma y verifica la suscripción bilateral."
+                      : isCoordinador
+                        ? "Revisa y suscribe con primera firma electrónica los contratos de acceso a fuentes remitidos por la Dirección Jurídica (DOC-02)."
+                        : "Revisa y suscribe con segunda firma electrónica los contratos de acceso previamente firmados por las entidades privadas (DOC-02)."}
                   </p>
                 </div>
               </div>
 
-              {/* Cards de Resumen Compactas (4 Estados del Ciclo Contractual) */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 w-full">
+              {/* Cards de Resumen Compactas según perfil */}
+              <div
+                className={cn(
+                  "grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4 w-full",
+                  isJuridica ? "lg:grid-cols-4" : "lg:grid-cols-2"
+                )}
+              >
                 {/* 1. Contratos firmados */}
                 <Card
                   variant="featured"
@@ -1592,125 +1614,129 @@ export function FormalizacionContratosView() {
                   </div>
                 </Card>
 
-                {/* 3. Borrador / Corrección */}
-                <Card
-                  variant="featured"
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => {
-                    handleSetEstadoFilter(
-                      estadoFilter === "BORRADOR" ? "TODOS" : "BORRADOR"
-                    );
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
+                {/* 3. Borrador / Corrección (exclusivo Jurídica) */}
+                {isJuridica && (
+                  <Card
+                    variant="featured"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => {
                       handleSetEstadoFilter(
                         estadoFilter === "BORRADOR" ? "TODOS" : "BORRADOR"
                       );
-                    }
-                  }}
-                  className={cn(
-                    "group relative overflow-hidden cursor-pointer transition-all duration-200 border rounded-xl outline-none select-none p-4 w-full",
-                    "hover:-translate-y-0.5 hover:shadow-md",
-                    estadoFilter === "BORRADOR"
-                      ? "bg-warning/15 border-warning ring-2 ring-warning/40 shadow-xs"
-                      : "bg-warning/5 hover:bg-warning/10 border-warning/25 shadow-2xs"
-                  )}
-                  innerClassName="p-0 h-full"
-                >
-                  <div className="flex flex-col justify-between h-full gap-3 w-full">
-                    <div className="flex items-center justify-between gap-2 w-full">
-                      <div
-                        className={cn(
-                          "size-10 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200",
-                          estadoFilter === "BORRADOR"
-                            ? "bg-warning text-white shadow-xs"
-                            : "bg-warning/15 text-warning group-hover:scale-105 group-hover:bg-warning group-hover:text-white"
-                        )}
-                      >
-                        <Clock className="size-5" />
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        handleSetEstadoFilter(
+                          estadoFilter === "BORRADOR" ? "TODOS" : "BORRADOR"
+                        );
+                      }
+                    }}
+                    className={cn(
+                      "group relative overflow-hidden cursor-pointer transition-all duration-200 border rounded-xl outline-none select-none p-4 w-full",
+                      "hover:-translate-y-0.5 hover:shadow-md",
+                      estadoFilter === "BORRADOR"
+                        ? "bg-warning/15 border-warning ring-2 ring-warning/40 shadow-xs"
+                        : "bg-warning/5 hover:bg-warning/10 border-warning/25 shadow-2xs"
+                    )}
+                    innerClassName="p-0 h-full"
+                  >
+                    <div className="flex flex-col justify-between h-full gap-3 w-full">
+                      <div className="flex items-center justify-between gap-2 w-full">
+                        <div
+                          className={cn(
+                            "size-10 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200",
+                            estadoFilter === "BORRADOR"
+                              ? "bg-warning text-white shadow-xs"
+                              : "bg-warning/15 text-warning group-hover:scale-105 group-hover:bg-warning group-hover:text-white"
+                          )}
+                        >
+                          <Clock className="size-5" />
+                        </div>
+                        <Badge
+                          tone="warning"
+                          appearance="soft"
+                          size="sm"
+                          className="shrink-0 text-[10px] font-bold px-2 py-0.5"
+                        >
+                          En revisión
+                        </Badge>
                       </div>
-                      <Badge
-                        tone="warning"
-                        appearance="soft"
-                        size="sm"
-                        className="shrink-0 text-[10px] font-bold px-2 py-0.5"
-                      >
-                        En revisión
-                      </Badge>
+                      <div className="text-left w-full space-y-0.5">
+                        <p className="text-xs font-semibold text-muted-foreground">
+                          Borrador / Corrección
+                        </p>
+                        <p className="text-2xl sm:text-3xl font-extrabold font-heading text-foreground leading-none tracking-tight">
+                          {countBorradores}
+                        </p>
+                      </div>
                     </div>
-                    <div className="text-left w-full space-y-0.5">
-                      <p className="text-xs font-semibold text-muted-foreground">
-                        Borrador / Corrección
-                      </p>
-                      <p className="text-2xl sm:text-3xl font-extrabold font-heading text-foreground leading-none tracking-tight">
-                        {countBorradores}
-                      </p>
-                    </div>
-                  </div>
-                </Card>
+                  </Card>
+                )}
 
-                {/* 4. Por generar / Plantilla */}
-                <Card
-                  variant="featured"
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => {
-                    handleSetEstadoFilter(
-                      estadoFilter === "SIN_CONTRATO" ? "TODOS" : "SIN_CONTRATO"
-                    );
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
+                {/* 4. Por generar / Plantilla (exclusivo Jurídica) */}
+                {isJuridica && (
+                  <Card
+                    variant="featured"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => {
                       handleSetEstadoFilter(
-                        estadoFilter === "SIN_CONTRATO"
-                          ? "TODOS"
-                          : "SIN_CONTRATO"
+                        estadoFilter === "SIN_CONTRATO" ? "TODOS" : "SIN_CONTRATO"
                       );
-                    }
-                  }}
-                  className={cn(
-                    "group relative overflow-hidden cursor-pointer transition-all duration-200 border rounded-xl outline-none select-none p-4 w-full",
-                    "hover:-translate-y-0.5 hover:shadow-md",
-                    estadoFilter === "SIN_CONTRATO"
-                      ? "bg-muted border-border ring-2 ring-primary/30 shadow-xs"
-                      : "bg-muted/40 hover:bg-muted/60 border-border/70 shadow-2xs"
-                  )}
-                  innerClassName="p-0 h-full"
-                >
-                  <div className="flex flex-col justify-between h-full gap-3 w-full">
-                    <div className="flex items-center justify-between gap-2 w-full">
-                      <div
-                        className={cn(
-                          "size-10 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200",
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        handleSetEstadoFilter(
                           estadoFilter === "SIN_CONTRATO"
-                            ? "bg-foreground text-background shadow-xs"
-                            : "bg-muted text-muted-foreground group-hover:scale-105 group-hover:bg-foreground group-hover:text-background"
-                        )}
-                      >
-                        <FileText className="size-5" />
+                            ? "TODOS"
+                            : "SIN_CONTRATO"
+                        );
+                      }
+                    }}
+                    className={cn(
+                      "group relative overflow-hidden cursor-pointer transition-all duration-200 border rounded-xl outline-none select-none p-4 w-full",
+                      "hover:-translate-y-0.5 hover:shadow-md",
+                      estadoFilter === "SIN_CONTRATO"
+                        ? "bg-muted border-border ring-2 ring-primary/30 shadow-xs"
+                        : "bg-muted/40 hover:bg-muted/60 border-border/70 shadow-2xs"
+                    )}
+                    innerClassName="p-0 h-full"
+                  >
+                    <div className="flex flex-col justify-between h-full gap-3 w-full">
+                      <div className="flex items-center justify-between gap-2 w-full">
+                        <div
+                          className={cn(
+                            "size-10 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200",
+                            estadoFilter === "SIN_CONTRATO"
+                              ? "bg-foreground text-background shadow-xs"
+                              : "bg-muted text-muted-foreground group-hover:scale-105 group-hover:bg-foreground group-hover:text-background"
+                          )}
+                        >
+                          <FileText className="size-5" />
+                        </div>
+                        <Badge
+                          tone="neutral"
+                          appearance="soft"
+                          size="sm"
+                          className="shrink-0 text-[10px] font-bold px-2 py-0.5"
+                        >
+                          Por formalizar
+                        </Badge>
                       </div>
-                      <Badge
-                        tone="neutral"
-                        appearance="soft"
-                        size="sm"
-                        className="shrink-0 text-[10px] font-bold px-2 py-0.5"
-                      >
-                        Por formalizar
-                      </Badge>
+                      <div className="text-left w-full space-y-0.5">
+                        <p className="text-xs font-semibold text-muted-foreground">
+                          Por generar / Plantilla
+                        </p>
+                        <p className="text-2xl sm:text-3xl font-extrabold font-heading text-foreground leading-none tracking-tight">
+                          {countSinContrato}
+                        </p>
+                      </div>
                     </div>
-                    <div className="text-left w-full space-y-0.5">
-                      <p className="text-xs font-semibold text-muted-foreground">
-                        Por generar / Plantilla
-                      </p>
-                      <p className="text-2xl sm:text-3xl font-extrabold font-heading text-foreground leading-none tracking-tight">
-                        {countSinContrato}
-                      </p>
-                    </div>
-                  </div>
-                </Card>
+                  </Card>
+                )}
               </div>
 
               {/* Filtros y Búsqueda con UI Kit Oficial */}
