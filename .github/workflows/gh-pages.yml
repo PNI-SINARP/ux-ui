@@ -2,7 +2,7 @@ name: Deploy Next.js site to Pages
 
 on:
   push:
-    branches: ["main"]
+    branches: ["feat/alinear-v19"]
   workflow_dispatch:
 
 permissions:
