@@ -321,18 +321,23 @@ function InfraestructuraTab() {
 
 export function OperacionView() {
   const op = useOperacionStore();
+  const { rol } = useActor();
+  const esTi = rol === "TI" || rol === "DTD";
+  const verConsumo = rol === "COORDINADOR_SINARP" || rol === "DIR_GESTION" || rol === "EQ_GESTION";
+  const defaultTab = esTi ? "infra" : "consumo";
+
   return (
     <ExcepcionalShell activeMenu="operacion" etiqueta="OPS-01 a OPS-05" titulo="Operación y monitoreo" descripcion="Alertas de consumo para el Coordinador y revisión de anomalías en Gestión; tablero de infraestructura y fuentes, inventario de componentes y recolección de métricas para Tecnología." icono={<Activity className="size-32 text-primary" />}>
       {!op.listo ? (
         <p className="text-xs text-muted-foreground">Cargando…</p>
       ) : (
-        <Tabs defaultValue="consumo" className="gap-4">
+        <Tabs key={rol} defaultValue={defaultTab} className="gap-4">
           <TabsList className="h-auto flex-wrap justify-start">
-            <TabsTrigger value="consumo">Consumo y anomalías</TabsTrigger>
-            <TabsTrigger value="infra">Infraestructura y fuentes</TabsTrigger>
+            {verConsumo && <TabsTrigger value="consumo">Consumo y anomalías</TabsTrigger>}
+            {esTi && <TabsTrigger value="infra">Infraestructura y fuentes</TabsTrigger>}
           </TabsList>
-          <TabsContent value="consumo"><ConsumoTab /></TabsContent>
-          <TabsContent value="infra"><InfraestructuraTab /></TabsContent>
+          {verConsumo && <TabsContent value="consumo"><ConsumoTab /></TabsContent>}
+          {esTi && <TabsContent value="infra"><InfraestructuraTab /></TabsContent>}
         </Tabs>
       )}
     </ExcepcionalShell>

@@ -181,22 +181,28 @@ function Par16() {
 
 export function ParametrosPortalView() {
   const st = useAdminStore();
+  const { rol } = useActor();
+  const esAdmin = rol === "ADMIN";
+  const verPar14 = rol === "DIR_NORMATIVA" || rol === "DIR_DPI" || rol === "DIR_GESTION";
+  const verPar15 = rol === "ADMIN" || rol === "DIR_GESTION";
+  const defaultTab = esAdmin ? "par16" : "par14";
+
   return (
     <ExcepcionalShell activeMenu="parametros-portal" etiqueta="PAR-08 · 09 · 14 · 15 · 16" titulo="Parámetros del Portal" descripcion="Métodos de recuperación asistida, vigencia de los trámites sin cuenta, plantillas de documentos, textos de interfaz y ayuda, y vistos buenos de la resolución." icono={<Settings2 className="size-32 text-primary" />}>
       {!st.listo ? <p className="text-xs text-muted-foreground">Cargando…</p> : (
-        <Tabs defaultValue="par16" className="gap-4">
+        <Tabs key={rol} defaultValue={defaultTab} className="gap-4">
           <TabsList className="h-auto flex-wrap justify-start">
-            <TabsTrigger value="par16">Vistos buenos</TabsTrigger>
-            <TabsTrigger value="par09">Sin cuenta</TabsTrigger>
-            <TabsTrigger value="par08">Recuperación</TabsTrigger>
-            <TabsTrigger value="par14">Plantillas</TabsTrigger>
-            <TabsTrigger value="par15">Textos</TabsTrigger>
+            {esAdmin && <TabsTrigger value="par16">Vistos buenos</TabsTrigger>}
+            {esAdmin && <TabsTrigger value="par09">Sin cuenta</TabsTrigger>}
+            {esAdmin && <TabsTrigger value="par08">Recuperación</TabsTrigger>}
+            {verPar14 && <TabsTrigger value="par14">Plantillas</TabsTrigger>}
+            {verPar15 && <TabsTrigger value="par15">Textos</TabsTrigger>}
           </TabsList>
-          <TabsContent value="par16"><Par16 /></TabsContent>
-          <TabsContent value="par09"><Par09 /></TabsContent>
-          <TabsContent value="par08"><Par08 /></TabsContent>
-          <TabsContent value="par14"><Par14 /></TabsContent>
-          <TabsContent value="par15"><Par15 /></TabsContent>
+          {esAdmin && <TabsContent value="par16"><Par16 /></TabsContent>}
+          {esAdmin && <TabsContent value="par09"><Par09 /></TabsContent>}
+          {esAdmin && <TabsContent value="par08"><Par08 /></TabsContent>}
+          {verPar14 && <TabsContent value="par14"><Par14 /></TabsContent>}
+          {verPar15 && <TabsContent value="par15"><Par15 /></TabsContent>}
         </Tabs>
       )}
     </ExcepcionalShell>

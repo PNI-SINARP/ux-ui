@@ -175,19 +175,6 @@ export function RevisionFuenteDetailView({ currentUser }: RevisionFuenteDetailVi
                   </Link>
                 </Button>
               </div>
-
-              <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  variant="neutral"
-                  size="sm"
-                  asChild
-                  leftIcon={<FolderCheck className="size-3.5" />}
-                >
-                  <Link href={`/proveedor/fuentes/${fuente.id}`}>
-                    Ver expediente completo de fuente
-                  </Link>
-                </Button>
-              </div>
             </div>
 
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

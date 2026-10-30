@@ -170,12 +170,6 @@ export function AccesoSolicitudFacturacionView({ id }: { id: string }) {
                 Volver al detalle de la solicitud
               </Button>
             </Link>
-            <Link href="/configuracion-financiera">
-              <Button variant="outline" size="sm" className="text-xs gap-1.5">
-                <SlidersHorizontal className="size-3.5" />
-                Ir a Configuración Financiera Admin (TAR / FAC / PAG)
-              </Button>
-            </Link>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Badge tone="warning" appearance="soft" className="text-xs">
@@ -435,17 +429,6 @@ export function AccesoSolicitudFacturacionView({ id }: { id: string }) {
                   >
                     <Link href={`/acceso-interoperabilidad/solicitudes/${id}`}>
                       Ver expediente de la solicitud
-                      <ArrowRight className="size-3" />
-                    </Link>
-                  </Button>
-                  <Button
-                    asChild
-                    size="sm"
-                    variant="primary"
-                    className="gap-1.5 text-xs"
-                  >
-                    <Link href="/formalizacion">
-                      Ir a Bandeja Director de Gestión (SOL-10)
                       <ArrowRight className="size-3" />
                     </Link>
                   </Button>

@@ -915,21 +915,6 @@ export function FormalizacionGestionView() {
                     Constituye el expediente público de autorización (SOL-09) y verifica la ruta completa antes de dar la aprobación final y aprovisionar en Apigee (SOL-10 / ACC-01).
                   </p>
                 </div>
-
-                <div className="flex flex-wrap items-center gap-2 shrink-0">
-                  <Button asChild variant="outline" size="sm" className="gap-2 rounded-xl">
-                    <Link href="/formalizacion/contratos">
-                      <FileSignature className="size-4 text-primary" />
-                      <span>Contratos Privados (DOC-01..03)</span>
-                    </Link>
-                  </Button>
-                  <Button asChild variant="outline" size="sm" className="gap-2 rounded-xl">
-                    <Link href="/acceso-consumo">
-                      <Server className="size-4 text-primary" />
-                      <span>Aprovisionamiento TI (ACC-02/03)</span>
-                    </Link>
-                  </Button>
-                </div>
               </div>
 
               {/* 2. Tarjetas KPI Interactivas Horizontales (Estilo Asignar cambios) */}

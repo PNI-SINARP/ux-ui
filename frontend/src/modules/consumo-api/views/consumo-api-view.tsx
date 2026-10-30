@@ -60,27 +60,40 @@ export function ConsumoApiView() {
             </div>
           </div>
 
-          <Tabs defaultValue="uso" className="gap-4">
-            <TabsList className="flex-wrap h-auto justify-start">
-              <TabsTrigger value="uso">Pruebas y consulta</TabsTrigger>
-              <TabsTrigger value="saldo">Saldo y eventos</TabsTrigger>
-              <TabsTrigger value="masivo">Programación masiva</TabsTrigger>
-              <TabsTrigger value="ampliaciones">Ampliaciones</TabsTrigger>
-            </TabsList>
-            <TabsContent value="uso" className="space-y-5">
-              <PruebasPanel key={`p-${a.id}`} a={a} />
-              <ConsultaPanel key={`c-${a.id}`} a={a} />
-            </TabsContent>
-            <TabsContent value="saldo">
-              <SaldoPanel a={a} />
-            </TabsContent>
-            <TabsContent value="masivo">
-              <ProgramacionPanel a={a} />
-            </TabsContent>
-            <TabsContent value="ampliaciones">
-              <AmpliacionesPanel a={a} />
-            </TabsContent>
-          </Tabs>
+          {(() => {
+            const esCoord = rol === "COORDINADOR_SINARP";
+            const verMasivo = esCoord || rol === "DGR" || rol === "DTD";
+            const defaultTab = esCoord ? "uso" : verMasivo ? "masivo" : "ampliaciones";
+            return (
+              <Tabs key={rol} defaultValue={defaultTab} className="gap-4">
+                <TabsList className="flex-wrap h-auto justify-start">
+                  {esCoord && <TabsTrigger value="uso">Pruebas y consulta</TabsTrigger>}
+                  {esCoord && <TabsTrigger value="saldo">Saldo y eventos</TabsTrigger>}
+                  {verMasivo && <TabsTrigger value="masivo">Programación masiva</TabsTrigger>}
+                  <TabsTrigger value="ampliaciones">Ampliaciones</TabsTrigger>
+                </TabsList>
+                {esCoord && (
+                  <TabsContent value="uso" className="space-y-5">
+                    <PruebasPanel key={`p-${a.id}`} a={a} />
+                    <ConsultaPanel key={`c-${a.id}`} a={a} />
+                  </TabsContent>
+                )}
+                {esCoord && (
+                  <TabsContent value="saldo">
+                    <SaldoPanel a={a} />
+                  </TabsContent>
+                )}
+                {verMasivo && (
+                  <TabsContent value="masivo">
+                    <ProgramacionPanel a={a} />
+                  </TabsContent>
+                )}
+                <TabsContent value="ampliaciones">
+                  <AmpliacionesPanel a={a} />
+                </TabsContent>
+              </Tabs>
+            );
+          })()}
         </>
       )}
     </ExcepcionalShell>

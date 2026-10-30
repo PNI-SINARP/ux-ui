@@ -491,20 +491,8 @@ export function FuentesInboxView({ currentUser, openNuevaOnInit = false }: Fuent
               Acceso exclusivo para Coordinadores Proveedores
             </h3>
             <p className="text-xs text-muted-foreground max-w-md">
-              Esta pantalla está reservada para que las instituciones proveedoras registren y configuren sus fuentes de datos. Las acciones de revisión corresponden al Área de Gestión y la administración técnica al Equipo de TI.
+              Esta pantalla está reservada para que las instituciones proveedoras registren y configuren sus fuentes de datos.
             </p>
-            <div className="flex items-center gap-2">
-              <Link href="/gestion/fuentes">
-                <Button variant="outline" size="sm">
-                  Ir a Revisión de fuentes
-                </Button>
-              </Link>
-              <Link href="/tecnologia/conectores">
-                <Button variant="primary" size="sm">
-                  Ir a Gestión de conectores
-                </Button>
-              </Link>
-            </div>
           </Card>
         ) : (
           <Card

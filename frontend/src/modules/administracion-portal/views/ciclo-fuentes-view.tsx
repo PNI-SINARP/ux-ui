@@ -197,18 +197,24 @@ function Economicos() {
 
 export function CicloFuentesView() {
   const st = useAdminStore();
+  const { rol } = useActor();
+  const verBajas = rol === "COORDINADOR_SINARP" || rol === "DIR_GESTION" || rol === "EQ_GESTION";
+  const verSusp = rol === "DIR_GESTION" || rol === "EQ_GESTION" || rol === "TI" || rol === "DTD";
+  const verEco = rol === "JURIDICA";
+  const defaultTab = verEco ? "eco" : verBajas ? "bajas" : "susp";
+
   return (
     <ExcepcionalShell activeMenu="ciclo-fuentes" etiqueta="FUE-08 a FUE-11 · ECO-01" titulo="Ciclo de vida de las fuentes" descripcion="Baja programada con avisos y retiro, suspensión por fallo crítico, restablecimiento tras una nueva prueba y regularización económica de los contratos afectados." icono={<CalendarX2 className="size-32 text-primary" />}>
       {!st.listo ? <p className="text-xs text-muted-foreground">Cargando…</p> : (
-        <Tabs defaultValue="bajas" className="gap-4">
+        <Tabs key={rol} defaultValue={defaultTab} className="gap-4">
           <TabsList className="h-auto flex-wrap justify-start">
-            <TabsTrigger value="bajas">Bajas</TabsTrigger>
-            <TabsTrigger value="susp">Suspensiones</TabsTrigger>
-            <TabsTrigger value="eco">Efectos económicos</TabsTrigger>
+            {verBajas && <TabsTrigger value="bajas">Bajas</TabsTrigger>}
+            {verSusp && <TabsTrigger value="susp">Suspensiones</TabsTrigger>}
+            {verEco && <TabsTrigger value="eco">Efectos económicos</TabsTrigger>}
           </TabsList>
-          <TabsContent value="bajas"><Bajas /></TabsContent>
-          <TabsContent value="susp"><Suspensiones /></TabsContent>
-          <TabsContent value="eco"><Economicos /></TabsContent>
+          {verBajas && <TabsContent value="bajas"><Bajas /></TabsContent>}
+          {verSusp && <TabsContent value="susp"><Suspensiones /></TabsContent>}
+          {verEco && <TabsContent value="eco"><Economicos /></TabsContent>}
         </Tabs>
       )}
     </ExcepcionalShell>

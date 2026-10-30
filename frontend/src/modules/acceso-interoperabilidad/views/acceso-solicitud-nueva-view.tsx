@@ -3129,17 +3129,6 @@ export function AccesoSolicitudNuevaView({
                     </div>
 
                     <div className="flex items-center gap-2 flex-wrap shrink-0">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        asChild
-                        className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground bg-surface gap-1.5"
-                      >
-                        <Link href="/parametros-ayuda-bn07">
-                          <Settings2 className="size-3.5 text-primary" />
-                          Configurar textos de ayuda (DPI)
-                        </Link>
-                      </Button>
                       {selectedCamposDetails.length > 1 && (
                         <>
                           <Button

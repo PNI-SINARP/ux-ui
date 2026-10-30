@@ -195,18 +195,22 @@ function Seguimiento() {
 
 export function ReportesView() {
   const { rol } = useActor();
-  const defecto = rol === "DIR_NORMATIVA" || rol === "EQ_NORMATIVA" ? "normatividad" : rol === "ADMIN" || rol === "DGR" || rol === "APROBADOR" ? "seguimiento" : "gestion";
+  const verGestion = rol === "DIR_GESTION" || rol === "EQ_GESTION";
+  const verNormatividad = rol === "DIR_NORMATIVA" || rol === "EQ_NORMATIVA";
+  const verSeguimiento = rol === "ADMIN" || rol === "DGR" || rol === "APROBADOR";
+  const defecto = verNormatividad ? "normatividad" : verSeguimiento ? "seguimiento" : "gestion";
+
   return (
     <ExcepcionalShell activeMenu="reportes" etiqueta="REP-01 a REP-05" titulo="Reportes" descripcion="Cada reporte se ve solo dentro del ámbito autorizado de tu rol: Gestión supervisa operación, Normatividad audita y exporta, y el seguimiento de trámites es de solo lectura." icono={<BarChart3 className="size-32 text-primary" />}>
-      <Tabs key={defecto} defaultValue={defecto} className="gap-4">
+      <Tabs key={rol} defaultValue={defecto} className="gap-4">
         <TabsList className="h-auto flex-wrap justify-start">
-          <TabsTrigger value="gestion">Gestión</TabsTrigger>
-          <TabsTrigger value="normatividad">Normatividad</TabsTrigger>
-          <TabsTrigger value="seguimiento">Seguimiento de trámites</TabsTrigger>
+          {verGestion && <TabsTrigger value="gestion">Gestión</TabsTrigger>}
+          {verNormatividad && <TabsTrigger value="normatividad">Normatividad</TabsTrigger>}
+          {verSeguimiento && <TabsTrigger value="seguimiento">Seguimiento de trámites</TabsTrigger>}
         </TabsList>
-        <TabsContent value="gestion">{rol === "DIR_GESTION" || rol === "EQ_GESTION" || rol === "ADMIN" ? <Gestion /> : <p className="text-xs text-muted-foreground rounded-lg bg-muted/40 border border-border p-3">Estos reportes los consulta el Equipo y el Director de Gestión.</p>}</TabsContent>
-        <TabsContent value="normatividad"><Normatividad /></TabsContent>
-        <TabsContent value="seguimiento"><Seguimiento /></TabsContent>
+        {verGestion && <TabsContent value="gestion"><Gestion /></TabsContent>}
+        {verNormatividad && <TabsContent value="normatividad"><Normatividad /></TabsContent>}
+        {verSeguimiento && <TabsContent value="seguimiento"><Seguimiento /></TabsContent>}
       </Tabs>
     </ExcepcionalShell>
   );

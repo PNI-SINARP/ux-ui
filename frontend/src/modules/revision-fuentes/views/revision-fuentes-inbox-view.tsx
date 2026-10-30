@@ -223,13 +223,8 @@ export function RevisionFuentesInboxView({ currentUser }: RevisionFuentesInboxVi
               Acceso restringido al rol de Gestión
             </h3>
             <p className="text-xs text-muted-foreground max-w-md">
-              Esta pantalla de revisión, clasificación y aprobación es exclusiva para los miembros del equipo de Gestión de DINARP. Como coordinador institucional, gestiona tus fuentes desde tu espacio asignado.
+              Esta pantalla de revisión, clasificación y aprobación es exclusiva para los miembros del equipo de Gestión de DINARP.
             </p>
-            <Link href="/proveedor/fuentes">
-              <Button variant="primary" size="sm">
-                Ir a Mis fuentes
-              </Button>
-            </Link>
           </Card>
         ) : (
           <Card

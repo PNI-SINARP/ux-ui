@@ -183,20 +183,24 @@ function Bootstrap() {
 
 export function InstitucionesAdminView() {
   const st = useAdminStore();
+  const { rol } = useActor();
+  const esAdmin = rol === "ADMIN";
+  const defaultTab = esAdmin ? "inactivar" : "fusion";
+
   return (
     <ExcepcionalShell activeMenu="instituciones-admin" etiqueta="INS-08 a INS-10 · ID-00" titulo="Instituciones y arranque del Portal" descripcion="Inactivación con análisis de impacto, registro tras una fusión, precarga del SRI y habilitación del primer Administrador." icono={<Building2 className="size-32 text-primary" />}>
       {!st.listo ? <p className="text-xs text-muted-foreground">Cargando…</p> : (
-        <Tabs defaultValue="inactivar" className="gap-4">
+        <Tabs key={rol} defaultValue={defaultTab} className="gap-4">
           <TabsList className="h-auto flex-wrap justify-start">
-            <TabsTrigger value="inactivar">Inactivar</TabsTrigger>
+            {esAdmin && <TabsTrigger value="inactivar">Inactivar</TabsTrigger>}
             <TabsTrigger value="fusion">Fusión</TabsTrigger>
-            <TabsTrigger value="precarga">Precarga SRI</TabsTrigger>
-            <TabsTrigger value="bootstrap">Primer Administrador</TabsTrigger>
+            {esAdmin && <TabsTrigger value="precarga">Precarga SRI</TabsTrigger>}
+            {esAdmin && <TabsTrigger value="bootstrap">Primer Administrador</TabsTrigger>}
           </TabsList>
-          <TabsContent value="inactivar"><Inactivar /></TabsContent>
+          {esAdmin && <TabsContent value="inactivar"><Inactivar /></TabsContent>}
           <TabsContent value="fusion"><Fusion /></TabsContent>
-          <TabsContent value="precarga"><Precarga /></TabsContent>
-          <TabsContent value="bootstrap"><Bootstrap /></TabsContent>
+          {esAdmin && <TabsContent value="precarga"><Precarga /></TabsContent>}
+          {esAdmin && <TabsContent value="bootstrap"><Bootstrap /></TabsContent>}
         </Tabs>
       )}
     </ExcepcionalShell>

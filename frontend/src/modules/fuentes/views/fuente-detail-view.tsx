@@ -378,21 +378,6 @@ export function FuenteDetailView({ currentUser: propUser }: FuenteDetailViewProp
                 </Button>
               )}
 
-              {!isCoordinadorConsumidor && fuente.estado === "PENDIENTE_HOMOLOGACION" && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  asChild
-                  className="h-8 px-3 text-xs font-semibold gap-1.5 rounded-xl border-border cursor-pointer"
-                >
-                  <Link href="/homologacion-fuentes">
-                    <Cpu className="size-3.5 text-warning" />
-                    <span>Ver caso en TI</span>
-                  </Link>
-                </Button>
-              )}
-
               {!isCoordinadorConsumidor && fuente.estado === "PUBLICADA" && (
                 <>
                   <Button

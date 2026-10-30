@@ -118,6 +118,26 @@ interface NavItem {
   section?: string;
 }
 
+export const DEFAULT_ROUTE_BY_ROLE: Record<UserRole, string> = {
+  REPRESENTANTE_INSTITUCIONAL: "/registro-institucion",
+  COORDINADOR_SINARP: "/catalogo-interoperabilidad",
+  DIR_GESTION: "/acceso-interoperabilidad/asignacion",
+  EQ_GESTION: "/revision-gestion",
+  DIR_NORMATIVA: "/revision-normativa",
+  EQ_NORMATIVA: "/revision-normativa",
+  DIR_DPI: "/revision-normativa/asignacion",
+  EQ_DPI: "/revision-normativa/fuentes",
+  DPI: "/revision-normativa/asignacion",
+  APROBADOR: "/firma-resoluciones",
+  DGR: "/consumo-api",
+  JURIDICA: "/formalizacion/contratos",
+  TI: "/tecnologia/conectores",
+  DTD: "/tecnologia/conectores",
+  FACTURACION: "/consumo-api",
+  CONTROL_EVALUACION: "/control-excepcional",
+  ADMIN: "/cuentas-internas",
+};
+
 const navItems: NavItem[] = [
   // ── SECCIÓN PRINCIPAL BN-07: ACCESO A FUENTES ──
   // Coordinador SINARP
@@ -126,7 +146,7 @@ const navItems: NavItem[] = [
     label: "Catálogo de fuentes",
     icon: Database,
     href: "/catalogo-interoperabilidad",
-    allowedRoles: ["COORDINADOR_SINARP", "ADMIN"],
+    allowedRoles: ["COORDINADOR_SINARP"],
     section: "Acceso a fuentes",
   },
   {
@@ -134,7 +154,7 @@ const navItems: NavItem[] = [
     label: "Solicitudes de acceso",
     icon: Network,
     href: "/acceso-interoperabilidad/solicitudes",
-    allowedRoles: ["COORDINADOR_SINARP", "ADMIN"],
+    allowedRoles: ["COORDINADOR_SINARP"],
     section: "Acceso a fuentes",
   },
   // Director de Gestión
@@ -143,7 +163,7 @@ const navItems: NavItem[] = [
     label: "Asignar revisiones de acceso",
     icon: UserCheck,
     href: "/acceso-interoperabilidad/asignacion",
-    allowedRoles: ["DIR_GESTION", "ADMIN"],
+    allowedRoles: ["DIR_GESTION"],
     section: "Acceso a fuentes",
   },
   // Revisor de Gestión
@@ -152,7 +172,7 @@ const navItems: NavItem[] = [
     label: "Revisar solicitudes de acceso",
     icon: CheckSquare,
     href: "/revision-gestion",
-    allowedRoles: ["EQ_GESTION", "ADMIN"],
+    allowedRoles: ["EQ_GESTION"],
     section: "Acceso a fuentes",
   },
   // Director DPI (Separado de Normativa)
@@ -161,7 +181,7 @@ const navItems: NavItem[] = [
     label: "Asignar revisiones DPI",
     icon: UserCheck,
     href: "/revision-normativa/asignacion",
-    allowedRoles: ["DIR_DPI", "DPI", "ADMIN"],
+    allowedRoles: ["DIR_DPI", "DPI"],
     section: "Acceso a fuentes",
   },
   {
@@ -169,7 +189,7 @@ const navItems: NavItem[] = [
     label: "Firmar informes DPI",
     icon: FileSignature,
     href: "/revision-normativa/asignacion?tab=informes",
-    allowedRoles: ["DIR_DPI", "DPI", "ADMIN"],
+    allowedRoles: ["DIR_DPI", "DPI"],
     section: "Acceso a fuentes",
   },
   // Revisor DPI (Separado de Normativa)
@@ -178,7 +198,7 @@ const navItems: NavItem[] = [
     label: "Evaluar datos confidenciales",
     icon: Lock,
     href: "/revision-normativa/fuentes",
-    allowedRoles: ["EQ_DPI", "ADMIN"],
+    allowedRoles: ["EQ_DPI"],
     section: "Acceso a fuentes",
   },
   {
@@ -186,7 +206,7 @@ const navItems: NavItem[] = [
     label: "Elaborar informes DPI",
     icon: FileCheck2,
     href: "/revision-normativa/fuentes?tab=informes",
-    allowedRoles: ["EQ_DPI", "ADMIN"],
+    allowedRoles: ["EQ_DPI"],
     section: "Acceso a fuentes",
   },
 
@@ -196,7 +216,7 @@ const navItems: NavItem[] = [
     label: "Gestión de proyectos",
     icon: FolderKanban,
     href: "/proyectos",
-    allowedRoles: ["COORDINADOR_SINARP", "ADMIN"],
+    allowedRoles: ["COORDINADOR_SINARP"],
     section: "Proyecto institucional",
   },
   {
@@ -204,7 +224,7 @@ const navItems: NavItem[] = [
     label: "Mis fuentes de datos",
     icon: Server,
     href: "/proveedor/fuentes",
-    allowedRoles: ["COORDINADOR_SINARP", "ADMIN"],
+    allowedRoles: ["COORDINADOR_SINARP"],
     providerOnly: true,
     section: "Gestión de Fuentes",
   },
@@ -213,33 +233,17 @@ const navItems: NavItem[] = [
     label: "Mi suplencia",
     icon: ArrowLeftRight,
     href: "/mi-suplencia",
-    allowedRoles: ["COORDINADOR_SINARP", "APROBADOR", "REPRESENTANTE_INSTITUCIONAL"],
+    allowedRoles: ["COORDINADOR_SINARP", "APROBADOR"],
     section: "Gestión Institucional",
   },
 
   // ── SECCIÓN INDEPENDIENTE: EXPEDIENTES ANEXO A (Incorporación Institucional) ──
   {
-    id: "registro-institucion",
-    label: "Solicitar incorporación",
-    icon: Building2,
-    href: "/registro-institucion",
-    allowedRoles: ["REPRESENTANTE_INSTITUCIONAL"],
-    section: "Expedientes Anexo A",
-  },
-  {
-    id: "expedientes-anexo-a",
-    label: "Estado de incorporación",
-    icon: FileText,
-    href: "/expedientes-anexo-a",
-    allowedRoles: ["REPRESENTANTE_INSTITUCIONAL", "ADMIN"],
-    section: "Expedientes Anexo A",
-  },
-  {
     id: "asignacion-solicitudes",
     label: "Asignar incorporaciones",
     icon: UserCheck,
     href: "/asignacion-solicitudes",
-    allowedRoles: ["DIR_GESTION", "ADMIN"],
+    allowedRoles: ["DIR_GESTION"],
     section: "Expedientes Anexo A",
   },
   {
@@ -247,7 +251,7 @@ const navItems: NavItem[] = [
     label: "Revisar incorporaciones",
     icon: CheckSquare,
     href: "/solicitudes-pendientes",
-    allowedRoles: ["EQ_GESTION", "ADMIN"],
+    allowedRoles: ["EQ_GESTION"],
     section: "Expedientes Anexo A",
   },
   {
@@ -255,7 +259,7 @@ const navItems: NavItem[] = [
     label: "Asignar resoluciones",
     icon: UserCheck,
     href: "/revision-normativa",
-    allowedRoles: ["DIR_NORMATIVA", "ADMIN"],
+    allowedRoles: ["DIR_NORMATIVA"],
     section: "Expedientes Anexo A",
   },
   {
@@ -263,7 +267,7 @@ const navItems: NavItem[] = [
     label: "Generar resoluciones",
     icon: Scale,
     href: "/revision-normativa",
-    allowedRoles: ["EQ_NORMATIVA", "ADMIN"],
+    allowedRoles: ["EQ_NORMATIVA"],
     section: "Expedientes Anexo A",
   },
   {
@@ -271,25 +275,17 @@ const navItems: NavItem[] = [
     label: "Firmar resoluciones",
     icon: FileSignature,
     href: "/firma-resoluciones",
-    allowedRoles: ["APROBADOR", "ADMIN"],
+    allowedRoles: ["APROBADOR"],
     section: "Expedientes Anexo A",
   },
 
   // ── SECCIÓN INDEPENDIENTE: EXPEDIENTES ANEXO B (Registro de Coordinadores) ──
   {
-    id: "expedientes-anexo-b",
-    label: "Estado de enrolamientos",
-    icon: UserCheck,
-    href: "/expedientes-anexo-b",
-    allowedRoles: ["REPRESENTANTE_INSTITUCIONAL", "ADMIN"],
-    section: "Expedientes Anexo B",
-  },
-  {
     id: "asignacion-anexo-b",
     label: "Asignar enrolamientos",
     icon: UserCheck,
     href: "/asignacion-anexo-b",
-    allowedRoles: ["DIR_GESTION", "ADMIN"],
+    allowedRoles: ["DIR_GESTION"],
     section: "Expedientes Anexo B",
   },
   {
@@ -297,49 +293,17 @@ const navItems: NavItem[] = [
     label: "Revisar enrolamientos",
     icon: CheckSquare,
     href: "/revision-anexo-b",
-    allowedRoles: ["EQ_GESTION", "ADMIN"],
+    allowedRoles: ["EQ_GESTION"],
     section: "Expedientes Anexo B",
   },
 
   // ── SECCIÓN INDEPENDIENTE: EXPEDIENTES ANEXO C (Cambio de Coordinador) ──
   {
-    id: "cambio-coordinador-rep",
-    label: "Solicitar cambio",
-    icon: UserCog,
-    href: "/cambio-coordinador",
-    allowedRoles: ["REPRESENTANTE_INSTITUCIONAL"],
-    section: "Expedientes Anexo C",
-  },
-  {
-    id: "expedientes-anexo-c-rep",
-    label: "Estado de cambios",
-    icon: FileText,
-    href: "/expedientes-anexo-c",
-    allowedRoles: ["REPRESENTANTE_INSTITUCIONAL"],
-    section: "Expedientes Anexo C",
-  },
-  {
-    id: "cambio-coordinador",
-    label: "Solicitar cambio",
-    icon: UserCog,
-    href: "/cambio-coordinador",
-    allowedRoles: ["COORDINADOR_SINARP"],
-    section: "Expedientes Anexo C",
-  },
-  {
-    id: "expedientes-anexo-c",
-    label: "Expedientes de cambio",
-    icon: FileText,
-    href: "/expedientes-anexo-c",
-    allowedRoles: ["COORDINADOR_SINARP", "ADMIN"],
-    section: "Expedientes Anexo C",
-  },
-  {
     id: "asignacion-anexo-c",
     label: "Asignar cambios",
     icon: UserCheck,
     href: "/asignacion-anexo-c",
-    allowedRoles: ["DIR_GESTION", "ADMIN"],
+    allowedRoles: ["DIR_GESTION"],
     section: "Expedientes Anexo C",
   },
   {
@@ -347,7 +311,7 @@ const navItems: NavItem[] = [
     label: "Revisar cambios",
     icon: CheckSquare,
     href: "/revision-anexo-c",
-    allowedRoles: ["EQ_GESTION", "ADMIN"],
+    allowedRoles: ["EQ_GESTION"],
     section: "Expedientes Anexo C",
   },
 
@@ -357,7 +321,7 @@ const navItems: NavItem[] = [
     label: "Formalizar accesos",
     icon: FileCheck2,
     href: "/formalizacion",
-    allowedRoles: ["DIR_GESTION", "ADMIN"],
+    allowedRoles: ["DIR_GESTION"],
     section: "Formalización de Accesos",
   },
   {
@@ -365,40 +329,41 @@ const navItems: NavItem[] = [
     label: "Revisar fuentes",
     icon: FolderCheck,
     href: "/gestion/fuentes",
-    allowedRoles: ["DGR", "DPI", "DIR_GESTION", "EQ_GESTION", "ADMIN"],
+    allowedRoles: ["DIR_GESTION", "EQ_GESTION"],
     section: "Catálogo de Fuentes",
   },
 
-  // ── Jurídica ──
+  // ── Jurídica y Firmantes ──
   {
     id: "formalizacion-contratos",
     label: "Contratos de acceso",
     icon: FileText,
     href: "/formalizacion/contratos",
-    allowedRoles: ["JURIDICA", "ADMIN"],
+    allowedRoles: ["JURIDICA", "COORDINADOR_SINARP", "APROBADOR"],
+    section: "Formalización de Accesos",
   },
 
-  // ── Equipo TI ──
+  // ── Equipo TI / DTD ──
   {
     id: "tecnologia-conectores",
     label: "Gestión de conectores",
     icon: Plug,
     href: "/tecnologia/conectores",
-    allowedRoles: ["TI", "DTD", "ADMIN"],
+    allowedRoles: ["TI", "DTD"],
   },
   {
     id: "tecnologia-homologaciones",
     label: "Homologación de orígenes",
     icon: Cpu,
     href: "/tecnologia/homologaciones",
-    allowedRoles: ["TI", "DTD", "ADMIN"],
+    allowedRoles: ["TI", "DTD"],
   },
   {
     id: "acceso-consumo-ti",
     label: "Aprovisionar accesos",
     icon: Cpu,
     href: "/acceso-consumo",
-    allowedRoles: ["TI", "ADMIN"],
+    allowedRoles: ["TI", "DTD"],
   },
 
   // ── Administrador DINARP ──
@@ -465,7 +430,7 @@ const navItems: NavItem[] = [
     label: "Ciclo de las fuentes",
     icon: Database,
     href: "/ciclo-fuentes",
-    allowedRoles: ["COORDINADOR_SINARP", "DIR_GESTION", "EQ_GESTION", "DGR", "TI", "DTD", "JURIDICA", "ADMIN"],
+    allowedRoles: ["COORDINADOR_SINARP", "DIR_GESTION", "EQ_GESTION", "JURIDICA"],
     section: "Administración",
   },
   {
@@ -491,7 +456,7 @@ const navItems: NavItem[] = [
     label: "Operación y monitoreo",
     icon: Activity,
     href: "/operacion",
-    allowedRoles: ["COORDINADOR_SINARP", "DIR_GESTION", "EQ_GESTION", "TI", "DTD", "ADMIN"],
+    allowedRoles: ["COORDINADOR_SINARP", "DIR_GESTION", "EQ_GESTION", "TI", "DTD"],
     section: "Operación y soporte",
   },
   {
@@ -499,7 +464,7 @@ const navItems: NavItem[] = [
     label: "Soporte e incidentes",
     icon: LifeBuoy,
     href: "/soporte",
-    allowedRoles: ["COORDINADOR_SINARP", "TI", "DTD", "DGR", "ADMIN"],
+    allowedRoles: ["COORDINADOR_SINARP", "TI", "DTD", "DGR"],
     section: "Operación y soporte",
   },
   {
@@ -507,7 +472,7 @@ const navItems: NavItem[] = [
     label: "Reportes",
     icon: BarChart3,
     href: "/reportes",
-    allowedRoles: ["DIR_GESTION", "EQ_GESTION", "DIR_NORMATIVA", "EQ_NORMATIVA", "DGR", "APROBADOR", "ADMIN"],
+    allowedRoles: ["DIR_GESTION", "EQ_GESTION", "DIR_NORMATIVA", "EQ_NORMATIVA", "APROBADOR", "ADMIN"],
     section: "Operación y soporte",
   },
   {
@@ -525,7 +490,7 @@ const navItems: NavItem[] = [
     label: "Consumo por API",
     icon: Network,
     href: "/consumo-api",
-    allowedRoles: ["COORDINADOR_SINARP", "DGR", "DTD", "TI", "DIR_GESTION", "EQ_GESTION", "DIR_DPI", "EQ_DPI", "JURIDICA", "FACTURACION", "ADMIN"],
+    allowedRoles: ["COORDINADOR_SINARP", "DGR", "DTD", "TI", "DIR_GESTION", "EQ_GESTION", "DIR_DPI", "EQ_DPI", "JURIDICA", "FACTURACION"],
     section: "Consumo por API",
   },
   {
@@ -543,7 +508,7 @@ const navItems: NavItem[] = [
     label: "Entrega excepcional",
     icon: Receipt,
     href: "/entrega-excepcional",
-    allowedRoles: ["COORDINADOR_SINARP", "DIR_GESTION", "EQ_GESTION", "TI", "DTD", "DIR_DPI", "EQ_DPI", "APROBADOR", "CONTROL_EVALUACION", "ADMIN"],
+    allowedRoles: ["COORDINADOR_SINARP", "DIR_GESTION", "EQ_GESTION", "TI", "DTD", "DIR_DPI", "EQ_DPI", "APROBADOR"],
     section: "Entrega excepcional",
   },
   {
@@ -551,7 +516,7 @@ const navItems: NavItem[] = [
     label: "Control de autorizaciones",
     icon: Shield,
     href: "/control-excepcional",
-    allowedRoles: ["CONTROL_EVALUACION", "ADMIN"],
+    allowedRoles: ["CONTROL_EVALUACION"],
     section: "Entrega excepcional",
   },
   {
@@ -559,10 +524,57 @@ const navItems: NavItem[] = [
     label: "Parámetros excepcional",
     icon: Sliders,
     href: "/parametros-excepcional",
-    allowedRoles: ["DIR_NORMATIVA", "ADMIN"],
+    allowedRoles: ["DIR_NORMATIVA"],
     section: "Entrega excepcional",
   },
 ];
+
+function isRouteAllowedForRole(pathname: string | null, role: UserRole, isProvider: boolean): boolean {
+  if (!pathname) return true;
+  const cleanPath = pathname.split("?")[0].replace(/\/$/, "") || "/";
+
+  // Common utility pages accessible to authenticated roles
+  if (cleanPath === "/novedades" || cleanPath === "/construccion") {
+    return true;
+  }
+
+  // Unauthenticated external flows (Annex A, B, C) are accessed directly via /login
+  const externalAnexoPaths = [
+    "/registro-institucion",
+    "/expedientes-anexo-a",
+    "/expedientes-anexo-b",
+    "/cambio-coordinador",
+    "/expedientes-anexo-c",
+  ];
+  if (externalAnexoPaths.some((p) => cleanPath === p || cleanPath.startsWith(p + "/"))) {
+    return role === "REPRESENTANTE_INSTITUCIONAL";
+  }
+
+  // Sub-routes of homologacion-fuentes belong to TI / DTD
+  if (cleanPath === "/homologacion-fuentes" || cleanPath.startsWith("/homologacion-fuentes/")) {
+    return role === "TI" || role === "DTD";
+  }
+
+  // Check if any navItem for this role matches cleanPath (exact or sub-route)
+  const roleNavItems = navItems.filter((item) => {
+    if (item.allowedRoles && !item.allowedRoles.includes(role)) return false;
+    if (item.providerOnly && !isProvider) return false;
+    return true;
+  });
+
+  return roleNavItems.some((item) => {
+    const cleanHref = item.href.split("?")[0].replace(/\/$/, "");
+    if (!cleanHref) return false;
+    // Prevent /formalizacion from matching /formalizacion/contratos when checking DIR_GESTION vs JURIDICA
+    if (cleanHref === "/formalizacion" && cleanPath.startsWith("/formalizacion/contratos")) {
+      return false;
+    }
+    if (cleanHref === "/revision-normativa" && (cleanPath.startsWith("/revision-normativa/asignacion") || cleanPath.startsWith("/revision-normativa/fuentes"))) {
+      return false;
+    }
+    return cleanPath === cleanHref || cleanPath.startsWith(cleanHref + "/");
+  });
+}
 
 function SidebarCollapseItem() {
   const { toggleSidebar, state } = useSidebar();
@@ -666,8 +678,8 @@ export function WireframeDashboardLayout({
 
   const resolvedUser: MockUser = {
     id: rawUser.id || fallbackUser.id,
-    name: rawUser.name || fallbackUser.name,
     role: (rawUser.role as UserRole) || fallbackUser.role,
+    name: rawUser.name || fallbackUser.name,
     roleTitle: rawUser.roleTitle || fallbackUser.roleTitle,
     email: rawUser.email || fallbackUser.email,
     cedula: rawUser.cedula || fallbackUser.cedula,
@@ -701,7 +713,25 @@ export function WireframeDashboardLayout({
     if (onRoleChange) {
       onRoleChange(role);
     }
+    const targetUser = MOCK_USERS_BY_ROLE[role];
+    const targetIsProvider =
+      isProviderInstitution(targetUser?.institution) ||
+      (targetUser?.roleTitle?.toLowerCase().includes("proveedor") ?? false) ||
+      (targetUser?.roleTitle?.toLowerCase().includes("emisor") ?? false);
+
+    if (!isRouteAllowedForRole(pathname, role, targetIsProvider)) {
+      const targetRoute = DEFAULT_ROUTE_BY_ROLE[role] || "/catalogo-interoperabilidad";
+      router.push(targetRoute);
+    }
   };
+
+  useEffect(() => {
+    if (!activeUser?.role) return;
+    if (!isRouteAllowedForRole(pathname, activeUser.role, isProvider)) {
+      const targetRoute = DEFAULT_ROUTE_BY_ROLE[activeUser.role] || "/catalogo-interoperabilidad";
+      router.replace(targetRoute);
+    }
+  }, [activeUser?.role, pathname, isProvider, router]);
 
   useEffect(() => {
     const stored = getStoredTheme();
@@ -747,6 +777,9 @@ export function WireframeDashboardLayout({
       if (cleanHref === "" || cleanHref === "/") {
         return cleanPath === "" || cleanPath === "/";
       }
+      if (cleanHref === "/formalizacion" && cleanPath.startsWith("/formalizacion/contratos")) {
+        return false;
+      }
       if (cleanHref === "/revision-normativa") {
         if (cleanPath.startsWith("/revision-normativa/asignacion") || cleanPath.startsWith("/revision-normativa/fuentes")) {
           return false;
@@ -769,7 +802,7 @@ export function WireframeDashboardLayout({
           {/* Logo oficial */}
           <div className="flex h-16 items-center justify-between px-3.5 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center border-b border-sidebar-border shrink-0">
             <SidebarNavigationItemLink
-              href="/"
+              href={DEFAULT_ROUTE_BY_ROLE[activeUserRole] || "/"}
               className="flex items-center -translate-y-1 gap-2.5 shrink-0 group focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none rounded-md min-w-0 justify-start group-data-[collapsible=icon]:translate-y-0 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0"
             >
               {/* Expanded Logo */}
@@ -815,9 +848,8 @@ export function WireframeDashboardLayout({
                   "mis-solicitudes": 2,
                   "proyectos": 3,
                   "fuentes-proveedor": 4,
-                  "cambio-coordinador": 5,
-                  "expedientes-anexo-c": 6,
-                  "mi-suplencia": 7,
+                  "formalizacion-contratos": 5,
+                  "mi-suplencia": 6,
                 };
                 visibleNavItems = [...baseNavItems]
                   .sort((a, b) => (priorityOrder[a.id] || 99) - (priorityOrder[b.id] || 99))
@@ -1014,4 +1046,3 @@ export function WireframeDashboardLayout({
     </TooltipProvider>
   );
 }
-

@@ -224,21 +224,6 @@ export function HomologacionDetailView({ currentUser }: HomologacionDetailViewPr
                   </Link>
                 </Button>
               </div>
-
-              <div className="flex flex-wrap items-center gap-2">
-                {caso.id_fuente && (
-                  <Button
-                    variant="neutral"
-                    size="sm"
-                    asChild
-                    leftIcon={<ExternalLink className="size-3.5" />}
-                  >
-                    <Link href={`/proveedor/fuentes/${caso.id_fuente}`}>
-                      Ver fuente vinculada
-                    </Link>
-                  </Button>
-                )}
-              </div>
             </div>
 
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
