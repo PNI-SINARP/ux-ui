@@ -1230,15 +1230,6 @@ export function AccesoSolicitudNuevaView({
                           <Briefcase className="size-3 text-primary" />
                           <span>{activeProyecto.id} — {activeProyecto.nombre}</span>
                         </Badge>
-<<<<<<< HEAD
-                        <Badge tone="neutral" appearance="outline" size="sm" className="font-mono">
-                          Cupo: {cupoSolicitado.toLocaleString()} reg./mes
-                        </Badge>
-                        <Badge tone="neutral" appearance="outline" size="sm" className="gap-1">
-                          <Paperclip className="size-3 text-primary" />
-                          <span>{documentosAdjuntos.length} doc(s)</span>
-                        </Badge>
-=======
                         {activeFuente ? (
                           <>
                             <Badge tone="primary" appearance="soft" size="sm" className="gap-1.5 font-semibold">
@@ -1255,15 +1246,15 @@ export function AccesoSolicitudNuevaView({
                           </>
                         ) : (
                           <>
-                            <Badge tone="info" appearance="soft" size="sm">
-                              {modalidadSolicitada}
-                            </Badge>
                             <Badge tone="neutral" appearance="outline" size="sm" className="font-mono">
                               Cupo: {cupoSolicitado.toLocaleString()} reg./mes
                             </Badge>
+                            <Badge tone="neutral" appearance="outline" size="sm" className="gap-1">
+                              <Paperclip className="size-3 text-primary" />
+                              <span>{documentosAdjuntos.length} doc(s)</span>
+                            </Badge>
                           </>
                         )}
->>>>>>> e7f9c46 (ajuste fuentes)
                       </div>
                       <Button
                         type="button"
