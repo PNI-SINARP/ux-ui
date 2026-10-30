@@ -492,7 +492,7 @@ const navItems: NavItem[] = [
     label: "Consumo por API",
     icon: Network,
     href: "/consumo-api",
-    allowedRoles: ["COORDINADOR_SINARP", "DGR", "DTD", "TI", "DIR_GESTION", "EQ_GESTION", "DIR_DPI", "EQ_DPI", "JURIDICA", "FACTURACION"],
+    allowedRoles: ["COORDINADOR_SINARP", "DGR", "DTD", "TI", "DIR_GESTION", "EQ_GESTION", "DIR_DPI", "EQ_DPI", "JURIDICA", "FACTURACION", "APROBADOR"],
     section: "Consumo por API",
   },
   {

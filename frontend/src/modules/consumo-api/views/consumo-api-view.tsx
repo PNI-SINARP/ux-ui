@@ -60,16 +60,29 @@ export function ConsumoApiView() {
   const [accesoSearch, setAccesoSearch] = useState<string>("");
 
   const esCoord = rol === "COORDINADOR_SINARP";
-  const verMasivo = esCoord || rol === "DGR" || rol === "DTD" || rol === "TI";
+  const verMasivo =
+    esCoord ||
+    rol === "DGR" ||
+    rol === "DIR_GESTION" ||
+    rol === "DTD" ||
+    rol === "DIR_TECNOLOGIA" ||
+    rol === "TI" ||
+    rol === "ADMIN_TECNICO";
   const verAmpliaciones =
     esCoord ||
+    rol === "DGR" ||
     rol === "DIR_GESTION" ||
     rol === "EQ_GESTION" ||
     rol === "DIR_DPI" ||
     rol === "EQ_DPI" ||
     rol === "JURIDICA" ||
-    rol === "FACTURACION";
-  const defaultTab = esCoord ? "uso" : verMasivo ? "masivo" : "ampliaciones";
+    rol === "FACTURACION" ||
+    rol === "APROBADOR";
+  const defaultTab = esCoord
+    ? "uso"
+    : verAmpliaciones
+      ? "ampliaciones"
+      : "masivo";
 
   const [activeTab, setActiveTab] = useState<string>(defaultTab);
   const [activeKpi, setActiveKpi] = useState<"credencial" | "alcance" | "cupo" | "saldo" | null>(

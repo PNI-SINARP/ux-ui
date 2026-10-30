@@ -79,7 +79,7 @@ export function ExcepcionalBandejaView() {
   return (
     <ExcepcionalShell
       activeMenu="entrega-excepcional"
-      etiqueta="Res. 003-NG-DINARP-2023 · EXT-01 a EXT-08"
+      etiqueta="BN-11 · Res. 003-NG-DINARP-2023 · EXT-01 a EXT-08"
       titulo="Entrega directa y excepcional"
       descripcion="Solicitudes de entrega por fuera de la vía general. Cada solicitud pasa por calificación, informe tecnológico, informe de DPI, informe final y la firma de la Máxima Autoridad; solo una autorización vigente permite ejecutar lotes."
       icono={<ShieldCheck className="size-32 text-primary" />}

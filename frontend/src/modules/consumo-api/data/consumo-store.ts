@@ -100,15 +100,45 @@ export interface Ampliacion {
   accesoId: string;
   tipo: TipoAmpliacion;
   campos: string[];
+  camposConservados?: string[];
+  justificacionesCampos?: Record<string, { finalidad: string; justificacionJuridica?: string }>;
   cupoAdicional: number;
+  esRenovacionCupo?: boolean;
   estado: EstadoAmpliacion;
   version: number;
+  asignacionGestion?: {
+    idAsignacion: string;
+    asignador: string;
+    revisor: string;
+    instante: string;
+    motivoReasignacion?: string;
+  };
   decisionGestion?: "Aprobada" | "Observada";
+  asignacionDpi?: {
+    idAsignacion: string;
+    asignador: string;
+    revisor: string;
+    instante: string;
+    motivoReasignacion?: string;
+  };
   decisionDpi?: "Aprobada" | "Observada";
+  informeDpiBorrador?: {
+    criterioUso: string;
+    criterioJuridico: string;
+  };
   informeDpiFirmas: number;
+  adendaPreparada?: boolean;
   firmasAdenda: number;
+  facturaId?: string;
+  pagoIniciado?: boolean;
   pagoConfirmado: boolean;
   correccion?: { area: string; motivo: string };
+  reintentosApigee?: {
+    pendiente: boolean;
+    idOperacion: string;
+    motivo: string;
+    intentos: number;
+  };
   fechaLimiteSubsanacion?: string;
   observaciones?: string;
   historial: { instante: string; accion: string; actor: string; detalle?: string }[];
@@ -717,9 +747,20 @@ function semilla(): EstadoConsumo {
       accesoId: "ACC-API-001",
       tipo: "mixta",
       campos: ["estado_civil", "lugar_nacimiento"],
+      camposConservados: ["cedula", "nombres", "apellidos", "fecha_nacimiento"],
+      justificacionesCampos: {
+        estado_civil: {
+          finalidad: "Validación de sociedad conyugal en otorgamiento de crédito hipotecario.",
+          justificacionJuridica: "Art. 189 del Código Civil y normativa SB-2025-KYC.",
+        },
+        lugar_nacimiento: {
+          finalidad: "Verificación de homónimos y jurisdicción de origen del solicitante.",
+          justificacionJuridica: "Resolución UAFE-2025-014 sobre debida diligencia ampliada.",
+        },
+      },
       cupoAdicional: 300_000,
       estado: "En revisión de Gestión",
-      version: 2,
+      version: 1,
       informeDpiFirmas: 0,
       firmasAdenda: 0,
       pagoConfirmado: false,
@@ -728,38 +769,47 @@ function semilla(): EstadoConsumo {
           instante: hace(16),
           accion: "Ampliación mixta enviada (ADD-01)",
           actor: "Coordinador SINARP · Banco del Pacífico S.A.",
-          detalle: "Solicita +300.000 registros y 2 campos confidenciales (estado_civil, lugar_nacimiento).",
+          detalle:
+            "Incluye 2 campos nuevos (estado_civil, lugar_nacimiento) + 300.000 registros; conserva los 4 campos vigentes. Pendiente de que el Director de Gestión asigne revisor (ADD-07).",
         },
       ],
     },
     {
       id: "AMP-002",
-      accesoId: "ACC-API-001",
+      accesoId: "ACC-API-005",
       tipo: "campos",
-      campos: ["discapacidad"],
+      campos: ["placa_vehiculo"],
+      camposConservados: ["cedula", "tipo_licencia", "puntos_licencia"],
+      justificacionesCampos: {
+        placa_vehiculo: {
+          finalidad: "Cruce de titularidad vehicular para garantías prendarias y pólizas todo riesgo.",
+          justificacionJuridica: "Art. 42 Ley de Comercio Electrónico y consentimiento expreso del asegurado.",
+        },
+      },
       cupoAdicional: 0,
-      estado: "En revisión de DPI",
-      version: 2,
-      decisionGestion: "Aprobada",
-      informeDpiFirmas: 1,
+      estado: "En revisión de Gestión",
+      version: 1,
+      asignacionGestion: {
+        idAsignacion: "ASG-GES-88412",
+        asignador: "Director de Gestión y Registro",
+        revisor: "Ana Torres",
+        instante: hace(10),
+      },
+      informeDpiFirmas: 0,
       firmasAdenda: 0,
-      pagoConfirmado: true,
+      pagoConfirmado: false,
       historial: [
         {
-          instante: hace(30),
-          accion: "Ampliación de campos enviada (ADD-01 / ADD-02)",
-          actor: "Coordinador SINARP · Banco del Pacífico S.A.",
-          detalle: "Campo sensible solicitado: discapacidad (requiere informe vinculante de DPI).",
+          instante: hace(22),
+          accion: "Ampliación de campos enviada (ADD-01)",
+          actor: "Coordinador SINARP · Aseguradora del Sur C.A.",
+          detalle: "Solicita campo confidencial placa_vehiculo; conserva 3 campos autorizados vigentes.",
         },
         {
-          instante: hace(18),
-          accion: "Gestión aprueba pertinencia funcional",
-          actor: "Dirección de Gestión",
-        },
-        {
-          instante: hace(8),
-          accion: "Firma de informe DPI (1/2)",
-          actor: "Analista de DPI",
+          instante: hace(10),
+          accion: "Revisión de cambios asignada en Gestión (ADD-07)",
+          actor: "Director de Gestión y Registro",
+          detalle: "id_asignacion: ASG-GES-88412 · Revisor asignado: Ana Torres (Analista de Gestión).",
         },
       ],
     },
@@ -767,111 +817,358 @@ function semilla(): EstadoConsumo {
       id: "AMP-003",
       accesoId: "ACC-API-002",
       tipo: "campos",
-      campos: ["lugar_nacimiento"],
+      campos: ["estado_civil"],
+      camposConservados: ["cedula", "nombres", "apellidos", "fecha_nacimiento", "nacionalidad"],
+      justificacionesCampos: {
+        estado_civil: {
+          finalidad: "Verificación de representante legal y núcleo familiar en becas estudiantiles.",
+          justificacionJuridica: "Art. 34 de la LOEI y Reglamento General de Asignación Escolar.",
+        },
+      },
       cupoAdicional: 0,
-      estado: "Pendiente de firmas",
-      version: 2,
-      decisionGestion: "Aprobada",
-      decisionDpi: "Aprobada",
-      informeDpiFirmas: 2,
-      firmasAdenda: 1,
+      estado: "En revisión de Gestión",
+      version: 1,
+      asignacionGestion: {
+        idAsignacion: "ASG-GES-90115",
+        asignador: "Director de Gestión y Registro",
+        revisor: "Marcos Silva",
+        instante: hace(12),
+      },
+      informeDpiFirmas: 0,
+      firmasAdenda: 0,
       pagoConfirmado: true,
       historial: [
         {
-          instante: hace(45),
-          accion: "Ampliación de campos enviada (ADD-01)",
-          actor: "Coordinador SINARP · Ministerio de Educación",
-        },
-        {
           instante: hace(20),
-          accion: "Informe favorable de DPI firmado (2/2) → Adenda generada (ADD-05)",
-          actor: "Director de Protección de la Información (DPI)",
+          accion: "Ampliación pública de campos enviada (ADD-05)",
+          actor: "Coordinador SINARP · Ministerio de Educación",
+          detalle:
+            "Solicitud pública: incluye campo confidencial estado_civil y conserva los 5 campos vigentes.",
         },
         {
-          instante: hace(6),
-          accion: "Firma de adenda (1/3)",
-          actor: "Coordinador SINARP",
+          instante: hace(12),
+          accion: "Revisión de cambios asignada en Gestión (ADD-07)",
+          actor: "Director de Gestión y Registro",
+          detalle: "id_asignacion: ASG-GES-90115 · Revisor asignado: Marcos Silva (Especialista de Gestión).",
         },
       ],
     },
     {
       id: "AMP-004",
-      accesoId: "ACC-API-004",
-      tipo: "cupo",
-      campos: [],
-      cupoAdicional: 250_000,
-      estado: "Pendiente de pago",
-      version: 2,
+      accesoId: "ACC-API-001",
+      tipo: "campos",
+      campos: ["discapacidad"],
+      camposConservados: ["cedula", "nombres", "apellidos", "fecha_nacimiento"],
+      justificacionesCampos: {
+        discapacidad: {
+          finalidad: "Aplicación automática de beneficios tarifarios y atención preferente (CONADIS).",
+          justificacionJuridica: "Art. 74 Ley Orgánica de Discapacidades y Art. 26 LOPDP.",
+        },
+      },
+      cupoAdicional: 0,
+      estado: "En revisión de DPI",
+      version: 1,
+      asignacionGestion: {
+        idAsignacion: "ASG-GES-77201",
+        asignador: "Director de Gestión y Registro",
+        revisor: "Ana Torres",
+        instante: hace(26),
+      },
       decisionGestion: "Aprobada",
-      informeDpiFirmas: 0,
+      asignacionDpi: {
+        idAsignacion: "ASG-DPI-31094",
+        asignador: "Director de Protección de la Información (DPI)",
+        revisor: "Dr. Carlos Mendoza",
+        instante: hace(14),
+      },
+      decisionDpi: "Aprobada",
+      informeDpiBorrador: {
+        criterioUso: "Favorable: finalidad proporcional para exoneración legal a personas con discapacidad.",
+        criterioJuridico: "Favorable: habilitación expresa en Ley Orgánica de Discapacidades y LOPDP.",
+      },
+      informeDpiFirmas: 1,
       firmasAdenda: 0,
       pagoConfirmado: false,
       historial: [
         {
-          instante: hace(14),
-          accion: "Renovación de cupo agotado enviada (ADD-03)",
-          actor: "Coordinador SINARP · Cooperativa JEP",
-          detalle: "Cupo actual en 0. Solicita +250.000 registros adicionales.",
+          instante: hace(30),
+          accion: "Ampliación de campos enviada (ADD-01)",
+          actor: "Coordinador SINARP · Banco del Pacífico S.A.",
+          detalle: "Campo confidencial sensible solicitado: discapacidad (requiere informe de DPI).",
         },
         {
-          instante: hace(4),
-          accion: "Gestión aprueba renovación → Orden de cobro emitida (ADD-04)",
-          actor: "Dirección de Gestión",
-          detalle: "Pendiente confirmación de pago por Facturación antes de habilitar aprobación final.",
+          instante: hace(26),
+          accion: "Revisión de cambios asignada en Gestión (ADD-07)",
+          actor: "Director de Gestión y Registro",
+          detalle: "id_asignacion: ASG-GES-77201 · Revisor: Ana Torres.",
+        },
+        {
+          instante: hace(18),
+          accion: "Gestión aprueba ampliación de campos (ADD-07)",
+          actor: "Ana Torres (Equipo de Gestión)",
+          detalle: "Contiene campo confidencial; pasa a Director de DPI para asignación.",
+        },
+        {
+          instante: hace(14),
+          accion: "Revisión asignada en DPI (ADD-07)",
+          actor: "Director de Protección de la Información (DPI)",
+          detalle: "id_asignacion: ASG-DPI-31094 · Revisor DPI: Dr. Carlos Mendoza.",
+        },
+        {
+          instante: hace(8),
+          accion: "Informe de recomendación elaborado y firmado en FirmaEC (1/2)",
+          actor: "Dr. Carlos Mendoza (Equipo de DPI)",
+          detalle: "Pendiente Visto Bueno y firma en FirmaEC (2/2) del Director de DPI.",
         },
       ],
     },
     {
       id: "AMP-005",
-      accesoId: "ACC-API-005",
-      tipo: "cupo",
-      campos: [],
-      cupoAdicional: 150_000,
+      accesoId: "ACC-API-002",
+      tipo: "campos",
+      campos: ["lugar_nacimiento"],
+      camposConservados: ["cedula", "nombres", "apellidos", "fecha_nacimiento", "nacionalidad"],
+      justificacionesCampos: {
+        lugar_nacimiento: {
+          finalidad: "Zonificación territorial para asignación de cupos en distritos educativos.",
+          justificacionJuridica: "Acuerdo Ministerial MINEDUC-2025-0042 sobre zonificación escolar.",
+        },
+      },
+      cupoAdicional: 0,
       estado: "Pendiente de aprobación",
-      version: 2,
+      version: 1,
+      asignacionGestion: {
+        idAsignacion: "ASG-GES-61209",
+        asignador: "Director de Gestión y Registro",
+        revisor: "Elena Viteri",
+        instante: hace(28),
+      },
       decisionGestion: "Aprobada",
-      informeDpiFirmas: 0,
-      firmasAdenda: 3,
+      asignacionDpi: {
+        idAsignacion: "ASG-DPI-29011",
+        asignador: "Director de Protección de la Información (DPI)",
+        revisor: "Abg. Sofía Intriago",
+        instante: hace(18),
+      },
+      decisionDpi: "Aprobada",
+      informeDpiBorrador: {
+        criterioUso: "Favorable: uso estadístico y de planificación educativa distrital.",
+        criterioJuridico: "Favorable: competencia legal del Ministerio de Educación.",
+      },
+      informeDpiFirmas: 2,
+      firmasAdenda: 0,
       pagoConfirmado: true,
       historial: [
         {
-          instante: hace(36),
-          accion: "Ampliación de cupo enviada (ADD-03)",
-          actor: "Coordinador SINARP · Aseguradora del Sur C.A.",
+          instante: hace(34),
+          accion: "Ampliación pública de campos enviada (ADD-05)",
+          actor: "Coordinador SINARP · Ministerio de Educación",
         },
         {
-          instante: hace(12),
-          accion: "Pago confirmado por Facturación (ADD-04)",
-          actor: "Analista de Facturación",
-          detalle: "Comprobante BCE-2026-99412 validado. Lista para decisión final de Dirección de Gestión (ADD-06).",
+          instante: hace(22),
+          accion: "Aprobada en Gestión y DPI con 2/2 firmas en FirmaEC (ADD-07)",
+          actor: "Director de Protección de la Información (DPI)",
+          detalle:
+            "Compuerta ¿Requiere adenda? = No (Institución Pública · ADD-05): no requiere adenda contractual ni pago. Pasa directo a Dirección de Gestión para Aprobar actualización y aplicar en Apigee (ACC-08).",
         },
       ],
     },
     {
       id: "AMP-006",
+      accesoId: "ACC-API-004",
+      tipo: "cupo",
+      campos: [],
+      camposConservados: ["ruc", "razon_social", "actividad_economica"],
+      cupoAdicional: 250_000,
+      esRenovacionCupo: true,
+      estado: "Pendiente de firmas",
+      version: 1,
+      informeDpiFirmas: 0,
+      adendaPreparada: false,
+      firmasAdenda: 0,
+      pagoConfirmado: false,
+      historial: [
+        {
+          instante: hace(14),
+          accion: "Renovación / Ampliación solo de cupo enviada (ADD-02 / ADD-03)",
+          actor: "Coordinador SINARP · Cooperativa JEP",
+          detalle:
+            "Compuerta ¿Incluye campos? = No (Solo cupo +250.000 registros): conserva intactos los campos autorizados vigentes (ruc, razon_social, actividad_economica) y la fuente SRI. Pasa directo a Jurídica para Redactar adenda contractual (PAR-02) y Gestionar firmas (ADD-04).",
+        },
+      ],
+    },
+    {
+      id: "AMP-007",
       accesoId: "ACC-API-001",
       tipo: "campos",
       campos: ["nacionalidad"],
+      camposConservados: ["cedula", "nombres", "apellidos", "fecha_nacimiento"],
+      justificacionesCampos: {
+        nacionalidad: {
+          finalidad: "Cumplimiento FATCA/CRS de residencia fiscal en apertura de cuentas.",
+        },
+      },
       cupoAdicional: 0,
-      estado: "Observada",
-      version: 2,
-      decisionGestion: "Observada",
+      estado: "Pendiente de firmas",
+      version: 1,
+      asignacionGestion: {
+        idAsignacion: "ASG-GES-71904",
+        asignador: "Director de Gestión y Registro",
+        revisor: "Ana Torres",
+        instante: hace(24),
+      },
+      decisionGestion: "Aprobada",
       informeDpiFirmas: 0,
-      firmasAdenda: 0,
-      pagoConfirmado: true,
-      observaciones: "Debe precisar la base legal específica que justifica consultar nacionalidad en el flujo KYC.",
-      fechaLimiteSubsanacion: sumarDiasHabiles(hace(2), PLAZO_SUBSANACION_DIAS),
+      adendaPreparada: true,
+      firmasAdenda: 1,
+      pagoConfirmado: false,
       historial: [
         {
-          instante: hace(24),
+          instante: hace(28),
           accion: "Ampliación de campos enviada (ADD-01)",
           actor: "Coordinador SINARP · Banco del Pacífico S.A.",
         },
         {
+          instante: hace(20),
+          accion: "Gestión aprueba cambios (ADD-07) → ¿Requiere adenda? = Sí (Privada)",
+          actor: "Ana Torres (Equipo de Gestión)",
+          detalle: "Campo accesible nacionalidad aprobado. Deriva a Jurídica para Redactar adenda contractual.",
+        },
+        {
+          instante: hace(10),
+          accion: "Adenda contractual redactada con plantilla PAR-02 (ADD-04)",
+          actor: "Analista de Jurídica",
+          detalle: "tipo_evento_facturable: adenda_campos · Enviada a FirmaEC para Gestionar firmas.",
+        },
+        {
+          instante: hace(4),
+          accion: "Firma de adenda en FirmaEC (1/2 · Coordinador SINARP)",
+          actor: "Coordinador SINARP · Banco del Pacífico S.A.",
+          detalle: "Pendiente firma (2/2) de Máxima Autoridad DINARP para emitir factura (FAC-01).",
+        },
+      ],
+    },
+    {
+      id: "AMP-008",
+      accesoId: "ACC-API-004",
+      tipo: "campos",
+      campos: ["estado_contribuyente"],
+      camposConservados: ["ruc", "razon_social", "actividad_economica"],
+      justificacionesCampos: {
+        estado_contribuyente: {
+          finalidad: "Verificación de estado activo del RUC previo a desembolso comercial.",
+        },
+      },
+      cupoAdicional: 0,
+      estado: "Pendiente de pago",
+      version: 1,
+      asignacionGestion: {
+        idAsignacion: "ASG-GES-65012",
+        asignador: "Director de Gestión y Registro",
+        revisor: "Marcos Silva",
+        instante: hace(32),
+      },
+      decisionGestion: "Aprobada",
+      informeDpiFirmas: 0,
+      adendaPreparada: true,
+      firmasAdenda: 2,
+      facturaId: "FAC-2026-00841",
+      pagoIniciado: false,
+      pagoConfirmado: false,
+      historial: [
+        {
+          instante: hace(36),
+          accion: "Ampliación de campos enviada (ADD-01)",
+          actor: "Coordinador SINARP · Cooperativa JEP",
+        },
+        {
+          instante: hace(28),
+          accion: "Aprobada en Gestión (ADD-07) → Adenda firmada 2/2 (ADD-04)",
+          actor: "Jurídica / FirmaEC",
+          detalle: "Firmas completas (Coordinador SINARP y Máxima Autoridad DINARP). Factura FAC-2026-00841 emitida automáticamente (FAC-01).",
+        },
+      ],
+    },
+    {
+      id: "AMP-009",
+      accesoId: "ACC-API-005",
+      tipo: "cupo",
+      campos: [],
+      camposConservados: ["cedula", "tipo_licencia", "puntos_licencia"],
+      cupoAdicional: 150_000,
+      estado: "Pendiente de aprobación",
+      version: 1,
+      informeDpiFirmas: 0,
+      adendaPreparada: true,
+      firmasAdenda: 2,
+      facturaId: "FAC-2026-00819",
+      pagoIniciado: true,
+      pagoConfirmado: true,
+      historial: [
+        {
+          instante: hace(36),
+          accion: "Ampliación solo de cupo enviada (ADD-02)",
+          actor: "Coordinador SINARP · Aseguradora del Sur C.A.",
+          detalle:
+            "Solo cupo (+150.000 registros): conserva campos vigentes (cedula, tipo_licencia, puntos_licencia) y fuente ANT sin revisión de Gestión ni DPI.",
+        },
+        {
+          instante: hace(20),
+          accion: "Adenda de cupo firmada en FirmaEC (2/2) (ADD-04)",
+          actor: "Máxima Autoridad DINARP",
+          detalle: "Factura FAC-2026-00819 emitida automáticamente (FAC-01).",
+        },
+        {
+          instante: hace(12),
+          accion: "Pago confirmado en Pasarela (PAG-02)",
+          actor: "Analista de Facturación",
+          detalle: "Compprobante BCE-2026-99412 validado. ¿Pago confirmado? = Sí → Pasa a Dirección de Gestión para Aprobar actualización (ADD-06).",
+        },
+      ],
+    },
+    {
+      id: "AMP-010",
+      accesoId: "ACC-API-003",
+      tipo: "campos",
+      campos: ["actividad_economica"],
+      camposConservados: ["ruc", "razon_social", "estado_contribuyente"],
+      justificacionesCampos: {
+        actividad_economica: {
+          finalidad: "Cruce general de datos tributarios.",
+        },
+      },
+      cupoAdicional: 0,
+      estado: "Observada",
+      version: 1,
+      asignacionGestion: {
+        idAsignacion: "ASG-GES-54109",
+        asignador: "Director de Gestión y Registro",
+        revisor: "Ana Torres",
+        instante: hace(18),
+      },
+      decisionGestion: "Observada",
+      informeDpiFirmas: 0,
+      firmasAdenda: 0,
+      pagoConfirmado: false,
+      observaciones: "Debe precisar la finalidad específica de uso del campo actividad_economica dentro del convenio interinstitucional.",
+      fechaLimiteSubsanacion: sumarDiasHabiles(hace(1), PLAZO_SUBSANACION_DIAS),
+      historial: [
+        {
+          instante: hace(24),
+          accion: "Ampliación de campos enviada (ADD-05)",
+          actor: "Coordinador SINARP · Dirección General de Registro Civil",
+        },
+        {
+          instante: hace(18),
+          accion: "Revisión de cambios asignada en Gestión (ADD-07)",
+          actor: "Director de Gestión y Registro",
+          detalle: "id_asignacion: ASG-GES-54109 · Revisor: Ana Torres.",
+        },
+        {
           instante: hace(2),
           accion: "Observada con plazo de 3 días hábiles (PAR-13)",
-          actor: "Equipo de Gestión",
-          detalle: "Debe precisar la base legal específica que justifica consultar nacionalidad en el flujo KYC.",
+          actor: "Ana Torres (Equipo de Gestión)",
+          detalle: "Debe precisar la finalidad específica de uso del campo actividad_economica dentro del convenio interinstitucional.",
         },
       ],
     },
@@ -912,7 +1209,7 @@ function semilla(): EstadoConsumo {
   };
 }
 
-const KEY = "dinarp_consumo_api_v2";
+const KEY = "dinarp_consumo_api_v4";
 let memoria: EstadoConsumo | null = null;
 const oyentes = new Set<() => void>();
 
@@ -1723,7 +2020,11 @@ export function useConsumoStore() {
       accesoId: string,
       campos: string[],
       cupoAdicional: number,
-      actor: Actor
+      actor: Actor,
+      opciones?: {
+        justificacionesCampos?: Record<string, { finalidad: string; justificacionJuridica?: string }>;
+        esRenovacionCupo?: boolean;
+      }
     ): { ok: boolean; mensaje: string; id?: string } => {
       const e = cargar();
       const a = e.accesos.find((x) => x.id === accesoId)!;
@@ -1742,6 +2043,21 @@ export function useConsumoStore() {
       const id = `AMP-${String(e.ampliaciones.length + 1).padStart(3, "0")}`;
       const inicial: EstadoAmpliacion =
         tipo === "cupo" ? "Pendiente de firmas" : "En revisión de Gestión";
+      const camposConservados = [...a.camposAutorizados];
+      const etiquetaAccion =
+        tipo === "cupo"
+          ? opciones?.esRenovacionCupo
+            ? "Renovación de cupo enviada (ADD-03)"
+            : "Ampliación solo de cupo enviada (ADD-02)"
+          : a.tipo === "Pública"
+            ? "Ampliación pública de campos enviada (ADD-05)"
+            : tipo === "mixta"
+              ? "Ampliación mixta enviada (ADD-01)"
+              : "Ampliación de campos enviada (ADD-01)";
+      const detalleEnvio =
+        tipo === "cupo"
+          ? `Solo cupo (+${numero(cupoAdicional)} registros): conserva intactos los ${camposConservados.length} campos autorizados vigentes (${camposConservados.join(", ")}) y la fuente ${a.fuente}. Pasa directo a Jurídica (ADD-04) sin revisión de cambios en Gestión ni DPI.`
+          : `Incluye ${campos.length} campo(s) nuevo(s) (${campos.join(", ")})${cupoAdicional > 0 ? ` y +${numero(cupoAdicional)} registros` : ""}; conserva ${camposConservados.length} campos vigentes. Pasa a Director de Gestión para asignar revisión de cambios (ADD-07).`;
       guardar({
         ...e,
         ampliaciones: [
@@ -1751,26 +2067,28 @@ export function useConsumoStore() {
             accesoId,
             tipo,
             campos,
+            camposConservados,
+            justificacionesCampos: opciones?.justificacionesCampos,
             cupoAdicional,
+            esRenovacionCupo: opciones?.esRenovacionCupo,
             estado: inicial,
             version: 1,
             informeDpiFirmas: 0,
+            adendaPreparada: false,
             firmasAdenda: 0,
             pagoConfirmado: false,
-            historial: [
-              traza(
-                "Ampliación enviada",
-                actor,
-                tipo === "cupo"
-                  ? "Pasa a Jurídica sin revisión de campos."
-                  : "Pasa a revisión de Gestión (ADD-07)."
-              ),
-            ],
+            historial: [traza(etiquetaAccion, actor, detalleEnvio)],
           },
         ],
       });
-      void a;
-      return { ok: true, mensaje: `Ampliación ${id} enviada.`, id };
+      return {
+        ok: true,
+        mensaje:
+          tipo === "cupo"
+            ? `Ampliación ${id} enviada (Solo cupo): conserva los ${camposConservados.length} campos vigentes y pasa directo a Jurídica (ADD-04) sin revisión de Gestión ni DPI.`
+            : `Ampliación ${id} enviada: incluye cambios de alcance (${campos.length} campo(s)) y pasa a Director de Gestión para asignar revisión de cambios (ADD-07).`,
+        id,
+      };
     },
     []
   );
