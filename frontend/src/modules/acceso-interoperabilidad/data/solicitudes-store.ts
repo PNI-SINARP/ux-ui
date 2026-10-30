@@ -2994,7 +2994,7 @@ export function useSolicitudesStore() {
         return {
           ...s,
           estado: "Rechazada" as const,
-          responsable: "Coordinador SINARP",
+          responsable: "Coordinador SINARP", idOperacionTec00: s.idOperacionTec00 || `OP-APG-2026-${s.id.slice(-3)}`,
           motivoRechazo: motivo,
           observaciones: motivo,
           ultimaActualizacion: dateOnly,
@@ -3317,7 +3317,7 @@ export function useSolicitudesStore() {
         return {
           ...s,
           estado: "Observada" as const,
-          responsable: "Coordinador SINARP",
+          responsable: "Coordinador SINARP", idOperacionTec00: s.idOperacionTec00 || `OP-APG-2026-${s.id.slice(-3)}`,
           observacionesEstructuradas: params.observaciones,
           fechaLimiteSubsanacion: fechaLimiteStr,
           diasRestantesSubsanacion: dias,
@@ -3711,7 +3711,7 @@ export function useSolicitudesStore() {
         return {
           ...s,
           estado: "Observada" as const,
-          responsable: "Coordinador SINARP",
+          responsable: "Coordinador SINARP", idOperacionTec00: s.idOperacionTec00 || `OP-APG-2026-${s.id.slice(-3)}`,
           observacionesEstructuradas: params.observaciones,
           fechaLimiteSubsanacion: fechaLimiteStr,
           diasRestantesSubsanacion: dias,
@@ -4246,7 +4246,7 @@ export function useSolicitudesStore() {
         return {
           ...s,
           estado: "Pendiente de pago" as const,
-          responsable: "Coordinador SINARP",
+          responsable: "Coordinador SINARP", idOperacionTec00: s.idOperacionTec00 || `OP-APG-2026-${s.id.slice(-3)}`,
           factura: {
             ...(s.factura || { fechaEmision: dateOnly, valor: "$ 150.00" }),
             numero: numFac,
@@ -4429,7 +4429,7 @@ export function useSolicitudesStore() {
         return {
           ...s,
           estado: "Pendiente de pago" as const,
-          responsable: "Coordinador SINARP",
+          responsable: "Coordinador SINARP", idOperacionTec00: s.idOperacionTec00 || `OP-APG-2026-${s.id.slice(-3)}`,
           pasarelaPago: {
             ordenId: s.pasarelaPago?.ordenId || `ORD-PAG-2026-${s.id.slice(-4)}`,
             estadoPasarela: "PENDIENTE" as const,
@@ -4714,7 +4714,7 @@ export function useSolicitudesStore() {
           usuario: `ws_${cleanName}_${s.id.toLowerCase().replace(/[^a-z0-9]/g, "")}`,
           contrasena: `Temp$ec_${Math.random().toString(36).slice(-6)}*2026`,
           endpoint: `https://interoperabilidad.dinarp.gob.ec/api/v2/servicios/${s.id.toLowerCase()}`,
-          tipoAutenticacion: "OAuth 2.0 (Bearer Token)",
+          tipoAutenticacion: "OAuth 2.0 (Client Credentials Grant / Bearer Token)",
           ambiente: "Producción (Ambiente Seguro DINARP - Apigee)",
           fechaGeneracion: now,
           fechaExpiracion: "2027-09-30 23:59 (Activa)",
@@ -4739,7 +4739,7 @@ export function useSolicitudesStore() {
             fecha: now,
             evento: "Acceso técnico habilitado en Apigee (ACC-01)",
             actor: "Plataforma de Interoperabilidad DINARP (Apigee)",
-            detalle: `Aprovisionamiento completado con éxito. Cupo autorizado vigente: ${cupoVigente.toLocaleString()} consultas (${esPrivada ? "Límite bloqueante privado" : "Referencia no bloqueante con alerta pública"}). Secreto temporal inicial generado (requiere sustitución ACC-09).`
+            detalle: `Grant OAuth 2.0 (client_credentials) y credencial técnica (${creds.usuario}) creados. Cupo autorizado vigente: ${cupoVigente.toLocaleString()} consultas (${esPrivada ? "Límite bloqueante privado" : "Referencia no bloqueante con alerta pública"}). Secreto temporal inicial generado en bóveda (ACC-09). Notificación oficial de Acceso Habilitado enviada al Coordinador SINARP (${s.coordinador} — ${s.institucion}) (AUD-01 / ACC-03).`
           }
         ];
 
@@ -4747,13 +4747,13 @@ export function useSolicitudesStore() {
           ...s,
           estado: "Acceso habilitado" as const,
           fechaAprobacion: dateOnly,
-          responsable: "Coordinador SINARP",
+          responsable: "Coordinador SINARP", idOperacionTec00: s.idOperacionTec00 || `OP-APG-2026-${s.id.slice(-3)}`,
           credenciales: creds,
           aprovisionamiento: {
             estado: "EXITOSO" as const,
             reintentosCount: 0,
             fechaHabilitacion: now,
-            mensajeResultado: `Aprovisionamiento exitoso en Apigee. Cupo vigente: ${cupoVigente.toLocaleString()} consultas (${esPrivada ? "Bloqueante" : "Referencia/Alerta"}).`
+            mensajeResultado: `Grant OAuth 2.0 y credencial técnica (${creds.usuario}) aprovisionados en Apigee. Notificación enviada a ${s.coordinador}. Cupo vigente: ${cupoVigente.toLocaleString()} consultas (${esPrivada ? "Bloqueante" : "Referencia/Alerta"}).`, referenciaTecnica: s.idOperacionTec00 || `OP-APG-2026-${s.id.slice(-3)}`
           },
           ultimaActualizacion: dateOnly,
           historial: nuevosEventos
@@ -4782,7 +4782,7 @@ export function useSolicitudesStore() {
           usuario: `ws_${cleanName}_${s.id.toLowerCase().replace(/[^a-z0-9]/g, "")}`,
           contrasena: `Temp$ec_${Math.random().toString(36).slice(-6)}*2026`,
           endpoint: `https://interoperabilidad.dinarp.gob.ec/api/v2/servicios/${s.id.toLowerCase()}`,
-          tipoAutenticacion: "OAuth 2.0 (Bearer Token)",
+          tipoAutenticacion: "OAuth 2.0 (Client Credentials Grant / Bearer Token)",
           ambiente: "Producción (Ambiente Seguro DINARP - Apigee)",
           fechaGeneracion: now,
           fechaExpiracion: "2027-09-30 23:59 (Activa)",
@@ -4814,7 +4814,7 @@ export function useSolicitudesStore() {
         return {
           ...s,
           estado: "Acceso habilitado" as const,
-          responsable: "Coordinador SINARP",
+          responsable: "Coordinador SINARP", idOperacionTec00: s.idOperacionTec00 || `OP-APG-2026-${s.id.slice(-3)}`,
           credenciales: creds,
           aprovisionamiento: {
             estado: "EXITOSO" as const,
