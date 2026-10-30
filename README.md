@@ -161,7 +161,13 @@ La tabla de HU de arriba conserva los códigos de una versión anterior; la refe
 - **RUC opcional** en el Anexo A, con aviso de RUC compartido y sin bloqueo si el SRI no precarga (INS-01, INS-02).
 - **Resolución del Anexo A (INS-06, INS-07):** el Analista de Normatividad carga el informe técnico (un resultado desfavorable deja el expediente Rechazado por Normatividad), genera la resolución, pasa por vistos buenos del Analista y del Director (PAR-16 simulado en `PAR16_VISTOS_BUENOS_ACTIVOS`) y la firma solo la Máxima Autoridad, que también puede devolverla al Analista.
 
-Aún sin pantalla: consumo por API y masivo programado (API-01 a API-06), adendas (ADD), entrega excepcional (EXT), monitoreo (OPS), reportes (REP), soporte (INC), la mayoría de parámetros nuevos (PAR-03, 04, 06, 08, 09, 14 a 18) y el ciclo de vida de la fuente (FUE-09 a FUE-11, ECO-01).
+- **Entrega directa y excepcional (EXT-01 a EXT-08, PAR-17, PAR-04):** módulo `entrega-excepcional` según la Res. 003-NG-DINARP-2023, con datos simulados y reloj del navegador.
+  - `/entrega-excepcional`: bandeja por rol; `/entrega-excepcional/nueva`: solicitud en 4 pasos con firma simulada de FirmaEC; `/entrega-excepcional/detalle?id=…`: trámite, lotes y descarga, renovación, control e historial.
+  - `/control-excepcional`: tablero de Control y Evaluación con conciliación autorizado frente a ejecutado y suspensión; `/parametros-excepcional`: PAR-17 (Director de Normatividad) y PAR-04 (Administrador).
+  - Cuentas de prueba: flujo «Entrega directa y excepcional» en `/login`, con el rol nuevo Control y Evaluación (cédula `6666666666`).
+  - Los lotes se simulan con un selector de resultado (completado, sin datos, fallido, supera el saldo); los plazos en días hábiles omiten solo sábados y domingos.
+
+Aún sin pantalla: consumo por API y masivo programado (API-01 a API-06), adendas (ADD), monitoreo (OPS), reportes (REP), soporte (INC), la mayoría de parámetros nuevos (PAR-03, 04, 06, 08, 09, 14 a 18) y el ciclo de vida de la fuente (FUE-09 a FUE-11, ECO-01).
 
 ---
 
