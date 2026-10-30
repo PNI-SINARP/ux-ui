@@ -266,7 +266,23 @@ export interface VistoBuenoResolucion {
 }
 
 // PAR-16 (simulado): pasos activos de la cadena de vistos buenos. Un paso desactivado queda registrado como «No aplica»
-export const PAR16_VISTOS_BUENOS_ACTIVOS = { analista: true, director: true };
+function leerPar16(clave: "analista" | "director"): boolean {
+  try {
+    const raw = typeof window !== "undefined" ? localStorage.getItem("dinarp_par16_v1") : null;
+    return raw ? Boolean(JSON.parse(raw)[clave]) : true;
+  } catch {
+    return true;
+  }
+}
+// Lee la versión publicada en /parametros-portal; sin versión, ambos pasos activos
+export const PAR16_VISTOS_BUENOS_ACTIVOS = {
+  get analista() {
+    return leerPar16("analista");
+  },
+  get director() {
+    return leerPar16("director");
+  },
+};
 
 export interface SolicitudIngreso {
   id: string;

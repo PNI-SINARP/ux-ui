@@ -459,6 +459,32 @@ const navItems: NavItem[] = [
     allowedRoles: ["ADMIN"],
   },
 
+  // ── ADMINISTRACIÓN DEL PORTAL (PAR-08 a 16, FUE-08 a 11, ECO-01, INS-08 a 10, ID-00) ──
+  {
+    id: "ciclo-fuentes",
+    label: "Ciclo de las fuentes",
+    icon: Database,
+    href: "/ciclo-fuentes",
+    allowedRoles: ["COORDINADOR_SINARP", "DIR_GESTION", "EQ_GESTION", "DGR", "TI", "DTD", "JURIDICA", "ADMIN"],
+    section: "Administración",
+  },
+  {
+    id: "instituciones-admin",
+    label: "Instituciones y arranque",
+    icon: Building2,
+    href: "/instituciones-admin",
+    allowedRoles: ["COORDINADOR_SINARP", "ADMIN"],
+    section: "Administración",
+  },
+  {
+    id: "parametros-portal",
+    label: "Parámetros del Portal",
+    icon: Sliders,
+    href: "/parametros-portal",
+    allowedRoles: ["ADMIN", "DIR_NORMATIVA", "DIR_DPI", "DIR_GESTION"],
+    section: "Administración",
+  },
+
   // ── OPERACIÓN Y SOPORTE (OPS-01 a 05, REP-01 a 05, INC-01 a 04) ──
   {
     id: "operacion",

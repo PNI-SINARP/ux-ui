@@ -9,7 +9,14 @@ import { Label } from "@/components/ui/label";
 import type { CaracterCoordinador, InstitucionConfig } from "../data/cambio-coordinador-store";
 
 // PAR-09: intentos fallidos permitidos antes de bloquear la sesión del trámite
-const MAX_INTENTOS_PRERREGISTRO = 5;
+function maxIntentosPrerregistro(): number {
+  try {
+    const raw = localStorage.getItem("dinarp_par09_v1");
+    return raw ? Number(JSON.parse(raw).intentos) || 5 : 5;
+  } catch {
+    return 5;
+  }
+}
 
 interface IdentificarSalienteProps {
   institucion: InstitucionConfig;
@@ -23,6 +30,7 @@ interface IdentificarSalienteProps {
 export function IdentificarSaliente({ institucion, onIdentificado }: IdentificarSalienteProps) {
   const [cedula, setCedula] = useState("");
   const [intentos, setIntentos] = useState(0);
+  const [MAX_INTENTOS_PRERREGISTRO] = useState(maxIntentosPrerregistro);
   const [error, setError] = useState<string | null>(null);
 
   const bloqueado = intentos >= MAX_INTENTOS_PRERREGISTRO;

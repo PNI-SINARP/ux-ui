@@ -175,7 +175,13 @@ La tabla de HU de arriba conserva los códigos de una versión anterior; la refe
   - `/soporte`: tickets con prioridad P1 a P4, reloj continuo o hábil (PAR-03), atención, escalamiento, resolución y cierre o reapertura; `/reportes`: Gestión, Normatividad (con trazabilidad por cédula, acceso auditado y exportación CSV) y seguimiento de trámites de solo lectura; `/parametros-operacion`: PAR-03 y PAR-06.
   - La mesa de ayuda la hace el Administrador; REP-02 se calcula sobre las asignaciones de Normatividad del Anexo A; los límites de exportación (PAR-12) son constantes.
 
-Aún sin pantalla: PAR-08, 09, 14, 15 y 16, FUE-09 a 11, ECO-01, INS-08 a 10 y TEC-00/ID-00
+- **Administración del Portal (PAR-08, 09, 14, 15, 16, FUE-08 a 11, ECO-01, INS-08 a 10, ID-00, TEC-00):** módulo `administracion-portal` y `src/lib/tec00.ts`.
+  - `/parametros-portal`: vistos buenos (PAR-16, ya conectado con la resolución), vigencia e intentos sin cuenta (PAR-09, ya conectado con el Anexo C), métodos de recuperación, plantillas de documentos y textos de ayuda.
+  - `/ciclo-fuentes`: baja de una fuente con avisos y retiro, suspensión por fallo, restablecimiento tras nueva prueba y regularización económica por Jurídica.
+  - `/instituciones-admin`: inactivación con efectos confirmados uno a uno, fusión, precarga del SRI y habilitación del primer Administrador.
+  - TEC-00 es transversal: `tec00.ts` concentra el dígito verificador de la cédula, el RUC, el correo y los códigos de referencia que usan estas pantallas.
+
+Con esto cada HU de la v19 tiene al menos una pantalla en el prototipo; varias están simplificadas (selectores de resultado simulado, sin feriados, mesa de ayuda a cargo del Administrador).
 
 ---
 
