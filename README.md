@@ -167,7 +167,10 @@ La tabla de HU de arriba conserva los códigos de una versión anterior; la refe
   - Cuentas de prueba: flujo «Entrega directa y excepcional» en `/login`, con el rol nuevo Control y Evaluación (cédula `6666666666`).
   - Los lotes se simulan con un selector de resultado (completado, sin datos, fallido, supera el saldo); los plazos en días hábiles omiten solo sábados y domingos.
 
-Aún sin pantalla: consumo por API y masivo programado (API-01 a API-06), adendas (ADD), monitoreo (OPS), reportes (REP), soporte (INC), la mayoría de parámetros nuevos (PAR-03, 04, 06, 08, 09, 14 a 18) y el ciclo de vida de la fuente (FUE-09 a FUE-11, ECO-01).
+- **Consumo por API y ampliaciones (API-01 a API-06, ADD-01 a ADD-07, PAR-18):** módulo `consumo-api`, en `/consumo-api` con pestañas de pruebas y consulta (individual y masiva por segmentos), saldo y eventos con conciliación, programación masiva (DGR coordina, Tecnología aprueba y aplica límites en Apigee) y ampliaciones de campos o cupo (Gestión, DPI, Jurídica, Facturación y aplicación del alcance). `/parametros-consumo` publica PAR-18. Cuentas de prueba: flujo «Consumo por API y ampliaciones» (incluye Jurídica, cédula `7777777777`).
+  - Simplificaciones: la asignación de revisores de ADD-07 no se modela con ID por asignación; el masivo y las consultas usan un selector de resultado simulado.
+
+Aún sin pantalla: monitoreo (OPS), reportes (REP), soporte (INC), la mayoría de parámetros nuevos (PAR-03, 04, 06, 08, 09, 14 a 18) y el ciclo de vida de la fuente (FUE-09 a FUE-11, ECO-01).
 
 ---
 

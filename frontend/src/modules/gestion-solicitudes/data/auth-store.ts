@@ -281,6 +281,18 @@ export const DINARP_TEST_USERS_MAP: Record<string, MockUser> = {
     avatar: "CM",
     initials: "CM",
   },
+  // Jurídica (ADD-04)
+  "7777777777": {
+    id: "USR-JUR01",
+    name: "Abg. Sofía Cevallos",
+    role: "JURIDICA",
+    roleTitle: "Dirección Jurídica",
+    email: "juridica@dinarp.gob.ec",
+    institution: "DINARP - Jurídica",
+    cedula: "7777777777",
+    avatar: "SC",
+    initials: "SC",
+  },
   // Control y Evaluación (EXT-08)
   "6666666666": {
     id: "USR-CE01",

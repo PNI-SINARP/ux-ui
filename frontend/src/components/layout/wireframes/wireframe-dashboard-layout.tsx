@@ -456,6 +456,24 @@ const navItems: NavItem[] = [
     allowedRoles: ["ADMIN"],
   },
 
+  // ── CONSUMO POR API Y AMPLIACIONES (API-01 a API-06, ADD-01 a ADD-07) ──
+  {
+    id: "consumo-api",
+    label: "Consumo por API",
+    icon: Network,
+    href: "/consumo-api",
+    allowedRoles: ["COORDINADOR_SINARP", "DGR", "DTD", "TI", "DIR_GESTION", "EQ_GESTION", "DIR_DPI", "EQ_DPI", "JURIDICA", "FACTURACION", "ADMIN"],
+    section: "Consumo por API",
+  },
+  {
+    id: "parametros-consumo",
+    label: "Límites del masivo",
+    icon: Sliders,
+    href: "/parametros-consumo",
+    allowedRoles: ["DTD", "ADMIN"],
+    section: "Consumo por API",
+  },
+
   // ── ENTREGA DIRECTA Y EXCEPCIONAL (Res. 003-NG-DINARP-2023) ──
   {
     id: "entrega-excepcional",
