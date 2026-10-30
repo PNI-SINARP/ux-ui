@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   KeyRound,
   Layers,
@@ -11,6 +11,7 @@ import {
   FolderKanban,
   ShieldCheck,
   RotateCcw,
+  X,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,12 @@ import {
   ComboboxGroup,
   ComboboxLabel,
 } from "@/components/ui/combobox";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  TooltipProvider,
+} from "@/components/ui/tooltip";
 import { WireframeDashboardLayout } from "@/components/layout/wireframes/wireframe-dashboard-layout";
 import { useActor } from "@/modules/entrega-excepcional/components/excepcional-ui";
 import { numero, saldoAcceso, useConsumoStore } from "../data/consumo-store";
@@ -51,6 +58,28 @@ export function ConsumoApiView() {
   const [filterFuente, setFilterFuente] = useState<string>("TODOS");
   const [fuenteSearch, setFuenteSearch] = useState<string>("");
   const [accesoSearch, setAccesoSearch] = useState<string>("");
+
+  const esCoord = rol === "COORDINADOR_SINARP";
+  const verMasivo = esCoord || rol === "DGR" || rol === "DTD" || rol === "TI";
+  const verAmpliaciones =
+    esCoord ||
+    rol === "DIR_GESTION" ||
+    rol === "EQ_GESTION" ||
+    rol === "DIR_DPI" ||
+    rol === "EQ_DPI" ||
+    rol === "JURIDICA" ||
+    rol === "FACTURACION";
+  const defaultTab = esCoord ? "uso" : verMasivo ? "masivo" : "ampliaciones";
+
+  const [activeTab, setActiveTab] = useState<string>(defaultTab);
+  const [activeKpi, setActiveKpi] = useState<"credencial" | "alcance" | "cupo" | "saldo" | null>(
+    null
+  );
+
+  useEffect(() => {
+    setActiveTab(defaultTab);
+    setActiveKpi(null);
+  }, [rol, defaultTab]);
 
   const propios = useMemo(() => {
     if (rol === "JURIDICA" || rol === "FACTURACION") {
@@ -157,18 +186,6 @@ export function ConsumoApiView() {
     ? saldoAcceso(a, eventos)
     : { consumido: 0, reservado: 0, saldo: 0 };
 
-  const esCoord = rol === "COORDINADOR_SINARP";
-  const verMasivo = esCoord || rol === "DGR" || rol === "DTD" || rol === "TI";
-  const verAmpliaciones =
-    esCoord ||
-    rol === "DIR_GESTION" ||
-    rol === "EQ_GESTION" ||
-    rol === "DIR_DPI" ||
-    rol === "EQ_DPI" ||
-    rol === "JURIDICA" ||
-    rol === "FACTURACION";
-  const defaultTab = esCoord ? "uso" : verMasivo ? "masivo" : "ampliaciones";
-
   const headerTitle =
     rol === "JURIDICA"
       ? "Adendas de Ampliación Contractual"
@@ -196,7 +213,7 @@ export function ConsumoApiView() {
       <main className="w-full pr-3 pl-2 pb-3 pt-1.5 flex-1 min-h-0 flex flex-col overflow-hidden">
         <Card
           className="bg-surface rounded-2xl border border-border shadow-xs flex-1 min-h-0 overflow-hidden flex flex-col my-0"
-          innerClassName="p-4 sm:p-6 lg:p-8 flex flex-col gap-5 overflow-y-auto flex-1 min-h-0 w-full"
+          innerClassName="p-4 sm:p-6 lg:p-8 flex flex-col gap-6 overflow-y-auto flex-1 min-h-0 w-full"
         >
           {/* Encabezado Principal */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 w-full">
@@ -217,19 +234,44 @@ export function ConsumoApiView() {
                 : "Cargando accesos habilitados…"}
             </div>
           ) : (
-            <>
-              {/* Tarjetas KPI Horizontales del Acceso Seleccionado */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3.5 w-full">
+            <TooltipProvider delayDuration={150}>
+              {/* Tarjetas KPI Interactivas (Estilo cuentas-internas) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 w-full">
                 {/* 1. Credencial y Tipo */}
                 <Card
                   variant="featured"
-                  disableHover
-                  className="border border-primary/25 bg-primary/5 rounded-xl p-4 shadow-2xs my-0 w-full"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => {
+                    setActiveKpi((k) => (k === "credencial" ? null : "credencial"));
+                    if (esCoord) setActiveTab("uso");
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setActiveKpi((k) => (k === "credencial" ? null : "credencial"));
+                      if (esCoord) setActiveTab("uso");
+                    }
+                  }}
+                  className={cn(
+                    "group relative overflow-hidden cursor-pointer transition-all duration-200 border rounded-xl outline-none select-none p-4 w-full my-0",
+                    "hover:-translate-y-0.5 hover:shadow-md",
+                    activeKpi === "credencial"
+                      ? "bg-primary/15 border-primary ring-2 ring-primary/40 shadow-xs"
+                      : "bg-primary/5 hover:bg-primary/10 border-primary/25 shadow-2xs"
+                  )}
                   innerClassName="p-0 h-full"
                 >
                   <div className="flex flex-col justify-between h-full gap-3 w-full">
                     <div className="flex items-center justify-between gap-2 w-full">
-                      <div className="size-10 rounded-xl flex items-center justify-center shrink-0 bg-primary/15 text-primary">
+                      <div
+                        className={cn(
+                          "size-10 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200",
+                          activeKpi === "credencial"
+                            ? "bg-primary text-white shadow-xs"
+                            : "bg-primary/15 text-primary group-hover:scale-105 group-hover:bg-primary group-hover:text-white"
+                        )}
+                      >
                         <KeyRound className="size-5" />
                       </div>
                       <Badge
@@ -255,13 +297,38 @@ export function ConsumoApiView() {
                 {/* 2. Alcance Autorizado */}
                 <Card
                   variant="featured"
-                  disableHover
-                  className="border border-info/25 bg-info/5 rounded-xl p-4 shadow-2xs my-0 w-full"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => {
+                    setActiveKpi((k) => (k === "alcance" ? null : "alcance"));
+                    if (verAmpliaciones) setActiveTab("ampliaciones");
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setActiveKpi((k) => (k === "alcance" ? null : "alcance"));
+                      if (verAmpliaciones) setActiveTab("ampliaciones");
+                    }
+                  }}
+                  className={cn(
+                    "group relative overflow-hidden cursor-pointer transition-all duration-200 border rounded-xl outline-none select-none p-4 w-full my-0",
+                    "hover:-translate-y-0.5 hover:shadow-md",
+                    activeKpi === "alcance"
+                      ? "bg-info/15 border-info ring-2 ring-info/40 shadow-xs"
+                      : "bg-info/5 hover:bg-info/10 border-info/25 shadow-2xs"
+                  )}
                   innerClassName="p-0 h-full"
                 >
                   <div className="flex flex-col justify-between h-full gap-3 w-full">
                     <div className="flex items-center justify-between gap-2 w-full">
-                      <div className="size-10 rounded-xl flex items-center justify-center shrink-0 bg-info/15 text-info">
+                      <div
+                        className={cn(
+                          "size-10 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200",
+                          activeKpi === "alcance"
+                            ? "bg-info text-white shadow-xs"
+                            : "bg-info/15 text-info group-hover:scale-105 group-hover:bg-info group-hover:text-white"
+                        )}
+                      >
                         <Layers className="size-5" />
                       </div>
                       <Badge
@@ -290,13 +357,40 @@ export function ConsumoApiView() {
                 {/* 3. Cupo / Referencia y Entregado */}
                 <Card
                   variant="featured"
-                  disableHover
-                  className="border border-success/25 bg-success/5 rounded-xl p-4 shadow-2xs my-0 w-full"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => {
+                    setActiveKpi((k) => (k === "cupo" ? null : "cupo"));
+                    if (esCoord) setActiveTab("saldo");
+                    else if (verMasivo) setActiveTab("masivo");
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setActiveKpi((k) => (k === "cupo" ? null : "cupo"));
+                      if (esCoord) setActiveTab("saldo");
+                      else if (verMasivo) setActiveTab("masivo");
+                    }
+                  }}
+                  className={cn(
+                    "group relative overflow-hidden cursor-pointer transition-all duration-200 border rounded-xl outline-none select-none p-4 w-full my-0",
+                    "hover:-translate-y-0.5 hover:shadow-md",
+                    activeKpi === "cupo"
+                      ? "bg-success/15 border-success ring-2 ring-success/40 shadow-xs"
+                      : "bg-success/5 hover:bg-success/10 border-success/25 shadow-2xs"
+                  )}
                   innerClassName="p-0 h-full"
                 >
                   <div className="flex flex-col justify-between h-full gap-3 w-full">
                     <div className="flex items-center justify-between gap-2 w-full">
-                      <div className="size-10 rounded-xl flex items-center justify-center shrink-0 bg-success/15 text-success">
+                      <div
+                        className={cn(
+                          "size-10 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200",
+                          activeKpi === "cupo"
+                            ? "bg-success text-white shadow-xs"
+                            : "bg-success/15 text-success group-hover:scale-105 group-hover:bg-success group-hover:text-white"
+                        )}
+                      >
                         <Activity className="size-5" />
                       </div>
                       <Badge
@@ -324,12 +418,31 @@ export function ConsumoApiView() {
                 {/* 4. Saldo Disponible */}
                 <Card
                   variant="featured"
-                  disableHover
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => {
+                    setActiveKpi((k) => (k === "saldo" ? null : "saldo"));
+                    if (esCoord) setActiveTab("saldo");
+                    else if (verAmpliaciones) setActiveTab("ampliaciones");
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setActiveKpi((k) => (k === "saldo" ? null : "saldo"));
+                      if (esCoord) setActiveTab("saldo");
+                      else if (verAmpliaciones) setActiveTab("ampliaciones");
+                    }
+                  }}
                   className={cn(
-                    "border rounded-xl p-4 shadow-2xs my-0 w-full",
+                    "group relative overflow-hidden cursor-pointer transition-all duration-200 border rounded-xl outline-none select-none p-4 w-full my-0",
+                    "hover:-translate-y-0.5 hover:shadow-md",
                     saldo <= 0 && a.tipo === "Privada"
-                      ? "border-danger/30 bg-danger/5"
-                      : "border-warning/25 bg-warning/5"
+                      ? activeKpi === "saldo"
+                        ? "bg-danger/15 border-danger ring-2 ring-danger/40 shadow-xs"
+                        : "bg-danger/5 hover:bg-danger/10 border-danger/25 shadow-2xs"
+                      : activeKpi === "saldo"
+                        ? "bg-warning/15 border-warning ring-2 ring-warning/40 shadow-xs"
+                        : "bg-warning/5 hover:bg-warning/10 border-warning/25 shadow-2xs"
                   )}
                   innerClassName="p-0 h-full"
                 >
@@ -337,10 +450,14 @@ export function ConsumoApiView() {
                     <div className="flex items-center justify-between gap-2 w-full">
                       <div
                         className={cn(
-                          "size-10 rounded-xl flex items-center justify-center shrink-0",
+                          "size-10 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200",
                           saldo <= 0 && a.tipo === "Privada"
-                            ? "bg-danger/15 text-danger"
-                            : "bg-warning/15 text-warning"
+                            ? activeKpi === "saldo"
+                              ? "bg-danger text-white shadow-xs"
+                              : "bg-danger/15 text-danger group-hover:scale-105 group-hover:bg-danger group-hover:text-white"
+                            : activeKpi === "saldo"
+                              ? "bg-warning text-white shadow-xs"
+                              : "bg-warning/15 text-warning group-hover:scale-105 group-hover:bg-warning group-hover:text-white"
                         )}
                       >
                         <Wallet className="size-5" />
@@ -576,6 +693,112 @@ export function ConsumoApiView() {
                   </div>
                 </div>
 
+                {/* Píldoras de Filtros Activos (Idéntico a cuentas-internas) */}
+                {hasActiveFilters && (
+                  <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border/60">
+                    <span className="text-xs font-semibold text-muted-foreground mr-1">
+                      Filtros activos:
+                    </span>
+
+                    {searchTerm.trim() !== "" && (
+                      <Badge
+                        tone="neutral"
+                        appearance="soft"
+                        className="pl-3 pr-1 py-1 rounded-full text-xs h-7 gap-1 font-semibold bg-muted text-foreground border border-border max-w-full"
+                      >
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="max-w-[180px] sm:max-w-[260px] truncate cursor-help">
+                              Búsqueda: &ldquo;{searchTerm}&rdquo;
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="text-xs max-w-xs z-[100]">
+                            Búsqueda: &ldquo;{searchTerm}&rdquo;
+                          </TooltipContent>
+                        </Tooltip>
+                        <button
+                          type="button"
+                          onClick={() => setSearchTerm("")}
+                          className="p-0.5 rounded-full hover:bg-foreground/10 text-muted-foreground transition-colors cursor-pointer shrink-0"
+                          aria-label="Eliminar filtro de búsqueda"
+                        >
+                          <X className="size-3" />
+                        </button>
+                      </Badge>
+                    )}
+
+                    {filterTipo !== "TODOS" && (
+                      <Badge
+                        tone="primary"
+                        appearance="soft"
+                        className="pl-3 pr-1 py-1 rounded-full text-xs h-7 gap-1 font-semibold bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary-300 border border-primary/25 max-w-full"
+                      >
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="max-w-[180px] sm:max-w-[260px] truncate cursor-help">
+                              Tipo: Entidad {filterTipo}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="text-xs max-w-xs z-[100]">
+                            Tipo: Entidad {filterTipo}
+                          </TooltipContent>
+                        </Tooltip>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFilterTipo("TODOS");
+                            setTipoSearch("");
+                          }}
+                          className="p-0.5 rounded-full hover:bg-primary/20 text-primary transition-colors cursor-pointer shrink-0"
+                          aria-label="Eliminar filtro de tipo"
+                        >
+                          <X className="size-3" />
+                        </button>
+                      </Badge>
+                    )}
+
+                    {filterFuente !== "TODOS" && (
+                      <Badge
+                        tone="primary"
+                        appearance="soft"
+                        className="pl-3 pr-1 py-1 rounded-full text-xs h-7 gap-1 font-semibold bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary-300 border border-primary/25 max-w-full"
+                      >
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="max-w-[180px] sm:max-w-[260px] truncate cursor-help">
+                              Fuente: {filterFuente}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="text-xs max-w-xs z-[100]">
+                            Fuente: {filterFuente}
+                          </TooltipContent>
+                        </Tooltip>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFilterFuente("TODOS");
+                            setFuenteSearch("");
+                          }}
+                          className="p-0.5 rounded-full hover:bg-primary/20 text-primary transition-colors cursor-pointer shrink-0"
+                          aria-label="Eliminar filtro de fuente"
+                        >
+                          <X className="size-3" />
+                        </button>
+                      </Badge>
+                    )}
+
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleClearFilters}
+                      className="h-7 text-xs text-muted-foreground hover:text-foreground cursor-pointer px-2.5 rounded-full gap-1.5"
+                    >
+                      <RotateCcw className="size-3.5" />
+                      Limpiar filtros
+                    </Button>
+                  </div>
+                )}
+
                 {/* Ficha de Información Organizada de la Solicitud Seleccionada */}
                 <div className="rounded-xl border border-border bg-surface-subtle/50 p-3.5 sm:p-4 flex flex-col gap-3">
                   <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 text-xs">
@@ -630,7 +853,11 @@ export function ConsumoApiView() {
                           Estado y datos de prueba
                         </span>
                         <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
-                          <Badge tone="success" appearance="soft" size="sm">
+                          <Badge
+                            tone={a.estado === "Activa" ? "success" : "danger"}
+                            appearance="soft"
+                            size="sm"
+                          >
                             {a.estado}
                           </Badge>
                           <Badge
@@ -650,7 +877,7 @@ export function ConsumoApiView() {
                     </div>
                   </div>
 
-                  {/* Campos autorizados e indicadores de filtro */}
+                  {/* Campos autorizados */}
                   <div className="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-border/60 text-xs">
                     <div className="flex flex-wrap items-center gap-1.5">
                       <span className="text-[11px] font-semibold text-muted-foreground mr-1">
@@ -668,27 +895,14 @@ export function ConsumoApiView() {
                         </Badge>
                       ))}
                     </div>
-
-                    {hasActiveFilters && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleClearFilters}
-                        className="h-7 px-2.5 text-xs text-muted-foreground hover:text-foreground gap-1.5"
-                      >
-                        <RotateCcw className="size-3.5" />
-                        Limpiar filtros
-                      </Button>
-                    )}
                   </div>
                 </div>
               </div>
 
               {/* Pestañas UI Kit */}
               <Tabs
-                key={rol}
-                defaultValue={defaultTab}
+                value={activeTab}
+                onValueChange={setActiveTab}
                 className="w-full gap-6"
               >
                 <div className="overflow-x-auto pb-1">
@@ -735,7 +949,7 @@ export function ConsumoApiView() {
                   </TabsContent>
                 )}
               </Tabs>
-            </>
+            </TooltipProvider>
           )}
         </Card>
       </main>

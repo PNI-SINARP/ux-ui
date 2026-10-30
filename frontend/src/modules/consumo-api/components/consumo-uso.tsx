@@ -12,12 +12,25 @@ import {
   RotateCcw,
   LifeBuoy,
   Terminal,
+  X,
+  Check,
+  Clock,
+  FileSearch,
 } from "lucide-react";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Search } from "@/components/ui/search";
+import { InteractiveCard } from "@/components/ui/data-display";
+import { ViewModeToggle, type ViewMode } from "@/components/shared/view-mode-toggle";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  TooltipProvider,
+} from "@/components/ui/tooltip";
 import {
   Combobox,
   ComboboxInput,
@@ -35,6 +48,8 @@ import {
   PaginationLink,
   PaginationPrevious,
   PaginationNext,
+  PaginationFirst,
+  PaginationLast,
 } from "@/components/ui/pagination";
 import {
   Table,
@@ -488,6 +503,119 @@ export function PruebasPanel({ a }: { a: AccesoApi }) {
         detalle={`credencial: ${a.credencial} · entorno: Pruebas · campo: ${campo}`}
       />
 
+      {/* Selector rápido de Casos de Uso según HU API-01 */}
+      <div className="rounded-xl border border-border/70 bg-surface-subtle/40 p-3.5 space-y-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className="text-xs font-semibold text-foreground">
+            Casos de uso rápidos según HU (API-01 · Ambiente de Pruebas)
+          </span>
+          <span className="text-[11px] text-muted-foreground">
+            Haz clic en un escenario para precargar sus parámetros y simularlo
+          </span>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={cargando}
+            onClick={() => {
+              if (a.tipoDatoPruebas !== "Sintético" && a.tipoDatoPruebas !== "Anonimizado") {
+                st.cambiarTipoDatoPruebas(a.id, "Sintético");
+              }
+              const c = a.camposAutorizados[0] ?? "cedula";
+              setToken(a.token);
+              setCampo(c);
+              setCampoSearch(getCampoLabel(c));
+              setEscenarioPrueba("ok");
+              setEscenarioPruebaSearch("Respuesta normal de la fuente");
+              toast.info("Caso cargado: Prueba exitosa (200 OK · Sintético/Anonimizado)");
+            }}
+          >
+            1. Exitosa (200 OK)
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={cargando}
+            onClick={() => {
+              if (a.tipoDatoPruebas !== "Sintético" && a.tipoDatoPruebas !== "Anonimizado") {
+                st.cambiarTipoDatoPruebas(a.id, "Sintético");
+              }
+              const c = a.camposAutorizados[0] ?? "cedula";
+              setToken(a.token);
+              setCampo(c);
+              setCampoSearch(getCampoLabel(c));
+              setEscenarioPrueba("sin_datos");
+              setEscenarioPruebaSearch("Sin datos (0 coincidencias)");
+              toast.info("Caso cargado: Sin datos (200 OK · 0 registros)");
+            }}
+          >
+            2. Sin datos (0 coincidencias)
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={cargando}
+            onClick={() => {
+              setToken("tok-vencido");
+              toast.info("Caso cargado: Token OAuth vencido en Apigee (401 TOKEN_VENCIDO)");
+            }}
+          >
+            3. Token vencido (401)
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={cargando}
+            onClick={() => {
+              const noAut =
+                a.catalogoCampos.find((x) => !a.camposAutorizados.includes(x.campo))?.campo ??
+                "estado_civil";
+              setToken(a.token);
+              setCampo(noAut);
+              setCampoSearch(getCampoLabel(noAut));
+              toast.info(`Caso cargado: Campo fuera de alcance (${noAut} → 403 CAMPO_NO_AUTORIZADO)`);
+            }}
+          >
+            4. Campo no autorizado (403)
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={cargando}
+            onClick={() => {
+              st.cambiarTipoDatoPruebas(a.id, "Real");
+              setToken(a.token);
+              toast.info("Caso cargado: FUE-04 Real bloqueado en Pruebas (403 DATOS_REALES_NO_PERMITIDOS)");
+            }}
+          >
+            5. Bloqueo FUE-04 Real (403)
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={cargando}
+            onClick={() => {
+              if (a.tipoDatoPruebas !== "Sintético" && a.tipoDatoPruebas !== "Anonimizado") {
+                st.cambiarTipoDatoPruebas(a.id, "Sintético");
+              }
+              setToken(a.token);
+              setEscenarioPrueba("red_vpn");
+              setEscenarioPruebaSearch("Red o VPN inaccesible (502)");
+              toast.info("Caso cargado: Fallo de red/VPN con código de referencia para ticket INC-01 (502)");
+            }}
+          >
+            6. Fallo Red/VPN + Ticket INC-01 (502)
+          </Button>
+        </div>
+      </div>
+
       <Resultado
         r={res}
         accionesExtra={
@@ -867,6 +995,123 @@ export function ConsultaPanel({ a }: { a: AccesoApi }) {
           detalle={`solicitud: ${a.id} · campo: ${campo} · registros: ${devuelve}`}
         />
 
+        {/* Trazabilidad de los 5 Carriles BPMN y Casos de Uso según HU (API-02 / API-04 / API-05) */}
+        <div className="rounded-xl border border-border/70 bg-surface-subtle/40 p-4 space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="space-y-0.5">
+              <p className="text-xs font-semibold text-foreground">
+                Recorrido BPMN de Consumo por API (5 carriles) y Casos de Uso rápidos (API-02)
+              </p>
+              <p className="text-[11px] text-muted-foreground">
+                1. Aplicativo Institución → 2. Apigee (¿Token válido?) → 3. API Interoperabilidad DINARP (¿Acceso permitido?) → 4. Fuente de Datos → 5. Portal de Interoperabilidad (¿Entidad privada? Descontar cupo + Registrar bitácora)
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={cargandoApi02}
+              onClick={() => {
+                const c = a.camposAutorizados[0] ?? "cedula";
+                setCampo(c);
+                setCampoSearch(getCampoLabel(c));
+                setDevuelve("10");
+                setIdentificador("1718956234");
+                setEscenario("ok");
+                setEscenarioSearch("Entrega correcta");
+                toast.info("Caso BPMN cargado: Entrega correcta (descuenta cupo si es Privada y registra bitácora)");
+              }}
+            >
+              1. Entrega correcta (200 OK)
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={cargandoApi02}
+              onClick={() => {
+                const c = a.camposAutorizados[0] ?? "cedula";
+                setCampo(c);
+                setCampoSearch(getCampoLabel(c));
+                setDevuelve("1");
+                setIdentificador("1718956234");
+                setEscenario("sin_datos");
+                setEscenarioSearch("Sin datos (0 coincidencias)");
+                toast.info("Caso cargado: Sin datos (200 OK · 0 registros · libera reserva sin descontar cupo)");
+              }}
+            >
+              2. Sin datos (0 registros)
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={cargandoApi02}
+              onClick={() => {
+                const noAut =
+                  a.catalogoCampos.find((x) => !a.camposAutorizados.includes(x.campo))?.campo ??
+                  "estado_civil";
+                setCampo(noAut);
+                setCampoSearch(getCampoLabel(noAut));
+                toast.info(`Caso BPMN cargado: ¿Acceso permitido? No → Rechazar petición (${noAut} · 403)`);
+              }}
+            >
+              3. Rechazo por alcance (403)
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={cargandoApi02}
+              onClick={() => {
+                setIdentificador("1718956239");
+                toast.info("Caso TEC-00 CA9 cargado: Cédula inválida módulo 10 (422 IDENTIFICADOR_PERSONA_INVALIDO)");
+              }}
+            >
+              4. Cédula inválida mod10 (422)
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={cargandoApi02}
+              onClick={() => {
+                const c = a.camposAutorizados[0] ?? "cedula";
+                setCampo(c);
+                setCampoSearch(getCampoLabel(c));
+                setIdentificador("1718956234");
+                setDevuelve("25");
+                setEscenario("incierto");
+                setEscenarioSearch("Entrega incierta (conciliación)");
+                toast.info("Caso API-04 cargado: Entrega incierta (504 · queda Pendiente de conciliación en Saldo y eventos)");
+              }}
+            >
+              5. Entrega incierta / Conciliación (504)
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={cargandoApi02}
+              onClick={() => {
+                const c = a.camposAutorizados[0] ?? "cedula";
+                setCampo(c);
+                setCampoSearch(getCampoLabel(c));
+                setIdentificador("1718956234");
+                setDevuelve("15");
+                setEscenario("fallo");
+                setEscenarioSearch("Falla antes de entregar");
+                toast.info("Caso API-02 cargado: Falla antes de entregar (502 · libera reserva automáticamente)");
+              }}
+            >
+              6. Falla antes de entregar (502)
+            </Button>
+          </div>
+        </div>
+
         <Resultado r={r1} />
       </section>
 
@@ -979,6 +1224,65 @@ export function ConsultaPanel({ a }: { a: AccesoApi }) {
           detalle={`solicitud: ${a.id} · versión alcance: v${a.versionAlcance} · máx/segmento: ${numero(MAX_REGISTROS_POR_SEGMENTO)}`}
         />
 
+        {/* Casos de uso rápidos API-03 */}
+        <div className="rounded-xl border border-border/70 bg-surface-subtle/40 p-3.5 space-y-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="text-xs font-semibold text-foreground">
+              Casos de uso rápidos según HU (API-03 · Segmentación y Cursor Opaco)
+            </span>
+            <span className="text-[11px] text-muted-foreground">
+              Máximo {numero(MAX_REGISTROS_POR_SEGMENTO)} registros por segmento (PAR-13)
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={cargandoApi03}
+              onClick={() => {
+                setSolicitados("2500");
+                setFalla("ninguna");
+                setFallaSearch("Ninguna (completar todos)");
+                toast.info("Caso API-03 cargado: 2.500 registros en 3 segmentos completos (1.000 + 1.000 + 500)");
+              }}
+            >
+              1. Completar 3 segmentos (2.500 reg)
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={cargandoApi03}
+              onClick={() => {
+                setSolicitados("3000");
+                setFalla("2");
+                setFallaSearch("Falla en Segmento 2");
+                toast.info("Caso API-03 CA3 cargado: Falla en Segmento 2 → Parcial por fallo con cursor para reanudar");
+              }}
+            >
+              2. Falla en Segmento 2 + Cursor de reanudación
+            </Button>
+            {a.tipo === "Privada" && saldo > 0 && (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={cargandoApi03}
+                onClick={() => {
+                  const excedente = saldo + 1500;
+                  setSolicitados(String(excedente));
+                  setFalla("ninguna");
+                  setFallaSearch("Ninguna (completar todos)");
+                  toast.info(`Caso API-03 CA4 cargado: Solicita ${numero(excedente)} (> saldo ${numero(saldo)}) → Parcial por cupo`);
+                }}
+              >
+                3. Parcial por agotamiento de cupo ({numero(saldo + 1500)} reg)
+              </Button>
+            )}
+          </div>
+        </div>
+
         <Resultado
           r={r2}
           accionesExtra={
@@ -1028,22 +1332,45 @@ export function SaldoPanel({ a }: { a: AccesoApi }) {
   const st = useConsumoStore();
   const { rol } = useActor();
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 10;
+  const [pageSize, setPageSize] = useState(10);
+  const [viewMode, setViewMode] = useState<ViewMode>("table");
+  const [busquedaEv, setBusquedaEv] = useState("");
+  const [entornoFiltro, setEntornoFiltro] = useState<"TODOS" | "Producción" | "Pruebas">("TODOS");
+  const [entornoSearch, setEntornoSearch] = useState("");
+  const [estadoFiltro, setEstadoFiltro] = useState<
+    "TODOS" | "Confirmado" | "Pendiente de conciliación" | "Liberado"
+  >("TODOS");
+  const [estadoSearch, setEstadoSearch] = useState("");
 
   const { consumido, reservado, saldo } = saldoAcceso(a, st.eventos);
   const pct = (n: number) =>
     Math.min(100, Math.max(0, (n / a.cupoAutorizado) * 100));
 
-  const mios = useMemo(
-    () => [...st.eventos].filter((e) => e.accesoId === a.id).reverse(),
-    [st.eventos, a.id]
-  );
+  const mios = useMemo(() => {
+    const q = busquedaEv.trim().toLowerCase();
+    return [...st.eventos]
+      .filter((e) => e.accesoId === a.id)
+      .filter((e) => (entornoFiltro === "TODOS" ? true : e.entorno === entornoFiltro))
+      .filter((e) => (estadoFiltro === "TODOS" ? true : e.estado === estadoFiltro))
+      .filter((e) =>
+        !q
+          ? true
+          : e.idEvento.toLowerCase().includes(q) ||
+            e.idOperacion.toLowerCase().includes(q) ||
+            e.resultado.toLowerCase().includes(q) ||
+            e.origen.toLowerCase().includes(q)
+      )
+      .reverse();
+  }, [st.eventos, a.id, busquedaEv, entornoFiltro, estadoFiltro]);
 
   const totalPages = Math.max(1, Math.ceil(mios.length / pageSize));
   const paginatedEventos = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
     return mios.slice(start, start + pageSize);
-  }, [mios, currentPage]);
+  }, [mios, currentPage, pageSize]);
+
+  const hayFiltrosEv =
+    busquedaEv.trim() !== "" || entornoFiltro !== "TODOS" || estadoFiltro !== "TODOS";
 
   const puedeConciliar =
     rol === "TI" ||
@@ -1054,205 +1381,542 @@ export function SaldoPanel({ a }: { a: AccesoApi }) {
   const excede = a.tipo === "Pública" && consumido > a.cupoAutorizado;
 
   return (
-    <div className="space-y-6">
-      {/* Barra de progreso del cupo / referencia (API-05) */}
-      <div className="bg-surface-subtle/60 border border-border rounded-2xl p-5 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <div>
-            <h2 className="text-base font-bold text-foreground">
-              {a.tipo === "Privada"
-                ? "Saldo del cupo autorizado (API-05)"
-                : "Referencia de alertas (API-05)"}
-            </h2>
-            <p className="text-xs text-muted-foreground">
-              {a.tipo === "Privada"
-                ? "saldo = cupo autorizado − entregado − reservas pendientes. Al agotarse se bloquea y se ofrece renovar (ADD-03)."
-                : "En una solicitud pública el cupo solicitado es solo una referencia para alertas: no bloquea ni se factura."}
-            </p>
-          </div>
-          <Badge
-            tone={saldo <= 0 && a.tipo === "Privada" ? "danger" : "primary"}
-            appearance="soft"
-            size="sm"
-            className="font-mono self-start sm:self-center"
-          >
-            {Math.round(pct(consumido))}% utilizado
-          </Badge>
-        </div>
-
-        <div
-          className="h-3 rounded-full bg-muted overflow-hidden flex"
-          role="img"
-          aria-label={`Consumido ${numero(consumido)}, reservado ${numero(reservado)}, saldo ${numero(saldo)}`}
-        >
-          <div
-            className="bg-success transition-all duration-300"
-            style={{ width: `${pct(consumido)}%` }}
-          />
-          <div
-            className="bg-warning transition-all duration-300"
-            style={{ width: `${pct(reservado)}%` }}
-          />
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs pt-1">
-          <div className="flex items-center justify-between rounded-xl bg-surface border border-border/60 px-3.5 py-2.5">
-            <span className="text-muted-foreground font-medium">
-              {a.tipo === "Privada" ? "Cupo" : "Referencia"}
-            </span>
-            <strong className="text-foreground font-mono">
-              {numero(a.cupoAutorizado)}
-            </strong>
-          </div>
-          <div className="flex items-center justify-between rounded-xl bg-surface border border-border/60 px-3.5 py-2.5">
-            <span className="text-success font-medium">Entregado</span>
-            <strong className="text-success font-mono">
-              {numero(consumido)}
-            </strong>
-          </div>
-          <div className="flex items-center justify-between rounded-xl bg-surface border border-border/60 px-3.5 py-2.5">
-            <span className="text-warning font-medium">Reservado</span>
-            <strong className="text-warning font-mono">
-              {numero(reservado)}
-            </strong>
-          </div>
-          <div className="flex items-center justify-between rounded-xl bg-surface border border-border/60 px-3.5 py-2.5">
-            <span className="text-muted-foreground font-medium">
-              {a.tipo === "Privada" ? "Saldo" : "Diferencia"}
-            </span>
-            <strong
-              className={cn(
-                "font-mono",
-                saldo < 0 ? "text-danger" : "text-foreground"
-              )}
+    <TooltipProvider delayDuration={150}>
+      <div className="space-y-6">
+        {/* Barra de progreso del cupo / referencia (API-05) */}
+        <div className="bg-surface-subtle/60 border border-border rounded-2xl p-5 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <h2 className="text-base font-bold text-foreground">
+                {a.tipo === "Privada"
+                  ? "Saldo del cupo autorizado (API-05)"
+                  : "Referencia de alertas (API-05)"}
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                {a.tipo === "Privada"
+                  ? "saldo = cupo autorizado − entregado − reservas pendientes. Al agotarse se bloquea y se ofrece renovar (ADD-03)."
+                  : "En una solicitud pública el cupo solicitado es solo una referencia para alertas: no bloquea ni se factura."}
+              </p>
+            </div>
+            <Badge
+              tone={saldo <= 0 && a.tipo === "Privada" ? "danger" : "primary"}
+              appearance="soft"
+              size="sm"
+              className="font-mono self-start sm:self-center"
             >
-              {numero(saldo)}
-            </strong>
+              {Math.round(pct(consumido))}% utilizado
+            </Badge>
           </div>
+
+          <div
+            className="h-3 rounded-full bg-muted overflow-hidden flex"
+            role="img"
+            aria-label={`Consumido ${numero(consumido)}, reservado ${numero(reservado)}, saldo ${numero(saldo)}`}
+          >
+            <div
+              className="bg-success transition-all duration-300"
+              style={{ width: `${pct(consumido)}%` }}
+            />
+            <div
+              className="bg-warning transition-all duration-300"
+              style={{ width: `${pct(reservado)}%` }}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs pt-1">
+            <div className="flex items-center justify-between rounded-xl bg-surface border border-border/60 px-3.5 py-2.5">
+              <span className="text-muted-foreground font-medium">
+                {a.tipo === "Privada" ? "Cupo" : "Referencia"}
+              </span>
+              <strong className="text-foreground font-mono">
+                {numero(a.cupoAutorizado)}
+              </strong>
+            </div>
+            <div className="flex items-center justify-between rounded-xl bg-surface border border-border/60 px-3.5 py-2.5">
+              <span className="text-success font-medium">Entregado</span>
+              <strong className="text-success font-mono">
+                {numero(consumido)}
+              </strong>
+            </div>
+            <div className="flex items-center justify-between rounded-xl bg-surface border border-border/60 px-3.5 py-2.5">
+              <span className="text-warning font-medium">Reservado</span>
+              <strong className="text-warning font-mono">
+                {numero(reservado)}
+              </strong>
+            </div>
+            <div className="flex items-center justify-between rounded-xl bg-surface border border-border/60 px-3.5 py-2.5">
+              <span className="text-muted-foreground font-medium">
+                {a.tipo === "Privada" ? "Saldo" : "Diferencia"}
+              </span>
+              <strong
+                className={cn(
+                  "font-mono",
+                  saldo < 0 ? "text-danger" : "text-foreground"
+                )}
+              >
+                {numero(saldo)}
+              </strong>
+            </div>
+          </div>
+
+          {excede && (
+            <Alert
+              variant="warning"
+              icon={<AlertCircle className="size-4" />}
+              title="Superaste la referencia"
+              className="p-3.5 text-xs"
+            >
+              Alerta para Gestión; el consumo continúa y no se factura por este hecho.
+            </Alert>
+          )}
+          {a.tipo === "Privada" && saldo <= 0 && (
+            <Alert
+              variant="danger"
+              icon={<ShieldAlert className="size-4" />}
+              title="Cupo agotado"
+              className="p-3.5 text-xs"
+            >
+              Las consultas se bloquean. Genera una renovación desde la pestaña Ampliaciones (ADD-03).
+            </Alert>
+          )}
         </div>
 
-        {excede && (
-          <Alert
-            variant="warning"
-            icon={<AlertCircle className="size-4" />}
-            title="Superaste la referencia"
-            className="p-3.5 text-xs"
-          >
-            Alerta para Gestión; el consumo continúa y no se factura por este hecho.
-          </Alert>
-        )}
-        {a.tipo === "Privada" && saldo <= 0 && (
-          <Alert
-            variant="danger"
-            icon={<ShieldAlert className="size-4" />}
-            title="Cupo agotado"
-            className="p-3.5 text-xs"
-          >
-            Las consultas se bloquean. Genera una renovación desde la pestaña Ampliaciones (ADD-03).
-          </Alert>
-        )}
-      </div>
-
-      {/* Tabla de Eventos de Consumo (API-04) — SIN contenedor envolvente */}
-      <div className="space-y-3 w-full">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <div className="space-y-0.5">
-            <h2 className="text-base font-bold text-foreground">
-              Eventos de consumo (API-04)
-            </h2>
-            <p className="text-xs text-muted-foreground">
-              Cada entrega es una reserva durable que se convierte en evento inmutable. Un reintento del mismo id_operacion/id_segmento no duplica consumo; la entrega incierta queda Pendiente de conciliación.
-            </p>
+        {/* Tabla / Tarjetas de Eventos de Consumo (API-04) — SIN contenedor envolvente */}
+        <div className="space-y-4 w-full">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="space-y-0.5">
+              <h2 className="text-base font-bold text-foreground">
+                Eventos de consumo (API-04)
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                Cada entrega es una reserva durable que se convierte en evento inmutable. Un reintento del mismo id_operacion/id_segmento no duplica consumo; la entrega incierta queda Pendiente de conciliación.
+              </p>
+            </div>
+            <Badge tone="neutral" appearance="soft" size="sm" className="self-start sm:self-center">
+              {mios.length} {mios.length === 1 ? "evento" : "eventos"}
+            </Badge>
           </div>
-          <Badge tone="neutral" appearance="soft" size="sm" className="self-start sm:self-center">
-            {mios.length} {mios.length === 1 ? "evento" : "eventos"}
-          </Badge>
-        </div>
 
-        <Table
-          className="w-full min-w-[920px]"
-          containerClassName="overflow-x-auto w-full"
-        >
-          <TableHeader>
-            <TableRow className="border-0">
-              <TableHead className="whitespace-nowrap text-left pl-6">
-                EVENTO / FECHA
-              </TableHead>
-              <TableHead className="whitespace-nowrap text-left">
-                ORIGEN
-              </TableHead>
-              <TableHead className="whitespace-nowrap text-left">
-                ENTORNO
-              </TableHead>
-              <TableHead className="whitespace-nowrap text-left">
-                RESULTADO
-              </TableHead>
-              <TableHead className="whitespace-nowrap text-left">
-                RESERVADA / ENTREGADA
-              </TableHead>
-              <TableHead className="whitespace-nowrap text-left">
-                ESTADO
-              </TableHead>
-              <TableHead className="whitespace-nowrap text-right pr-6">
-                ACCIONES
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3">
+              <div className="flex-1 min-w-[240px]">
+                <Search
+                  size="sm"
+                  placeholder="Buscar por ID evento, operación, origen o resultado..."
+                  value={busquedaEv}
+                  onChange={(e) => {
+                    setBusquedaEv(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  onClear={() => {
+                    setBusquedaEv("");
+                    setCurrentPage(1);
+                  }}
+                />
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2.5">
+                <div className="w-full sm:w-[190px]">
+                  <Combobox
+                    value={entornoFiltro}
+                    onValueChange={(val) => {
+                      if (val) {
+                        setEntornoFiltro(val as "TODOS" | "Producción" | "Pruebas");
+                        setEntornoSearch(val === "TODOS" ? "Todos los entornos" : val);
+                        setCurrentPage(1);
+                      }
+                    }}
+                    inputValue={
+                      entornoSearch ||
+                      (entornoFiltro === "TODOS" ? "Todos los entornos" : entornoFiltro)
+                    }
+                    onInputValueChange={setEntornoSearch}
+                  >
+                    <ComboboxInput
+                      size="sm"
+                      placeholder="Entorno..."
+                      showTrigger={true}
+                      showClear={false}
+                      showSearchIcon={false}
+                      className="w-full"
+                    />
+                    <ComboboxContent className="min-w-[200px] z-[80]">
+                      <ComboboxList>
+                        <ComboboxGroup>
+                          <ComboboxLabel>Filtrar por entorno</ComboboxLabel>
+                          <ComboboxItem value="TODOS" className="text-xs py-1.5 cursor-pointer">
+                            Todos los entornos
+                          </ComboboxItem>
+                          <ComboboxItem value="Producción" className="text-xs py-1.5 cursor-pointer">
+                            Producción
+                          </ComboboxItem>
+                          <ComboboxItem value="Pruebas" className="text-xs py-1.5 cursor-pointer">
+                            Pruebas
+                          </ComboboxItem>
+                        </ComboboxGroup>
+                      </ComboboxList>
+                    </ComboboxContent>
+                  </Combobox>
+                </div>
+
+                <div className="w-full sm:w-[220px]">
+                  <Combobox
+                    value={estadoFiltro}
+                    onValueChange={(val) => {
+                      if (val) {
+                        setEstadoFiltro(
+                          val as "TODOS" | "Confirmado" | "Pendiente de conciliación" | "Liberado"
+                        );
+                        setEstadoSearch(val === "TODOS" ? "Todos los estados" : val);
+                        setCurrentPage(1);
+                      }
+                    }}
+                    inputValue={
+                      estadoSearch ||
+                      (estadoFiltro === "TODOS" ? "Todos los estados" : estadoFiltro)
+                    }
+                    onInputValueChange={setEstadoSearch}
+                  >
+                    <ComboboxInput
+                      size="sm"
+                      placeholder="Estado..."
+                      showTrigger={true}
+                      showClear={false}
+                      showSearchIcon={false}
+                      className="w-full"
+                    />
+                    <ComboboxContent className="min-w-[220px] z-[80]">
+                      <ComboboxList>
+                        <ComboboxGroup>
+                          <ComboboxLabel>Estado en API-04</ComboboxLabel>
+                          <ComboboxItem value="TODOS" className="text-xs py-1.5 cursor-pointer">
+                            Todos los estados
+                          </ComboboxItem>
+                          <ComboboxItem value="Confirmado" className="text-xs py-1.5 cursor-pointer">
+                            Confirmado
+                          </ComboboxItem>
+                          <ComboboxItem
+                            value="Pendiente de conciliación"
+                            className="text-xs py-1.5 cursor-pointer"
+                          >
+                            Pendiente de conciliación
+                          </ComboboxItem>
+                          <ComboboxItem value="Liberado" className="text-xs py-1.5 cursor-pointer">
+                            Liberado
+                          </ComboboxItem>
+                        </ComboboxGroup>
+                      </ComboboxList>
+                    </ComboboxContent>
+                  </Combobox>
+                </div>
+
+                <ViewModeToggle value={viewMode} onChange={setViewMode} />
+              </div>
+            </div>
+
+            {hayFiltrosEv && (
+              <div className="flex flex-wrap items-center gap-2 pt-1 animate-fade-in">
+                <span className="text-xs font-medium text-muted-foreground mr-1">
+                  Filtros activos:
+                </span>
+                {busquedaEv.trim() !== "" && (
+                  <Badge
+                    tone="primary"
+                    appearance="soft"
+                    size="sm"
+                    className="gap-1.5 pl-2.5 pr-1.5 py-1 rounded-full"
+                  >
+                    <span>Búsqueda: &ldquo;{busquedaEv}&rdquo;</span>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setBusquedaEv("");
+                            setCurrentPage(1);
+                          }}
+                          className="hover:bg-primary/20 rounded-full p-0.5 transition-colors cursor-pointer"
+                          aria-label="Quitar filtro de búsqueda"
+                        >
+                          <X className="size-3" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="text-xs">
+                        Quitar filtro de búsqueda
+                      </TooltipContent>
+                    </Tooltip>
+                  </Badge>
+                )}
+                {entornoFiltro !== "TODOS" && (
+                  <Badge
+                    tone="info"
+                    appearance="soft"
+                    size="sm"
+                    className="gap-1.5 pl-2.5 pr-1.5 py-1 rounded-full"
+                  >
+                    <span>Entorno: {entornoFiltro}</span>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEntornoFiltro("TODOS");
+                            setEntornoSearch("");
+                            setCurrentPage(1);
+                          }}
+                          className="hover:bg-info/20 rounded-full p-0.5 transition-colors cursor-pointer"
+                          aria-label="Quitar filtro de entorno"
+                        >
+                          <X className="size-3" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="text-xs">
+                        Quitar filtro de entorno
+                      </TooltipContent>
+                    </Tooltip>
+                  </Badge>
+                )}
+                {estadoFiltro !== "TODOS" && (
+                  <Badge
+                    tone="warning"
+                    appearance="soft"
+                    size="sm"
+                    className="gap-1.5 pl-2.5 pr-1.5 py-1 rounded-full"
+                  >
+                    <span>Estado: {estadoFiltro}</span>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEstadoFiltro("TODOS");
+                            setEstadoSearch("");
+                            setCurrentPage(1);
+                          }}
+                          className="hover:bg-warning/20 rounded-full p-0.5 transition-colors cursor-pointer"
+                          aria-label="Quitar filtro de estado"
+                        >
+                          <X className="size-3" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="text-xs">
+                        Quitar filtro de estado
+                      </TooltipContent>
+                    </Tooltip>
+                  </Badge>
+                )}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-2 text-xs text-muted-foreground hover:text-danger gap-1"
+                  onClick={() => {
+                    setBusquedaEv("");
+                    setEntornoFiltro("TODOS");
+                    setEntornoSearch("");
+                    setEstadoFiltro("TODOS");
+                    setEstadoSearch("");
+                    setCurrentPage(1);
+                  }}
+                >
+                  <X className="size-3" />
+                  Limpiar filtros
+                </Button>
+              </div>
+            )}
+          </div>
+
+          {/* Vista Tabla (Desktop cuando viewMode === "table") */}
+          <div className={cn("w-full", viewMode === "table" ? "hidden md:block" : "hidden")}>
+            <Table
+              className="w-full min-w-[920px]"
+              containerClassName="overflow-x-auto w-full"
+            >
+              <TableHeader>
+                <TableRow className="border-0">
+                  <TableHead className="whitespace-nowrap text-left pl-6">
+                    EVENTO / FECHA
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap text-left">
+                    ORIGEN
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap text-left">
+                    ENTORNO
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap text-left">
+                    RESULTADO
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap text-left">
+                    RESERVADA / ENTREGADA
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap text-left">
+                    ESTADO
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap text-right pr-6">
+                    ACCIONES
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginatedEventos.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-12">
+                      <div className="flex flex-col items-center justify-center space-y-2">
+                        <Activity className="size-8 stroke-[1.5] text-muted-foreground/60" />
+                        <p className="text-sm font-semibold text-foreground">
+                          No hay eventos registrados
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Ejecuta una consulta o prueba en la primera pestaña para registrar eventos.
+                        </p>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  paginatedEventos.map((e) => (
+                    <TableRow key={e.idEvento}>
+                      <TableCell className="pl-6">
+                        <div className="space-y-0.5">
+                          <span className="font-mono text-xs font-bold text-foreground block">
+                            {e.idEvento}
+                          </span>
+                          <span className="text-[11px] text-muted-foreground font-mono block">
+                            {e.idOperacion} {e.idSegmento !== "—" ? `· ${e.idSegmento}` : ""} · {formatoFecha(e.instante)}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-xs font-medium text-foreground">
+                        {e.origen}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          tone={e.entorno === "Producción" ? "primary" : "info"}
+                          appearance="soft"
+                          size="sm"
+                        >
+                          {e.entorno}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-xs text-foreground">
+                        <div className="space-y-0.5">
+                          <span>{e.resultado}</span>
+                          {e.cursor && (
+                            <span className="block font-mono text-[10px] text-muted-foreground">
+                              {e.cursor}
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-xs font-mono font-semibold text-foreground">
+                        {numero(e.reservada)} /{" "}
+                        <span className="text-primary">{numero(e.entregada)}</span>
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          tone={
+                            e.estado === "Confirmado"
+                              ? "success"
+                              : e.estado === "Liberado"
+                                ? "neutral"
+                                : "warning"
+                          }
+                          appearance="soft"
+                          size="sm"
+                          className="whitespace-nowrap"
+                        >
+                          {e.estado}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="pr-6 text-right">
+                        {e.estado === "Pendiente de conciliación" &&
+                        puedeConciliar ? (
+                          <div className="inline-flex items-center gap-2 justify-end">
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="primary"
+                              onClick={() => {
+                                st.conciliarEvento(e.idEvento, true);
+                                toast.success("Entrega confirmada");
+                              }}
+                            >
+                              Se entregó
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="neutral"
+                              onClick={() => {
+                                st.conciliarEvento(e.idEvento, false);
+                                toast.info(
+                                  "Reserva liberada; reintento habilitado"
+                                );
+                              }}
+                            >
+                              No se entregó
+                            </Button>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Vista Tarjetas (Mobile o cuando viewMode === "cards") */}
+          <div
+            className={cn(
+              viewMode === "cards"
+                ? "grid grid-cols-1 md:grid-cols-2 gap-4"
+                : "block md:hidden space-y-3.5"
+            )}
+          >
             {paginatedEventos.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center py-12">
-                  <div className="flex flex-col items-center justify-center space-y-2">
-                    <Activity className="size-8 stroke-[1.5] text-muted-foreground/60" />
-                    <p className="text-sm font-semibold text-foreground">
-                      No hay eventos registrados
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Ejecuta una consulta o prueba en la primera pestaña para registrar eventos.
-                    </p>
-                  </div>
-                </TableCell>
-              </TableRow>
+              <div className="col-span-full flex flex-col items-center justify-center py-12 text-center border border-dashed border-border rounded-xl bg-surface-subtle/30">
+                <Activity className="size-8 stroke-[1.5] text-muted-foreground/60 mb-2" />
+                <p className="text-sm font-semibold text-foreground">
+                  No hay eventos registrados
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Ejecuta una consulta o prueba en la primera pestaña para registrar eventos.
+                </p>
+              </div>
             ) : (
               paginatedEventos.map((e) => (
-                <TableRow key={e.idEvento}>
-                  <TableCell className="pl-6">
-                    <div className="space-y-0.5">
-                      <span className="font-mono text-xs font-bold text-foreground block">
-                        {e.idEvento}
-                      </span>
-                      <span className="text-[11px] text-muted-foreground font-mono block">
-                        {e.idOperacion} {e.idSegmento !== "—" ? `· ${e.idSegmento}` : ""} · {formatoFecha(e.instante)}
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-xs font-medium text-foreground">
-                    {e.origen}
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      tone={e.entorno === "Producción" ? "primary" : "info"}
-                      appearance="soft"
-                      size="sm"
-                    >
-                      {e.entorno}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-xs text-foreground">
-                    <div className="space-y-0.5">
-                      <span>{e.resultado}</span>
-                      {e.cursor && (
-                        <span className="block font-mono text-[10px] text-muted-foreground">
-                          {e.cursor}
+                <InteractiveCard
+                  key={e.idEvento}
+                  color={
+                    e.estado === "Confirmado"
+                      ? "success"
+                      : e.estado === "Liberado"
+                        ? "default"
+                        : "warning"
+                  }
+                  decorativeIcon={<Activity className="size-full stroke-[0.8]" />}
+                  className="p-4 flex flex-col justify-between gap-3"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="space-y-0.5 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-mono text-xs font-bold text-foreground">
+                          {e.idEvento}
                         </span>
-                      )}
+                        <Badge
+                          tone={e.entorno === "Producción" ? "primary" : "info"}
+                          appearance="soft"
+                          size="sm"
+                        >
+                          {e.entorno}
+                        </Badge>
+                      </div>
+                      <p className="text-[11px] font-mono text-muted-foreground">
+                        {e.idOperacion} {e.idSegmento !== "—" ? `· ${e.idSegmento}` : ""} · {formatoFecha(e.instante)}
+                      </p>
                     </div>
-                  </TableCell>
-                  <TableCell className="text-xs font-mono font-semibold text-foreground">
-                    {numero(e.reservada)} /{" "}
-                    <span className="text-primary">{numero(e.entregada)}</span>
-                  </TableCell>
-                  <TableCell>
                     <Badge
                       tone={
                         e.estado === "Confirmado"
@@ -1263,118 +1927,190 @@ export function SaldoPanel({ a }: { a: AccesoApi }) {
                       }
                       appearance="soft"
                       size="sm"
-                      className="whitespace-nowrap"
+                      className="shrink-0"
                     >
                       {e.estado}
                     </Badge>
-                  </TableCell>
-                  <TableCell className="pr-6 text-right">
-                    {e.estado === "Pendiente de conciliación" &&
-                    puedeConciliar ? (
-                      <div className="inline-flex items-center gap-2 justify-end">
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="primary"
-                          onClick={() => {
-                            st.conciliarEvento(e.idEvento, true);
-                            toast.success("Entrega confirmada");
-                          }}
-                        >
-                          Se entregó
-                        </Button>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="neutral"
-                          onClick={() => {
-                            st.conciliarEvento(e.idEvento, false);
-                            toast.info(
-                              "Reserva liberada; reintento habilitado"
-                            );
-                          }}
-                        >
-                          No se entregó
-                        </Button>
-                      </div>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">—</span>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+                  </div>
 
-        {totalPages > 1 && (
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
-            <p className="text-xs text-muted-foreground">
-              Mostrando{" "}
-              <span className="font-semibold text-foreground">
-                {(currentPage - 1) * pageSize + 1}
-              </span>{" "}
-              a{" "}
-              <span className="font-semibold text-foreground">
-                {Math.min(currentPage * pageSize, mios.length)}
-              </span>{" "}
-              de{" "}
-              <span className="font-semibold text-foreground">
-                {mios.length}
-              </span>{" "}
-              eventos
-            </p>
-            <Pagination className="w-auto mx-0">
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious
-                    href="#"
-                    onClick={(ev) => {
-                      ev.preventDefault();
-                      setCurrentPage((p) => Math.max(1, p - 1));
-                    }}
-                    aria-disabled={currentPage === 1}
-                    className={
-                      currentPage === 1 ? "pointer-events-none opacity-50" : ""
-                    }
-                  />
-                </PaginationItem>
-                {Array.from({ length: totalPages }, (_, idx) => idx + 1).map(
-                  (page) => (
-                    <PaginationItem key={page}>
-                      <PaginationLink
-                        href="#"
-                        isActive={page === currentPage}
-                        onClick={(ev) => {
-                          ev.preventDefault();
-                          setCurrentPage(page);
+                  <div className="grid grid-cols-2 gap-2.5 rounded-xl bg-surface-subtle/60 border border-border/60 p-3 text-xs">
+                    <div>
+                      <span className="text-muted-foreground block text-[11px]">Origen</span>
+                      <strong className="text-foreground">{e.origen}</strong>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block text-[11px]">Reservada / Entregada</span>
+                      <strong className="font-mono text-foreground">
+                        {numero(e.reservada)} / <span className="text-primary">{numero(e.entregada)}</span>
+                      </strong>
+                    </div>
+                    <div className="col-span-2">
+                      <span className="text-muted-foreground block text-[11px]">Resultado</span>
+                      <strong className="text-foreground">{e.resultado}</strong>
+                      {e.cursor && (
+                        <span className="block font-mono text-[10px] text-muted-foreground mt-0.5">
+                          {e.cursor}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {e.estado === "Pendiente de conciliación" && puedeConciliar && (
+                    <div className="flex items-center justify-end gap-2 pt-1 border-t border-border/60">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="primary"
+                        onClick={() => {
+                          st.conciliarEvento(e.idEvento, true);
+                          toast.success("Entrega confirmada");
                         }}
                       >
-                        {page}
-                      </PaginationLink>
-                    </PaginationItem>
-                  )
-                )}
-                <PaginationItem>
-                  <PaginationNext
-                    href="#"
-                    onClick={(ev) => {
-                      ev.preventDefault();
-                      setCurrentPage((p) => Math.min(totalPages, p + 1));
-                    }}
-                    aria-disabled={currentPage === totalPages}
-                    className={
-                      currentPage === totalPages
-                        ? "pointer-events-none opacity-50"
-                        : ""
-                    }
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
+                        Se entregó
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="neutral"
+                        onClick={() => {
+                          st.conciliarEvento(e.idEvento, false);
+                          toast.info("Reserva liberada; reintento habilitado");
+                        }}
+                      >
+                        No se entregó
+                      </Button>
+                    </div>
+                  )}
+                </InteractiveCard>
+              ))
+            )}
           </div>
-        )}
+
+          {/* Footer de Paginación idéntico a cuentas-internas */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-3 border-t border-border/60">
+            <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+              <span>
+                Mostrando{" "}
+                <strong className="font-semibold text-foreground">
+                  {mios.length === 0 ? 0 : (currentPage - 1) * pageSize + 1}
+                </strong>{" "}
+                a{" "}
+                <strong className="font-semibold text-foreground">
+                  {Math.min(currentPage * pageSize, mios.length)}
+                </strong>{" "}
+                de{" "}
+                <strong className="font-semibold text-foreground">
+                  {mios.length}
+                </strong>{" "}
+                eventos
+              </span>
+
+              <div className="flex items-center gap-1.5">
+                <span className="text-muted-foreground">Filas:</span>
+                <div className="inline-flex items-center rounded-lg border border-border bg-surface-subtle/60 p-0.5">
+                  {[5, 10, 15].map((sz) => (
+                    <button
+                      key={sz}
+                      type="button"
+                      onClick={() => {
+                        setPageSize(sz);
+                        setCurrentPage(1);
+                      }}
+                      className={cn(
+                        "px-2 py-0.5 text-xs font-semibold rounded-md transition-colors cursor-pointer",
+                        pageSize === sz
+                          ? "bg-primary text-primary-foreground shadow-xs"
+                          : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      {sz}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {totalPages > 1 && (
+              <Pagination className="w-auto mx-0">
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationFirst
+                      href="#"
+                      onClick={(ev) => {
+                        ev.preventDefault();
+                        setCurrentPage(1);
+                      }}
+                      aria-disabled={currentPage === 1}
+                      className={
+                        currentPage === 1 ? "pointer-events-none opacity-50" : ""
+                      }
+                    />
+                  </PaginationItem>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      href="#"
+                      onClick={(ev) => {
+                        ev.preventDefault();
+                        setCurrentPage((p) => Math.max(1, p - 1));
+                      }}
+                      aria-disabled={currentPage === 1}
+                      className={
+                        currentPage === 1 ? "pointer-events-none opacity-50" : ""
+                      }
+                    />
+                  </PaginationItem>
+                  {Array.from({ length: totalPages }, (_, idx) => idx + 1).map(
+                    (page) => (
+                      <PaginationItem key={page}>
+                        <PaginationLink
+                          href="#"
+                          isActive={page === currentPage}
+                          onClick={(ev) => {
+                            ev.preventDefault();
+                            setCurrentPage(page);
+                          }}
+                        >
+                          {page}
+                        </PaginationLink>
+                      </PaginationItem>
+                    )
+                  )}
+                  <PaginationItem>
+                    <PaginationNext
+                      href="#"
+                      onClick={(ev) => {
+                        ev.preventDefault();
+                        setCurrentPage((p) => Math.min(totalPages, p + 1));
+                      }}
+                      aria-disabled={currentPage === totalPages}
+                      className={
+                        currentPage === totalPages
+                          ? "pointer-events-none opacity-50"
+                          : ""
+                      }
+                    />
+                  </PaginationItem>
+                  <PaginationItem>
+                    <PaginationLast
+                      href="#"
+                      onClick={(ev) => {
+                        ev.preventDefault();
+                        setCurrentPage(totalPages);
+                      }}
+                      aria-disabled={currentPage === totalPages}
+                      className={
+                        currentPage === totalPages
+                          ? "pointer-events-none opacity-50"
+                          : ""
+                      }
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            )}
+          </div>
+        </div>
       </div>
-    </div>
+    </TooltipProvider>
   );
 }
