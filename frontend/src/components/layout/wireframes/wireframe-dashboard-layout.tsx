@@ -14,6 +14,9 @@ import {
   Database,
   Network,
   Receipt,
+  BarChart3,
+  LifeBuoy,
+  Activity,
   Shield,
   Sliders,
   CreditCard,
@@ -454,6 +457,40 @@ const navItems: NavItem[] = [
     icon: Receipt,
     href: "/configuracion-financiera",
     allowedRoles: ["ADMIN"],
+  },
+
+  // ── OPERACIÓN Y SOPORTE (OPS-01 a 05, REP-01 a 05, INC-01 a 04) ──
+  {
+    id: "operacion",
+    label: "Operación y monitoreo",
+    icon: Activity,
+    href: "/operacion",
+    allowedRoles: ["COORDINADOR_SINARP", "DIR_GESTION", "EQ_GESTION", "TI", "DTD", "ADMIN"],
+    section: "Operación y soporte",
+  },
+  {
+    id: "soporte",
+    label: "Soporte e incidentes",
+    icon: LifeBuoy,
+    href: "/soporte",
+    allowedRoles: ["COORDINADOR_SINARP", "TI", "DTD", "DGR", "ADMIN"],
+    section: "Operación y soporte",
+  },
+  {
+    id: "reportes",
+    label: "Reportes",
+    icon: BarChart3,
+    href: "/reportes",
+    allowedRoles: ["DIR_GESTION", "EQ_GESTION", "DIR_NORMATIVA", "EQ_NORMATIVA", "DGR", "APROBADOR", "ADMIN"],
+    section: "Operación y soporte",
+  },
+  {
+    id: "parametros-operacion",
+    label: "Parámetros de soporte",
+    icon: Sliders,
+    href: "/parametros-operacion",
+    allowedRoles: ["ADMIN"],
+    section: "Operación y soporte",
   },
 
   // ── CONSUMO POR API Y AMPLIACIONES (API-01 a API-06, ADD-01 a ADD-07) ──

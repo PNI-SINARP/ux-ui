@@ -48,6 +48,7 @@ export type FlowType =
   | "fuentes"
   | "excepcional"
   | "consumo"
+  | "operacion"
   | "todos";
 
 export interface AccountRouteAction {
@@ -87,8 +88,9 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     description: "Control total de identidades: crea, edita, suspende y da de baja cuentas internas. Configura áreas DINARP, catálogo de roles, audita eventos, gestiona coordinadores y atiende recuperación asistida de 2FA.",
     access: "Cuentas Internas (/cuentas-internas), Auditoría (/auditoria-cuentas), Coordinadores (/coordinadores), Catálogo de Áreas (/areas), Catálogo de Roles (/roles) y Gestión de Recuperaciones (/gestion-recuperaciones).",
     storiesBadge: "ID-00..15 · BN-04 (AUS-02)",
-    flows: ["id-admin", "suplencias", "excepcional"],
+    flows: ["id-admin", "suplencias", "excepcional", "operacion"],
     actions: [
+      { label: "Mesa de ayuda y parámetros", route: "/soporte", huBadge: "INC-02, INC-04, PAR-03, PAR-06" },
       { label: "Vigencia de enlaces de extracción", route: "/parametros-excepcional", huBadge: "PAR-04" },
       { label: "Cuentas Internas", route: "/cuentas-internas", huBadge: "ID-01..04" },
       { label: "Auditoría de Cuentas", route: "/auditoria-cuentas", huBadge: "ID-05" },
@@ -153,8 +155,9 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     description: "Recibe trámites institucionales en bandejas separadas por anexo (Anexos A, B y C) y solicitudes de acceso a fuentes (BN-07). Asigna y reasigna revisores del Equipo de Gestión, y autoriza la formalización final.",
     access: "Asignación Anexo A (/asignacion-solicitudes), Asignación Anexo B (/asignacion-anexo-b), Asignación Anexo C (/asignacion-anexo-c), Asignación Interoperabilidad (/acceso-interoperabilidad/asignacion) y Formalización (/formalizacion).",
     storiesBadge: "BN-01..03 · BN-07 (SOL-03)",
-    flows: ["anexo-a", "anexo-b", "anexo-c", "interoperabilidad", "excepcional", "consumo"],
+    flows: ["anexo-a", "anexo-b", "anexo-c", "interoperabilidad", "excepcional", "consumo", "operacion"],
     actions: [
+      { label: "Reportes y anomalías", route: "/reportes", huBadge: "REP-01, OPS-02" },
       { label: "Revisar y aprobar ampliaciones", route: "/consumo-api", huBadge: "ADD-06, ADD-07" },
       { label: "Entrega excepcional: asignar calificación", route: "/entrega-excepcional", huBadge: "EXT-02" },
       { label: "Anexo A — Asignación", route: "/asignacion-solicitudes", huBadge: "INS-04" },
@@ -185,8 +188,9 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     description: "Evalúa expedientes en bandejas independientes para Anexo A, Anexo B y Anexo C, además de solicitudes de acceso a fuentes (BN-07).",
     access: "Revisión Anexo A (/solicitudes-pendientes), Revisión Anexo B (/revision-anexo-b), Revisión Anexo C (/revision-anexo-c) y Revisión Interoperabilidad (/revision-gestion).",
     storiesBadge: "BN-01..03 · BN-07 (SOL-04)",
-    flows: ["anexo-a", "anexo-b", "anexo-c", "interoperabilidad", "excepcional", "consumo"],
+    flows: ["anexo-a", "anexo-b", "anexo-c", "interoperabilidad", "excepcional", "consumo", "operacion"],
     actions: [
+      { label: "Revisar anomalías de consumo", route: "/operacion", huBadge: "OPS-02" },
       { label: "Revisar ampliaciones", route: "/consumo-api", huBadge: "ADD-07" },
       { label: "Entrega excepcional: calificar e informe final", route: "/entrega-excepcional", huBadge: "EXT-02" },
       { label: "Anexo A — Revisión", route: "/solicitudes-pendientes", huBadge: "INS-05" },
@@ -215,8 +219,9 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     description: "Recibe expedientes de incorporación institucional (Anexo A) aprobados por Gestión, asigna al Analista de Normatividad y da el visto bueno final a la resolución antes de la firma de la Máxima Autoridad.",
     access: "Elaborar resoluciones (/revision-normativa).",
     storiesBadge: "BN-01 (INS-06, 07)",
-    flows: ["anexo-a", "excepcional"],
+    flows: ["anexo-a", "excepcional", "operacion"],
     actions: [
+      { label: "Reportes y trazabilidad por cédula", route: "/reportes", huBadge: "REP-02..04" },
       { label: "Parámetros de la entrega excepcional", route: "/parametros-excepcional", huBadge: "PAR-17" },
       { label: "Elaborar resoluciones (Anexo A)", route: "/revision-normativa", huBadge: "INS-06, 07" },
     ],
@@ -228,8 +233,9 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     description: "Carga el informe técnico firmado (favorable o desfavorable), elabora la resolución de incorporación institucional (Anexo A) y da el primer visto bueno. Si el informe es desfavorable, el expediente queda Rechazado por Normatividad.",
     access: "Elaborar resoluciones (/revision-normativa).",
     storiesBadge: "BN-01 (INS-06)",
-    flows: ["anexo-a"],
+    flows: ["anexo-a", "operacion"],
     actions: [
+      { label: "Reportes y trazabilidad por cédula", route: "/reportes", huBadge: "REP-02..04" },
       { label: "Elaborar resoluciones (Anexo A)", route: "/revision-normativa", huBadge: "INS-06" },
     ],
   },
@@ -354,8 +360,9 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     description: "Coordinador SINARP de entidad requirente. Elige proyecto y 1 fuente publicada, selecciona campos y cupo, declara finalidad por campo y justificación jurídica si hay confidenciales, envía solicitud (SOL-02) y subsana observaciones dentro de 3 días hábiles (SOL-05).",
     access: "Mis Solicitudes (/acceso-interoperabilidad/solicitudes), Nueva Solicitud (/acceso-interoperabilidad/solicitudes/nueva), Subsanación (/acceso-interoperabilidad/solicitudes/[id]/corregir), Catálogo (/catalogo-interoperabilidad) y Proyectos (/proyectos).",
     storiesBadge: "BN-05 (PRJ-01..02) · BN-07 (SOL-01, 02, 05)",
-    flows: ["interoperabilidad", "proyectos", "fuentes", "excepcional", "consumo"],
+    flows: ["interoperabilidad", "proyectos", "fuentes", "excepcional", "consumo", "operacion"],
     actions: [
+      { label: "Alertas de consumo y tickets", route: "/operacion", huBadge: "OPS-01, INC-01" },
       { label: "Consumo por API, saldo, masivo y ampliaciones", route: "/consumo-api", huBadge: "API-01..06, ADD-01..05" },
       { label: "Entrega excepcional: solicitar y descargar", route: "/entrega-excepcional", huBadge: "EXT-01, 03, 05, 07" },
       { label: "Mis Solicitudes (BN-07)", route: "/acceso-interoperabilidad/solicitudes", huBadge: "SOL-01" },
@@ -389,8 +396,9 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     description: "Evalúa la pertinencia jurídica y finalidad de uso de las solicitudes de interoperabilidad. Carga informes de justificación, firma y emite resolución de aprobación o solicita ajustes.",
     access: "Bandeja de Aprobación de Solicitudes (/acceso-interoperabilidad) y dictamen jurídico.",
     storiesBadge: "SOL-10, INS-07",
-    flows: ["anexo-a", "excepcional"],
+    flows: ["anexo-a", "excepcional", "operacion"],
     actions: [
+      { label: "Seguimiento de trámites", route: "/reportes", huBadge: "REP-05" },
       { label: "Entrega excepcional: autorizar y firmar", route: "/entrega-excepcional", huBadge: "EXT-02" },
       { label: "Evaluar Solicitudes", route: "/acceso-interoperabilidad", huBadge: "SOL-10" },
       { label: "Firmar resoluciones (Máxima Autoridad)", route: "/firma-resoluciones", huBadge: "INS-07" },
@@ -455,8 +463,9 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     description: "Responsable técnico de conectividad y despliegue. Gestiona conectores reutilizables (CNX-01/02), homologa motores no soportados (FUE-12), analiza diagnósticos de conexión VPN (FUE-02/10), y realiza la publicación en el API Gateway (FUE-05).",
     access: "Gestión de Conectores (/tecnologia/conectores) y Homologación de Orígenes (/tecnologia/homologaciones).",
     storiesBadge: "BN-06 · CNX-01/02 · FUE-05, 12",
-    flows: ["fuentes", "excepcional", "consumo"],
+    flows: ["fuentes", "excepcional", "consumo", "operacion"],
     actions: [
+      { label: "Monitoreo e incidentes", route: "/operacion", huBadge: "OPS-03..05, INC-03" },
       { label: "Aprobar programaciones masivas", route: "/consumo-api", huBadge: "API-06" },
       { label: "Entrega excepcional: informe tecnológico y lotes", route: "/entrega-excepcional", huBadge: "EXT-02, 04" },
       { label: "Gestión de Conectores", route: "/tecnologia/conectores", huBadge: "CNX-01/02" },
@@ -470,8 +479,9 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     description: "Revisor funcional de fuentes. Evalúa la viabilidad institucional, pertinencia de los campos expuestos, verifica la prueba técnica de conexión y emite dictamen de aprobación o rechazo (FUE-04). Suspende fuentes preventivamente ante fallos técnicos (FUE-10).",
     access: "Revisión y Aprobación de Fuentes (/gestion/fuentes).",
     storiesBadge: "BN-06 · FUE-04, 10",
-    flows: ["fuentes", "consumo"],
+    flows: ["fuentes", "consumo", "operacion"],
     actions: [
+      { label: "Seguimiento de trámites", route: "/reportes", huBadge: "REP-05" },
       { label: "Coordinar programaciones masivas", route: "/consumo-api", huBadge: "API-06" },
       { label: "Revisión de Fuentes", route: "/gestion/fuentes", huBadge: "FUE-04" },
     ]
@@ -631,6 +641,17 @@ export const FLOW_OPTIONS: FlowOption[] = [
     description: "Coordinador SINARP → DGR y Tecnología (masivo) · Gestión, DPI, Jurídica y Facturación (ampliaciones)",
     section: "interoperabilidad",
     tag: "API-01..06 · ADD-01..07",
+    icon: Layers,
+  },
+
+  // ── OPERACIÓN Y SOPORTE (OPS-01 a 05, REP-01 a 05, INC-01 a 04, PAR-03, PAR-06) ──
+  {
+    id: "operacion",
+    title: "Operación y soporte",
+    subtitle: "Alertas, monitoreo, reportes, seguimiento de trámites e incidentes",
+    description: "Coordinador, Gestión, Normatividad, Tecnología, DGR y Administrador (mesa de ayuda)",
+    section: "interoperabilidad",
+    tag: "OPS-01..05 · REP-01..05 · INC-01..04",
     icon: Layers,
   },
 

@@ -170,7 +170,12 @@ La tabla de HU de arriba conserva los códigos de una versión anterior; la refe
 - **Consumo por API y ampliaciones (API-01 a API-06, ADD-01 a ADD-07, PAR-18):** módulo `consumo-api`, en `/consumo-api` con pestañas de pruebas y consulta (individual y masiva por segmentos), saldo y eventos con conciliación, programación masiva (DGR coordina, Tecnología aprueba y aplica límites en Apigee) y ampliaciones de campos o cupo (Gestión, DPI, Jurídica, Facturación y aplicación del alcance). `/parametros-consumo` publica PAR-18. Cuentas de prueba: flujo «Consumo por API y ampliaciones» (incluye Jurídica, cédula `7777777777`).
   - Simplificaciones: la asignación de revisores de ADD-07 no se modela con ID por asignación; el masivo y las consultas usan un selector de resultado simulado.
 
-Aún sin pantalla: monitoreo (OPS), reportes (REP), soporte (INC), la mayoría de parámetros nuevos (PAR-03, 04, 06, 08, 09, 14 a 18) y el ciclo de vida de la fuente (FUE-09 a FUE-11, ECO-01).
+- **Operación y soporte (OPS-01 a 05, REP-01 a 05, INC-01 a 04, PAR-03, PAR-06):** módulo `operacion-soporte`.
+  - `/operacion`: alertas de consumo calculadas sobre los eventos de API-04 (proximidad y anomalía por línea base), revisión de anomalías en Gestión, tablero de infraestructura con SLA del punto SLA, inventario de componentes y recolección de ventanas con alertas por PAR-06.
+  - `/soporte`: tickets con prioridad P1 a P4, reloj continuo o hábil (PAR-03), atención, escalamiento, resolución y cierre o reapertura; `/reportes`: Gestión, Normatividad (con trazabilidad por cédula, acceso auditado y exportación CSV) y seguimiento de trámites de solo lectura; `/parametros-operacion`: PAR-03 y PAR-06.
+  - La mesa de ayuda la hace el Administrador; REP-02 se calcula sobre las asignaciones de Normatividad del Anexo A; los límites de exportación (PAR-12) son constantes.
+
+Aún sin pantalla: PAR-08, 09, 14, 15 y 16, FUE-09 a 11, ECO-01, INS-08 a 10 y TEC-00/ID-00
 
 ---
 

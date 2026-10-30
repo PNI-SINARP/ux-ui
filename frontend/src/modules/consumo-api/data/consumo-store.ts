@@ -45,6 +45,7 @@ export interface EventoConsumo {
   entregada: number;
   estado: EstadoEvento;
   cursor?: string;
+  identificador?: string;
   instante: string;
 }
 
@@ -221,7 +222,7 @@ function semilla(): EstadoConsumo {
       versionAlcance: 1,
     },
   ];
-  const ev = (n: number, acc: string, entregada: number, h: number): EventoConsumo => ({
+  const ev = (n: number, acc: string, entregada: number, h: number, identificador?: string): EventoConsumo => ({
     idEvento: idOpaco("EVT"),
     idOperacion: idOpaco("OP"),
     idSegmento: idOpaco("SEG"),
@@ -229,6 +230,7 @@ function semilla(): EstadoConsumo {
     entorno: "Producción",
     origen: "API-03",
     resultado: "Entregado",
+    identificador,
     reservada: entregada,
     entregada,
     estado: "Confirmado",
@@ -236,7 +238,7 @@ function semilla(): EstadoConsumo {
   });
   return {
     accesos,
-    eventos: [ev(1, "ACC-API-001", 120_000, 30), ev(2, "ACC-API-001", 345_000, 10), ev(3, "ACC-API-002", 90_000, 20)],
+    eventos: [ev(1, "ACC-API-001", 120_000, 30, "1712345678"), ev(2, "ACC-API-001", 345_000, 10, "1718956234"), ev(3, "ACC-API-002", 90_000, 20, "1715489621")],
     programaciones: [],
     ampliaciones: [],
     parametros: [{ version: 1, estado: "Publicada", tasaMaxima: 50, hilosEstandar: 10, maxHilosPorConsumidor: 150, franjaInicio: "20:00", franjaFin: "06:00", incluyeFinesDeSemana: true, anticipacionMinimaHoras: 48, duracionMaximaHoras: 8, autor: "Director de Tecnología y Desarrollo", fecha: hace(24 * 20) }],
@@ -322,7 +324,7 @@ export function useConsumoStore() {
 
   // API-02 y API-04: un consumo individual con reserva y confirmación
   const consultar = useCallback(
-    (accesoId: string, opciones: { campo: string; devuelve: number; escenario: "ok" | "fallo" | "incierto" }): ResultadoConsulta => {
+    (accesoId: string, opciones: { campo: string; devuelve: number; escenario: "ok" | "fallo" | "incierto"; identificador?: string }): ResultadoConsulta => {
       const e = cargar();
       const a = e.accesos.find((x) => x.id === accesoId)!;
       if (a.estado !== "Activa" || !a.camposAutorizados.includes(opciones.campo)) {
@@ -336,7 +338,7 @@ export function useConsumoStore() {
       const parcial = a.tipo === "Privada" && opciones.devuelve > saldo && opciones.escenario === "ok";
       guardar({
         ...e,
-        eventos: [...e.eventos, { idEvento: idOpaco("EVT"), idOperacion: idOpaco("OP"), idSegmento: idOpaco("SEG"), accesoId, entorno: "Producción", origen: "API-02", resultado: opciones.escenario === "fallo" ? "Fallo antes de entregar" : parcial ? "Parcial por cupo" : "Entregado", reservada, entregada: estadoEvento === "Pendiente de conciliación" ? 0 : entregada, estado: estadoEvento, instante: ahoraIso() }],
+        eventos: [...e.eventos, { idEvento: idOpaco("EVT"), idOperacion: idOpaco("OP"), idSegmento: idOpaco("SEG"), accesoId, entorno: "Producción", origen: "API-02", identificador: opciones.identificador, resultado: opciones.escenario === "fallo" ? "Fallo antes de entregar" : parcial ? "Parcial por cupo" : "Entregado", reservada, entregada: estadoEvento === "Pendiente de conciliación" ? 0 : entregada, estado: estadoEvento, instante: ahoraIso() }],
       });
       if (opciones.escenario === "fallo") return { ok: false, mensaje: "Fallo antes de entregar: consumo cero, la reserva se liberó.", registros: 0 };
       if (opciones.escenario === "incierto") return { ok: false, mensaje: `La entrega quedó incierta: ${numero(reservada)} registros reservados Pendientes de conciliación; se bloquea la reentrega.`, registros: 0 };

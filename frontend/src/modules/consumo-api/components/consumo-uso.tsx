@@ -77,6 +77,7 @@ export function ConsultaPanel({ a }: { a: AccesoApi }) {
   const st = useConsumoStore();
   const [campo, setCampo] = useState(a.camposAutorizados[0] ?? "");
   const [devuelve, setDevuelve] = useState("10");
+  const [identificador, setIdentificador] = useState("1718956234");
   const [escenario, setEscenario] = useState<"ok" | "fallo" | "incierto">("ok");
   const [solicitados, setSolicitados] = useState("2500");
   const [falla, setFalla] = useState("ninguna");
@@ -86,7 +87,7 @@ export function ConsultaPanel({ a }: { a: AccesoApi }) {
   return (
     <div className="space-y-5">
       <Seccion titulo="Consulta por API (API-02)" descripcion="Cada petición valida solicitud, campos y cupo. Puede devolver varios registros y se descuentan los efectivamente entregados.">
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
+        <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-3 items-end">
           <div className="space-y-1.5">
             <Label className="text-xs text-muted-foreground">Campo consultado</Label>
             <Select value={campo} onValueChange={setCampo}>
@@ -110,6 +111,12 @@ export function ConsultaPanel({ a }: { a: AccesoApi }) {
             <Input id="devuelve" type="number" min={1} value={devuelve} onChange={(e) => setDevuelve(e.target.value)} className="text-xs font-mono" />
           </div>
           <div className="space-y-1.5">
+            <Label htmlFor="identificador" className="text-xs text-muted-foreground">
+              Cédula consultada (parámetro es_identificador_persona)
+            </Label>
+            <Input id="identificador" value={identificador} onChange={(e) => setIdentificador(e.target.value)} className="text-xs font-mono" />
+          </div>
+          <div className="space-y-1.5">
             <Label className="text-xs text-muted-foreground">Resultado simulado</Label>
             <Select value={escenario} onValueChange={(v) => setEscenario(v as typeof escenario)}>
               <SelectTrigger aria-label="Resultado simulado" className="h-10 text-xs">
@@ -122,7 +129,7 @@ export function ConsultaPanel({ a }: { a: AccesoApi }) {
               </SelectContent>
             </Select>
           </div>
-          <Button type="button" variant="primary" size="sm" className="text-xs font-semibold gap-1.5" onClick={() => setR1(st.consultar(a.id, { campo, devuelve: Math.max(1, parseInt(devuelve) || 1), escenario }))}>
+          <Button type="button" variant="primary" size="sm" className="text-xs font-semibold gap-1.5" onClick={() => setR1(st.consultar(a.id, { campo, devuelve: Math.max(1, parseInt(devuelve) || 1), escenario, identificador: identificador.trim() || undefined }))}>
             <Play className="size-3.5" />
             Consultar
           </Button>
