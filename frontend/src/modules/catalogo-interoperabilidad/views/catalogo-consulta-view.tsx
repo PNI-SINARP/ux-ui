@@ -340,7 +340,7 @@ export function CatalogoConsultaView() {
     const map = new Map<
       string,
       {
-        institucion: InstitucionProveedora;
+        institucion: Institucion;
         items: FuenteConInstitucion[];
       }
     >();
