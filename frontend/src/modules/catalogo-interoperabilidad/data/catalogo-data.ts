@@ -14,7 +14,8 @@ export type UserRole =
   | "EQ_NORMATIVA"
   | "REPRESENTANTE_INSTITUCIONAL"
   | "JURIDICA"
-  | "TI";
+  | "TI"
+  | "CONTROL_EVALUACION";
 
 export interface RoleInfo {
   id: UserRole;
@@ -204,6 +205,18 @@ export const ROLES_CONFIG: Record<UserRole, RoleInfo> = {
       "Gestionar y reintentar excepciones técnicas de habilitación",
       "Garantizar la disponibilidad de credenciales técnicas institucionales"
     ]
+  },
+  CONTROL_EVALUACION: {
+    id: "CONTROL_EVALUACION",
+    name: "Dirección de Control y Evaluación",
+    shortName: "Control y Evaluación",
+    badgeTone: "neutral",
+    description: "Vigila el cumplimiento de la Resolución 003-NG-DINARP-2023: registra controles y suspende autorizaciones excepcionales con hallazgos.",
+    responsibilities: [
+      "Registrar controles con hallazgos y evidencia",
+      "Suspender motivadamente una autorización excepcional",
+      "Consultar el tablero de autorizaciones y su conciliación"
+    ]
   }
 };
 
@@ -381,6 +394,16 @@ export const MOCK_USERS_BY_ROLE: Record<UserRole, MockUser> = {
     email: "carlos.mena@dinarp.gob.ec",
     institution: "DINARP - Dirección de TI",
     initials: "CM"
+  },
+  CONTROL_EVALUACION: {
+    id: "USR-CE01",
+    cedula: "6666666666",
+    name: "Lcda. Elena Paredes",
+    role: "CONTROL_EVALUACION",
+    roleTitle: "Dirección de Control y Evaluación",
+    email: "control.evaluacion@dinarp.gob.ec",
+    institution: "DINARP - Control y Evaluación",
+    initials: "EP"
   }
 };
 

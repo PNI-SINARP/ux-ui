@@ -281,6 +281,18 @@ export const DINARP_TEST_USERS_MAP: Record<string, MockUser> = {
     avatar: "CM",
     initials: "CM",
   },
+  // Control y Evaluación (EXT-08)
+  "6666666666": {
+    id: "USR-CE01",
+    name: "Lcda. Elena Paredes",
+    role: "CONTROL_EVALUACION",
+    roleTitle: "Dirección de Control y Evaluación",
+    email: "control.evaluacion@dinarp.gob.ec",
+    institution: "DINARP - Control y Evaluación",
+    cedula: "6666666666",
+    avatar: "EP",
+    initials: "EP",
+  },
   // Carlos Mena (DTD - BN-06)
   "1716543210": {
     id: "USR-003",

@@ -46,6 +46,7 @@ export type FlowType =
   | "interoperabilidad"
   | "proyectos"
   | "fuentes"
+  | "excepcional"
   | "todos";
 
 export interface AccountRouteAction {
@@ -85,8 +86,9 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     description: "Control total de identidades: crea, edita, suspende y da de baja cuentas internas. Configura áreas DINARP, catálogo de roles, audita eventos, gestiona coordinadores y atiende recuperación asistida de 2FA.",
     access: "Cuentas Internas (/cuentas-internas), Auditoría (/auditoria-cuentas), Coordinadores (/coordinadores), Catálogo de Áreas (/areas), Catálogo de Roles (/roles) y Gestión de Recuperaciones (/gestion-recuperaciones).",
     storiesBadge: "ID-00..15 · BN-04 (AUS-02)",
-    flows: ["id-admin", "suplencias"],
+    flows: ["id-admin", "suplencias", "excepcional"],
     actions: [
+      { label: "Vigencia de enlaces de extracción", route: "/parametros-excepcional", huBadge: "PAR-04" },
       { label: "Cuentas Internas", route: "/cuentas-internas", huBadge: "ID-01..04" },
       { label: "Auditoría de Cuentas", route: "/auditoria-cuentas", huBadge: "ID-05" },
       { label: "Gestión Coordinadores", route: "/coordinadores", huBadge: "ID-10, 11" },
@@ -150,8 +152,9 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     description: "Recibe trámites institucionales en bandejas separadas por anexo (Anexos A, B y C) y solicitudes de acceso a fuentes (BN-07). Asigna y reasigna revisores del Equipo de Gestión, y autoriza la formalización final.",
     access: "Asignación Anexo A (/asignacion-solicitudes), Asignación Anexo B (/asignacion-anexo-b), Asignación Anexo C (/asignacion-anexo-c), Asignación Interoperabilidad (/acceso-interoperabilidad/asignacion) y Formalización (/formalizacion).",
     storiesBadge: "BN-01..03 · BN-07 (SOL-03)",
-    flows: ["anexo-a", "anexo-b", "anexo-c", "interoperabilidad"],
+    flows: ["anexo-a", "anexo-b", "anexo-c", "interoperabilidad", "excepcional"],
     actions: [
+      { label: "Entrega excepcional: asignar calificación", route: "/entrega-excepcional", huBadge: "EXT-02" },
       { label: "Anexo A — Asignación", route: "/asignacion-solicitudes", huBadge: "INS-04" },
       { label: "Anexo B — Asignación", route: "/asignacion-anexo-b", huBadge: "ENR-03" },
       { label: "Anexo C — Asignación", route: "/asignacion-anexo-c", huBadge: "CAM-02" },
@@ -180,8 +183,9 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     description: "Evalúa expedientes en bandejas independientes para Anexo A, Anexo B y Anexo C, además de solicitudes de acceso a fuentes (BN-07).",
     access: "Revisión Anexo A (/solicitudes-pendientes), Revisión Anexo B (/revision-anexo-b), Revisión Anexo C (/revision-anexo-c) y Revisión Interoperabilidad (/revision-gestion).",
     storiesBadge: "BN-01..03 · BN-07 (SOL-04)",
-    flows: ["anexo-a", "anexo-b", "anexo-c", "interoperabilidad"],
+    flows: ["anexo-a", "anexo-b", "anexo-c", "interoperabilidad", "excepcional"],
     actions: [
+      { label: "Entrega excepcional: calificar e informe final", route: "/entrega-excepcional", huBadge: "EXT-02" },
       { label: "Anexo A — Revisión", route: "/solicitudes-pendientes", huBadge: "INS-05" },
       { label: "Anexo B — Revisión", route: "/revision-anexo-b", huBadge: "ENR-04" },
       { label: "Anexo C — Revisión", route: "/revision-anexo-c", huBadge: "CAM-03" },
@@ -208,8 +212,9 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     description: "Recibe expedientes de incorporación institucional (Anexo A) aprobados por Gestión, asigna al Analista de Normatividad y da el visto bueno final a la resolución antes de la firma de la Máxima Autoridad.",
     access: "Elaborar resoluciones (/revision-normativa).",
     storiesBadge: "BN-01 (INS-06, 07)",
-    flows: ["anexo-a"],
+    flows: ["anexo-a", "excepcional"],
     actions: [
+      { label: "Parámetros de la entrega excepcional", route: "/parametros-excepcional", huBadge: "PAR-17" },
       { label: "Elaborar resoluciones (Anexo A)", route: "/revision-normativa", huBadge: "INS-06, 07" },
     ],
   },
@@ -232,8 +237,9 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     description: "Recibe solicitudes de acceso a fuentes con campos confidenciales aprobadas por Gestión (BN-07), asigna o reasigna revisores del Equipo DPI y suscribe la segunda firma electrónica del informe favorable (SOL-07, SOL-08).",
     access: "Asignar revisiones DPI (/revision-normativa/asignacion) y Firmar informes DPI (/revision-normativa/asignacion?tab=informes).",
     storiesBadge: "BN-07 (SOL-07, 08)",
-    flows: ["interoperabilidad"],
+    flows: ["interoperabilidad", "excepcional"],
     actions: [
+      { label: "Entrega excepcional: informe de DPI", route: "/entrega-excepcional", huBadge: "EXT-02" },
       { label: "Asignar revisiones DPI (SOL-07)", route: "/revision-normativa/asignacion", huBadge: "SOL-07" },
       { label: "Firmar informes DPI (SOL-08)", route: "/revision-normativa/asignacion?tab=informes", huBadge: "SOL-08" },
     ],
@@ -259,8 +265,9 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     description: "Evalúa los campos confidenciales solicitados y su justificación jurídica LOPDP (BN-07). Registra observaciones para subsanación en 3 días hábiles (SOL-07) o elabora en plataforma y suscribe con primera firma electrónica el informe favorable para enviarlo al Director DPI (SOL-08).",
     access: "Evaluar datos confidenciales (/revision-normativa/fuentes) y Elaborar informes DPI (/revision-normativa/fuentes?tab=informes).",
     storiesBadge: "BN-07 (SOL-07, 08)",
-    flows: ["interoperabilidad"],
+    flows: ["interoperabilidad", "excepcional"],
     actions: [
+      { label: "Entrega excepcional: informe de DPI", route: "/entrega-excepcional", huBadge: "EXT-02" },
       { label: "Evaluar datos confidenciales (SOL-07)", route: "/revision-normativa/fuentes", huBadge: "SOL-07" },
       { label: "Elaborar informes DPI (SOL-08)", route: "/revision-normativa/fuentes?tab=informes", huBadge: "SOL-08" },
     ],
@@ -342,8 +349,9 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     description: "Coordinador SINARP de entidad requirente. Elige proyecto y 1 fuente publicada, selecciona campos y cupo, declara finalidad por campo y justificación jurídica si hay confidenciales, envía solicitud (SOL-02) y subsana observaciones dentro de 3 días hábiles (SOL-05).",
     access: "Mis Solicitudes (/acceso-interoperabilidad/solicitudes), Nueva Solicitud (/acceso-interoperabilidad/solicitudes/nueva), Subsanación (/acceso-interoperabilidad/solicitudes/[id]/corregir), Catálogo (/catalogo-interoperabilidad) y Proyectos (/proyectos).",
     storiesBadge: "BN-05 (PRJ-01..02) · BN-07 (SOL-01, 02, 05)",
-    flows: ["interoperabilidad", "proyectos", "fuentes"],
+    flows: ["interoperabilidad", "proyectos", "fuentes", "excepcional"],
     actions: [
+      { label: "Entrega excepcional: solicitar y descargar", route: "/entrega-excepcional", huBadge: "EXT-01, 03, 05, 07" },
       { label: "Mis Solicitudes (BN-07)", route: "/acceso-interoperabilidad/solicitudes", huBadge: "SOL-01" },
       { label: "Nueva Solicitud (Wizard)", route: "/acceso-interoperabilidad/solicitudes/nueva", huBadge: "SOL-02" },
       { label: "Subsanar Observación (SOL-05)", route: "/acceso-interoperabilidad/solicitudes/SOL-2026-0092/corregir", huBadge: "SOL-05" },
@@ -375,11 +383,25 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     description: "Evalúa la pertinencia jurídica y finalidad de uso de las solicitudes de interoperabilidad. Carga informes de justificación, firma y emite resolución de aprobación o solicita ajustes.",
     access: "Bandeja de Aprobación de Solicitudes (/acceso-interoperabilidad) y dictamen jurídico.",
     storiesBadge: "SOL-10, INS-07",
-    flows: ["anexo-a"],
+    flows: ["anexo-a", "excepcional"],
     actions: [
+      { label: "Entrega excepcional: autorizar y firmar", route: "/entrega-excepcional", huBadge: "EXT-02" },
       { label: "Evaluar Solicitudes", route: "/acceso-interoperabilidad", huBadge: "SOL-10" },
       { label: "Firmar resoluciones (Máxima Autoridad)", route: "/firma-resoluciones", huBadge: "INS-07" },
     ]
+  },
+  {
+    roleName: "Dirección de Control y Evaluación",
+    userName: "Lcda. Elena Paredes",
+    cedula: "6666666666",
+    description: "Vigila el cumplimiento de la Resolución 003-NG-DINARP-2023: consulta el tablero de autorizaciones excepcionales, registra controles con hallazgos y suspende una autorización de forma motivada.",
+    access: "Tablero de control (/control-excepcional) y pestaña Control de cada autorización.",
+    storiesBadge: "EXT-08",
+    flows: ["excepcional"],
+    actions: [
+      { label: "Tablero de control", route: "/control-excepcional", huBadge: "EXT-08" },
+      { label: "Autorizaciones excepcionales", route: "/entrega-excepcional", huBadge: "EXT-03, 08" },
+    ],
   },
   {
     roleName: "Analista de Facturación",
@@ -416,8 +438,9 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     description: "Responsable técnico de conectividad y despliegue. Gestiona conectores reutilizables (CNX-01/02), homologa motores no soportados (FUE-12), analiza diagnósticos de conexión VPN (FUE-02/10), y realiza la publicación en el API Gateway (FUE-05).",
     access: "Gestión de Conectores (/tecnologia/conectores) y Homologación de Orígenes (/tecnologia/homologaciones).",
     storiesBadge: "BN-06 · CNX-01/02 · FUE-05, 12",
-    flows: ["fuentes"],
+    flows: ["fuentes", "excepcional"],
     actions: [
+      { label: "Entrega excepcional: informe tecnológico y lotes", route: "/entrega-excepcional", huBadge: "EXT-02, 04" },
       { label: "Gestión de Conectores", route: "/tecnologia/conectores", huBadge: "CNX-01/02" },
       { label: "Homologación de Orígenes", route: "/tecnologia/homologaciones", huBadge: "FUE-12" },
     ]
@@ -568,6 +591,17 @@ export const FLOW_OPTIONS: FlowOption[] = [
     sectionTitle: "Incorporación y Publicación de Fuentes (BN-06)",
     tag: "FUE-01..05, 10, 12 · CAT-01",
     icon: Database,
+  },
+
+  // ── ENTREGA DIRECTA Y EXCEPCIONAL (Res. 003-NG-DINARP-2023: EXT-01 a EXT-08, PAR-17, PAR-04) ──
+  {
+    id: "excepcional",
+    title: "Entrega directa y excepcional",
+    subtitle: "Solicitud, calificación, informes vinculantes, autorización, lotes, descarga, renovación y control",
+    description: "Coordinador SINARP → Gestión → TI → DPI → Máxima Autoridad; Control y Evaluación vigila y suspende",
+    section: "interoperabilidad",
+    tag: "EXT-01 a EXT-08 · PAR-17",
+    icon: Layers,
   },
 
   // ── GENERAL ──

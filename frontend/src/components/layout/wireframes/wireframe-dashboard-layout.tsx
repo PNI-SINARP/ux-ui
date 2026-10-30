@@ -14,6 +14,8 @@ import {
   Database,
   Network,
   Receipt,
+  Shield,
+  Sliders,
   CreditCard,
   BarChart2,
   Users,
@@ -452,6 +454,32 @@ const navItems: NavItem[] = [
     icon: Receipt,
     href: "/configuracion-financiera",
     allowedRoles: ["ADMIN"],
+  },
+
+  // ── ENTREGA DIRECTA Y EXCEPCIONAL (Res. 003-NG-DINARP-2023) ──
+  {
+    id: "entrega-excepcional",
+    label: "Entrega excepcional",
+    icon: Receipt,
+    href: "/entrega-excepcional",
+    allowedRoles: ["COORDINADOR_SINARP", "DIR_GESTION", "EQ_GESTION", "TI", "DTD", "DIR_DPI", "EQ_DPI", "APROBADOR", "CONTROL_EVALUACION", "ADMIN"],
+    section: "Entrega excepcional",
+  },
+  {
+    id: "control-excepcional",
+    label: "Control de autorizaciones",
+    icon: Shield,
+    href: "/control-excepcional",
+    allowedRoles: ["CONTROL_EVALUACION", "ADMIN"],
+    section: "Entrega excepcional",
+  },
+  {
+    id: "parametros-excepcional",
+    label: "Parámetros excepcional",
+    icon: Sliders,
+    href: "/parametros-excepcional",
+    allowedRoles: ["DIR_NORMATIVA", "ADMIN"],
+    section: "Entrega excepcional",
   },
 ];
 
