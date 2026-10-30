@@ -44,6 +44,7 @@ export type FlowType =
   | "anexo-c"
   | "suplencias"
   | "interoperabilidad"
+  | "formalizacion"
   | "proyectos"
   | "fuentes"
   | "excepcional"
@@ -88,8 +89,8 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     cedula: "1799999999",
     description: "Control total de identidades: crea, edita, suspende y da de baja cuentas internas. Configura áreas DINARP, catálogo de roles, audita eventos, gestiona coordinadores y atiende recuperación asistida de 2FA.",
     access: "Cuentas Internas (/cuentas-internas), Auditoría (/auditoria-cuentas), Coordinadores (/coordinadores), Catálogo de Áreas (/areas), Catálogo de Roles (/roles) y Gestión de Recuperaciones (/gestion-recuperaciones).",
-    storiesBadge: "ID-00..15 · BN-04 (AUS-02)",
-    flows: ["id-admin", "suplencias", "excepcional", "operacion", "administracion"],
+    storiesBadge: "ID-00..15 · BN-04 (AUS-02) · BN-08 (TAR-01..02, PAG-05)",
+    flows: ["id-admin", "suplencias", "formalizacion", "excepcional", "operacion", "administracion"],
     actions: [
       { label: "Parámetros, instituciones y primer Administrador", route: "/parametros-portal", huBadge: "PAR-08,09,15,16 · INS-08..10 · ID-00" },
       { label: "Mesa de ayuda y parámetros", route: "/soporte", huBadge: "INC-02, INC-04, PAR-03, PAR-06" },
@@ -101,7 +102,22 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
       { label: "Catálogo de Áreas", route: "/areas", huBadge: "ID-15" },
       { label: "Catálogo de Roles", route: "/roles", huBadge: "ID-14" },
       { label: "Recuperación Asistida", route: "/gestion-recuperaciones", huBadge: "ID-08" },
-    ]
+      { label: "Tarifario y pasarela (BN-08)", route: "/configuracion-financiera", huBadge: "TAR-01..02, PAG-00" },
+    ],
+    flowOverrides: {
+      formalizacion: {
+        order: 7,
+        roleName: "7. Administrador (Tarifario y Desbloqueo de Pago)",
+        userName: "Admin Portal",
+        storiesBadge: "BN-08 · TAR-01..02 · PAG-00, PAG-05 · FAC-02",
+        description: "Configura tarifario arancelario y parámetros de pasarela de pago (TAR-01, TAR-02, PAG-00). En el subproceso BN-08 de contingencia financiera, reintenta emisión de factura electrónica (FAC-02) y desbloquea intentos de pago del Coordinador tras divergencias (PAG-05).",
+        access: "Configuración Financiera (/configuracion-financiera) y Facturación / Conciliación (/acceso-interoperabilidad/solicitudes/SOL-2026-005/facturacion).",
+        actions: [
+          { label: "Tarifario y pasarela (TAR-01..02, PAG-00)", route: "/configuracion-financiera", huBadge: "TAR-01..02" },
+          { label: "Desbloquear intentos / Reintentar factura (PAG-05)", route: "/acceso-interoperabilidad/solicitudes/SOL-2026-005/facturacion", huBadge: "FAC-02, PAG-05" },
+        ],
+      },
+    },
   },
 
   // ── ACTOR USUARIO HABILITADO (ID-06, ID-07) ──
@@ -156,8 +172,8 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     cedula: "1711223344",
     description: "Recibe trámites institucionales en bandejas separadas por anexo (Anexos A, B y C) y solicitudes de acceso a fuentes (BN-07). Asigna y reasigna revisores del Equipo de Gestión, y autoriza la formalización final.",
     access: "Asignación Anexo A (/asignacion-solicitudes), Asignación Anexo B (/asignacion-anexo-b), Asignación Anexo C (/asignacion-anexo-c), Asignación Interoperabilidad (/acceso-interoperabilidad/asignacion) y Formalización (/formalizacion).",
-    storiesBadge: "BN-01..03 · BN-07 (SOL-03)",
-    flows: ["anexo-a", "anexo-b", "anexo-c", "interoperabilidad", "excepcional", "consumo", "operacion", "administracion"],
+    storiesBadge: "BN-01..03 · BN-07 (SOL-03) · BN-08 (FOR-01)",
+    flows: ["anexo-a", "anexo-b", "anexo-c", "interoperabilidad", "formalizacion", "excepcional", "consumo", "operacion", "administracion"],
     actions: [
       { label: "Bajas, restablecimiento y plantillas", route: "/ciclo-fuentes", huBadge: "FUE-08, FUE-11, PAR-14, 15" },
       { label: "Reportes y anomalías", route: "/reportes", huBadge: "REP-01, OPS-02" },
@@ -167,7 +183,7 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
       { label: "Anexo B — Asignación", route: "/asignacion-anexo-b", huBadge: "ENR-03" },
       { label: "Anexo C — Asignación", route: "/asignacion-anexo-c", huBadge: "CAM-02" },
       { label: "Asignar Revisor Fuente (BN-07)", route: "/acceso-interoperabilidad/asignacion", huBadge: "SOL-03" },
-      { label: "Formalización de Acceso", route: "/formalizacion", huBadge: "FOR-01" },
+      { label: "Formalización de Acceso (BN-08)", route: "/formalizacion", huBadge: "FOR-01" },
     ],
     flowOverrides: {
       interoperabilidad: {
@@ -180,6 +196,17 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
         actions: [
           { label: "Asignar / Reasignar Revisor (SOL-03)", route: "/acceso-interoperabilidad/asignacion", huBadge: "SOL-03" },
           { label: "Formalización de Acceso", route: "/formalizacion", huBadge: "FOR-01" },
+        ],
+      },
+      formalizacion: {
+        order: 5,
+        roleName: "5. Dirección de Gestión",
+        userName: "Director Gestión",
+        storiesBadge: "BN-08 · SOL-09, SOL-10, PAG-04",
+        description: "Carril Dirección de Gestión del flujo BPMN BN-08. Recibe solicitudes públicas listas (sin pago) o privadas con contrato firmado y pago confirmado, y ejecuta «Aprobar en forma definitiva» para disparar la configuración en Apigee.",
+        access: "Bandeja de Formalización y Aprobación Definitiva (/formalizacion).",
+        actions: [
+          { label: "Aprobar en forma definitiva (BN-08)", route: "/formalizacion", huBadge: "SOL-09, 10" },
         ],
       },
     },
@@ -365,16 +392,18 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     cedula: "1712345678",
     description: "Coordinador SINARP de entidad requirente. Elige proyecto y 1 fuente publicada, selecciona campos y cupo, declara finalidad por campo y justificación jurídica si hay confidenciales, envía solicitud (SOL-02) y subsana observaciones dentro de 3 días hábiles (SOL-05).",
     access: "Mis Solicitudes (/acceso-interoperabilidad/solicitudes), Nueva Solicitud (/acceso-interoperabilidad/solicitudes/nueva), Subsanación (/acceso-interoperabilidad/solicitudes/[id]/corregir), Catálogo (/catalogo-interoperabilidad) y Proyectos (/proyectos).",
-    storiesBadge: "BN-05 (PRJ-01..02) · BN-07 (SOL-01, 02, 05)",
-    flows: ["interoperabilidad", "proyectos", "fuentes", "excepcional", "consumo", "operacion", "administracion"],
+    storiesBadge: "BN-05 (PRJ-01..02) · BN-07 (SOL-01, 02, 05) · BN-08 (CON-03, PAG-01, ACC-02)",
+    flows: ["interoperabilidad", "formalizacion", "proyectos", "fuentes", "excepcional", "consumo", "operacion", "administracion"],
     actions: [
       { label: "Solicitar baja de fuente", route: "/ciclo-fuentes", huBadge: "FUE-08" },
       { label: "Alertas de consumo y tickets", route: "/operacion", huBadge: "OPS-01, INC-01" },
       { label: "Consumo por API, saldo, masivo y ampliaciones", route: "/consumo-api", huBadge: "API-01..06, ADD-01..05" },
       { label: "Entrega excepcional: solicitar y descargar", route: "/entrega-excepcional", huBadge: "EXT-01, 03, 05, 07" },
-      { label: "Mis Solicitudes (BN-07)", route: "/acceso-interoperabilidad/solicitudes", huBadge: "SOL-01" },
+      { label: "Mis Solicitudes (BN-07 / BN-08)", route: "/acceso-interoperabilidad/solicitudes", huBadge: "SOL-01, ACC-02" },
       { label: "Nueva Solicitud (Wizard)", route: "/acceso-interoperabilidad/solicitudes/nueva", huBadge: "SOL-02" },
       { label: "Subsanar Observación (SOL-05)", route: "/acceso-interoperabilidad/solicitudes/SOL-2026-0092/corregir", huBadge: "SOL-05" },
+      { label: "Firmar Contrato Privado (BN-08)", route: "/formalizacion/contratos", huBadge: "CON-03" },
+      { label: "Pagar Factura Electrónica (BN-08)", route: "/acceso-interoperabilidad/solicitudes/SOL-2026-005/facturacion", huBadge: "FAC-01, PAG-01" },
       { label: "Explorar Catálogo", route: "/catalogo-interoperabilidad", huBadge: "CAT-01" },
       { label: "Bandeja de Proyectos", route: "/proyectos", huBadge: "PRJ-01" },
       { label: "Crear borrador de fuente (FUE-01)", route: "/proveedor/fuentes", huBadge: "FUE-01" },
@@ -394,22 +423,49 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
           { label: "Explorar Catálogo", route: "/catalogo-interoperabilidad", huBadge: "CAT-01" },
         ],
       },
+      formalizacion: {
+        order: 2,
+        roleName: "2. Coordinador SINARP",
+        userName: "Andrea López (Entidad Privada / Pública)",
+        storiesBadge: "BN-08 · CON-03 · FAC-01 · PAG-01 · ACC-02",
+        description: "Carril 2 del flujo BPMN BN-08. Si es institución privada: suscribe 1.ª firma del contrato electrónico (CON-03) y paga la factura electrónica mediante pasarela de pago o comprobante bancario (FAC-01, PAG-01). Finalmente recibe el acceso habilitado y consulta sus credenciales API (ACC-02).",
+        access: "Contratos Privados (/formalizacion/contratos), Facturación y Pago (/acceso-interoperabilidad/solicitudes/SOL-2026-005/facturacion) y Mis Solicitudes / Credenciales (/acceso-interoperabilidad/solicitudes).",
+        actions: [
+          { label: "Firmar Contrato (1.ª Firma · CON-03)", route: "/formalizacion/contratos", huBadge: "CON-03" },
+          { label: "Pagar Factura Electrónica (PAG-01)", route: "/acceso-interoperabilidad/solicitudes/SOL-2026-005/facturacion", huBadge: "FAC-01, PAG-01" },
+          { label: "Ver Credenciales y Acceso Habilitado (ACC-02)", route: "/acceso-interoperabilidad/solicitudes", huBadge: "ACC-02" },
+        ],
+      },
     },
   },
   {
     roleName: "Aprobador Institucional",
     userName: "Dr. Roberto Méndez",
     cedula: "1719876543",
-    description: "Evalúa la pertinencia jurídica y finalidad de uso de las solicitudes de interoperabilidad. Carga informes de justificación, firma y emite resolución de aprobación o solicita ajustes.",
-    access: "Bandeja de Aprobación de Solicitudes (/acceso-interoperabilidad) y dictamen jurídico.",
-    storiesBadge: "SOL-10, INS-07",
-    flows: ["anexo-a", "excepcional", "operacion"],
+    description: "Evalúa la pertinencia jurídica y finalidad de uso de las solicitudes de interoperabilidad. Carga informes de justificación, firma resoluciones y suscribe la 2.ª firma en contratos privados de interoperabilidad (BN-08).",
+    access: "Bandeja de Aprobación (/acceso-interoperabilidad), Firma de Contratos (/formalizacion/contratos) y Resoluciones (/firma-resoluciones).",
+    storiesBadge: "BN-01 (INS-07) · BN-08 (CON-03, SOL-10)",
+    flows: ["anexo-a", "formalizacion", "excepcional", "operacion"],
     actions: [
       { label: "Seguimiento de trámites", route: "/reportes", huBadge: "REP-05" },
       { label: "Entrega excepcional: autorizar y firmar", route: "/entrega-excepcional", huBadge: "EXT-02" },
+      { label: "Firmar Contrato Privado (BN-08)", route: "/formalizacion/contratos", huBadge: "CON-03" },
       { label: "Evaluar Solicitudes", route: "/acceso-interoperabilidad", huBadge: "SOL-10" },
       { label: "Firmar resoluciones (Máxima Autoridad)", route: "/firma-resoluciones", huBadge: "INS-07" },
-    ]
+    ],
+    flowOverrides: {
+      formalizacion: {
+        order: 3,
+        roleName: "3. Máxima Autoridad DINARP",
+        userName: "Dr. Roberto Méndez",
+        storiesBadge: "BN-08 · CON-03",
+        description: "Carril 4 del flujo BPMN BN-08 (Firmar contrato). Una vez firmado el contrato por el Coordinador SINARP de la institución privada, la Máxima Autoridad DINARP suscribe la 2.ª firma electrónica perfeccionando el contrato y disparando la emisión de factura electrónica.",
+        access: "Formalización Contractual (/formalizacion/contratos).",
+        actions: [
+          { label: "Firmar Contrato (2.ª Firma · CON-03)", route: "/formalizacion/contratos", huBadge: "CON-03" },
+        ],
+      },
+    },
   },
   {
     roleName: "Dirección de Control y Evaluación",
@@ -428,25 +484,56 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     roleName: "Dirección Jurídica",
     userName: "Abg. Sofía Cevallos",
     cedula: "7777777777",
-    description: "Prepara y firma la adenda privada con la plantilla contractual vigente cuando una ampliación de campos o de cupo fue aprobada.",
-    access: "Pestaña Ampliaciones de /consumo-api.",
-    storiesBadge: "ADD-04",
-    flows: ["consumo", "administracion"],
+    description: "Gestiona plantillas de contrato privado (CON-01), genera contratos con variables autocompletadas para instituciones privadas listas para formalizar (CON-02), y prepara adendas cuando se aprueban ampliaciones de alcance (ADD-04).",
+    access: "Formalización Contractual (/formalizacion/contratos) y Pestaña Ampliaciones (/consumo-api).",
+    storiesBadge: "BN-08 (CON-01, CON-02) · ADD-04",
+    flows: ["formalizacion", "consumo", "administracion"],
     actions: [
-      { label: "Regularizar efectos económicos", route: "/ciclo-fuentes", huBadge: "ECO-01" },{ label: "Firmar adendas", route: "/consumo-api", huBadge: "ADD-04" }],
+      { label: "Generar contrato privado (BN-08)", route: "/formalizacion/contratos", huBadge: "CON-01, CON-02" },
+      { label: "Regularizar efectos económicos", route: "/ciclo-fuentes", huBadge: "ECO-01" },
+      { label: "Firmar adendas", route: "/consumo-api", huBadge: "ADD-04" },
+    ],
+    flowOverrides: {
+      formalizacion: {
+        order: 1,
+        roleName: "1. Jurídica (Dirección Jurídica)",
+        userName: "Abg. Sofía Cevallos",
+        storiesBadge: "BN-08 · CON-01, CON-02",
+        description: "Carril 3 del flujo BPMN BN-08 (Generar contrato). Cuando la solicitud lista para formalizar pertenece a una institución privada ('Sí' en compuerta ¿Institución privada?), Jurídica administra la plantilla vigente (CON-01), genera el contrato electrónico autocompletado y lo envía a firma del Coordinador SINARP (CON-02).",
+        access: "Formalización Contractual (/formalizacion/contratos).",
+        actions: [
+          { label: "Generar Contrato y Plantillas (CON-01, CON-02)", route: "/formalizacion/contratos", huBadge: "CON-01, CON-02" },
+        ],
+      },
+    },
   },
   {
     roleName: "Analista de Facturación",
     userName: "Lcda. Patricia Morales",
     cedula: "1718765432",
-    description: "Verifica comprobantes de pago registrados en plataforma externa SIGEF para entidades con solicitudes de interoperabilidad aranceladas y emite validación formal financiera.",
-    access: "Módulo Financiero y Facturación de Solicitudes (/acceso-interoperabilidad).",
-    storiesBadge: "FAC-01 · PAG-01..04",
-    flows: ["consumo"],
+    description: "Procesa cobros y concilia pagos de facturas electrónicas de instituciones privadas en el flujo BN-08 (FAC-01, PAG-02..04), resuelve divergencias de monto o estado con pasarela y confirma pagos de adendas.",
+    access: "Facturación y Conciliación (/acceso-interoperabilidad/solicitudes/SOL-2026-005/facturacion) y Configuración Financiera (/configuracion-financiera).",
+    storiesBadge: "BN-08 · FAC-01..02 · PAG-01..05",
+    flows: ["formalizacion", "consumo"],
     actions: [
+      { label: "Facturación y Conciliación (BN-08)", route: "/acceso-interoperabilidad/solicitudes/SOL-2026-005/facturacion", huBadge: "FAC-01, PAG-02..04" },
       { label: "Confirmar pago de adenda", route: "/consumo-api", huBadge: "ADD-06" },
       { label: "Validación de Pagos", route: "/acceso-interoperabilidad", huBadge: "PAG-02" },
-    ]
+    ],
+    flowOverrides: {
+      formalizacion: {
+        order: 4,
+        roleName: "4. Pasarela de Pago / Financiero",
+        userName: "Lcda. Patricia Morales",
+        storiesBadge: "BN-08 · FAC-01..02 · PAG-01..05",
+        description: "Carril 5 y Subproceso financiero del flujo BPMN BN-08. Tras la 2.ª firma del contrato, el Portal emite factura electrónica (FAC-01) o encola reintentos si falla (FAC-02). Procesa el cobro y concilia el pago de la factura (PAG-02..04); si el pago es confirmado pasa a Dirección de Gestión, o ejecuta el subproceso de conciliar divergencias y desbloquear intentos (PAG-05).",
+        access: "Facturación y Pasarela (/acceso-interoperabilidad/solicitudes/SOL-2026-005/facturacion) y Configuración Financiera (/configuracion-financiera).",
+        actions: [
+          { label: "Procesar Cobro y Conciliar Factura (BN-08)", route: "/acceso-interoperabilidad/solicitudes/SOL-2026-005/facturacion", huBadge: "FAC-01..02, PAG-01..05" },
+          { label: "Tarifario y Pasarela (TAR-01, PAG-00)", route: "/configuracion-financiera", huBadge: "TAR-01, PAG-00" },
+        ],
+      },
+    },
   },
 
   // ── FLUJO INCORPORAR Y PUBLICAR FUENTE (BN-06: FUE-01 A FUE-05, FUE-10, FUE-12, CNX-01/02) ──
@@ -468,18 +555,32 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
     roleName: "Equipo de TI / Infraestructura (DTD)",
     userName: "Carlos Mena",
     cedula: "1716543210",
-    description: "Responsable técnico de conectividad y despliegue. Gestiona conectores reutilizables (CNX-01/02), homologa motores no soportados (FUE-12), analiza diagnósticos de conexión VPN (FUE-02/10), y realiza la publicación en el API Gateway (FUE-05).",
-    access: "Gestión de Conectores (/tecnologia/conectores) y Homologación de Orígenes (/tecnologia/homologaciones).",
-    storiesBadge: "BN-06 · CNX-01/02 · FUE-05, 12",
-    flows: ["fuentes", "excepcional", "consumo", "operacion", "administracion"],
+    description: "Responsable técnico de conectividad, API Gateway Apigee y despliegue. Configura acceso y credenciales en Apigee y gestiona su ciclo de vida (BN-08: ACC-01 a ACC-08), administra conectores reutilizables (CNX-01/02), homologa motores (FUE-12) y publica fuentes (FUE-05).",
+    access: "Acceso y Ciclo de Vida Apigee (/acceso-consumo), Gestión de Conectores (/tecnologia/conectores) y Homologación de Orígenes (/tecnologia/homologaciones).",
+    storiesBadge: "BN-06 (CNX-01/02, FUE-05, 12) · BN-08 (ACC-01..08)",
+    flows: ["formalizacion", "fuentes", "excepcional", "consumo", "operacion", "administracion"],
     actions: [
+      { label: "Configurar acceso y ciclo de vida en Apigee (BN-08)", route: "/acceso-consumo", huBadge: "ACC-01..08" },
       { label: "Suspender y retirar fuentes", route: "/ciclo-fuentes", huBadge: "FUE-09, FUE-10" },
       { label: "Monitoreo e incidentes", route: "/operacion", huBadge: "OPS-03..05, INC-03" },
       { label: "Aprobar programaciones masivas", route: "/consumo-api", huBadge: "API-06" },
       { label: "Entrega excepcional: informe tecnológico y lotes", route: "/entrega-excepcional", huBadge: "EXT-02, 04" },
       { label: "Gestión de Conectores", route: "/tecnologia/conectores", huBadge: "CNX-01/02" },
       { label: "Homologación de Orígenes", route: "/tecnologia/homologaciones", huBadge: "FUE-12" },
-    ]
+    ],
+    flowOverrides: {
+      formalizacion: {
+        order: 6,
+        roleName: "6. Apigee / Equipo de TI (DTD)",
+        userName: "Carlos Mena",
+        storiesBadge: "BN-08 · ACC-01 a ACC-08",
+        description: "Carril 7 y Subproceso Apigee del flujo BPMN BN-08. Tras la aprobación definitiva de Dirección de Gestión, aprovisiona y configura el acceso a la API en Apigee (ACC-01); si el aprovisionamiento es exitoso habilita el acceso y emite credenciales al Coordinador (ACC-02), o registra el fallo y permite reintentar (ACC-03). Además gestiona el subproceso de ciclo de vida del acceso en Apigee: rotación de credenciales, bloqueo por intentos fallidos, suspensión/reactivación y revocación (ACC-04 a ACC-08).",
+        access: "Habilitación y Ciclo de Vida en Apigee (/acceso-consumo).",
+        actions: [
+          { label: "Configurar Acceso y Ciclo de Vida en Apigee (ACC-01..08)", route: "/acceso-consumo", huBadge: "ACC-01..08" },
+        ],
+      },
+    },
   },
   {
     roleName: "Dirección de Gestión y Registro (DGR)",
@@ -603,7 +704,7 @@ export const FLOW_OPTIONS: FlowOption[] = [
     subtitle: "Crear y consultar proyectos (PRJ-01 y PRJ-02)",
     description: "Coordinador Institucional: gestión, consulta y solicitudes de interoperabilidad",
     section: "interoperabilidad",
-    sectionTitle: "Proyectos y Solicitudes de Acceso (BN-05 y BN-07)",
+    sectionTitle: "Proyectos, Solicitudes y Formalización (BN-05, BN-07 y BN-08)",
     tag: "PRJ-01, 02",
     icon: FolderKanban,
   },
@@ -616,6 +717,16 @@ export const FLOW_OPTIONS: FlowOption[] = [
     section: "interoperabilidad",
     tag: "SOL-01 a SOL-08 · DPI",
     icon: Layers,
+  },
+  {
+    id: "formalizacion",
+    title: "Formalizar Acceso y Habilitar Consumo",
+    bnCode: "BN-08",
+    subtitle: "Contrato privado (2 firmas), factura electrónica, pasarela/conciliación, aprobación definitiva y Apigee",
+    description: "1. Jurídica → 2. Coordinador SINARP → 3. Máxima Autoridad → 4. Financiero/Pasarela → 5. Dirección Gestión → 6. Apigee (TI)",
+    section: "interoperabilidad",
+    tag: "CON-01..03 · FAC-01..02 · PAG-01..05 · SOL-09..10 · ACC-01..08",
+    icon: ShieldCheck,
   },
 
   // ── FLUJO INCORPORAR Y PUBLICAR FUENTE (BN-06: FUE-01 A FUE-05, FUE-10, FUE-12, CNX-01/02) ──
