@@ -18,6 +18,7 @@ import {
   RefreshCw,
   Sparkles,
   ChevronDown,
+  ChevronUp,
   AlertCircle,
   ArrowLeft,
   ArrowRight,
@@ -115,6 +116,7 @@ export function AnexoCSignature({
   // 4. Modales
   const [modalVerDoc, setModalVerDoc] = useState(false);
   const [modalVerDelegacion, setModalVerDelegacion] = useState(false);
+  const [showDemoToolbar, setShowDemoToolbar] = useState(true);
 
   const firmanteNombreVisible =
     firmanteTipo === "MAXIMA_AUTORIDAD"
@@ -252,36 +254,12 @@ export function AnexoCSignature({
     setFirmaFallo(null);
   };
 
-  // Monitoreo en vivo / simulación automática cuando ingresa a SUSCRIPCION_FIRMAEC
+  // Monitoreo en vivo cuando ingresa a SUSCRIPCION_FIRMAEC (espera validación manual del usuario)
   useEffect(() => {
-    let timer: NodeJS.Timeout | undefined;
     if (subEtapaFirma === "SUSCRIPCION_FIRMAEC" && !isSigned && !firmaFallo) {
       setIsSigning(true);
-      timer = setTimeout(() => {
-        setIsSigning(false);
-        const transId = `FEC-2026-${Math.floor(10000 + Math.random() * 90000)}-C`;
-        const sha256 = "8f4b23a9d18e5472bc19448a0fd329c4ba598e12d5e381023d8c1109a1bf04e1";
-        const now = new Date();
-        const fechaHora = `${String(now.getDate()).padStart(2, "0")}/${String(now.getMonth() + 1).padStart(2, "0")}/${now.getFullYear()} ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
-
-        setSignatureInfo({
-          fechaHora,
-          transaccionId: transId,
-          firmante: firmanteNombreVisible,
-          huellaSha256: sha256,
-          entidadCertificadora: "Banco Central del Ecuador (BCE)"
-        });
-        setIsSigned(true);
-        toast.success("Firma electrónica confirmada", {
-          description: "El Anexo C ha sido suscrito digitalmente en FirmaEC."
-        });
-      }, 2800);
     }
-
-    return () => {
-      if (timer) clearTimeout(timer);
-    };
-  }, [subEtapaFirma, isSigned, firmaFallo, firmanteNombreVisible]);
+  }, [subEtapaFirma, isSigned, firmaFallo]);
 
   // Forzar firma válida manual desde demo
   const handleForzarFirmaValida = () => {
@@ -910,97 +888,159 @@ export function AnexoCSignature({
 
       {/* ── BOTONES FLOTANTES PARA DEMO (HERRAMIENTAS DE PRUEBA) ── */}
       <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 flex flex-col items-end gap-2 sm:gap-3 max-w-[calc(100vw-2rem)]">
-        <div className="flex flex-wrap items-center justify-end gap-1.5 sm:gap-2 bg-surface/95 backdrop-blur-md p-2 rounded-2xl border border-border shadow-xl max-w-full animate-in fade-in slide-in-from-bottom-2 duration-200">
-          <div className="hidden sm:flex items-center gap-1.5 px-2 text-[11px] font-semibold text-muted-foreground border-r border-border/60 mr-1">
-            <Sparkles className="size-3 text-primary shrink-0" />
-            <span>Demo FirmaEC</span>
+        {showDemoToolbar ? (
+          <div className="flex flex-wrap items-center justify-end gap-1.5 sm:gap-2 bg-surface/95 backdrop-blur-md p-2 rounded-2xl border border-border shadow-xl max-w-full animate-in fade-in slide-in-from-bottom-2 duration-200">
+            <div className="hidden sm:flex items-center gap-1.5 px-2 text-[11px] font-semibold text-muted-foreground border-r border-border/60 mr-1">
+              <Sparkles className="size-3 text-primary shrink-0" />
+              <span>Demo FirmaEC</span>
+            </div>
+
+            {subEtapaFirma === "SELECCION_FIRMANTE" && (
+              <Button
+                type="button"
+                variant="outline"
+                size="default"
+                onClick={() => {
+                  setFirmanteTipo("DELEGADO_AUTORIZADO");
+                  setErrorDelegacion(null);
+                  const mockFile = new File(["%PDF-1.4 mock"], "Acuerdo_Delegacion_DINARP_2026.pdf", {
+                    type: "application/pdf",
+                  });
+                  setDelegacionFiles([
+                    {
+                      id: `delegacion-${Date.now()}`,
+                      file: mockFile,
+                      status: "success",
+                      errorType: null,
+                      progress: 100,
+                    },
+                  ]);
+                  setAutorizacionArchivo({
+                    archivoNombre: "Acuerdo_Delegacion_DINARP_2026.pdf",
+                    archivoTamano: "340 KB",
+                    fechaSubida: new Date().toLocaleDateString("es-EC"),
+                  });
+                  toast.success("Delegación cargada automáticamente", {
+                    description: "Se seleccionó Delegado Autorizado con su acuerdo adjunto.",
+                  });
+                }}
+                className="rounded-full px-3 sm:px-4 flex items-center gap-1.5 text-xs h-8 sm:h-9"
+              >
+                <Sparkles className="size-3.5 text-primary shrink-0" />
+                <span>Simular Delegado + PDF</span>
+              </Button>
+            )}
+
+            {!isSigned && subEtapaFirma === "SUSCRIPCION_FIRMAEC" && (
+              <>
+                <Button
+                  type="button"
+                  variant="success"
+                  size="default"
+                  onClick={handleForzarFirmaValida}
+                  className="rounded-full px-3 sm:px-4 flex items-center gap-1.5 text-xs h-8 sm:h-9"
+                >
+                  <ShieldCheck className="size-3.5" /> Simular Firma Válida
+                </Button>
+
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="default"
+                      className="rounded-full px-3 sm:px-4 flex items-center gap-1.5 text-xs h-8 sm:h-9"
+                    >
+                      <span>Simular Fallo</span>
+                      <ChevronDown className="size-3" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56 p-1.5 rounded-xl shadow-lg border-border">
+                    <DropdownMenuItem
+                      onClick={() => handleSimularFalloFirma("RECHAZADA")}
+                      className="flex items-start gap-2.5 p-2 rounded-lg text-danger focus:text-danger focus:bg-danger/10 cursor-pointer"
+                    >
+                      <XCircle className="size-4 shrink-0 mt-0.5" />
+                      <div>
+                        <div className="font-bold leading-none">Firma Rechazada</div>
+                        <div className="text-[10px] text-muted-foreground mt-0.5">Certificado revocado o inválido</div>
+                      </div>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => handleSimularFalloFirma("CADUCADA")}
+                      className="flex items-start gap-2.5 p-2 rounded-lg text-warning focus:text-warning focus:bg-warning/10 cursor-pointer"
+                    >
+                      <Clock className="size-4 shrink-0 mt-0.5" />
+                      <div>
+                        <div className="font-bold leading-none">Firma Caducada</div>
+                        <div className="text-[10px] text-muted-foreground mt-0.5">Tiempo de espera expirado</div>
+                      </div>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => handleSimularFalloFirma("INCIERTA")}
+                      className="flex items-start gap-2.5 p-2 rounded-lg text-warning focus:text-warning focus:bg-warning/10 cursor-pointer"
+                    >
+                      <RefreshCw className="size-4 shrink-0 mt-0.5" />
+                      <div>
+                        <div className="font-bold leading-none">Respuesta Incierta</div>
+                        <div className="text-[10px] text-muted-foreground mt-0.5">Consultar transacción original</div>
+                      </div>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </>
+            )}
+
+            {isSigned && (
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="default"
+                  onClick={() => setEnvioPendienteVerificacion(!envioPendienteVerificacion)}
+                  className="rounded-full px-3 sm:px-4 flex items-center gap-1.5 text-xs h-8 sm:h-9"
+                >
+                  <AlertTriangle className="size-3.5" />
+                  <span>{envioPendienteVerificacion ? "Quitar bloqueo envío" : "Simular Envío Incierto"}</span>
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="default"
+                  onClick={handleDeshacerFirma}
+                  className="rounded-full px-3 sm:px-4 flex items-center gap-1.5 text-xs h-8 sm:h-9"
+                >
+                  <RefreshCw className="size-3.5" /> Deshacer Firma
+                </Button>
+              </>
+            )}
+
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              onClick={() => setShowDemoToolbar(false)}
+              className="rounded-full size-7 text-muted-foreground hover:text-foreground ml-0.5 shrink-0"
+              title="Minimizar opciones de prueba"
+            >
+              <ChevronDown className="size-4" />
+            </Button>
           </div>
-
-          {!isSigned && subEtapaFirma === "SUSCRIPCION_FIRMAEC" && (
-            <>
-              <Button
-                type="button"
-                variant="success"
-                size="default"
-                onClick={handleForzarFirmaValida}
-                className="rounded-full px-3 sm:px-4 flex items-center gap-1.5 text-xs h-8 sm:h-9"
-              >
-                <ShieldCheck className="size-3.5" /> Forzar Firma Válida
-              </Button>
-
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="default"
-                    className="rounded-full px-3 sm:px-4 flex items-center gap-1.5 text-xs h-8 sm:h-9"
-                  >
-                    <span>Simular Fallo</span>
-                    <ChevronDown className="size-3" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56 p-1.5 rounded-xl shadow-lg border-border">
-                  <DropdownMenuItem
-                    onClick={() => handleSimularFalloFirma("RECHAZADA")}
-                    className="flex items-start gap-2.5 p-2 rounded-lg text-danger focus:text-danger focus:bg-danger/10 cursor-pointer"
-                  >
-                    <XCircle className="size-4 shrink-0 mt-0.5" />
-                    <div>
-                      <div className="font-bold leading-none">Firma Rechazada</div>
-                      <div className="text-[10px] text-muted-foreground mt-0.5">Certificado revocado o inválido</div>
-                    </div>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => handleSimularFalloFirma("CADUCADA")}
-                    className="flex items-start gap-2.5 p-2 rounded-lg text-warning focus:text-warning focus:bg-warning/10 cursor-pointer"
-                  >
-                    <Clock className="size-4 shrink-0 mt-0.5" />
-                    <div>
-                      <div className="font-bold leading-none">Firma Caducada</div>
-                      <div className="text-[10px] text-muted-foreground mt-0.5">Tiempo de espera expirado</div>
-                    </div>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => handleSimularFalloFirma("INCIERTA")}
-                    className="flex items-start gap-2.5 p-2 rounded-lg text-warning focus:text-warning focus:bg-warning/10 cursor-pointer"
-                  >
-                    <RefreshCw className="size-4 shrink-0 mt-0.5" />
-                    <div>
-                      <div className="font-bold leading-none">Respuesta Incierta</div>
-                      <div className="text-[10px] text-muted-foreground mt-0.5">Consultar transacción original</div>
-                    </div>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </>
-          )}
-
-          {isSigned && (
-            <>
-              <Button
-                type="button"
-                variant="outline"
-                size="default"
-                onClick={() => setEnvioPendienteVerificacion(!envioPendienteVerificacion)}
-                className="rounded-full px-3 sm:px-4 flex items-center gap-1.5 text-xs h-8 sm:h-9"
-              >
-                <AlertTriangle className="size-3.5" />
-                <span>{envioPendienteVerificacion ? "Quitar bloqueo envío" : "Simular Envío Incierto"}</span>
-              </Button>
-
-              <Button
-                type="button"
-                variant="outline"
-                size="default"
-                onClick={handleDeshacerFirma}
-                className="rounded-full px-3 sm:px-4 flex items-center gap-1.5 text-xs h-8 sm:h-9"
-              >
-                <RefreshCw className="size-3.5" /> Deshacer Firma
-              </Button>
-            </>
-          )}
-        </div>
+        ) : (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setShowDemoToolbar(true)}
+            className="rounded-full px-3.5 py-1.5 shadow-lg flex items-center gap-2 text-xs bg-surface/95 backdrop-blur-md border border-border hover:bg-muted transition-all animate-in fade-in slide-in-from-bottom-2 duration-200"
+            title="Desplegar opciones de simulación"
+          >
+            <Sparkles className="size-3.5 text-primary" />
+            <span className="font-semibold text-foreground">Opciones de prueba</span>
+            <ChevronUp className="size-3.5 text-muted-foreground" />
+          </Button>
+        )}
       </div>
 
       {/* ── MODAL DE VISUALIZACIÓN DEL DOCUMENTO ANEXO C ── */}

@@ -49,6 +49,8 @@ import { useSolicitudesIngresoStore } from "@/modules/gestion-solicitudes/data/g
 import { useAuthStore } from "@/modules/gestion-solicitudes/data/auth-store";
 import { MOCK_USERS_BY_ROLE } from "@/modules/catalogo-interoperabilidad/data/catalogo-data";
 import { DinarpTestAccountsDrawer } from "./dinarp-test-accounts-drawer";
+import { ValidacionInstitucionModal } from "./validacion-institucion-modal";
+import { ValidacionCoordinadorModal } from "./validacion-coordinador-modal";
 
 function validarCedula(cedula: string) {
   if (cedula.length !== 10) return false;
@@ -147,6 +149,17 @@ export function DinarpWireframe2LoginFlow({
   const [isSubmittingOtp, setIsSubmittingOtp] = useState(false);
   const [otpError, setOtpError] = useState("");
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  // Modales de validación previa para Anexo A, B y C
+  const [isAnexoAModalOpen, setIsAnexoAModalOpen] = useState(false);
+  const [isAnexoBModalOpen, setIsAnexoBModalOpen] = useState(false);
+  const [isAnexoCModalOpen, setIsAnexoCModalOpen] = useState(false);
+
+  useEffect(() => {
+    router.prefetch("/registro-institucion");
+    router.prefetch("/enrolamiento-coordinador");
+    router.prefetch("/cambio-coordinador");
+  }, [router]);
 
   // Estado Verificación Enrolamiento (Proceso B)
   const [cedulaEnrolar, setCedulaEnrolar] = useState("");
@@ -609,45 +622,42 @@ export function DinarpWireframe2LoginFlow({
           <div>
             <div className="grid grid-cols-1 gap-2.5">
               {/* INS-00: los tres trámites se inician sin cuenta, contraseña ni enlace por correo */}
-              <Link href="/registro-institucion" className="w-full">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full h-11 justify-between text-xs px-3.5 shadow-xs hover:border-primary/40 hover:bg-primary/5"
-                >
-                  <span className="flex items-center gap-2.5 font-semibold">
-                    <Landmark className="size-4 text-primary" />
-                    Registrar institución (Anexo A)
-                  </span>
-                  <ArrowRight className="size-4 opacity-70" />
-                </Button>
-              </Link>
-              <Link href="/enrolamiento-coordinador" className="w-full">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full h-11 justify-between text-xs px-3.5 shadow-xs hover:border-primary/40 hover:bg-primary/5"
-                >
-                  <span className="flex items-center gap-2.5 font-semibold">
-                    <Users className="size-4 text-primary" />
-                    Fui designado coordinador (Anexo B)
-                  </span>
-                  <ArrowRight className="size-4 opacity-70" />
-                </Button>
-              </Link>
-              <Link href="/cambio-coordinador" className="w-full">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full h-11 justify-between text-xs px-3.5 shadow-xs hover:border-primary/40 hover:bg-primary/5"
-                >
-                  <span className="flex items-center gap-2.5 font-semibold">
-                    <RefreshCw className="size-4 text-primary" />
-                    Cambiar coordinador (Anexo C)
-                  </span>
-                  <ArrowRight className="size-4 opacity-70" />
-                </Button>
-              </Link>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setIsAnexoAModalOpen(true)}
+                className="w-full h-11 justify-between text-xs px-3.5 shadow-xs"
+              >
+                <span className="flex items-center gap-2.5 font-semibold">
+                  <Landmark className="size-4" />
+                  Registrar institución (Anexo A)
+                </span>
+                <ArrowRight className="size-4 opacity-70" />
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setIsAnexoBModalOpen(true)}
+                className="w-full h-11 justify-between text-xs px-3.5 shadow-xs"
+              >
+                <span className="flex items-center gap-2.5 font-semibold">
+                  <Users className="size-4" />
+                  Fui designado coordinador (Anexo B)
+                </span>
+                <ArrowRight className="size-4 opacity-70" />
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setIsAnexoCModalOpen(true)}
+                className="w-full h-11 justify-between text-xs px-3.5 shadow-xs"
+              >
+                <span className="flex items-center gap-2.5 font-semibold">
+                  <RefreshCw className="size-4" />
+                  Cambiar coordinador (Anexo C)
+                </span>
+                <ArrowRight className="size-4 opacity-70" />
+              </Button>
             </div>
 
             {/* Accesos Directos Internos (Ocultos visualmente) */}
@@ -906,6 +916,42 @@ export function DinarpWireframe2LoginFlow({
           </div>
         </div>
       )}
+
+      {/* ── MODALES DE VALIDACIÓN PREVIA (ANEXO A, B y C) ── */}
+      <ValidacionInstitucionModal
+        open={isAnexoAModalOpen}
+        onOpenChange={setIsAnexoAModalOpen}
+        anexoType="A"
+        onValidated={(data) => {
+          if (typeof window !== "undefined") {
+            sessionStorage.setItem("dinarp_anexo_a_validation", JSON.stringify(data));
+          }
+          router.push("/registro-institucion");
+        }}
+      />
+
+      <ValidacionCoordinadorModal
+        open={isAnexoBModalOpen}
+        onOpenChange={setIsAnexoBModalOpen}
+        onValidated={(data) => {
+          if (typeof window !== "undefined") {
+            sessionStorage.setItem("dinarp_anexo_b_validation", JSON.stringify(data));
+          }
+          router.push(`/enrolamiento-coordinador?cedula=${data.cedula}`);
+        }}
+      />
+
+      <ValidacionInstitucionModal
+        open={isAnexoCModalOpen}
+        onOpenChange={setIsAnexoCModalOpen}
+        anexoType="C"
+        onValidated={(data) => {
+          if (typeof window !== "undefined") {
+            sessionStorage.setItem("dinarp_anexo_c_validation", JSON.stringify(data));
+          }
+          router.push("/cambio-coordinador");
+        }}
+      />
     </div>
   );
 }

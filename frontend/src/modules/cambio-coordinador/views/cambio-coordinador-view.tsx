@@ -1,8 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { WireframeDashboardLayout } from "@/components/layout/wireframes/wireframe-dashboard-layout";
 import { WireframeTramitePublicoLayout } from "@/components/layout/wireframes/wireframe-tramite-publico-layout";
+import { ValidacionInstitucionModal } from "@/modules/auth/components/validacion-institucion-modal";
 import { CoordinadorActualCard } from "../components/coordinador-actual-card";
 import { IdentificarSaliente } from "../components/identificar-saliente";
 import {
@@ -37,24 +39,29 @@ import {
   ArrowLeft,
   ArrowRight,
   Check,
-  Users
+  Users,
+  Building2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type VistaEstado = "INICIAL" | "WIZARD" | "DETALLE";
 
 export function CambioCoordinadorView() {
+  const router = useRouter();
   const { activeUser } = useAuthStore();
   // CAM-01 CA6: el Anexo C se inicia sin cuenta desde la pantalla de ingreso; solo el Representante Institucional con sesión conserva el menú del Portal
   const sinCuenta = activeUser?.role !== "REPRESENTANTE_INSTITUCIONAL";
   const {
     institucion,
     crearSolicitud,
+    actualizarInstitucionPorRuc,
     isLoaded
   } = useCambioCoordinadorStore();
 
   const [vista, setVista] = useState<VistaEstado>("INICIAL");
   const [tramiteSeleccionado, setTramiteSeleccionado] = useState<TramiteCambioCoordinador | null>(null);
+  const [showValidacionModal, setShowValidacionModal] = useState(false);
+  const [entidadTipoValidada, setEntidadTipoValidada] = useState<"Publica" | "Privada">("Publica");
 
   // Estados del Wizard (5 pasos)
   const [caracterSolicitud, setCaracterSolicitud] = useState<CaracterCoordinador>("TITULAR");
@@ -62,6 +69,36 @@ export function CambioCoordinadorView() {
   const [datosEntrante, setDatosEntrante] = useState<FormNuevoCoordinadorData | null>(null);
   const [datosInstrumento, setDatosInstrumento] = useState<DatosInstrumentoAnexoC | null>(null);
   const [tramiteGenerado, setTramiteGenerado] = useState<TramiteCambioCoordinador | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const saved = sessionStorage.getItem("dinarp_anexo_c_validation");
+    if (saved) {
+      setTimeout(() => sessionStorage.removeItem("dinarp_anexo_c_validation"), 1000);
+      try {
+        const parsed = JSON.parse(saved) as {
+          entidadTipo: "Publica" | "Privada";
+          rucEntidad: string;
+          cedulaSaliente?: string;
+          caracterSaliente?: "TITULAR" | "SUPLENTE";
+        };
+        if (parsed?.rucEntidad) {
+          setEntidadTipoValidada(parsed.entidadTipo || "Publica");
+          actualizarInstitucionPorRuc(parsed.rucEntidad, parsed.entidadTipo || "Publica");
+        }
+        if (parsed?.caracterSaliente) {
+          setCaracterSolicitud(parsed.caracterSaliente);
+          setPasoActual(1);
+          setDatosEntrante(null);
+          setDatosInstrumento(null);
+          setTramiteGenerado(null);
+          setVista("WIZARD");
+        }
+      } catch {
+        // Ignorar error de parseo
+      }
+    }
+  }, [actualizarInstitucionPorRuc]);
 
   // Pasos oficiales del Stepper
   const stepsList: StepperStep[] = [
@@ -211,6 +248,33 @@ export function CambioCoordinadorView() {
       <main className="flex-1 w-full max-w-[1920px] mx-auto px-2 sm:px-4 lg:px-5 py-4 sm:py-6 space-y-5">
         {/* Contenedor Principal Unificado idéntico a /registro-institucion y /enrolamiento-coordinador */}
         <div className="bg-surface border border-border rounded-2xl p-4 sm:p-6 lg:p-8 space-y-6 shadow-xs animate-in fade-in duration-300 w-full">
+          {/* Barra superior de institución validada */}
+          <div className="flex items-center justify-between gap-3 flex-wrap pb-2 border-b border-border/60">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Building2 className="size-4 text-primary shrink-0" />
+              <span>Institución validada:</span>
+              <strong className="text-foreground font-semibold">{institucion.nombre}</strong>
+              <Badge tone="neutral" appearance="soft" size="sm" className="font-mono text-[10px]">
+                RUC: {institucion.ruc}
+              </Badge>
+              <Badge tone="primary" appearance="soft" size="sm" className="text-[10px]">
+                {entidadTipoValidada === "Publica" ? "Entidad Pública" : "Entidad Privada"}
+              </Badge>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setShowValidacionModal(true)}
+                className="h-8 text-xs font-semibold gap-1.5"
+              >
+                <Building2 className="size-3.5 text-primary" />
+                <span>Cambiar institución / saliente</span>
+              </Button>
+            </div>
+          </div>
+
           {/* Encabezado del Trámite en Card Featured estilo UI Kit con CardBadge y CardDecorativeIcon */}
           <Card
             variant="featured"
@@ -472,6 +536,26 @@ export function CambioCoordinadorView() {
             </div>
           )}
         </div>
+
+        {/* Modal de Validación de la Institución y Coordinador Saliente (Anexo C) */}
+        <ValidacionInstitucionModal
+          open={showValidacionModal}
+          onOpenChange={setShowValidacionModal}
+          anexoType="C"
+          initialEntidadTipo={entidadTipoValidada}
+          initialRuc={institucion.ruc}
+          cancelLabel="Cancelar"
+          onValidated={(data) => {
+            setEntidadTipoValidada(data.entidadTipo);
+            actualizarInstitucionPorRuc(data.rucEntidad, data.entidadTipo);
+            setShowValidacionModal(false);
+            if (data.caracterSaliente) {
+              handleIniciarSolicitud(data.caracterSaliente);
+            } else {
+              handleVolverInicial();
+            }
+          }}
+        />
       </main>
   );
 

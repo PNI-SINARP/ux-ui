@@ -58,6 +58,8 @@ import {
   type SolicitudIngreso,
 } from "@/modules/gestion-solicitudes/data/gestion-ingresos-store";
 import { useCambioCoordinadorStore } from "@/modules/cambio-coordinador/data/cambio-coordinador-store";
+import { ValidacionInstitucionModal } from "@/modules/auth/components/validacion-institucion-modal";
+import { ValidacionCoordinadorModal } from "@/modules/auth/components/validacion-coordinador-modal";
 
 export type ExpedientesPortalMode =
   | "FIRMA_RESOLUCIONES"
@@ -87,6 +89,9 @@ export function ExpedientesAnexoPortalView({
   const [filterEstado, setFilterEstado] = useState<string>("TODOS");
   const [viewMode, setViewMode] = useState<"table" | "cards">("table");
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [showAnexoAModal, setShowAnexoAModal] = useState(false);
+  const [showAnexoBModal, setShowAnexoBModal] = useState(false);
+  const [showAnexoCModal, setShowAnexoCModal] = useState(false);
 
   const config = useMemo(() => {
     const isCoord = activeUser?.role === "COORDINADOR_SINARP";
@@ -392,7 +397,17 @@ export function ExpedientesAnexoPortalView({
               type="button"
               variant="primary"
               size="default"
-              onClick={() => router.push(config.ctaHref!)}
+              onClick={() => {
+                if (mode === "MIS_EXPEDIENTES_A") {
+                  setShowAnexoAModal(true);
+                } else if (mode === "MIS_EXPEDIENTES_B") {
+                  setShowAnexoBModal(true);
+                } else if (mode === "MIS_EXPEDIENTES_C") {
+                  setShowAnexoCModal(true);
+                } else {
+                  router.push(config.ctaHref!);
+                }
+              }}
               className="gap-2 font-semibold shrink-0 shadow-xs"
             >
               <Plus className="size-4" />
@@ -774,6 +789,58 @@ export function ExpedientesAnexoPortalView({
           )}
         </div>
       </div>
+
+      {/* Modal de Validación de la Institución (Anexo A) */}
+      <ValidacionInstitucionModal
+        open={showAnexoAModal}
+        onOpenChange={setShowAnexoAModal}
+        cancelLabel="Cancelar"
+        onValidated={(data) => {
+          if (typeof window !== "undefined") {
+            sessionStorage.setItem(
+              "dinarp_anexo_a_validation",
+              JSON.stringify(data)
+            );
+          }
+          setShowAnexoAModal(false);
+          router.push("/registro-institucion");
+        }}
+      />
+
+      {/* Modal de Confirmación de Invitación de Coordinador (Anexo B) */}
+      <ValidacionCoordinadorModal
+        open={showAnexoBModal}
+        onOpenChange={setShowAnexoBModal}
+        cancelLabel="Cancelar"
+        onValidated={(data) => {
+          if (typeof window !== "undefined") {
+            sessionStorage.setItem(
+              "dinarp_anexo_b_validation",
+              JSON.stringify(data)
+            );
+          }
+          setShowAnexoBModal(false);
+          router.push(`/enrolamiento-coordinador?cedula=${data.cedula}`);
+        }}
+      />
+
+      {/* Modal de Validación de la Institución para Cambio de Coordinador (Anexo C) */}
+      <ValidacionInstitucionModal
+        open={showAnexoCModal}
+        onOpenChange={setShowAnexoCModal}
+        anexoType="C"
+        cancelLabel="Cancelar"
+        onValidated={(data) => {
+          if (typeof window !== "undefined") {
+            sessionStorage.setItem(
+              "dinarp_anexo_c_validation",
+              JSON.stringify(data)
+            );
+          }
+          setShowAnexoCModal(false);
+          router.push("/cambio-coordinador");
+        }}
+      />
     </WireframeDashboardLayout>
   );
 }

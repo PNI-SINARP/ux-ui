@@ -569,6 +569,73 @@ export function useCambioCoordinadorStore() {
     []
   );
 
+  const actualizarInstitucionPorRuc = useCallback(
+    (ruc: string, entidadTipo: "Publica" | "Privada" = "Publica") => {
+      let nextInst: InstitucionConfig;
+      if (ruc === "1760004560001") {
+        nextInst = {
+          ...INSTITUCION_MINEDUC_DEFAULT,
+          ruc: "1760004560001"
+        };
+      } else if (ruc === "1760001550001") {
+        nextInst = {
+          nombre: "Dirección General de Registro Civil, Identificación y Cedulación",
+          ruc: "1760001550001",
+          estado: "Institución activa",
+          direccion: "Av. Amazonas N37-61 y Naciones Unidas, Quito, Ecuador",
+          representanteLegal: "Ing. Ottón Rivadeneira",
+          titular: {
+            nombreCompleto: "Carlos Mendoza",
+            cedula: "1720304050",
+            correo: "carlos.mendoza@registrocivil.gob.ec",
+            cargo: "Director de Interoperabilidad y Servicios",
+            caracter: "TITULAR",
+            estado: "ACTIVO",
+            anexoBAprobado: true,
+            fechaDesignacion: "10/01/2025",
+            telefono: "023731110 ext. 1400"
+          },
+          suplente: {
+            nombreCompleto: "Mariana Almeida",
+            cedula: "1714443322",
+            correo: "m.almeida@registrocivil.gob.ec",
+            cargo: "Especialista de Seguridad de la Información",
+            caracter: "SUPLENTE",
+            estado: "ACTIVO",
+            anexoBAprobado: true,
+            fechaDesignacion: "10/01/2025",
+            telefono: "023731110 ext. 1405"
+          }
+        };
+      } else if (entidadTipo === "Privada") {
+        nextInst = {
+          nombre: "Entidad Privada Registrada SINARP",
+          ruc,
+          estado: "Institución activa",
+          direccion: "Av. República del Salvador N36-84, Quito, Ecuador",
+          representanteLegal: "Dr. Esteban Viteri",
+          titular: {
+            ...INSTITUCION_MINEDUC_DEFAULT.titular,
+            correo: "coordinador.titular@entidad.ec"
+          },
+          suplente: {
+            ...INSTITUCION_MINEDUC_DEFAULT.suplente,
+            correo: "coordinador.suplente@entidad.ec"
+          }
+        };
+      } else {
+        nextInst = {
+          ...INSTITUCION_MINEDUC_DEFAULT,
+          ruc
+        };
+      }
+      setInstitucion(nextInst);
+      saveStoredInstitucion(nextInst);
+      return nextInst;
+    },
+    []
+  );
+
   const resetStore = useCallback(() => {
     localStorage.removeItem(STORAGE_KEY_CAMBIO_COORD);
     localStorage.removeItem(STORAGE_KEY_INSTITUCION_MINEDUC);
@@ -586,6 +653,7 @@ export function useCambioCoordinadorStore() {
     asignarRevisor,
     aprobarCambio,
     rechazarCambio,
+    actualizarInstitucionPorRuc,
     resetStore
   };
 }

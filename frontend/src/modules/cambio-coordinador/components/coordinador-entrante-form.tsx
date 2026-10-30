@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { toast } from "sonner";
 import {
   ShieldAlert,
   Info,
@@ -15,7 +16,10 @@ import {
   ArrowRight,
   ArrowLeft,
   ShieldCheck,
-  UserPlus
+  UserPlus,
+  Sparkles,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 import { FormField } from "@/components/ui/form-field";
 import { InputGroup, InputGroupInput } from "@/components/ui/input-group";
@@ -57,6 +61,11 @@ const MOCK_EXISTING_CEDULAS: Record<
   "1715489621": {
     nombre: "Patricia Morales",
     correo: "patricia.morales@dinarp.gob.ec",
+    anexoBAprobado: true
+  },
+  "1721345987": {
+    nombre: "Ing. Roberto Carlos Dávila Silva",
+    correo: "roberto.davila@educacion.gob.ec",
     anexoBAprobado: true
   }
 };
@@ -109,6 +118,37 @@ export function CoordinadorEntranteForm({
     cargo?: string;
     motivo?: string;
   }>({});
+  const [showDemoToolbar, setShowDemoToolbar] = useState(true);
+
+  const handleSimulateFill = () => {
+    const demoCedula =
+      coordinadorActual.cedula === "1721345987" ? "1714443322" : "1721345987";
+    const demoNombre =
+      caracter === "TITULAR"
+        ? "Ing. Roberto Carlos Dávila Silva"
+        : "Ing. Daniela Fernanda Paredes Castro";
+    const demoCorreo =
+      caracter === "TITULAR"
+        ? "roberto.davila@educacion.gob.ec"
+        : "daniela.paredes@educacion.gob.ec";
+    const demoCargo =
+      caracter === "TITULAR"
+        ? "Director de Tecnología / Coordinador"
+        : "Especialista de Interoperabilidad y Servicios";
+    const demoMotivo =
+      "Designación y reorganización de funciones institucionales de la entidad.";
+
+    setCedula(demoCedula);
+    setNombreCompleto(demoNombre);
+    setCorreo(demoCorreo);
+    setCargo(demoCargo);
+    setMotivo(demoMotivo);
+    setErrores({});
+
+    toast.success("Campos completados automáticamente", {
+      description: "Se han precargado los datos de prueba del nuevo coordinador entrante."
+    });
+  };
 
   // Verificación visual de cuenta en el sistema al ingresar la cédula
   useEffect(() => {
@@ -463,6 +503,52 @@ export function CoordinadorEntranteForm({
           <span>Siguiente: Revisar Anexo C</span>
           <ArrowRight className="size-4" />
         </Button>
+      </div>
+
+      {/* Botón flotante para Demo (Llenado rápido) */}
+      <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 flex flex-col items-end gap-2 sm:gap-3 max-w-[calc(100vw-2rem)]">
+        {showDemoToolbar ? (
+          <div className="flex flex-wrap items-center justify-end gap-1.5 sm:gap-2 bg-surface/95 backdrop-blur-md p-2 rounded-2xl border border-border shadow-xl max-w-full animate-in fade-in slide-in-from-bottom-2 duration-200">
+            <div className="hidden sm:flex items-center gap-1.5 px-2 text-[11px] font-semibold text-muted-foreground border-r border-border/60 mr-1">
+              <Sparkles className="size-3 text-primary shrink-0" />
+              <span>Demo</span>
+            </div>
+
+            <Button
+              type="button"
+              variant="primary"
+              size="default"
+              onClick={handleSimulateFill}
+              className="rounded-full px-3 sm:px-4 flex items-center gap-1.5 text-xs h-8 sm:h-9 shadow-xs"
+            >
+              <Sparkles className="size-3.5" /> Llenar campos automáticamente
+            </Button>
+
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowDemoToolbar(false)}
+              className="rounded-full size-8 shrink-0 hover:bg-muted text-muted-foreground hover:text-foreground ml-0.5"
+              title="Ocultar opciones de simulación"
+            >
+              <ChevronDown className="size-4" />
+            </Button>
+          </div>
+        ) : (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setShowDemoToolbar(true)}
+            className="rounded-full px-3.5 py-1.5 shadow-lg flex items-center gap-2 text-xs bg-surface/95 backdrop-blur-md border border-border hover:bg-muted transition-all animate-in fade-in slide-in-from-bottom-2 duration-200"
+            title="Desplegar opciones de simulación"
+          >
+            <Sparkles className="size-3.5 text-primary" />
+            <span className="font-medium">Casos de Uso</span>
+            <ChevronUp className="size-3.5 text-muted-foreground" />
+          </Button>
+        )}
       </div>
     </form>
   );

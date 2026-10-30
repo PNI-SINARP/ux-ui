@@ -73,6 +73,7 @@ import { Stepper, type Step as StepperStep } from "@/components/ui/stepper";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { cn, getAssetPath } from "@/lib/utils";
 import { useSolicitudesIngresoStore, type DatosAnexoA } from "@/modules/gestion-solicitudes/data/gestion-ingresos-store";
+import { ValidacionInstitucionModal } from "@/modules/auth/components/validacion-institucion-modal";
 
 
 
@@ -84,7 +85,8 @@ export function RegistroInstitucionView() {
   const router = useRouter();
   const { agregarRegistroInstitucion } = useSolicitudesIngresoStore();
 
-  const [step, setStep] = useState<0 | 1 | 2 | 3 | 4 | 5 | 6>(0);
+  const [step, setStep] = useState<0 | 1 | 2 | 3 | 4 | 5 | 6>(1);
+  const [showValidationModal, setShowValidationModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -290,19 +292,69 @@ export function RegistroInstitucionView() {
     }
   }, [formData, step]);
 
-  // Cargar borrador persistido si el usuario regresa a la pantalla
+  // Cargar borrador persistido o validación previa desde el modal de inicio
   useEffect(() => {
     if (typeof window !== "undefined") {
       try {
+        const preValidation = sessionStorage.getItem("dinarp_anexo_a_validation");
         const saved = localStorage.getItem("dinarp_anexo_a_draft");
+        let loadedDraft = false;
+
         if (saved) {
           const parsed = JSON.parse(saved);
           if (parsed.formData && parsed.formData.nombreEntidad) {
             setFormData(parsed.formData);
+            loadedDraft = true;
           }
           if (parsed.bpmState && parsed.bpmState !== "DRAFT") {
             setBpmState(parsed.bpmState);
           }
+        }
+
+        if (preValidation) {
+          const parsedVal = JSON.parse(preValidation);
+          setTimeout(() => sessionStorage.removeItem("dinarp_anexo_a_validation"), 1000);
+          const tipo = (parsedVal.entidadTipo || "Publica") as "Publica" | "Privada";
+          const isPrivada = tipo === "Privada";
+          setFormData((prev) => ({
+            ...prev,
+            entidadTipo: tipo,
+            rucEntidad: parsedVal.rucEntidad || prev.rucEntidad,
+            nombreEntidad:
+              prev.nombreEntidad ||
+              (isPrivada
+                ? "Corporación Financiera Ecuatoriana S.A."
+                : "Ministerio de Telecomunicaciones y de la Sociedad de la Información"),
+            direccionEntidad:
+              prev.direccionEntidad ||
+              (isPrivada
+                ? "Av. República del Salvador N34-183 y Suiza, Quito"
+                : "Av. 6 de Diciembre N25-75 y Av. Colón, Quito"),
+            objetoSocial:
+              prev.objetoSocial ||
+              (isPrivada
+                ? "Prestación de servicios financieros y tecnológicos con acceso autorizado a registros públicos."
+                : "Rectoría y formulación de políticas públicas de telecomunicaciones y gobierno digital."),
+            representanteLegalNombre:
+              prev.representanteLegalNombre ||
+              (isPrivada
+                ? "Eco. Roberto Carlos Andrade Viteri"
+                : "Ing. César Antonio Martín Moreno"),
+            representanteLegalCargo:
+              prev.representanteLegalCargo ||
+              (isPrivada
+                ? "Gerente General (Representante Legal)"
+                : "Ministro de Telecomunicaciones (Representante Legal)"),
+            representanteLegalEmail:
+              prev.representanteLegalEmail ||
+              (isPrivada
+                ? "gerencia@corpfinanciera.ec"
+                : "ministro@mintel.gob.ec"),
+          }));
+          setShowValidationModal(false);
+          setStep(1);
+        } else if (!loadedDraft) {
+          setShowValidationModal(true);
         }
       } catch (e) {
         console.error("Error al cargar borrador de Anexo A", e);
@@ -1201,7 +1253,7 @@ export function RegistroInstitucionView() {
                         type="button"
                         variant="secondary"
                         size="default"
-                        onClick={() => setStep(0)}
+                        onClick={() => setShowValidationModal(true)}
                         className="text-xs font-semibold gap-1.5 w-full sm:w-auto px-4 whitespace-nowrap"
                       >
                         <ArrowLeft className="size-4 shrink-0" />
@@ -2973,6 +3025,56 @@ export function RegistroInstitucionView() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Modal de Validación de la Institución (Anexo A) */}
+      <ValidacionInstitucionModal
+        open={showValidationModal}
+        onOpenChange={setShowValidationModal}
+        initialEntidadTipo={formData.entidadTipo}
+        initialRuc={formData.rucEntidad}
+        cancelLabel={formData.rucEntidad ? "Cerrar" : "Volver al acceso principal"}
+        onCancel={() => {
+          if (formData.rucEntidad) {
+            setShowValidationModal(false);
+          } else {
+            router.push("/login");
+          }
+        }}
+        onValidated={(data) => {
+          const isPrivada = data.entidadTipo === "Privada";
+          setFormData((prev) => ({
+            ...prev,
+            entidadTipo: data.entidadTipo,
+            rucEntidad: data.rucEntidad,
+            nombreEntidad:
+              isPrivada
+                ? "Corporación Financiera Ecuatoriana S.A."
+                : "Ministerio de Telecomunicaciones y de la Sociedad de la Información",
+            direccionEntidad:
+              isPrivada
+                ? "Av. República del Salvador N34-183 y Suiza, Quito"
+                : "Av. 6 de Diciembre N25-75 y Av. Colón, Quito",
+            objetoSocial:
+              isPrivada
+                ? "Prestación de servicios financieros y tecnológicos con acceso autorizado a registros públicos."
+                : "Rectoría y formulación de políticas públicas de telecomunicaciones y gobierno digital.",
+            representanteLegalNombre:
+              isPrivada
+                ? "Eco. Roberto Carlos Andrade Viteri"
+                : "Ing. César Antonio Martín Moreno",
+            representanteLegalCargo:
+              isPrivada
+                ? "Gerente General (Representante Legal)"
+                : "Ministro de Telecomunicaciones (Representante Legal)",
+            representanteLegalEmail:
+              isPrivada
+                ? "gerencia@corpfinanciera.ec"
+                : "ministro@mintel.gob.ec",
+          }));
+          setShowValidationModal(false);
+          setStep(1);
+        }}
+      />
     </div>
   );
 }

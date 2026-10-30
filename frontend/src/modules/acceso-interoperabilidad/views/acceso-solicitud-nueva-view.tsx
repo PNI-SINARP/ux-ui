@@ -31,6 +31,7 @@ import {
   Clock,
   ShieldAlert,
   Settings2,
+  CornerDownRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -1665,14 +1666,36 @@ export function AccesoSolicitudNuevaView({
                                       (acc, it) => acc + it.fuente.campos.length,
                                       0
                                     );
+                                    const totalInstAccesibles = groupItems.reduce(
+                                      (acc, it) => acc + it.camposAccesibles,
+                                      0
+                                    );
+                                    const totalInstConfidenciales = groupItems.reduce(
+                                      (acc, it) => acc + it.camposConfidenciales,
+                                      0
+                                    );
+                                    const totalInstSensibles = groupItems.reduce(
+                                      (acc, it) => acc + it.camposSensibles,
+                                      0
+                                    );
+                                    const selectedInInst = selectedCamposDetails.filter(
+                                      (d) => d.instId === groupInst.id
+                                    ).length;
+                                    const ultimaActInst =
+                                      groupItems[0]?.fuente.ultimaActualizacion ?? "—";
+                                    const baseLegalPrincipal =
+                                      groupItems[0]?.fuente.baseLegal ?? "Normativa institucional vigente";
+
                                     return (
                                       <React.Fragment key={`bn07-inst-group-${groupInst.id}`}>
+                                        {/* NIVEL 1 (PRIMARIO): INSTITUCIÓN PROVEEDORA ALINEADA A LAS 7 COLUMNAS */}
                                         <TableRow
                                           onClick={() => toggleInstitucion(groupInst.id)}
-                                          className="cursor-pointer bg-muted/40 hover:bg-muted/65 border-y border-border transition-colors"
+                                          className="cursor-pointer bg-primary/10 hover:bg-primary/15 dark:bg-primary/15 dark:hover:bg-primary/25 border-l-4 border-l-primary border-y border-border transition-colors"
                                         >
+                                          {/* Col 1: Expandir institución */}
                                           <TableCell
-                                            className="text-center py-2.5"
+                                            className="text-center py-3"
                                             onClick={(e) => e.stopPropagation()}
                                           >
                                             <Button
@@ -1681,7 +1704,7 @@ export function AccesoSolicitudNuevaView({
                                               size="icon-sm"
                                               onClick={() => toggleInstitucion(groupInst.id)}
                                               aria-expanded={isInstExpanded}
-                                              className="size-7 rounded-lg text-primary hover:bg-primary/15"
+                                              className="size-8 rounded-lg bg-primary/15 text-primary hover:bg-primary/25"
                                             >
                                               <ChevronRight
                                                 className={cn(
@@ -1691,10 +1714,50 @@ export function AccesoSolicitudNuevaView({
                                               />
                                             </Button>
                                           </TableCell>
-                                          <TableCell colSpan={6} className="py-2.5">
-                                            <div className="flex flex-wrap items-center justify-between gap-2">
-                                              <div className="flex items-center gap-2.5 flex-wrap">
-                                                <Building2 className="size-4 text-primary shrink-0" />
+
+                                          {/* Col 2: Fuente de Información (Resumen de fuentes de la institución) */}
+                                          <TableCell className="py-3">
+                                            <div className="space-y-1">
+                                              <div className="flex items-center gap-2 flex-wrap">
+                                                <Badge
+                                                  tone="primary"
+                                                  appearance="solid"
+                                                  size="sm"
+                                                  className="font-bold text-[10px] tracking-wider !text-white px-2 py-0.5 shadow-2xs gap-1"
+                                                >
+                                                  <Database className="size-3" />
+                                                  <span>
+                                                    {groupItems.length}{" "}
+                                                    {groupItems.length === 1
+                                                      ? "FUENTE PUBLICADA"
+                                                      : "FUENTES PUBLICADAS"}
+                                                  </span>
+                                                </Badge>
+                                                {groupItems.map((it) => (
+                                                  <span
+                                                    key={it.fuente.id}
+                                                    className="font-mono text-[10px] font-semibold text-primary bg-surface/80 border border-primary/25 px-1.5 py-0.5 rounded"
+                                                  >
+                                                    {it.fuente.codigoServicio}
+                                                  </span>
+                                                ))}
+                                              </div>
+                                              <p className="font-heading font-bold text-xs sm:text-sm text-foreground leading-snug">
+                                                Catálogo de servicios de {groupInst.sigla}
+                                              </p>
+                                              <p className="text-[11px] text-muted-foreground">
+                                                {isInstExpanded
+                                                  ? "Mostrando fuentes desplegadas en segundo nivel"
+                                                  : "Haga clic para desplegar las fuentes de esta institución"}
+                                              </p>
+                                            </div>
+                                          </TableCell>
+
+                                          {/* Col 3: Institución Proveedora */}
+                                          <TableCell className="py-3">
+                                            <div className="space-y-1">
+                                              <div className="flex items-center gap-1.5 flex-wrap">
+                                                <Building2 className="size-3.5 text-primary shrink-0" />
                                                 <Badge
                                                   tone="primary"
                                                   appearance="solid"
@@ -1703,37 +1766,145 @@ export function AccesoSolicitudNuevaView({
                                                 >
                                                   {groupInst.sigla}
                                                 </Badge>
-                                                <span className="font-heading font-bold text-xs sm:text-sm text-foreground">
-                                                  {groupInst.nombre}
-                                                </span>
                                                 <span className="text-[11px] font-mono text-muted-foreground">
                                                   RUC: {groupInst.codigoInstitucion}
                                                 </span>
                                               </div>
-                                              <div className="flex items-center gap-2">
-                                                <Badge
-                                                  tone="primary"
-                                                  appearance="soft"
-                                                  size="sm"
-                                                  className="text-[11px] font-semibold"
+                                              <p className="font-heading font-bold text-xs sm:text-sm text-foreground leading-snug">
+                                                {groupInst.nombre}
+                                              </p>
+                                              <p className="text-[11px] text-muted-foreground">
+                                                {groupInst.sector}
+                                              </p>
+                                            </div>
+                                          </TableCell>
+
+                                          {/* Col 4: Base Legal y Vigencia */}
+                                          <TableCell className="py-3">
+                                            <div className="space-y-1 text-xs">
+                                              <div className="flex items-center gap-1.5 text-foreground font-medium">
+                                                <Scale className="size-3.5 text-primary shrink-0" />
+                                                <span
+                                                  className="line-clamp-1"
+                                                  title={baseLegalPrincipal}
                                                 >
-                                                  {groupItems.length}{" "}
                                                   {groupItems.length === 1
-                                                    ? "fuente publicada"
-                                                    : "fuentes publicadas"}
-                                                </Badge>
-                                                <Badge
-                                                  tone="neutral"
-                                                  appearance="outline"
-                                                  size="sm"
-                                                  className="text-[11px] font-semibold"
-                                                >
-                                                  {totalInstCampos} campos
-                                                </Badge>
+                                                    ? baseLegalPrincipal
+                                                    : `${groupItems.length} marcos normativos vigentes`}
+                                                </span>
+                                              </div>
+                                              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                                                <Clock className="size-3 shrink-0" />
+                                                <span>Actualizado: {ultimaActInst}</span>
                                               </div>
                                             </div>
                                           </TableCell>
+
+                                          {/* Col 5: Campos y Requisitos */}
+                                          <TableCell className="py-3">
+                                            <div className="flex flex-wrap items-center gap-1.5">
+                                              <Badge
+                                                tone="primary"
+                                                appearance="soft"
+                                                size="sm"
+                                                className="text-[10px] font-bold"
+                                              >
+                                                {totalInstCampos} CAMPOS TOTALES
+                                              </Badge>
+                                              {totalInstAccesibles > 0 && (
+                                                <Badge
+                                                  tone="success"
+                                                  appearance="soft"
+                                                  size="sm"
+                                                  className="gap-1 font-semibold text-[10px]"
+                                                >
+                                                  <Unlock className="size-3" />
+                                                  <span>{totalInstAccesibles} ACC.</span>
+                                                </Badge>
+                                              )}
+                                              {totalInstConfidenciales > 0 && (
+                                                <Badge
+                                                  tone="warning"
+                                                  appearance="soft"
+                                                  size="sm"
+                                                  className="gap-1 font-semibold text-[10px]"
+                                                >
+                                                  <Lock className="size-3" />
+                                                  <span>{totalInstConfidenciales} CONF.</span>
+                                                </Badge>
+                                              )}
+                                              {totalInstSensibles > 0 && (
+                                                <Badge
+                                                  tone="danger"
+                                                  appearance="soft"
+                                                  size="sm"
+                                                  className="gap-1 font-bold text-[10px]"
+                                                >
+                                                  <ShieldAlert className="size-3" />
+                                                  <span>{totalInstSensibles} SENS.</span>
+                                                </Badge>
+                                              )}
+                                            </div>
+                                          </TableCell>
+
+                                          {/* Col 6: Selección */}
+                                          <TableCell className="text-center py-3">
+                                            {selectedInInst > 0 ? (
+                                              <Badge
+                                                tone="primary"
+                                                appearance="soft"
+                                                size="sm"
+                                                className="gap-1 font-semibold text-[10px]"
+                                              >
+                                                <Check className="size-3" />
+                                                <span>{selectedInInst} seleccionados</span>
+                                              </Badge>
+                                            ) : (
+                                              <span className="text-[11px] text-muted-foreground">
+                                                {groupItems.length}{" "}
+                                                {groupItems.length === 1 ? "disponible" : "disponibles"}
+                                              </span>
+                                            )}
+                                          </TableCell>
+
+                                          {/* Col 7: Acciones */}
+                                          <TableCell
+                                            className="text-center py-3"
+                                            onClick={(e) => e.stopPropagation()}
+                                          >
+                                            <div className="flex items-center justify-center">
+                                              <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                  <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="icon-sm"
+                                                    onClick={() => toggleInstitucion(groupInst.id)}
+                                                    className="text-primary hover:text-primary hover:bg-primary/15"
+                                                    aria-label={
+                                                      isInstExpanded
+                                                        ? `Ocultar fuentes de ${groupInst.nombre}`
+                                                        : `Ver fuentes de ${groupInst.nombre}`
+                                                    }
+                                                  >
+                                                    {isInstExpanded ? (
+                                                      <EyeOff className="size-4" />
+                                                    ) : (
+                                                      <Eye className="size-4 text-primary" />
+                                                    )}
+                                                  </Button>
+                                                </TooltipTrigger>
+                                                <TooltipContent side="top" className="text-xs">
+                                                  {isInstExpanded
+                                                    ? `Ocultar las ${groupItems.length} fuentes de ${groupInst.sigla}`
+                                                    : `Desplegar ${groupItems.length} fuentes de ${groupInst.sigla}`}
+                                                </TooltipContent>
+                                              </Tooltip>
+                                            </div>
+                                          </TableCell>
                                         </TableRow>
+
+                                        {/* NIVEL 2 (SECUNDARIO INDENTADO): FUENTES DE LA INSTITUCIÓN */}
                                         {isInstExpanded &&
                                           groupItems.map(
                                   ({
@@ -1771,38 +1942,41 @@ export function AccesoSolicitudNuevaView({
                                           id={`row-${fuente.id}`}
                                           onClick={() => toggleFuente(fuente.id)}
                                           className={cn(
-                                            "group cursor-pointer transition-all duration-200 hover:bg-primary/10 dark:hover:bg-primary/15",
-                                            isExpanded && "bg-primary/10 dark:bg-primary/15 font-medium",
-                                            isCurrentActiveFuente && "bg-primary/5",
+                                            "group cursor-pointer transition-all duration-200 bg-surface hover:bg-primary/10 dark:hover:bg-primary/15 border-l-4 border-l-primary/35",
+                                            isExpanded && "bg-primary/10 dark:bg-primary/15 font-medium border-l-primary",
+                                            isCurrentActiveFuente && "bg-primary/5 border-l-primary",
                                             isDifferentFromActive && "opacity-75"
                                           )}
                                         >
-                                          {/* Botón Expandir */}
+                                          {/* Col 1: Conector de 2do nivel + Botón Expandir */}
                                           <TableCell
-                                            className="text-center"
+                                            className="text-center pl-4 pr-1"
                                             onClick={(e) => e.stopPropagation()}
                                           >
-                                            <Button
-                                              type="button"
-                                              variant="ghost"
-                                              size="icon-sm"
-                                              onClick={() => toggleFuente(fuente.id)}
-                                              aria-expanded={isExpanded}
-                                              aria-controls={rowContentId}
-                                              className="size-8 rounded-lg group-hover:bg-primary/15 hover:bg-primary/25 text-primary transition-all duration-200"
-                                            >
-                                              <ChevronRight
-                                                className={cn(
-                                                  "size-4 transition-transform duration-300",
-                                                  isExpanded && "rotate-90 text-primary"
-                                                )}
-                                              />
-                                            </Button>
+                                            <div className="flex items-center justify-end gap-0.5">
+                                              <CornerDownRight className="size-3.5 text-primary/60 shrink-0" />
+                                              <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon-sm"
+                                                onClick={() => toggleFuente(fuente.id)}
+                                                aria-expanded={isExpanded}
+                                                aria-controls={rowContentId}
+                                                className="size-7 rounded-lg group-hover:bg-primary/15 hover:bg-primary/25 text-primary transition-all duration-200"
+                                              >
+                                                <ChevronRight
+                                                  className={cn(
+                                                    "size-4 transition-transform duration-300",
+                                                    isExpanded && "rotate-90 text-primary"
+                                                  )}
+                                                />
+                                              </Button>
+                                            </div>
                                           </TableCell>
 
-                                          {/* Fuente de Información */}
-                                          <TableCell>
-                                            <div className="space-y-1 max-w-md">
+                                          {/* Col 2: Fuente de Información (Indentada más a la derecha / adentro) */}
+                                          <TableCell className="pl-5 sm:pl-7">
+                                            <div className="space-y-1 max-w-md pl-3.5 border-l-2 border-primary/35">
                                               <div className="flex items-center gap-2 flex-wrap">
                                                 <span className="font-mono text-[11px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded">
                                                   {fuente.codigoServicio}
@@ -1825,15 +1999,15 @@ export function AccesoSolicitudNuevaView({
                                             </div>
                                           </TableCell>
 
-                                          {/* Institución Proveedora */}
+                                          {/* Col 3: Institución Proveedora */}
                                           <TableCell>
                                             <div className="space-y-1">
                                               <div className="flex items-center gap-1.5">
                                                 <Badge
                                                   tone="primary"
-                                                  appearance="solid"
+                                                  appearance="soft"
                                                   size="sm"
-                                                  className="font-bold text-[10px] tracking-wider !text-white px-2 py-0.5 shadow-2xs"
+                                                  className="font-bold text-[10px] tracking-wider px-2 py-0.5"
                                                 >
                                                   {institucion.sigla}
                                                 </Badge>
@@ -1841,11 +2015,8 @@ export function AccesoSolicitudNuevaView({
                                                   RUC: {institucion.codigoInstitucion}
                                                 </span>
                                               </div>
-                                              <p className="text-xs font-semibold text-foreground leading-snug">
+                                              <p className="text-xs font-medium text-foreground/90 leading-snug">
                                                 {institucion.nombre}
-                                              </p>
-                                              <p className="text-[11px] text-muted-foreground">
-                                                {institucion.sector}
                                               </p>
                                             </div>
                                           </TableCell>
@@ -2307,11 +2478,11 @@ export function AccesoSolicitudNuevaView({
                                 return (
                                   <div
                                     key={`bn07-card-inst-${groupInst.id}`}
-                                    className="rounded-xl border border-border bg-muted/15 overflow-hidden"
+                                    className="rounded-xl border border-primary/25 bg-surface overflow-hidden shadow-xs"
                                   >
                                     <div
                                       onClick={() => toggleInstitucion(groupInst.id)}
-                                      className="cursor-pointer px-4 py-3 bg-muted/35 hover:bg-muted/55 flex flex-wrap items-center justify-between gap-2 transition-colors"
+                                      className="cursor-pointer px-4 py-3 bg-primary/10 hover:bg-primary/15 dark:bg-primary/15 dark:hover:bg-primary/25 border-l-4 border-l-primary flex flex-wrap items-center justify-between gap-2 transition-colors"
                                     >
                                       <div className="flex items-center gap-2.5 flex-wrap">
                                         <ChevronRight
@@ -2329,7 +2500,7 @@ export function AccesoSolicitudNuevaView({
                                         >
                                           {groupInst.sigla}
                                         </Badge>
-                                        <span className="font-heading font-bold text-xs sm:text-sm text-foreground">
+                                        <span className="font-heading font-bold text-xs sm:text-sm text-primary dark:text-foreground">
                                           {groupInst.nombre}
                                         </span>
                                       </div>
@@ -2356,7 +2527,7 @@ export function AccesoSolicitudNuevaView({
                                     {isInstExpanded && (
                                       <div
                                         className={cn(
-                                          "p-3 sm:p-4 border-t border-border/60",
+                                          "p-3 sm:p-4 border-t border-t-border/60 bg-muted/10",
                                           groupItems.length === 1
                                             ? "grid grid-cols-1 gap-4"
                                             : "grid grid-cols-1 lg:grid-cols-2 gap-4"
