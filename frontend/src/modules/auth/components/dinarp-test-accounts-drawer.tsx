@@ -534,7 +534,7 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
       { label: "Entrega excepcional: solicitar y descargar (BN-11)", route: "/entrega-excepcional", huBadge: "EXT-01, 03, 05, 07" },
       { label: "Mis Solicitudes (BN-07 / BN-08)", route: "/acceso-interoperabilidad/solicitudes", huBadge: "SOL-01, ACC-02" },
       { label: "Nueva Solicitud (Wizard)", route: "/acceso-interoperabilidad/solicitudes/nueva", huBadge: "SOL-02" },
-      { label: "Subsanar Observación (SOL-05)", route: "/acceso-interoperabilidad/solicitudes/SOL-2026-0092/corregir", huBadge: "SOL-05" },
+      { label: "Subsanar Observación (SOL-05)", route: "/acceso-interoperabilidad/solicitudes/SOL-2026-009/corregir", huBadge: "SOL-05" },
       { label: "Firmar Contrato Privado (BN-08)", route: "/formalizacion/contratos", huBadge: "DOC-02" },
       { label: "Pagar Factura Electrónica (BN-08)", route: "/acceso-interoperabilidad/solicitudes/SOL-2026-005/facturacion", huBadge: "FAC-01, PAG-01" },
       { label: "Explorar Catálogo", route: "/catalogo-interoperabilidad", huBadge: "CAT-01" },
@@ -551,7 +551,7 @@ export const TEST_ACCOUNTS_DATA: TestAccountItem[] = [
         actions: [
           { label: "Mis Solicitudes (SOL-01)", route: "/acceso-interoperabilidad/solicitudes", huBadge: "SOL-01" },
           { label: "Nueva Solicitud (SOL-02)", route: "/acceso-interoperabilidad/solicitudes/nueva", huBadge: "SOL-02" },
-          { label: "Subsanar Solicitud Observada (SOL-05)", route: "/acceso-interoperabilidad/solicitudes/SOL-2026-0092/corregir", huBadge: "SOL-05" },
+          { label: "Subsanar Solicitud Observada (SOL-05)", route: "/acceso-interoperabilidad/solicitudes/SOL-2026-009/corregir", huBadge: "SOL-05" },
           { label: "Explorar Catálogo", route: "/catalogo-interoperabilidad", huBadge: "CAT-01" },
         ],
       },
